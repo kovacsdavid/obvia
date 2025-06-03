@@ -1,0 +1,35 @@
+[package]
+name = "backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.4"
+axum-extra = { version = "0.10.0", features = ["cookie", "cookie-key-expansion", "cookie-private", "cookie-signed", "typed-header"] }
+axum-macros = "0.5.0"
+jsonwebtoken = { version = "9.3.1", features = ["use_pem"] }
+rand = "0.9.0"
+reqwest = { version = "0.12.12", features = ["json"]}
+serde = { version = "1.0.217", features = ["derive"]}
+serde_json = "1.0.138"
+tokio = { version = "1.43.0", features = ["full"] }
+tower-http = { version = "0.6.2", features = ["trace"] }
+tower = { version = "0.5.2", features = ["full"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+url = "2.5.4"
+uuid = { version = "1.13.1", features = ["v4", "serde"] }
+async-trait = "0.1.86"
+toml = "0.8.20"
+clap = { version = "4.5.28", features = ["derive"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+chrono = { version = "0.4.39", features = ["serde"] }
+anyhow = "1.0.95"
+thiserror = "2.0.11"
+argon2 = "0.5.3"
+config = "0.15.11"
+headers = "0.4.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
+mockall = "0.13.1"

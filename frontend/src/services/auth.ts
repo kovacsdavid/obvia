@@ -18,20 +18,23 @@
  */
 
 export interface LoginRequest {
-  email: string;
-  password: string;
+  email: string,
+  password: string,
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
 }
 
 export interface LoginResponse {
-  user: { id: string; email: string };
-  token: string;
+  success: boolean,
+  data: {
+    user: { id: string, email: string };
+    token: string,
+  }
 }
 
 const API_URL = import.meta.env.OBVIA_API_URL || "http://localhost:3000";
@@ -45,8 +48,8 @@ export async function login({ email, password }: LoginRequest): Promise<LoginRes
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Login failed");
+    const error = await response.json();
+    throw new Error(error?.error?.message || "A bejelentkezés sikertelen");
   }
 
   return response.json();
@@ -66,8 +69,8 @@ export async function register({
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(error || "Registration failed");
+    const error = await response.json();
+    throw new Error(error?.error?.message || "A regisztráció sikertelen");
   }
 
   return response.json();

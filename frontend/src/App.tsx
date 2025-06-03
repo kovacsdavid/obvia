@@ -27,7 +27,7 @@ import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
-  const user = useSelector((state: RootState) => state.auth.user);
+  const user = useSelector((state: RootState) => state.auth.login.user);
   return user ? children : <Navigate to="/bejelentkezes" replace />;
 }
 

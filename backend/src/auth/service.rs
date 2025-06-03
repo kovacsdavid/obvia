@@ -18,11 +18,12 @@
  */
 
 use std::sync::Arc;
-use crate::users::dto::{LoginRequest, RegisterRequest};
-use super::{dto::{Claims, LoginResponse, LoginUser, RegisterResponse}, error::{LoginError, RegisterError}, repository::AuthRepository, AuthModule};
+use crate::{common::{dto::OkResponse, error::FriendlyError}, users::dto::{LoginRequest, RegisterRequest}};
+use super::{dto::{Claims, LoginResponse, LoginUser, RegisterResponse}, repository::AuthRepository, AuthModule};
 use anyhow::Result;
 use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};
+use axum::http::StatusCode;
 use jsonwebtoken::{encode, EncodingKey, Header};
 #[cfg(test)]
 use mockall::automock;
@@ -54,18 +55,33 @@ impl AuthPasswordHasher for Argon2Hasher {
     }
 }
 
-pub async fn try_login(auth_module: Arc<AuthModule>, payload: LoginRequest) -> Result<LoginResponse> {
+pub async fn try_login(
+    auth_module: Arc<AuthModule>,
+    payload: LoginRequest
+) -> Result<OkResponse<LoginResponse>, FriendlyError> {
     let user = auth_module
         .repo
         .get_user_by_email(&payload.email)
-        .await?;
+        .await
+        .map_err(|_| FriendlyError::UserFacing(
+            StatusCode::UNAUTHORIZED,
+            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+            "Hibás e-mail cím vagy jelszó".to_string()
+        ).trace(tracing::Level::DEBUG))?;
+
 
     let parsed_hash = PasswordHash::new(&user.password_hash)
-        .map_err(|e| LoginError::PasswordHashError(e.to_string()))?;
+        .map_err(|e| FriendlyError::Internal(
+            e.to_string()
+        ).trace(tracing::Level::ERROR))?;
 
     Argon2::default()
         .verify_password(payload.password.as_bytes(), &parsed_hash)
-        .map_err(|_| LoginError::InvalidCredentials)?;
+        .map_err(|_| FriendlyError::UserFacing(
+            StatusCode::UNAUTHORIZED,
+            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+            "Hibás e-mail cím vagy jelszó".to_string()
+        ).trace(tracing::Level::DEBUG))?;
 
     let now = Utc::now().timestamp() as usize;
     let exp = (
@@ -94,35 +110,41 @@ pub async fn try_login(auth_module: Arc<AuthModule>, payload: LoginRequest) -> R
         &claims,
         &EncodingKey::from_secret(auth_module.config.auth().jwt_secret().as_bytes()),
     )
-    .map_err(LoginError::JWTError)?;
+    .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
     let login_user = LoginUser {
         id: user.id.to_string(),
         email: user.email.clone(),
     };
 
-    Ok(LoginResponse::new(login_user, token))
+    Ok(OkResponse::new(LoginResponse::new(login_user, token)))
 }
 
 pub async fn try_register(
     repo: Arc<dyn AuthRepository>,
     pasword_hasher: Arc<dyn AuthPasswordHasher>,
     payload: RegisterRequest
-) -> Result<RegisterResponse> {
+) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
     let password_hash = pasword_hasher
         .hash_password(&payload.password)
-        .map_err(|_| RegisterError::HashingFailed)?
+        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();
 
     repo.insert_user(&payload, &password_hash).await.map_err(|e| {
         if e.to_string().contains("duplicate key value violates unique constraint") {
-            RegisterError::UserAlreadyExists
+            FriendlyError::UserFacing(
+                StatusCode::CONFLICT,
+                "AUTH/SERVICE/ALREADYEXISTS".to_string(),
+                "Ez az e-mail cím már foglalt".to_string()
+            ).trace(tracing::Level::DEBUG)
         } else {
-            RegisterError::DatabaseError(e)
+            FriendlyError::Internal(
+                e.to_string()
+            ).trace(tracing::Level::ERROR)
         }
     })?;
 
-    Ok(RegisterResponse {
-        message: "A felhasználó sikerese létrehozva".to_string()
-    })
+    Ok(OkResponse::new(RegisterResponse {
+        message: "A felhasználó sikeresen létrehozva".to_string()
+    }))
 }

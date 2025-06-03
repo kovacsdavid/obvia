@@ -42,7 +42,7 @@ export default function Login() {
     e.preventDefault();
     login( email, password ).then((response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        navigate('/dashboard');
+        navigate('/vezerlopult');
       }
     });
   };

@@ -18,7 +18,6 @@
  */
 
 use std::sync::Arc;
-use tracing::error;
 use axum::{extract::State, http::StatusCode, response::{IntoResponse, Response}, Json};
 use crate::users::dto::{LoginRequest, RegisterRequest};
 use super::{middleware::AuthenticatedUser, service::{try_login, try_register}, AuthModule};
@@ -30,11 +29,7 @@ pub async fn login(
 ) -> Response {
     match try_login(auth_module.clone(), payload).await {
         Ok(resp) => (StatusCode::OK, axum::Json(resp)).into_response(),
-        Err(e) => {
-            // TODO: improve this so you can notify users if internal server error happens
-            error!("Login error: {:?}", e);
-            (StatusCode::UNAUTHORIZED, "Hibás e-mail cím vagy jelszó").into_response()
-        }
+        Err(e) => e.into_response(),
     }
 }
 
@@ -49,11 +44,7 @@ pub async fn register(
         payload
     ).await {
         Ok(resp) => (StatusCode::CREATED, axum::Json(resp)).into_response(),
-        Err(e) => {
-            // TODO: improve this so you can notify users if internal server error happens
-            error!("Register error: {:?}", e);
-            (StatusCode::CONFLICT, "Ez az e-mail cím már foglalt").into_response()
-        }
+        Err(e) => e.into_response(),
     }
 }
 

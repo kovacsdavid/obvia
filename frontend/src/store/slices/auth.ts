@@ -107,8 +107,8 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<authApi.LoginResponse>) => {
         state.login.status = "succeeded";
-        state.login.user = action.payload.user;
-        state.login.token = action.payload.token;
+        state.login.user = action.payload.data.user;
+        state.login.token = action.payload.data.token;
         state.login.error = null;
         state.login.isLoggedIn = true;
       })

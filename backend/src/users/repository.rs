@@ -33,7 +33,7 @@ impl AuthRepository for PostgresRepo {
         sqlx::query(
             "INSERT INTO users (
                     id, email, password_hash, first_name, last_name, phone, locale
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7)"
         )
             .bind(Uuid::new_v4())
             .bind(&payload.email)

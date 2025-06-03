@@ -17,25 +17,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+use serde::Serialize;
 
-use repository::AuthRepository;
-use service::AuthPasswordHasher;
-
-use crate::app::AppConfig;
-
-pub mod dto;
-pub mod handler;
-pub mod middleware;
-pub mod repository;
-pub mod routes;
-pub mod service;
-#[cfg(test)]
-pub mod tests;
-
-pub struct AuthModule {
-    pub repo: Arc<dyn AuthRepository>,
-    pub password_hasher: Arc<dyn AuthPasswordHasher>,
-    pub config: Arc<AppConfig>,
+#[derive(Serialize)]
+pub struct OkResponse<T> {
+    pub success: bool,
+    pub data: T,
 }
 
+impl<T> OkResponse<T> {
+    pub fn new(data: T) -> Self {
+        Self {
+            success: true,
+            data: data,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub success: bool,
+    pub error: ErrorBody,
+}
+
+impl ErrorResponse {
+    pub fn new(error: ErrorBody) -> Self {
+        Self {
+            success: false,
+            error: error,
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct ErrorBody {
+    pub code: String,
+    pub message: String,
+}

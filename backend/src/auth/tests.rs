@@ -108,12 +108,14 @@ async fn test_login_success_return_jwt() {
         .unwrap();
     let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
 
+    let data = body.get("data").unwrap();
+
     assert!(
-        body.get("token").is_some(),
+        data.get("token").is_some(),
         "Response should contain a token"
     );
     assert!(
-        body["token"].as_str().unwrap().len() > 10,
+        data["token"].as_str().unwrap().len() > 10,
         "Token should be nontrivial"
     );
 }
@@ -163,12 +165,11 @@ async fn test_login_failure() {
 #[tokio::test]
 async fn test_register_success() {
     let register_request = RegisterRequest {
-        email: "testuser@example.com".to_string(),
-        password: "password".to_string(),
-        first_name: Some("Test".to_string()),
-        last_name: Some("User".to_string()),
-        phone: None,
-        locale: Some("hu-HU".to_string()),
+        email: "testuser@example.com".to_string().try_into().unwrap(),
+        first_name: "Test".to_string().try_into().unwrap(),
+        last_name: "User".to_string().try_into().unwrap(),
+        password: "Password1!".to_string().try_into().unwrap(),
+        password_confirm: "Password1!".to_string().try_into().unwrap(),
     };
     let mut repo = MockAuthRepository::new();
     repo.expect_insert_user()
@@ -178,7 +179,7 @@ async fn test_register_success() {
     let mut password_hasher = MockAuthPasswordHasher::new();
     password_hasher
         .expect_hash_password()
-        .with(eq("password"))
+        .with(eq("Password1!"))
         .returning(|_| Ok("hashed_password".to_string()));
 
     let auth_module = Arc::new(AuthModule {
@@ -187,19 +188,18 @@ async fn test_register_success() {
         config: Arc::new(AppConfig::default()),
     });
 
-    let response = register(State(auth_module), Json(register_request)).await;
+    let response = register(State(auth_module), Ok(Json(register_request))).await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[tokio::test]
 async fn test_register_user_already_exists() {
     let register_request = RegisterRequest {
-        email: "testuser@example.com".to_string(),
-        password: "password".to_string(),
-        first_name: Some("Test".to_string()),
-        last_name: Some("User".to_string()),
-        phone: None,
-        locale: Some("hu-HU".to_string()),
+        email: "testuser@example.com".to_string().try_into().unwrap(),
+        first_name: "Test".to_string().try_into().unwrap(),
+        last_name: "User".to_string().try_into().unwrap(),
+        password: "Password1!".to_string().try_into().unwrap(),
+        password_confirm: "Password1!".to_string().try_into().unwrap(),
     };
     let mut repo = MockAuthRepository::new();
     repo.expect_insert_user()
@@ -212,7 +212,7 @@ async fn test_register_user_already_exists() {
     let mut password_hasher = MockAuthPasswordHasher::new();
     password_hasher
         .expect_hash_password()
-        .with(eq("password"))
+        .with(eq("Password1!"))
         .returning(|_| Ok("hashed_password".to_string()));
 
 
@@ -222,6 +222,6 @@ async fn test_register_user_already_exists() {
         config: Arc::new(AppConfig::default()),
     });
 
-    let response = register(State(auth_module), Json(register_request)).await;
+    let response = register(State(auth_module), Ok(Json(register_request))).await;
     assert_eq!(response.status(), StatusCode::CONFLICT);
 }

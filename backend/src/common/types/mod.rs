@@ -17,8 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod dto;
-pub mod error;
-pub mod repository;
-pub mod types;
-pub mod utils;
+pub mod email;
+pub mod first_name;
+pub mod last_name;
+pub mod password;
+
+pub use email::Email;
+pub use first_name::FirstName;
+pub use last_name::LastName;
+pub use password::Password;

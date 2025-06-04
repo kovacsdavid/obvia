@@ -126,7 +126,7 @@ pub async fn try_register(
     payload: RegisterRequest
 ) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
     let password_hash = pasword_hasher
-        .hash_password(&payload.password)
+        .hash_password(&payload.password.as_str())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();
 

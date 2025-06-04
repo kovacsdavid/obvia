@@ -42,7 +42,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    dispatch(registerUser({ firstName, lastName, email, password })).then((response) => {
+    dispatch(registerUser({ firstName, lastName, email, password, passwordConfirm })).then((response) => {
       console.log(response);
       if (response?.meta?.requestStatus === "fulfilled") {
         navigate("/login");
@@ -56,7 +56,6 @@ export default function Register() {
       <Input
         id="last_name"
         type="text"
-        required
         value={lastName}
         onChange={e => setLastName(e.target.value)}
       />
@@ -64,16 +63,14 @@ export default function Register() {
       <Input
         id="first_name"
         type="text"
-        required
         value={firstName}
         onChange={e => setFirstName(e.target.value)}
       />
       <Label htmlFor="email">Email</Label>
       <Input
         id="email"
-        type="email"
+        type="text"
         autoComplete="email"
-        required
         value={email}
         onChange={e => setEmail(e.target.value)}
       />
@@ -82,7 +79,6 @@ export default function Register() {
         id="password"
         type="password"
         autoComplete="new-password"
-        required
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
@@ -91,7 +87,6 @@ export default function Register() {
         id="password_confirm"
         type="password"
         autoComplete="new-password"
-        required
         value={passwordConfirm}
         onChange={e => setPasswordConfirm(e.target.value)}
       />

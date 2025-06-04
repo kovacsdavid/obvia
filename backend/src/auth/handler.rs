@@ -18,8 +18,8 @@
  */
 
 use std::sync::Arc;
-use axum::{extract::State, http::StatusCode, response::{IntoResponse, Response}, Json};
-use crate::users::dto::{LoginRequest, RegisterRequest};
+use axum::{extract::{rejection::JsonRejection, State}, http::StatusCode, response::{IntoResponse, Response}, Json};
+use crate::{common::{error::FriendlyError, utils::serde_error::extract_human_error}, users::dto::{LoginRequest, RegisterRequest}};
 use super::{middleware::AuthenticatedUser, service::{try_login, try_register}, AuthModule};
 
 // ===== LOGIN =====
@@ -36,16 +36,28 @@ pub async fn login(
 // ===== REGISTER =====
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
-    Json(payload): Json<RegisterRequest>,
+    payload: Result<Json<RegisterRequest>, JsonRejection>,
 ) -> Response {
-    match try_register(
-        auth_module.repo.clone(),
-        auth_module.password_hasher.clone(),
-        payload
-    ).await {
-        Ok(resp) => (StatusCode::CREATED, axum::Json(resp)).into_response(),
-        Err(e) => e.into_response(),
+    match payload {
+        Ok(Json(valid_payload)) => {
+            match try_register(
+                auth_module.repo.clone(),
+                auth_module.password_hasher.clone(),
+                valid_payload
+            ).await {
+                Ok(resp) => (StatusCode::CREATED, axum::Json(resp)).into_response(),
+                Err(e) => e.into_response(),
+            }
+        },
+        Err(e) => {
+            FriendlyError::UserFacing(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "AUTH/HANDLER/REGISTER".to_string(),
+                extract_human_error(&e.to_string())
+            ).trace(tracing::Level::DEBUG).into_response()
+        }
     }
+
 }
 
 pub async fn test_protected(AuthenticatedUser(claims): AuthenticatedUser) -> String {

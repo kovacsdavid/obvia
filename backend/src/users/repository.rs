@@ -32,16 +32,14 @@ impl AuthRepository for PostgresRepo {
     ) -> Result<(), DatabaseError> {
         sqlx::query(
             "INSERT INTO users (
-                    id, email, password_hash, first_name, last_name, phone, locale
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+                    id, email, password_hash, first_name, last_name
+            ) VALUES ($1, $2, $3, $4, $5)"
         )
             .bind(Uuid::new_v4())
-            .bind(&payload.email)
+            .bind(&payload.email.as_str())
             .bind(password_hash)
-            .bind(&payload.first_name)
-            .bind(&payload.last_name)
-            .bind(&payload.phone)
-            .bind(&payload.locale)
+            .bind(&payload.first_name.as_str())
+            .bind(&payload.last_name.as_str())
             .execute(&self.db)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;

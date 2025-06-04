@@ -27,12 +27,13 @@ export interface RegisterRequest {
   lastName: string,
   email: string,
   password: string,
+  passwordConfirm: string,
 }
 
 export interface LoginResponse {
   success: boolean,
   data: {
-    user: { id: string, email: string };
+    user: { id: string, email: string },
     token: string,
   }
 }
@@ -60,11 +61,12 @@ export async function register({
   lastName,
   email,
   password,
+  passwordConfirm
 }: RegisterRequest): Promise<LoginResponse> {
   const response = await fetch(`${API_URL}/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ firstName, lastName, email, password }),
+    body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, password_confirm: passwordConfirm }),
     credentials: "include",
   });
 

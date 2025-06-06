@@ -18,7 +18,7 @@
  */
 
 use axum::Router;
-use backend::{
+use backend_lib::{
     app::{AppConfig, AppState},
     auth::{
         self,

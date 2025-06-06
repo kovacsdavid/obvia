@@ -80,22 +80,22 @@ mod tests {
 
     #[test]
     fn test_valid_password() {
-        let pw: Password = serde_json::from_str(r##"abc12345"##).unwrap();
+        let pw: Password = serde_json::from_str(r#""abc12345""#).unwrap();
         assert_eq!(pw.as_str(), "abc12345");
-        let pw: Password = serde_json::from_str(r##"Password1"##).unwrap();
+        let pw: Password = serde_json::from_str(r#""Password1""#).unwrap();
         assert_eq!(pw.as_str(), "Password1");
     }
 
     #[test]
     fn test_invalid_password() {
         // Too short
-        assert!(serde_json::from_str::<Password>(r##"a1b2c3"##).is_err());
+        assert!(serde_json::from_str::<Password>(r#""a1b2c3""#).is_err());
         // No digit
-        assert!(serde_json::from_str::<Password>(r##"abcdefgh"##).is_err());
+        assert!(serde_json::from_str::<Password>(r#""abcdefgh""#).is_err());
         // No letter
-        assert!(serde_json::from_str::<Password>(r##"12345678"##).is_err());
+        assert!(serde_json::from_str::<Password>(r#""12345678""#).is_err());
         // Empty
-        assert!(serde_json::from_str::<Password>(r##""##).is_err());
+        assert!(serde_json::from_str::<Password>(r#""""#).is_err());
     }
 
     #[test]

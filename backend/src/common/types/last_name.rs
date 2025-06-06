@@ -79,19 +79,19 @@ mod tests {
 
     #[test]
     fn test_valid_last_name() {
-        let name: LastName = serde_json::from_str(r##"Kovács"##).unwrap();
+        let name: LastName = serde_json::from_str(r#""Kovács""#).unwrap();
         assert_eq!(name.as_str(), "Kovács");
-        let name: LastName = serde_json::from_str(r##"Kovács-Kovács"##).unwrap();
+        let name: LastName = serde_json::from_str(r#""Kovács-Kovács""#).unwrap();
         assert_eq!(name.as_str(), "Kovács-Kovács");
     }
 
     #[test]
     fn test_invalid_last_name() {
-        let name: Result<LastName, _> = serde_json::from_str(r##""##);
+        let name: Result<LastName, _> = serde_json::from_str(r#""""#);
         assert!(name.is_err());
-        let name: Result<LastName, _> = serde_json::from_str(r##"123"##);
+        let name: Result<LastName, _> = serde_json::from_str(r#""123""#);
         assert!(name.is_err());
-        let name: Result<LastName, _> = serde_json::from_str(r##"Kovács!"##);
+        let name: Result<LastName, _> = serde_json::from_str(r#""Kovács!""#);
         assert!(name.is_err());
     }
 }

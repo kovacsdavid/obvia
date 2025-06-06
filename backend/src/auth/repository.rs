@@ -19,7 +19,7 @@
 
 use async_trait::async_trait;
 use crate::common::error::DatabaseError;
-use crate::users::dto::RegisterRequest;
+use crate::auth::dto::register::RegisterRequest;
 use crate::users::model::User;
 
 #[cfg(test)]

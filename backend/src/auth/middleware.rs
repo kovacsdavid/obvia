@@ -25,7 +25,7 @@ use axum::{extract::{FromRequestParts, Request, State}, http::{request::Parts, S
 
 use crate::app::AppState;
 
-use super::{dto::Claims};
+use super::{dto::claims::Claims};
 
 
 // ===== VERIFY =====

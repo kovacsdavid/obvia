@@ -17,14 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod error;
-pub mod handler;
-pub mod model;
-pub mod repository;
-pub mod routes;
-pub mod service;
-#[cfg(test)]
-pub mod tests;
+use serde::{Serialize, Deserialize};
+
+#[derive(Deserialize)]
+pub struct LoginRequest {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Serialize)]
+pub struct LoginUser {
+    pub id: String,
+    pub email: String,
+}
+
+#[derive(Serialize)]
+pub struct LoginResponse {
+    user : LoginUser,
+    token: String,
+}
+
+impl LoginResponse {
+    pub fn new(user: LoginUser, token: String) -> Self {
+        Self { user, token }
+    }
+    pub fn token(&self) -> &String {
+        &self.token
+    }
+}
 
 
-pub struct UsersModule {}

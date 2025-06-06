@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::{auth::repository::AuthRepository, common::{error::DatabaseError, repository::PostgresRepo}};
+use crate::{auth::repository::AuthRepository, auth::dto::register::RegisterRequest, common::{error::DatabaseError, repository::PostgresRepo}};
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::{dto::RegisterRequest, model::User};
+use super::{model::User};
 
 #[async_trait]
 impl AuthRepository for PostgresRepo {

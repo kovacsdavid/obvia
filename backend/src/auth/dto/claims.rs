@@ -17,33 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Serialize)]
-pub struct LoginUser {
-    pub id: String,
-    pub email: String,
-}
-
-#[derive(Serialize)]
-pub struct LoginResponse {
-    user : LoginUser,
-    token: String,
-}
-
-impl LoginResponse {
-    pub fn new(user: LoginUser, token: String) -> Self {
-        Self { user, token }
-    }
-    pub fn token(&self) -> &String {
-        &self.token
-    }
-}
-
-#[derive(Serialize)]
-pub struct RegisterResponse {
-    pub message: String
-}
+use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Claims {
@@ -98,6 +72,3 @@ impl Claims {
         &self.jti
     }
 }
-
-
-

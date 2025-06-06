@@ -18,8 +18,8 @@
  */
 
 use std::sync::Arc;
-use crate::{common::{dto::OkResponse, error::FriendlyError}, users::dto::{LoginRequest, RegisterRequest}};
-use super::{dto::{Claims, LoginResponse, LoginUser, RegisterResponse}, repository::AuthRepository, AuthModule};
+use crate::{common::{dto::OkResponse, error::FriendlyError}, auth::dto::{login::LoginRequest, register::RegisterRequest}};
+use super::{dto::{claims::Claims, login::LoginResponse, login::LoginUser, register::RegisterResponse}, repository::AuthRepository, AuthModule};
 use anyhow::Result;
 use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use chrono::{Duration, Utc};

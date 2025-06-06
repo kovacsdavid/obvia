@@ -17,18 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use::serde::Serialize;
+
+#[derive(Serialize)]
+pub struct RegisterResponse {
+    pub message: String
+}
+
 use serde::{de, Deserialize, Deserializer};
 
 use crate::common::types::{Email, FirstName, LastName, Password};
 
-// ===== LOGIN =====
-#[derive(Deserialize)]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-}
-
-// ===== REGISTER =====
 #[derive(Debug, PartialEq, Clone)]
 pub struct RegisterRequest {
     pub email: Email,
@@ -70,6 +69,3 @@ impl<'de> Deserialize<'de> for RegisterRequest {
         })
     }
 }
-
-
-

@@ -80,13 +80,13 @@ mod tests {
 
     #[test]
     fn test_valid_email() {
-        let email: Email = serde_json::from_str(r##"user@example.com"##).unwrap();
+        let email: Email = serde_json::from_str(r#""user@example.com""#).unwrap();
         assert_eq!(email.as_str(), "user@example.com");
     }
 
     #[test]
     fn test_invalid_email() {
-        let email: Result<Email, _> = serde_json::from_str(r##"not-an-email"##);
+        let email: Result<Email, _> = serde_json::from_str(r#""not-an-email""#);
         assert!(email.is_err());
     }
 }

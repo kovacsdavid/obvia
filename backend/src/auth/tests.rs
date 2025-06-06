@@ -23,7 +23,7 @@ use chrono::Utc;
 use mockall::predicate::*;
 use uuid::Uuid;
 
-use crate::{app::AppConfig, auth::{handler::{login, register}, repository::MockAuthRepository, service::{Argon2Hasher, MockAuthPasswordHasher}, AuthModule}, common::error::DatabaseError, users::{dto::{LoginRequest, RegisterRequest}, model::User}};
+use crate::{app::AppConfig, auth::{handler::{login, register}, dto::{register::RegisterRequest, login::LoginRequest}, repository::MockAuthRepository, service::{Argon2Hasher, MockAuthPasswordHasher}, AuthModule}, common::error::DatabaseError, users::model::User};
 
 
 #[tokio::test]

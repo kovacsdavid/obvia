@@ -19,7 +19,7 @@
 
 use std::sync::Arc;
 use axum::{extract::{rejection::JsonRejection, State}, http::StatusCode, response::{IntoResponse, Response}, Json};
-use crate::{common::{error::FriendlyError, utils::serde_error::extract_human_error}, users::dto::{LoginRequest, RegisterRequest}};
+use crate::{common::{error::FriendlyError, utils::serde_error::extract_human_error}, auth::dto::{login::LoginRequest, register::RegisterRequest}};
 use super::{middleware::AuthenticatedUser, service::{try_login, try_register}, AuthModule};
 
 // ===== LOGIN =====

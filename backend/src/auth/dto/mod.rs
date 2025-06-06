@@ -17,14 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod error;
-pub mod handler;
-pub mod model;
-pub mod repository;
-pub mod routes;
-pub mod service;
-#[cfg(test)]
-pub mod tests;
-
-
-pub struct UsersModule {}
+pub mod login;
+pub mod register;
+pub mod claims;

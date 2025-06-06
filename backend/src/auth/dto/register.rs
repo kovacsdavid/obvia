@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use::serde::Serialize;
+use ::serde::Serialize;
 
 #[derive(Serialize)]
 pub struct RegisterResponse {
-    pub message: String
+    pub message: String,
 }
 
-use serde::{de, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, de};
 
 use crate::common::types::{Email, FirstName, LastName, Password};
 
@@ -57,7 +57,9 @@ impl<'de> Deserialize<'de> for RegisterRequest {
         let helper = RegisterRequestHelper::deserialize(deserializer)?;
 
         if helper.password.as_str() != helper.password_confirm {
-            return Err(de::Error::custom("A jelszó és a jelszó megerősítés mező nem egyezik"));
+            return Err(de::Error::custom(
+                "A jelszó és a jelszó megerősítés mező nem egyezik",
+            ));
         }
 
         Ok(RegisterRequest {

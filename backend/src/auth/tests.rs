@@ -17,14 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-use axum::{extract::State, http::StatusCode, Json};
+use axum::{Json, extract::State, http::StatusCode};
 use chrono::Utc;
 use mockall::predicate::*;
+use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::{app::AppConfig, auth::{handler::{login, register}, dto::{register::RegisterRequest, login::LoginRequest}, repository::MockAuthRepository, service::{Argon2Hasher, MockAuthPasswordHasher}, AuthModule}, common::error::DatabaseError, users::model::User};
-
+use crate::{
+    app::AppConfig,
+    auth::{
+        AuthModule,
+        dto::{login::LoginRequest, register::RegisterRequest},
+        handler::{login, register},
+        repository::MockAuthRepository,
+        service::{Argon2Hasher, MockAuthPasswordHasher},
+    },
+    common::error::DatabaseError,
+    users::model::User,
+};
 
 #[tokio::test]
 async fn test_login_success() {
@@ -204,17 +214,16 @@ async fn test_register_user_already_exists() {
     let mut repo = MockAuthRepository::new();
     repo.expect_insert_user()
         .with(eq(register_request.clone()), eq("hashed_password"))
-        .returning(|_, _| Err(
-            DatabaseError::DatabaseError(
-                "duplicate key value violates unique constraint".to_string()
-            )
-        ));
+        .returning(|_, _| {
+            Err(DatabaseError::DatabaseError(
+                "duplicate key value violates unique constraint".to_string(),
+            ))
+        });
     let mut password_hasher = MockAuthPasswordHasher::new();
     password_hasher
         .expect_hash_password()
         .with(eq("Password1!"))
         .returning(|_| Ok("hashed_password".to_string()));
-
 
     let auth_module = Arc::new(AuthModule {
         repo: Arc::new(repo),

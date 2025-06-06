@@ -17,10 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::{
+    AuthModule,
+    middleware::AuthenticatedUser,
+    service::{try_login, try_register},
+};
+use crate::{
+    auth::dto::{login::LoginRequest, register::RegisterRequest},
+    common::{error::FriendlyError, utils::serde_error::extract_human_error},
+};
+use axum::{
+    Json,
+    extract::{State, rejection::JsonRejection},
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use std::sync::Arc;
-use axum::{extract::{rejection::JsonRejection, State}, http::StatusCode, response::{IntoResponse, Response}, Json};
-use crate::{common::{error::FriendlyError, utils::serde_error::extract_human_error}, auth::dto::{login::LoginRequest, register::RegisterRequest}};
-use super::{middleware::AuthenticatedUser, service::{try_login, try_register}, AuthModule};
 
 // ===== LOGIN =====
 pub async fn login(
@@ -43,21 +55,22 @@ pub async fn register(
             match try_register(
                 auth_module.repo.clone(),
                 auth_module.password_hasher.clone(),
-                valid_payload
-            ).await {
+                valid_payload,
+            )
+            .await
+            {
                 Ok(resp) => (StatusCode::CREATED, axum::Json(resp)).into_response(),
                 Err(e) => e.into_response(),
             }
-        },
-        Err(e) => {
-            FriendlyError::UserFacing(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "AUTH/HANDLER/REGISTER".to_string(),
-                extract_human_error(&e.to_string())
-            ).trace(tracing::Level::DEBUG).into_response()
         }
+        Err(e) => FriendlyError::UserFacing(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            "AUTH/HANDLER/REGISTER".to_string(),
+            extract_human_error(&e.to_string()),
+        )
+        .trace(tracing::Level::DEBUG)
+        .into_response(),
     }
-
 }
 
 pub async fn test_protected(AuthenticatedUser(claims): AuthenticatedUser) -> String {

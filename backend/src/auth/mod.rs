@@ -38,4 +38,3 @@ pub struct AuthModule {
     pub password_hasher: Arc<dyn AuthPasswordHasher>,
     pub config: Arc<AppConfig>,
 }
-

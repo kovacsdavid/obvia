@@ -17,10 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-use axum::{routing::{post, get}, Router};
+use super::{
+    handler::{login, register, test_protected},
+    middleware::require_auth,
+};
 use crate::app::AppState;
-use super::{handler::{login, register, test_protected}, middleware::require_auth};
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use std::sync::Arc;
 
 pub fn auth_routes(state: Arc<AppState>) -> Router {
     Router::new()

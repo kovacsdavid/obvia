@@ -17,11 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::{auth::repository::AuthRepository, auth::dto::register::RegisterRequest, common::{error::DatabaseError, repository::PostgresRepo}};
+use crate::{
+    auth::dto::register::RegisterRequest,
+    auth::repository::AuthRepository,
+    common::{error::DatabaseError, repository::PostgresRepo},
+};
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::{model::User};
+use super::model::User;
 
 #[async_trait]
 impl AuthRepository for PostgresRepo {
@@ -33,26 +37,26 @@ impl AuthRepository for PostgresRepo {
         sqlx::query(
             "INSERT INTO users (
                     id, email, password_hash, first_name, last_name
-            ) VALUES ($1, $2, $3, $4, $5)"
+            ) VALUES ($1, $2, $3, $4, $5)",
         )
-            .bind(Uuid::new_v4())
-            .bind(&payload.email.as_str())
-            .bind(password_hash)
-            .bind(&payload.first_name.as_str())
-            .bind(&payload.last_name.as_str())
-            .execute(&self.db)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        .bind(Uuid::new_v4())
+        .bind(&payload.email.as_str())
+        .bind(password_hash)
+        .bind(&payload.first_name.as_str())
+        .bind(&payload.last_name.as_str())
+        .execute(&self.db)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError> {
-        Ok(sqlx::query_as::<_, User>(
-            "SELECT * FROM users WHERE email = $1"
+        Ok(
+            sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+                .bind(email)
+                .fetch_one(&self.db)
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         )
-            .bind(email)
-            .fetch_one(&self.db)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
     }
 }

@@ -17,16 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-use crate::{common::{dto::OkResponse, error::FriendlyError}, auth::dto::{login::LoginRequest, register::RegisterRequest}};
-use super::{dto::{claims::Claims, login::LoginResponse, login::LoginUser, register::RegisterResponse}, repository::AuthRepository, AuthModule};
+use super::{
+    AuthModule,
+    dto::{claims::Claims, login::LoginResponse, login::LoginUser, register::RegisterResponse},
+    repository::AuthRepository,
+};
+use crate::{
+    auth::dto::{login::LoginRequest, register::RegisterRequest},
+    common::{dto::OkResponse, error::FriendlyError},
+};
 use anyhow::Result;
-use argon2::{password_hash::{rand_core::OsRng, SaltString}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use chrono::{Duration, Utc};
+use argon2::{
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+    password_hash::{SaltString, rand_core::OsRng},
+};
 use axum::http::StatusCode;
-use jsonwebtoken::{encode, EncodingKey, Header};
+use chrono::{Duration, Utc};
+use jsonwebtoken::{EncodingKey, Header, encode};
 #[cfg(test)]
 use mockall::automock;
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -49,7 +59,8 @@ impl AuthPasswordHasher for Argon2Hasher {
     fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String> {
         let parsed_hash = PasswordHash::new(hash).map_err(|e| e.to_string())?;
         let argon2 = Argon2::default();
-        argon2.verify_password(password.as_bytes(), &parsed_hash)
+        argon2
+            .verify_password(password.as_bytes(), &parsed_hash)
             .map(|_| true)
             .map_err(|e| e.to_string())
     }
@@ -57,42 +68,39 @@ impl AuthPasswordHasher for Argon2Hasher {
 
 pub async fn try_login(
     auth_module: Arc<AuthModule>,
-    payload: LoginRequest
+    payload: LoginRequest,
 ) -> Result<OkResponse<LoginResponse>, FriendlyError> {
     let user = auth_module
         .repo
         .get_user_by_email(&payload.email)
         .await
-        .map_err(|_| FriendlyError::UserFacing(
-            StatusCode::UNAUTHORIZED,
-            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-            "Hibás e-mail cím vagy jelszó".to_string()
-        ).trace(tracing::Level::DEBUG))?;
-
+        .map_err(|_| {
+            FriendlyError::UserFacing(
+                StatusCode::UNAUTHORIZED,
+                "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+                "Hibás e-mail cím vagy jelszó".to_string(),
+            )
+            .trace(tracing::Level::DEBUG)
+        })?;
 
     let parsed_hash = PasswordHash::new(&user.password_hash)
-        .map_err(|e| FriendlyError::Internal(
-            e.to_string()
-        ).trace(tracing::Level::ERROR))?;
+        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
     Argon2::default()
         .verify_password(payload.password.as_bytes(), &parsed_hash)
-        .map_err(|_| FriendlyError::UserFacing(
-            StatusCode::UNAUTHORIZED,
-            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-            "Hibás e-mail cím vagy jelszó".to_string()
-        ).trace(tracing::Level::DEBUG))?;
+        .map_err(|_| {
+            FriendlyError::UserFacing(
+                StatusCode::UNAUTHORIZED,
+                "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+                "Hibás e-mail cím vagy jelszó".to_string(),
+            )
+            .trace(tracing::Level::DEBUG)
+        })?;
 
     let now = Utc::now().timestamp() as usize;
-    let exp = (
-        Utc::now()
-        + Duration::minutes(
-            auth_module
-                .config
-                .auth()
-                .jwt_expiration_mins() as i64
-        )
-    ).timestamp() as usize;
+    let exp = (Utc::now()
+        + Duration::minutes(auth_module.config.auth().jwt_expiration_mins() as i64))
+    .timestamp() as usize;
     let nbf = now;
 
     let claims = Claims::new(
@@ -123,28 +131,31 @@ pub async fn try_login(
 pub async fn try_register(
     repo: Arc<dyn AuthRepository>,
     pasword_hasher: Arc<dyn AuthPasswordHasher>,
-    payload: RegisterRequest
+    payload: RegisterRequest,
 ) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
     let password_hash = pasword_hasher
         .hash_password(&payload.password.as_str())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();
 
-    repo.insert_user(&payload, &password_hash).await.map_err(|e| {
-        if e.to_string().contains("duplicate key value violates unique constraint") {
-            FriendlyError::UserFacing(
-                StatusCode::CONFLICT,
-                "AUTH/SERVICE/ALREADYEXISTS".to_string(),
-                "Ez az e-mail cím már foglalt".to_string()
-            ).trace(tracing::Level::DEBUG)
-        } else {
-            FriendlyError::Internal(
-                e.to_string()
-            ).trace(tracing::Level::ERROR)
-        }
-    })?;
+    repo.insert_user(&payload, &password_hash)
+        .await
+        .map_err(|e| {
+            if e.to_string()
+                .contains("duplicate key value violates unique constraint")
+            {
+                FriendlyError::UserFacing(
+                    StatusCode::CONFLICT,
+                    "AUTH/SERVICE/ALREADYEXISTS".to_string(),
+                    "Ez az e-mail cím már foglalt".to_string(),
+                )
+                .trace(tracing::Level::DEBUG)
+            } else {
+                FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR)
+            }
+        })?;
 
     Ok(OkResponse::new(RegisterResponse {
-        message: "A felhasználó sikeresen létrehozva".to_string()
+        message: "A felhasználó sikeresen létrehozva".to_string(),
     }))
 }

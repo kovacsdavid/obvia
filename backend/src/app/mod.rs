@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
 use serde::Deserialize;
+use std::sync::Arc;
 
 use crate::{auth::AuthModule, users::UsersModule};
 

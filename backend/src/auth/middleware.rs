@@ -17,16 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+use axum::{
+    extract::{FromRequestParts, Request, State},
+    http::{StatusCode, request::Parts},
+    middleware::Next,
+    response::{IntoResponse, Response},
+};
 use axum_extra::TypedHeader;
-use headers::{authorization::Bearer, Authorization};
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
-use axum::{extract::{FromRequestParts, Request, State}, http::{request::Parts, StatusCode}, middleware::Next, response::{IntoResponse, Response}};
+use headers::{Authorization, authorization::Bearer};
+use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
+use std::sync::Arc;
 
 use crate::app::AppState;
 
-use super::{dto::claims::Claims};
-
+use super::dto::claims::Claims;
 
 // ===== VERIFY =====
 pub async fn require_auth(
@@ -60,15 +64,14 @@ where
 {
     type Rejection = Response;
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         parts
             .extensions
             .get::<Claims>()
             .cloned()
             .map(AuthenticatedUser)
-            .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Missing authentication claims").into_response())
+            .ok_or_else(|| {
+                (StatusCode::UNAUTHORIZED, "Missing authentication claims").into_response()
+            })
     }
 }

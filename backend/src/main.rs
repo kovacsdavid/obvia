@@ -17,19 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
 use axum::Router;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use backend::{
+    app::{AppConfig, AppState},
+    auth::{
+        self,
+        routes::{auth_routes, test_protected_routes},
+        service::Argon2Hasher,
+    },
+    common::repository::PostgresRepo,
+    users::UsersModule,
+};
+use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
+use std::sync::Arc;
 use tokio::signal;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
-use backend::{app::{AppConfig, AppState}, auth::{self, routes::{auth_routes, test_protected_routes}, service::Argon2Hasher}, common::repository::PostgresRepo, users::UsersModule};
 
 fn init_subscriber() {
-    tracing::subscriber::set_global_default(FmtSubscriber::builder()
-        .with_max_level(Level::TRACE)
-        .finish()).expect("setting default subscriber failed");
+    tracing::subscriber::set_global_default(
+        FmtSubscriber::builder()
+            .with_max_level(Level::TRACE)
+            .finish(),
+    )
+    .expect("setting default subscriber failed");
 }
 
 fn init_config() -> anyhow::Result<AppConfig> {
@@ -48,17 +60,11 @@ async fn init_db(config: Arc<AppConfig>) -> anyhow::Result<Pool<Postgres>> {
 async fn main() -> anyhow::Result<()> {
     init_subscriber();
     let config = Arc::new(init_config()?);
-    serve(
-        config.clone(),
-        init_db(config.clone()).await?
-    ).await?;
+    serve(config.clone(), init_db(config.clone()).await?).await?;
     Ok(())
 }
 
-async fn serve(
-    config: Arc<AppConfig>,
-    db: Pool<Postgres>,
-) -> anyhow::Result<()> {
+async fn serve(config: Arc<AppConfig>, db: Pool<Postgres>) -> anyhow::Result<()> {
     let auth_repo = PostgresRepo { db: db.clone() };
     let auth_module = auth::AuthModule {
         repo: Arc::new(auth_repo),
@@ -77,17 +83,14 @@ async fn serve(
         .merge(test_protected_routes(state.clone()))
         .layer(TraceLayer::new_for_http());
 
-    let addr = config.server().host().to_string()
-    + ":"
-    + &config.server().port().to_string();
+    let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-    .await?;
+        .await?;
     Ok(())
 }
-
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -101,7 +104,7 @@ async fn shutdown_signal() {
         signal::unix::signal(signal::unix::SignalKind::terminate())
             .expect("failed to install signal handler")
             .recv()
-        .await;
+            .await;
     };
 
     #[cfg(not(unix))]

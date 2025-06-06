@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -33,7 +33,7 @@ pub struct LoginUser {
 
 #[derive(Serialize)]
 pub struct LoginResponse {
-    user : LoginUser,
+    user: LoginUser,
     token: String,
 }
 
@@ -45,5 +45,3 @@ impl LoginResponse {
         &self.token
     }
 }
-
-

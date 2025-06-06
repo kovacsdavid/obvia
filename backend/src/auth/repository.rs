@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use async_trait::async_trait;
-use crate::common::error::DatabaseError;
 use crate::auth::dto::register::RegisterRequest;
+use crate::common::error::DatabaseError;
 use crate::users::model::User;
+use async_trait::async_trait;
 
 #[cfg(test)]
 use mockall::automock;

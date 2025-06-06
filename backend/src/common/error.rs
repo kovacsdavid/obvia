@@ -19,12 +19,12 @@
 use thiserror::Error;
 
 use axum::{
+    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 
-use super::{dto::{ErrorBody, ErrorResponse}};
+use super::dto::{ErrorBody, ErrorResponse};
 
 #[derive(Debug, Error, Clone)]
 pub enum FriendlyError {
@@ -37,43 +37,65 @@ pub enum FriendlyError {
 impl FriendlyError {
     pub fn trace(self, severity: tracing::Level) -> Self {
         match self.clone() {
-            FriendlyError::UserFacing(_, code, msg) => {
-                match severity {
-                    tracing::Level::ERROR => {
-                        tracing::event!(tracing::Level::ERROR, "User-facing error: code={}, message={}", code, msg);
-                    }
-                    tracing::Level::WARN => {
-                        tracing::event!(tracing::Level::WARN, "User-facing error: code={}, message={}", code, msg);
-                    }
-                    tracing::Level::INFO => {
-                        tracing::event!(tracing::Level::INFO, "User-facing error: code={}, message={}", code, msg);
-                    }
-                    tracing::Level::DEBUG => {
-                        tracing::event!(tracing::Level::DEBUG, "User-facing error: code={}, message={}", code, msg);
-                    }
-                    tracing::Level::TRACE => {
-                        tracing::event!(tracing::Level::TRACE, "User-facing error: code={}, message={}", code, msg);
-                    }
-                }            }
-            FriendlyError::Internal(msg) => {
-                match severity {
-                    tracing::Level::ERROR => {
-                        tracing::event!(tracing::Level::ERROR, "Internal error: message={}", msg);
-                    }
-                    tracing::Level::WARN => {
-                        tracing::event!(tracing::Level::WARN, "Internal error: message={}", msg);
-                    }
-                    tracing::Level::INFO => {
-                        tracing::event!(tracing::Level::INFO, "Internal error: message={}", msg);
-                    }
-                    tracing::Level::DEBUG => {
-                        tracing::event!(tracing::Level::DEBUG, "Internal error: message={}", msg);
-                    }
-                    tracing::Level::TRACE => {
-                        tracing::event!(tracing::Level::TRACE, "Internal error: message={}", msg);
-                    }
+            FriendlyError::UserFacing(_, code, msg) => match severity {
+                tracing::Level::ERROR => {
+                    tracing::event!(
+                        tracing::Level::ERROR,
+                        "User-facing error: code={}, message={}",
+                        code,
+                        msg
+                    );
                 }
-            }
+                tracing::Level::WARN => {
+                    tracing::event!(
+                        tracing::Level::WARN,
+                        "User-facing error: code={}, message={}",
+                        code,
+                        msg
+                    );
+                }
+                tracing::Level::INFO => {
+                    tracing::event!(
+                        tracing::Level::INFO,
+                        "User-facing error: code={}, message={}",
+                        code,
+                        msg
+                    );
+                }
+                tracing::Level::DEBUG => {
+                    tracing::event!(
+                        tracing::Level::DEBUG,
+                        "User-facing error: code={}, message={}",
+                        code,
+                        msg
+                    );
+                }
+                tracing::Level::TRACE => {
+                    tracing::event!(
+                        tracing::Level::TRACE,
+                        "User-facing error: code={}, message={}",
+                        code,
+                        msg
+                    );
+                }
+            },
+            FriendlyError::Internal(msg) => match severity {
+                tracing::Level::ERROR => {
+                    tracing::event!(tracing::Level::ERROR, "Internal error: message={}", msg);
+                }
+                tracing::Level::WARN => {
+                    tracing::event!(tracing::Level::WARN, "Internal error: message={}", msg);
+                }
+                tracing::Level::INFO => {
+                    tracing::event!(tracing::Level::INFO, "Internal error: message={}", msg);
+                }
+                tracing::Level::DEBUG => {
+                    tracing::event!(tracing::Level::DEBUG, "Internal error: message={}", msg);
+                }
+                tracing::Level::TRACE => {
+                    tracing::event!(tracing::Level::TRACE, "Internal error: message={}", msg);
+                }
+            },
         }
         self
     }
@@ -83,21 +105,14 @@ impl IntoResponse for FriendlyError {
     fn into_response(self) -> Response {
         let msg_for_internal = "Váratlan hiba történt a feldolgozás során!".to_string();
         let (status, code, message) = match self {
-            FriendlyError::UserFacing(status, code, msg) => (
-                status,
-                code,
-                msg
-            ),
+            FriendlyError::UserFacing(status, code, msg) => (status, code, msg),
             FriendlyError::Internal(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL".to_string(),
-                msg_for_internal
+                msg_for_internal,
             ),
         };
-        let body = ErrorResponse::new(ErrorBody {
-            code,
-            message,
-        });
+        let body = ErrorResponse::new(ErrorBody { code, message });
 
         (status, Json(body)).into_response()
     }

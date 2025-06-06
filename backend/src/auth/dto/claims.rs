@@ -17,17 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Claims {
-    sub: String,         // User's unique ID (e.g., UUID as a string)
-    exp: usize,          // Expiration time (as a UNIX timestamp)
-    iat: usize,          // Issued at (as a UNIX timestamp)
-    nbf: usize,          // Not valid before (as a UNIX timestamp)
-    iss: String,         // Issuer (e.g., your service domain)
-    aud: String,         // Audience (e.g., your frontend client ID or domain)
-    jti: String,         // JWT ID (unique per token, e.g., UUID)
+    sub: String, // User's unique ID (e.g., UUID as a string)
+    exp: usize,  // Expiration time (as a UNIX timestamp)
+    iat: usize,  // Issued at (as a UNIX timestamp)
+    nbf: usize,  // Not valid before (as a UNIX timestamp)
+    iss: String, // Issuer (e.g., your service domain)
+    aud: String, // Audience (e.g., your frontend client ID or domain)
+    jti: String, // JWT ID (unique per token, e.g., UUID)
 }
 
 impl Claims {
@@ -47,7 +47,7 @@ impl Claims {
             nbf,
             iss,
             aud,
-            jti
+            jti,
         }
     }
     pub fn sub(&self) -> &String {

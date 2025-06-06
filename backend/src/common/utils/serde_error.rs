@@ -39,10 +39,7 @@ mod tests {
     #[test]
     fn it_removes_prefix_suffix_and_field() {
         let full = "Failed to deserialize the JSON body into the target type: last_name: Hibás vezetéknév formátum: '!!' at line 1 column 16";
-        assert_eq!(
-            extract_human_error(full),
-            "Hibás vezetéknév formátum: '!!'"
-        );
+        assert_eq!(extract_human_error(full), "Hibás vezetéknév formátum: '!!'");
     }
 
     #[test]
@@ -56,28 +53,20 @@ mod tests {
 
     #[test]
     fn it_removes_prefix_and_field_if_no_suffix() {
-        let full = "Failed to deserialize the JSON body into the target type: password: Jelszó túl rövid";
-        assert_eq!(
-            extract_human_error(full),
-            "Jelszó túl rövid"
-        );
+        let full =
+            "Failed to deserialize the JSON body into the target type: password: Jelszó túl rövid";
+        assert_eq!(extract_human_error(full), "Jelszó túl rövid");
     }
 
     #[test]
     fn it_removes_only_field_if_no_prefix_or_suffix() {
         let msg = "email: Hibás email formátum";
-        assert_eq!(
-            extract_human_error(msg),
-            "Hibás email formátum"
-        );
+        assert_eq!(extract_human_error(msg), "Hibás email formátum");
     }
 
     #[test]
     fn it_returns_unchanged_if_no_prefix_field_or_suffix() {
         let msg = "Hibás adat";
-        assert_eq!(
-            extract_human_error(msg),
-            "Hibás adat"
-        );
+        assert_eq!(extract_human_error(msg), "Hibás adat");
     }
 }

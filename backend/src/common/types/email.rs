@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use regex::Regex;
 use serde::{Deserialize, Deserializer};
 use std::fmt;
 use std::str::FromStr;
-use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Email(String);
@@ -44,7 +44,10 @@ impl FromStr for Email {
         if is_valid_email(s) {
             Ok(Email(s.to_string()))
         } else {
-            Err(format!("A megadott e-mail cím formátuma nem megfelelő: '{}'", s))
+            Err(format!(
+                "A megadott e-mail cím formátuma nem megfelelő: '{}'",
+                s
+            ))
         }
     }
 }

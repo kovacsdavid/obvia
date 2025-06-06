@@ -33,7 +33,9 @@ impl LastName {
 fn is_valid_last_name(s: &str) -> bool {
     let trimmed = s.trim();
     !trimmed.is_empty()
-        && trimmed.chars().all(|c| c.is_alphabetic() || c == '-' || c == ' ')
+        && trimmed
+            .chars()
+            .all(|c| c.is_alphabetic() || c == '-' || c == ' ')
 }
 
 impl FromStr for LastName {

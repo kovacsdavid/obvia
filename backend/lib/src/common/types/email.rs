@@ -44,10 +44,7 @@ impl FromStr for Email {
         if is_valid_email(s) {
             Ok(Email(s.to_string()))
         } else {
-            Err(format!(
-                "A megadott e-mail cím formátuma nem megfelelő: '{}'",
-                s
-            ))
+            Err("A megadott e-mail cím formátuma nem megfelelő".to_string())
         }
     }
 }

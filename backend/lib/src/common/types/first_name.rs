@@ -45,7 +45,7 @@ impl FromStr for FirstName {
         if is_valid_first_name(s) {
             Ok(FirstName(s.trim().to_string()))
         } else {
-            Err(format!("Hibás keresztnév formátum: '{}'", s))
+            Err("Hibás keresztnév formátum".to_string())
         }
     }
 }

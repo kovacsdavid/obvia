@@ -29,6 +29,7 @@ export interface LoginResponse {
     token: string,
   },
   error?: {
+    reference: string | null,
     global: string | null,
     fields: Record<string, string | null>,
   }
@@ -66,9 +67,8 @@ export function isLoginResponse(data: unknown): data is LoginResponse {
   );
 }
 
-const API_URL = import.meta.env.OBVIA_API_URL || "http://localhost:3000";
-
 export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
+  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
   if (!API_URL) {
     throw new Error("API URL is not configured");
   }
@@ -146,6 +146,7 @@ export async function register({
                                  password,
                                  passwordConfirm
                                }: RegisterRequest): Promise<RegisterResponse> {
+  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
   if (!API_URL) {
     throw new Error('API URL is not configured');
   }

@@ -22,6 +22,76 @@ export interface LoginRequest {
   password: string,
 }
 
+export interface LoginResponse {
+  success: boolean,
+  data?: {
+    user: { id: string, email: string },
+    token: string,
+  },
+  error?: {
+    global: string | null,
+    fields: Record<string, string | null>,
+  }
+}
+
+export function isLoginResponse(data: unknown): data is LoginResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    typeof data.success === "boolean" &&
+    (
+      !("data" in data) ||
+      (typeof data.data === "object" &&
+        data.data !== null &&
+        "user" in data.data &&
+        typeof data.data.user === "object" &&
+        data.data.user !== null &&
+        "id" in data.data.user &&
+        typeof data.data.user.id === "string" &&
+        "email" in data.data.user &&
+        typeof data.data.user.email === "string" &&
+        "token" in data.data &&
+        typeof data.data.token === "string")
+    ) &&
+    (
+      !("error" in data) ||
+      (typeof data.error === "object" &&
+        data.error !== null &&
+        "global" in data.error &&
+        (data.error.global === null || typeof data.error.global === "string") &&
+        "fields" in data.error &&
+        typeof data.error.fields === "object")
+    )
+  );
+}
+
+const API_URL = import.meta.env.OBVIA_API_URL || "http://localhost:3000";
+
+export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
+  if (!API_URL) {
+    throw new Error("API URL is not configured");
+  }
+  const response = await fetch(`${API_URL}/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(10000),
+  });
+  let responseJson;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error("Server responded with invalid JSON format");
+  }
+  if (!isLoginResponse(responseJson)) {
+    throw new Error("Server responded with invalid data");
+  }
+  return responseJson;
+}
+
 export interface RegisterRequest {
   firstName: string,
   lastName: string,
@@ -30,50 +100,76 @@ export interface RegisterRequest {
   passwordConfirm: string,
 }
 
-export interface LoginResponse {
+export interface RegisterResponse {
   success: boolean,
-  data: {
-    user: { id: string, email: string },
-    token: string,
+  data?: {
+    message: string,
+  },
+  error?: {
+    reference: string | null,
+    global: string | null,
+    fields: Record<string, string | null>,
   }
 }
 
-const API_URL = import.meta.env.OBVIA_API_URL || "http://localhost:3000";
-
-export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error?.error?.message || "A bejelentkezés sikertelen");
-  }
-
-  return response.json();
+export function isRegisterResponse(data: unknown): data is RegisterResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    typeof data.success === "boolean" &&
+    (
+      !("data" in data) ||
+      (typeof data.data === "object" &&
+        data.data !== null &&
+        "message" in data.data &&
+        typeof data.data.message === "string")
+    ) &&
+    (
+      !("error" in data) ||
+      (typeof data.error === "object" &&
+        data.error !== null &&
+        "reference" in data.error &&
+        (data.error.reference === null || typeof data.error.reference === "string") &&
+        "global" in data.error &&
+        (data.error.global === null || typeof data.error.global === "string") &&
+        "fields" in data.error &&
+        typeof data.error.fields === "object")
+    )
+  );
 }
 
 export async function register({
-  firstName,
-  lastName,
-  email,
-  password,
-  passwordConfirm
-}: RegisterRequest): Promise<LoginResponse> {
-  const response = await fetch(`${API_URL}/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ first_name: firstName, last_name: lastName, email, password, password_confirm: passwordConfirm }),
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error?.error?.message || "A regisztráció sikertelen");
+                                 firstName,
+                                 lastName,
+                                 email,
+                                 password,
+                                 passwordConfirm
+                               }: RegisterRequest): Promise<RegisterResponse> {
+  if (!API_URL) {
+    throw new Error('API URL is not configured');
   }
 
-  return response.json();
+  const response = await fetch(`${API_URL}/register`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
+      password_confirm: passwordConfirm
+    }),
+    signal: AbortSignal.timeout(10000)
+  });
+  let responseJson;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error("Server responded with invalid JSON format");
+  }
+  if (!isRegisterResponse(responseJson)) {
+    throw new Error("Server responded with invalid data");
+  }
+  return responseJson;
 }

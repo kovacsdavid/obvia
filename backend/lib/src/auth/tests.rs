@@ -23,6 +23,7 @@ use mockall::predicate::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::auth::dto::register::RegisterRequestHelper;
 use crate::{
     app::AppConfig,
     auth::{
@@ -174,13 +175,14 @@ async fn test_login_failure() {
 
 #[tokio::test]
 async fn test_register_success() {
-    let register_request = RegisterRequest {
+    let register_request_helper = RegisterRequestHelper {
         email: "testuser@example.com".to_string().try_into().unwrap(),
         first_name: "Test".to_string().try_into().unwrap(),
         last_name: "User".to_string().try_into().unwrap(),
         password: "Password1!".to_string().try_into().unwrap(),
         password_confirm: "Password1!".to_string().try_into().unwrap(),
     };
+    let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
     let mut repo = MockAuthRepository::new();
     repo.expect_insert_user()
         .with(eq(register_request.clone()), eq("hashed_password"))
@@ -198,19 +200,20 @@ async fn test_register_success() {
         config: Arc::new(AppConfig::default()),
     });
 
-    let response = register(State(auth_module), Ok(Json(register_request))).await;
+    let response = register(State(auth_module), Ok(Json(register_request_helper))).await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
 #[tokio::test]
 async fn test_register_user_already_exists() {
-    let register_request = RegisterRequest {
-        email: "testuser@example.com".to_string().try_into().unwrap(),
-        first_name: "Test".to_string().try_into().unwrap(),
-        last_name: "User".to_string().try_into().unwrap(),
-        password: "Password1!".to_string().try_into().unwrap(),
-        password_confirm: "Password1!".to_string().try_into().unwrap(),
+    let register_request_helper = RegisterRequestHelper {
+        email: "testuser@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        password: "Password1!".to_string(),
+        password_confirm: "Password1!".to_string(),
     };
+    let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
     let mut repo = MockAuthRepository::new();
     repo.expect_insert_user()
         .with(eq(register_request.clone()), eq("hashed_password"))
@@ -231,6 +234,6 @@ async fn test_register_user_already_exists() {
         config: Arc::new(AppConfig::default()),
     });
 
-    let response = register(State(auth_module), Ok(Json(register_request))).await;
+    let response = register(State(auth_module), Ok(Json(register_request_helper))).await;
     assert_eq!(response.status(), StatusCode::CONFLICT);
 }

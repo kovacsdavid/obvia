@@ -20,37 +20,38 @@
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct OkResponse<T> {
+pub struct OkResponse<T: Serialize> {
     pub success: bool,
     pub data: T,
 }
 
-impl<T> OkResponse<T> {
+impl<T: Serialize> OkResponse<T> {
     pub fn new(data: T) -> Self {
         Self {
             success: true,
-            data: data,
+            data,
         }
     }
 }
 
 #[derive(Serialize)]
-pub struct ErrorResponse {
+pub struct ErrorResponse<T: Serialize> {
     pub success: bool,
-    pub error: ErrorBody,
+    pub error: ErrorBody<T>,
 }
 
-impl ErrorResponse {
-    pub fn new(error: ErrorBody) -> Self {
+impl<T: Serialize> ErrorResponse<T> {
+    pub fn new(error: ErrorBody<T>) -> Self {
         Self {
             success: false,
-            error: error,
+            error,
         }
     }
 }
 
 #[derive(Serialize)]
-pub struct ErrorBody {
-    pub code: String,
-    pub message: String,
+pub struct ErrorBody<T: Serialize> {
+    pub reference: String,
+    pub global: String,
+    pub fields: Option<T>,
 }

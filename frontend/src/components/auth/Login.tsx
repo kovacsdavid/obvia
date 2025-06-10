@@ -51,9 +51,8 @@ export default function Login() {
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
       <Label htmlFor="email">Email</Label>
       <Input
-        type="email"
+        type="text"
         autoComplete="email"
-        required
         value={email}
         onChange={e => setEmail(e.target.value)}
       />
@@ -61,11 +60,10 @@ export default function Login() {
       <Input
         type="password"
         autoComplete="current-password"
-        required
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
-      {error && <div className="text-red-600">{error}</div>}
+      {error?.global && <div className="text-red-600">{error.global}</div>}
       <Button type="submit" disabled={loading}>
         {loading ? "Bejelentkezés..." : "Bejelentkezés"}
       </Button>

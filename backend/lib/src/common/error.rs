@@ -112,7 +112,11 @@ impl IntoResponse for FriendlyError {
                 msg_for_internal,
             ),
         };
-        let body = ErrorResponse::new(ErrorBody { code, message });
+        let body = ErrorResponse::<String>::new(ErrorBody {
+            reference: code,
+            global: message,
+            fields: None,
+        });
 
         (status, Json(body)).into_response()
     }

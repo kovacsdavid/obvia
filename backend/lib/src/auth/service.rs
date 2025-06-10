@@ -130,10 +130,10 @@ pub async fn try_login(
 
 pub async fn try_register(
     repo: Arc<dyn AuthRepository>,
-    pasword_hasher: Arc<dyn AuthPasswordHasher>,
+    password_hasher: Arc<dyn AuthPasswordHasher>,
     payload: RegisterRequest,
 ) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
-    let password_hash = pasword_hasher
+    let password_hash = password_hasher
         .hash_password(&payload.password.as_str())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();

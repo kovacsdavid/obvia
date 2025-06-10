@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Input,
@@ -43,7 +43,6 @@ export default function Register() {
     e.preventDefault();
 
     dispatch(registerUser({ firstName, lastName, email, password, passwordConfirm })).then((response) => {
-      console.log(response);
       if (response?.meta?.requestStatus === "fulfilled") {
         navigate("/login");
       }
@@ -59,6 +58,7 @@ export default function Register() {
         value={lastName}
         onChange={e => setLastName(e.target.value)}
       />
+      {error?.fields?.last_name && <div className="text-red-600">{error.fields.last_name}</div>}
       <Label htmlFor="first_name">Keresztnév</Label>
       <Input
         id="first_name"
@@ -66,6 +66,7 @@ export default function Register() {
         value={firstName}
         onChange={e => setFirstName(e.target.value)}
       />
+      {error?.fields?.first_name && <div className="text-red-600">{error.fields.first_name}</div>}
       <Label htmlFor="email">Email</Label>
       <Input
         id="email"
@@ -74,6 +75,7 @@ export default function Register() {
         value={email}
         onChange={e => setEmail(e.target.value)}
       />
+      {error?.fields?.email && <div className="text-red-600">{error.fields.email}</div>}
       <Label htmlFor="password">Jelszó</Label>
       <Input
         id="password"
@@ -82,6 +84,7 @@ export default function Register() {
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
+      {error?.fields?.password && <div className="text-red-600">{error.fields.password}</div>}
       <Label htmlFor="password_confirm">Jelszó megerősítése</Label>
       <Input
         id="password_confirm"
@@ -90,8 +93,9 @@ export default function Register() {
         value={passwordConfirm}
         onChange={e => setPasswordConfirm(e.target.value)}
       />
-      {error && <div className="text-red-600">{error}</div>}
+      {error?.fields?.password_confirm && <div className="text-red-600">{error.fields.password_confirm}</div>}
       <Button type="submit">Regisztráció</Button>
+      {error?.global && <div className="text-red-600">{error.global}</div>}
     </form>
   );
 }

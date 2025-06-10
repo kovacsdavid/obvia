@@ -20,18 +20,25 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import type { PayloadAction } from "@reduxjs/toolkit";
 import * as authApi from "@/services/auth";
+import {isLoginResponse, isRegisterResponse} from "@/services/auth";
 
 interface AuthState {
   login: {
     user: { id: string; email: string } | null;
     token: string | null;
     status: "idle" | "loading" | "succeeded" | "failed",
-    error: string | null
+    error: {
+      global: string | null,
+      fields: Record<string, string | null>
+    }
     isLoggedIn: boolean;
   },
   register: {
     status: "idle" | "loading" | "succeeded" | "failed",
-    error: string | null
+    error: {
+      global: string | null,
+      fields: Record<string, string | null>
+    }
   },
 }
 
@@ -40,12 +47,18 @@ const initialState: AuthState = {
     user: null,
     token: null,
     status: "idle",
-    error: null,
+    error: {
+      global: null,
+      fields: {},
+    },
     isLoggedIn: false,
   },
   register: {
     status: "idle",
-    error: null
+    error: {
+      global: null,
+      fields: {},
+    }
   }
 };
 
@@ -53,17 +66,14 @@ export const registerUser = createAsyncThunk(
   "auth/registerUser",
   async (userData: authApi.RegisterRequest, { rejectWithValue }) => {
     try {
-      const data = await authApi.register(userData);
-      return data;
-    } catch (error: unknown) {
-      if (
-        typeof error === "object"
-          && error !== null
-          && "message" in error
-      ) {
-        return rejectWithValue(error.message);
+      const response = await authApi.register(userData);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response);
       }
-      return rejectWithValue("Váratlan hiba történt a regisztráció közben");
+    } catch (error: unknown) {
+      return rejectWithValue(error);
     }
   }
 );
@@ -72,17 +82,14 @@ export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials: authApi.LoginRequest, { rejectWithValue }) => {
     try {
-      const data = await authApi.login(credentials);
-      return data;
-    } catch (error: unknown) {
-      if (
-        typeof error === "object"
-          && error !== null
-          && "message" in error
-      ) {
-        return rejectWithValue(error.message);
+      const response = await authApi.login(credentials);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response);
       }
-      return rejectWithValue("Váratlan hiba történt a bejelentkezés közben");
+    } catch (error: unknown) {
+      return rejectWithValue(error);
     }
   }
 );
@@ -95,7 +102,7 @@ const authSlice = createSlice({
       state.login.user = null;
       state.login.token = null;
       state.login.status = "idle";
-      state.login.error = null;
+      state.login.error = { global: null, fields: {} };
       state.login.isLoggedIn = false;
     },
   },
@@ -103,32 +110,42 @@ const authSlice = createSlice({
     builder
       .addCase(loginUser.pending, (state) => {
         state.login.status = "loading";
-        state.login.error = null;
+        state.login.error = { global: null, fields: {}};
       })
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<authApi.LoginResponse>) => {
         state.login.status = "succeeded";
-        state.login.user = action.payload.data.user;
-        state.login.token = action.payload.data.token;
-        state.login.error = null;
+        if (typeof action.payload.data !== "undefined") {
+          state.login.user = action.payload.data.user;
+          state.login.token = action.payload.data.token;
+        }
+        state.login.error = { global: null, fields: {}};
         state.login.isLoggedIn = true;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.login.status = "failed";
-        state.login.error = action.payload as string;
+        if (isLoginResponse(action.payload) && typeof action.payload?.error !== "undefined") {
+          state.login.error = action.payload.error;
+        } else {
+          state.login.error = { global: "Váratlan hiba történt a kommunikáció során", fields: {}};
+        }
         state.login.isLoggedIn = false;
       });
     builder
       .addCase(registerUser.pending, (state) => {
         state.register.status = "loading";
-        state.register.error = null;
+        state.register.error = { global: null, fields: {}};
       })
       .addCase(registerUser.fulfilled, (state) => {
         state.register.status = "succeeded";
-        state.register.error = null;
+        state.register.error = { global: null, fields: {}};
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.register.status = "failed";
-        state.register.error = action.payload as string;
+        if (isRegisterResponse(action.payload) && typeof action.payload?.error !== "undefined") {
+          state.register.error = action.payload.error;
+        } else {
+          state.register.error = { global: "Váratlan hiba történt a kommunikáció során", fields: {}};
+        }
       });
   },
 });

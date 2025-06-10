@@ -18,7 +18,10 @@
  */
 
 use regex::Regex;
-
+#[deprecated(since = "0.1.0", note = "Use the helper solution instead")]
+pub fn extract_error(message: &str) -> String {
+    extract_human_error(message)
+}
 pub fn extract_human_error(message: &str) -> String {
     const PREFIX: &str = "Failed to deserialize the JSON body into the target type: ";
     let msg = message.strip_prefix(PREFIX).unwrap_or(message).trim();

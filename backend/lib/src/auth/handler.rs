@@ -22,9 +22,10 @@ use super::{
     middleware::AuthenticatedUser,
     service::{try_login, try_register},
 };
+use crate::auth::dto::register::RegisterRequestHelper;
 use crate::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
-    common::{error::FriendlyError, utils::serde_error::extract_human_error},
+    common::error::FriendlyError,
 };
 use axum::{
     Json,
@@ -40,7 +41,7 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> Response {
     match try_login(auth_module.clone(), payload).await {
-        Ok(resp) => (StatusCode::OK, axum::Json(resp)).into_response(),
+        Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -48,25 +49,28 @@ pub async fn login(
 // ===== REGISTER =====
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
-    payload: Result<Json<RegisterRequest>, JsonRejection>,
+    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
 ) -> Response {
     match payload {
-        Ok(Json(valid_payload)) => {
-            match try_register(
-                auth_module.repo.clone(),
-                auth_module.password_hasher.clone(),
-                valid_payload,
-            )
-            .await
-            {
-                Ok(resp) => (StatusCode::CREATED, axum::Json(resp)).into_response(),
-                Err(e) => e.into_response(),
+        Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
+            Ok(user_input) => {
+                match try_register(
+                    auth_module.repo.clone(),
+                    auth_module.password_hasher.clone(),
+                    user_input,
+                )
+                .await
+                {
+                    Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
+                    Err(e) => e.into_response(),
+                }
             }
-        }
-        Err(e) => FriendlyError::UserFacing(
-            StatusCode::UNPROCESSABLE_ENTITY,
+            Err(e) => e.into_response(),
+        },
+        Err(_) => FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
             "AUTH/HANDLER/REGISTER".to_string(),
-            extract_human_error(&e.to_string()),
+            "Hibás adatszerkezet".to_string(),
         )
         .trace(tracing::Level::DEBUG)
         .into_response(),

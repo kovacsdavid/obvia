@@ -28,7 +28,7 @@ use headers::{Authorization, authorization::Bearer};
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use std::sync::Arc;
 
-use crate::app::AppState;
+use crate::app::app_state::AppState;
 
 use super::dto::claims::Claims;
 

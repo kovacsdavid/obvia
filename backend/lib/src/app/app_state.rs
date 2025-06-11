@@ -17,30 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::{
-    handler::{login, register, test_protected},
-    middleware::require_auth,
-};
-use crate::app::app_state::AppState;
-use axum::{
-    Router,
-    routing::{get, post},
-};
+use crate::app::config::AppConfig;
+use crate::auth::AuthModule;
+use crate::users::UsersModule;
 use std::sync::Arc;
 
-pub fn auth_routes(state: Arc<AppState>) -> Router {
-    Router::new()
-        .route("/register", post(register))
-        .route("/login", post(login))
-        .with_state(state.auth_module.clone())
-}
-
-pub fn test_protected_routes(state: Arc<AppState>) -> Router {
-    Router::new()
-        .route("/test_protected", get(test_protected))
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            require_auth,
-        ))
-        .with_state(state.clone())
+pub struct AppState {
+    pub auth_module: Arc<AuthModule>,
+    pub config_module: Arc<AppConfig>,
+    pub users_module: Arc<UsersModule>,
 }

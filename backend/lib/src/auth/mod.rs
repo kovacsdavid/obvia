@@ -22,7 +22,7 @@ use std::sync::Arc;
 use repository::AuthRepository;
 use service::AuthPasswordHasher;
 
-use crate::app::AppConfig;
+use crate::app::config::AppConfig;
 
 pub mod dto;
 pub mod handler;

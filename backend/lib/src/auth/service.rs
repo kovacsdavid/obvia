@@ -120,7 +120,10 @@ pub async fn try_login(
     )
     .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
-    Ok(OkResponse::new(LoginResponse::new(UserPublic::from(user), token)))
+    Ok(OkResponse::new(LoginResponse::new(
+        UserPublic::from(user),
+        token,
+    )))
 }
 
 pub async fn try_register(

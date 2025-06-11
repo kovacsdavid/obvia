@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::users::model::User;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::users::model::User;
 
 #[derive(Deserialize)]
 pub struct LoginRequest {

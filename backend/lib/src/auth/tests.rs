@@ -25,7 +25,7 @@ use uuid::Uuid;
 
 use crate::auth::dto::register::RegisterRequestHelper;
 use crate::{
-    app::AppConfig,
+    app::config::AppConfig,
     auth::{
         AuthModule,
         dto::{login::LoginRequest, register::RegisterRequest},

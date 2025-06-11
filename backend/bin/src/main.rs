@@ -19,7 +19,7 @@
 
 use axum::Router;
 use backend_lib::{
-    app::{AppConfig, AppState},
+    app::{app_state::AppState, config::AppConfig},
     auth::{
         self,
         routes::{auth_routes, test_protected_routes},

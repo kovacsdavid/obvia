@@ -25,7 +25,14 @@ export interface LoginRequest {
 export interface LoginResponse {
   success: boolean,
   data?: {
-    user: { id: string, email: string },
+    user: {
+      id: string;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+      status: string;
+      profile_picture_url: string | null;
+    },
     token: string,
   },
   error?: {

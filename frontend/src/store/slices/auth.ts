@@ -24,7 +24,14 @@ import {isLoginResponse, isRegisterResponse} from "@/services/auth";
 
 interface AuthState {
   login: {
-    user: { id: string; email: string } | null;
+    user: {
+      id: string;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+      status: string;
+      profile_picture_url: string | null;
+    } | null;
     token: string | null;
     status: "idle" | "loading" | "succeeded" | "failed",
     error: {

@@ -17,18 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useAppDispatch } from "@/store/hooks";
-import { Button } from "@/components/ui";
-import { logoutUser } from "@/store/slices/auth";
-
 export default function Dashboard() {
-  const dispatch = useAppDispatch();
-  const handleLogout = () => {
-    dispatch(logoutUser());
-  }
-  return <div className="p-8">
-    <Button onClick={handleLogout}>
-      Logout
-    </Button>
-  </div>;
+  return <div/>;
 }

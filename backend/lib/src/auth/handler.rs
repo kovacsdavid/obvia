@@ -35,7 +35,6 @@ use axum::{
 };
 use std::sync::Arc;
 
-// ===== LOGIN =====
 pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
     Json(payload): Json<LoginRequest>,
@@ -46,7 +45,6 @@ pub async fn login(
     }
 }
 
-// ===== REGISTER =====
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
     payload: Result<Json<RegisterRequestHelper>, JsonRejection>,

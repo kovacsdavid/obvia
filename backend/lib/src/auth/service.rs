@@ -19,7 +19,7 @@
 
 use super::{
     AuthModule,
-    dto::{claims::Claims, login::LoginResponse, login::LoginUser, register::RegisterResponse},
+    dto::{claims::Claims, login::LoginResponse, login::UserPublic, register::RegisterResponse},
     repository::AuthRepository,
 };
 use crate::{
@@ -120,10 +120,7 @@ pub async fn try_login(
     )
     .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
-    let login_user = LoginUser {
-        id: user.id.to_string(),
-        email: user.email.clone(),
-    };
+    let login_user = UserPublic::from(user);
 
     Ok(OkResponse::new(LoginResponse::new(login_user, token)))
 }

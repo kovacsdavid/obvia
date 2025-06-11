@@ -18,6 +18,8 @@
  */
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+use crate::users::model::User;
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
@@ -26,19 +28,36 @@ pub struct LoginRequest {
 }
 
 #[derive(Serialize)]
-pub struct LoginUser {
-    pub id: String,
+pub struct UserPublic {
+    pub id: Uuid,
     pub email: String,
+    pub first_name: Option<String>,
+    pub last_name: Option<String>,
+    pub status: String,
+    pub profile_picture_url: Option<String>,
+}
+
+impl From<User> for UserPublic {
+    fn from(value: User) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            first_name: value.first_name,
+            last_name: value.last_name,
+            status: value.status,
+            profile_picture_url: value.profile_picture_url,
+        }
+    }
 }
 
 #[derive(Serialize)]
 pub struct LoginResponse {
-    user: LoginUser,
+    user: UserPublic,
     token: String,
 }
 
 impl LoginResponse {
-    pub fn new(user: LoginUser, token: String) -> Self {
+    pub fn new(user: UserPublic, token: String) -> Self {
         Self { user, token }
     }
     pub fn token(&self) -> &String {

@@ -18,7 +18,7 @@
  */
 use serde::Deserialize;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct AppConfig {
     server: ServerConfig,
     database: DatabaseConfig,
@@ -43,16 +43,6 @@ pub struct AuthConfig {
     jwt_issuer: String,
     jwt_audience: String,
     jwt_expiration_mins: u64,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        AppConfig {
-            server: ServerConfig::default(),
-            database: DatabaseConfig::default(),
-            auth: AuthConfig::default(),
-        }
-    }
 }
 
 impl Default for ServerConfig {

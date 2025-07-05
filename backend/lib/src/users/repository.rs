@@ -40,10 +40,10 @@ impl AuthRepository for PostgresRepo {
             ) VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(Uuid::new_v4())
-        .bind(&payload.email.as_str())
+        .bind(payload.email.as_str())
         .bind(password_hash)
-        .bind(&payload.first_name.as_str())
-        .bind(&payload.last_name.as_str())
+        .bind(payload.first_name.as_str())
+        .bind(payload.last_name.as_str())
         .execute(&self.db)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;

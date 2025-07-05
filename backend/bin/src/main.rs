@@ -51,7 +51,7 @@ fn init_config() -> anyhow::Result<AppConfig> {
 async fn init_db(config: Arc<AppConfig>) -> anyhow::Result<Pool<Postgres>> {
     let pool = PgPoolOptions::new()
         .max_connections(config.database().pool_size())
-        .connect(&config.database().url())
+        .connect(config.database().url())
         .await?;
     Ok(pool)
 }

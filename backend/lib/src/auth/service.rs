@@ -50,10 +50,10 @@ pub struct Argon2Hasher;
 impl AuthPasswordHasher for Argon2Hasher {
     fn hash_password(&self, password: &str) -> Result<String, String> {
         let salt = SaltString::generate(&mut OsRng);
-        Ok(Argon2::default()
+        Argon2::default()
             .hash_password(password.as_bytes(), &salt)
             .map(|hash| hash.to_string())
-            .map_err(|e| e.to_string())?)
+            .map_err(|e| e.to_string())
     }
 
     fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String> {
@@ -132,7 +132,7 @@ pub async fn try_register(
     payload: RegisterRequest,
 ) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
     let password_hash = password_hasher
-        .hash_password(&payload.password.as_str())
+        .hash_password(payload.password.as_str())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();
 

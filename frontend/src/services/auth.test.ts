@@ -41,7 +41,14 @@ describe("login", () => {
     const mockResponse: LoginResponse = {
       success: true,
       data: {
-        user: {id: "user123", email: "user@example.com"},
+        user: {
+          id: "user123",
+          email: "user@example.com",
+          first_name: "Eleonora",
+          last_name: "Example",
+          status: "active",
+          profile_picture_url: "https://example.com/profile_picture.jpg",
+        },
         token: "valid_token",
       },
     };
@@ -99,7 +106,14 @@ describe("isLoginResponse", () => {
     const validResponse: LoginResponse = {
       success: true,
       data: {
-        user: {id: "user123", email: "user@example.com"},
+        user: {
+          id: "user123",
+          email: "user@example.com",
+          first_name: "Eleonora",
+          last_name: "Example",
+          status: "active",
+          profile_picture_url: "https://example.com/profile_picture.jpg",
+        },
         token: "valid_token",
       },
     };

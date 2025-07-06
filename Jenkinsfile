@@ -26,7 +26,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh 'npm install'
-                    sh 'npm run test'
+                    sh 'npx vitest'
                     sh 'npm run lint'
                 }
             }
@@ -35,11 +35,13 @@ pipeline {
         stage('Build & Push') {
             steps {
                 script {
-                    docker.build("${DOCKER_REGISTRY}/backend:${VERSION}", "./backend")
-                    docker.push("${DOCKER_REGISTRY}/backend:${VERSION}")
+                    docker.withRegistry("http://${DOCKER_REGISTRY}") {
+                        def backend_build = docker.build("${DOCKER_REGISTRY}/backend:${VERSION}", "./backend")
+                        def frontend_build = docker.build("${DOCKER_REGISTRY}/frontend:${VERSION}", "./frontend")
 
-                    docker.build("${DOCKER_REGISTRY}/frontend:${VERSION}", "./frontend")
-                    docker.push("${DOCKER_REGISTRY}/frontend:${VERSION}")
+                        backend_build.push()
+                        frontend_build.push()
+                    }
                 }
             }
         }

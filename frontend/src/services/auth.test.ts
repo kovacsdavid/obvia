@@ -22,7 +22,7 @@ import type {LoginRequest, RegisterRequest, LoginResponse, RegisterResponse} fro
 import {isLoginResponse, isRegisterResponse, login, register} from "./auth";
 
 describe("login", () => {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
+  const API_URL = import.meta.env.VITE_OBVIA_API_URL || "http://localhost:3000";
 
   beforeAll(() => {
     global.fetch = vi.fn();
@@ -179,7 +179,7 @@ describe("isLoginResponse", () => {
 });
 
 describe("register", () => {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
+  const API_URL = import.meta.env.VITE_OBVIA_API_URL || "http://localhost:3000";
 
   beforeAll(() => {
     global.fetch = vi.fn();

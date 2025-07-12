@@ -17,19 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {describe, expect, it, vi, beforeAll, afterEach, beforeEach} from "vitest";
+import {describe, expect, it, vi, beforeAll, afterEach} from "vitest";
 import type {LoginRequest, RegisterRequest, LoginResponse, RegisterResponse} from "./auth";
 import {isLoginResponse, isRegisterResponse, login, register} from "./auth";
 
 describe("login", () => {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL || "http://localhost:3000";
-
   beforeAll(() => {
     global.fetch = vi.fn();
-  });
-
-  beforeEach(() => {
-    import.meta.env.VITE_OBVIA_API_URL = "http://localhost:3000"
   });
 
   afterEach(() => {
@@ -60,19 +54,11 @@ describe("login", () => {
     const response = await login(request);
 
     expect(response).toEqual(mockResponse);
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/login`, expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(`/api/login`, expect.objectContaining({
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(request),
     }));
-  });
-
-  it("should throw an error when API_URL is not set", async () => {
-    delete import.meta.env.VITE_OBVIA_API_URL;
-
-    const request: LoginRequest = {email: "user@example.com", password: "password123"};
-
-    await expect(login(request)).rejects.toThrowError("API URL is not configured");
   });
 
   it("should throw error for invalid response", async () => {
@@ -179,14 +165,8 @@ describe("isLoginResponse", () => {
 });
 
 describe("register", () => {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL || "http://localhost:3000";
-
   beforeAll(() => {
     global.fetch = vi.fn();
-  });
-
-  beforeEach(() => {
-    import.meta.env.VITE_OBVIA_API_URL = "http://localhost:3000"
   });
 
   afterEach(() => {
@@ -215,7 +195,7 @@ describe("register", () => {
     const response = await register(request);
 
     expect(response).toEqual(mockResponse);
-    expect(fetch).toHaveBeenCalledWith(`${API_URL}/register`, expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(`/api/register`, expect.objectContaining({
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({
@@ -226,20 +206,6 @@ describe("register", () => {
         password_confirm: request.passwordConfirm
       }),
     }));
-  });
-
-  it("should throw an error when API_URL is not set", async () => {
-    delete import.meta.env.VITE_OBVIA_API_URL;
-
-    const request: RegisterRequest = {
-      firstName: "John",
-      lastName: "Doe",
-      email: "john@example.com",
-      password: "password123",
-      passwordConfirm: "password123"
-    };
-
-    await expect(register(request)).rejects.toThrowError("API URL is not configured");
   });
 
   it("should throw error for invalid response", async () => {

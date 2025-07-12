@@ -75,11 +75,7 @@ export function isLoginResponse(data: unknown): data is LoginResponse {
 }
 
 export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
-  if (!API_URL) {
-    throw new Error("API URL is not configured");
-  }
-  const response = await fetch(`${API_URL}/login`, {
+  const response = await fetch(`/api/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -153,12 +149,7 @@ export async function register({
                                  password,
                                  passwordConfirm
                                }: RegisterRequest): Promise<RegisterResponse> {
-  const API_URL = import.meta.env.VITE_OBVIA_API_URL;
-  if (!API_URL) {
-    throw new Error('API URL is not configured');
-  }
-
-  const response = await fetch(`${API_URL}/register`, {
+  const response = await fetch(`/api/register`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({

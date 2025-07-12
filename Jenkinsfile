@@ -4,6 +4,9 @@ pipeline {
     environment {
         DOCKER_REGISTRY = credentials('docker-registry')
         VERSION = sh(script: 'git describe --tags --always', returnStdout: true).trim()
+        DEPLOY_SERVER = credentials('deploy-server')
+        DEPLOY_SSH = credentials('deploy-ssh-key')
+        BRANCH_NAME = "${GIT_BRANCH.split("/")[1]}"
     }
 
     stages {
@@ -36,11 +39,30 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry("http://${DOCKER_REGISTRY}") {
-                        def backend_build = docker.build("${DOCKER_REGISTRY}/backend:${VERSION}", "./backend")
-                        def frontend_build = docker.build("${DOCKER_REGISTRY}/frontend:${VERSION}", "./frontend")
+                        def backend_build = docker.build("${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:${VERSION}", "-t ${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:latest ./backend")
+                        def frontend_build = docker.build("${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:${VERSION}", "-t ${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:latest ./frontend")
 
                         backend_build.push()
                         frontend_build.push()
+                        backend_build.push('latest')
+                        frontend_build.push('latest')
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    sshagent(['deploy-ssh-key']) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no \${DEPLOY_SSH_USR}@\${DEPLOY_SERVER} '
+                                sudo /opt/deployment/deploy.sh \
+                                ${DOCKER_REGISTRY} \
+                                ${VERSION} \
+                                ${BRANCH_NAME}
+                            '
+                        """
                     }
                 }
             }

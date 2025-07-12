@@ -1,3 +1,4 @@
 .idea
 frontend/node_modules
 backend/target
+local_scripts

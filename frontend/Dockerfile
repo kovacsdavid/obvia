@@ -1,4 +1,4 @@
-FROM node:24-alpine as builder
+FROM --platform=$BUILDPLATFORM node:24-alpine AS builder
 WORKDIR /app
 COPY . .
 RUN npm install

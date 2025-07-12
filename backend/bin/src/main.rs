@@ -49,18 +49,19 @@ fn init_config() -> anyhow::Result<AppConfig> {
 }
 
 async fn init_db(config: Arc<AppConfig>) -> anyhow::Result<Pool<Postgres>> {
-    let pool = PgPoolOptions::new()
+    Ok(PgPoolOptions::new()
         .max_connections(config.database().pool_size())
         .connect(config.database().url())
-        .await?;
-    Ok(pool)
+        .await?)
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_subscriber();
     let config = Arc::new(init_config()?);
-    serve(config.clone(), init_db(config.clone()).await?).await?;
+    let db_pool = init_db(config.clone()).await?;
+    sqlx::migrate!("../migrations").run(&db_pool).await?;
+    serve(config.clone(), db_pool).await?;
     Ok(())
 }
 
@@ -84,9 +85,9 @@ async fn serve(config: Arc<AppConfig>, db: Pool<Postgres>) -> anyhow::Result<()>
         .layer(TraceLayer::new_for_http());
 
     let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await?;
 
-    axum::serve(listener, app)
+    axum::serve(listener, Router::new().nest("/api", app))
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())

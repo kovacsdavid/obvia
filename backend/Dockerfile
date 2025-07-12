@@ -19,5 +19,6 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPL
 FROM debian:bookworm-slim
 WORKDIR /opt
 EXPOSE 3000
+COPY --from=builder /opt/migrations /opt/migrations
 COPY --from=builder /opt/backend_bin /opt/backend_bin
 ENTRYPOINT ["/opt/backend_bin"]

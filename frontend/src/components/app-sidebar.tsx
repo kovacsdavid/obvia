@@ -30,7 +30,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
+  SidebarRail, useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/context/AuthContext";
 import {logoutUser} from "@/store/slices/auth.ts";
@@ -46,6 +46,13 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const handleLogout = () => {
     dispatch(logoutUser());
   }
+  const { toggleSidebar, isMobile } = useSidebar();
+
+  const mobileCloseOnClick = () => {
+      if (isMobile) {
+        toggleSidebar();
+      }
+  };
   const data = {
     navMain: [
       {
@@ -96,21 +103,24 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
                               <SidebarMenuButton asChild isActive={item.isActive}>
                                 {
                                   item.url
-                                      ? <Link to={item.url} key={item.title}>
+                                      ? <Link onClick={mobileCloseOnClick} to={item.url} key={item.title}>
                                         {item.title}
                                         { item.icon ? item.icon : "" }
                                       </Link>
                                       : item.click
                                         ? <Button
                                               key={item.title}
-                                              onClick={item.click}
+                                              onClick={() => {
+                                                mobileCloseOnClick();
+                                                item.click();
+                                              }}
                                               asChild
                                               variant={"ghost"}
                                           >
-                                            <Link to={item.url!} className="justify-start">
+                                            <div className="justify-start cursor-pointer">
                                               {item.title}
                                               { item.icon ? item.icon : "" }
-                                            </Link>
+                                            </div>
                                           </Button> :  (
                                               <span key={item.title}>{item.title}</span>
                                           )}

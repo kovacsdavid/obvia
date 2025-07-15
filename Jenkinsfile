@@ -40,8 +40,14 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry("http://${DOCKER_REGISTRY}") {
-                        def backend_build = docker.build("${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:${VERSION}", "-t ${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:latest ./backend")
-                        def frontend_build = docker.build("${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:${VERSION}", "-t ${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:latest ./frontend")
+                        def backend_build = docker.build(
+                            "${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:${VERSION}",
+                             "-t ${DOCKER_REGISTRY}/backend-${BRANCH_NAME}:latest ./backend"
+                        )
+                        def frontend_build = docker.build(
+                            "${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:${VERSION}",
+                             "-t ${DOCKER_REGISTRY}/frontend-${BRANCH_NAME}:latest --build-arg VITE_GIT_COMMIT_HASH=${VITE_GIT_COMMIT_HASH} ./frontend"
+                        )
 
                         backend_build.push()
                         frontend_build.push()

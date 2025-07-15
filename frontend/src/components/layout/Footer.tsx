@@ -18,7 +18,8 @@
  */
 
 export function Footer() {
-  return (
+    const gitRevision = import.meta.env.VITE_GIT_COMMIT_HASH;
+    return (
     <footer className="border-t py-4 px-4 text-center text-sm text-muted-foreground">
       © {new Date().getFullYear()} Kovács Dávid // Licence: {" "}
       <a
@@ -39,7 +40,7 @@ export function Footer() {
         Forráskód
       </a>
       {" // "}
-      pre-aplha release (Nem használható éles környezetben!)
+      pre-alpha ({gitRevision}) (Nem használható éles környezetben!)
     </footer>
   );
 }

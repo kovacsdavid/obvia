@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_REGISTRY = credentials('docker-registry')
         VERSION = sh(script: 'git describe --tags --always', returnStdout: true).trim()
+        VITE_GIT_COMMIT_HASH = "${VERSION}"
         DEPLOY_SERVER = credentials('deploy-server')
         DEPLOY_SSH = credentials('deploy-ssh-key')
         BRANCH_NAME = "${GIT_BRANCH.split("/")[1]}"

@@ -75,7 +75,7 @@ export function isLoginResponse(data: unknown): data is LoginResponse {
 }
 
 export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
-  const response = await fetch(`/api/login`, {
+  const response = await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -149,7 +149,7 @@ export async function register({
                                  password,
                                  passwordConfirm
                                }: RegisterRequest): Promise<RegisterResponse> {
-  const response = await fetch(`/api/register`, {
+  const response = await fetch(`/api/auth/register`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({

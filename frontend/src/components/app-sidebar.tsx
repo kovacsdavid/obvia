@@ -37,8 +37,27 @@ import {logoutUser} from "@/store/slices/auth.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";
-import {KeyRound, LogOut, NotebookPen} from "lucide-react";
+import {KeyRound, LogOut, NotebookPen, Boxes} from "lucide-react";
 
+interface NavigationItem {
+  title: string;
+  url?: string;
+  click?: () => void;
+  publicOnly?: boolean;
+  private?: boolean;
+  icon?: React.ReactNode;
+  isActive: boolean;
+}
+
+interface NavigationSection {
+  title: string;
+  url: string;
+  items: NavigationItem[];
+}
+
+interface NavigationData {
+  navMain: NavigationSection[];
+}
 export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -53,7 +72,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
         toggleSidebar();
       }
   };
-  const data = {
+  const data: NavigationData = {
     navMain: [
       {
         title: "Fiók",
@@ -82,6 +101,19 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
+      {
+        title: "Szervezeti egység",
+        url: "#",
+        items: [
+          {
+            title: "Létrehozás",
+            url: "/szervezeti_egyseg/letrehozas",
+            private: true,
+            icon: <Boxes />,
+            isActive: location.pathname === "/bejelentkezes",
+          },
+        ]
+      }
     ],
   }
   return (
@@ -107,12 +139,15 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
                                         {item.title}
                                         { item.icon ? item.icon : "" }
                                       </Link>
-                                      : item.click
+                                      : typeof item.click === "function"
                                         ? <Button
                                               key={item.title}
                                               onClick={() => {
                                                 mobileCloseOnClick();
-                                                item.click();
+                                                // TODO: figure out why this if needed for ts
+                                                if (typeof item.click === "function") {
+                                                  item.click();
+                                                }
                                               }}
                                               asChild
                                               variant={"ghost"}

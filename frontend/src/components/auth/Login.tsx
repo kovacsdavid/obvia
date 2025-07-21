@@ -42,7 +42,8 @@ export default function Login() {
     e.preventDefault();
     login( email, password ).then((response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        navigate('/vezerlopult');
+        // TODO: redirect here only if the user doesn't have any organization_unit yet!
+        navigate('/szervezeti_egyseg/letrehozas');
       }
     });
   };

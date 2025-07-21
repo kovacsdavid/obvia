@@ -25,6 +25,7 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
+import Create from "@/components/organizational_units/Create.tsx";
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);
@@ -35,17 +36,25 @@ export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/bejelentkezes" element={<Login />} />
-        <Route path="/regisztracio" element={<Register />} />
+        <Route path="/bejelentkezes" element={<Login/>}/>
+        <Route path="/regisztracio" element={<Register/>}/>
         <Route
           path="/vezerlopult"
           element={
             <PrivateRoute>
-              <Dashboard />
+              <Dashboard/>
             </PrivateRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/vezerlopult" />} />
+        <Route
+          path="/szervezeti_egyseg/letrehozas"
+          element={
+            <PrivateRoute>
+              <Create/>
+            </PrivateRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/vezerlopult"/>}/>
       </Routes>
     </Layout>
   );

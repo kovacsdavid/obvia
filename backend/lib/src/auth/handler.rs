@@ -19,45 +19,65 @@
 
 use super::{
     AuthModule,
-    middleware::AuthenticatedUser,
     service::{try_login, try_register},
 };
 use crate::auth::dto::register::RegisterRequestHelper;
+use crate::auth::repository::AuthRepository;
+use crate::common::repository::PoolWrapper;
 use crate::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
     common::error::FriendlyError,
 };
 use axum::{
-    Json,
+    Json, debug_handler,
     extract::{State, rejection::JsonRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
 
-pub async fn login(
-    State(auth_module): State<Arc<AuthModule>>,
-    Json(payload): Json<LoginRequest>,
-) -> Response {
-    match try_login(auth_module.clone(), payload).await {
+pub async fn login_inner<F, Fut>(
+    auth_module: Arc<AuthModule>,
+    payload: LoginRequest,
+    repo_factory: F,
+) -> Response
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: Future<Output = Box<dyn AuthRepository + Send + Sync>>,
+{
+    let mut repo = repo_factory().await;
+    match try_login(&mut repo, auth_module.clone(), payload).await {
         Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
         Err(e) => e.into_response(),
     }
 }
 
-pub async fn register(
+#[debug_handler]
+pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
-    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
+    Json(payload): Json<LoginRequest>,
 ) -> Response {
+    login_inner(auth_module.clone(), payload, || async {
+        Box::new(PoolWrapper::new(auth_module.db_pools.get_main_pool()))
+            as Box<dyn AuthRepository + Send + Sync>
+    })
+    .await
+}
+
+pub async fn register_inner<F, Fut>(
+    auth_module: Arc<AuthModule>,
+    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
+    repo_factory: F,
+) -> Response
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: Future<Output = Box<dyn AuthRepository + Send + Sync>>,
+{
     match payload {
         Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
             Ok(user_input) => {
-                match try_register(
-                    auth_module.repo.clone(),
-                    auth_module.password_hasher.clone(),
-                    user_input,
-                )
-                .await
+                let mut repo = repo_factory().await;
+                match try_register(&mut repo, auth_module.password_hasher.clone(), user_input).await
                 {
                     Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
                     Err(e) => e.into_response(),
@@ -75,6 +95,14 @@ pub async fn register(
     }
 }
 
-pub async fn test_protected(AuthenticatedUser(claims): AuthenticatedUser) -> String {
-    format!("Hello, {}! You are authenticated.", claims.sub())
+#[debug_handler]
+pub async fn register(
+    State(auth_module): State<Arc<AuthModule>>,
+    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
+) -> Response {
+    register_inner(auth_module.clone(), payload, || async {
+        Box::new(PoolWrapper::new(auth_module.db_pools.get_main_pool()))
+            as Box<dyn AuthRepository + Send + Sync>
+    })
+    .await
 }

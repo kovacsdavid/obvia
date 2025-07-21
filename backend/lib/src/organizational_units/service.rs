@@ -16,16 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::auth::dto::claims::Claims;
+use crate::common::dto::{OkResponse, SimpleMessageResponse};
+use crate::common::error::FriendlyError;
+use crate::organizational_units::dto::CreateRequest;
+use sqlx::PgPool;
 
-use crate::app::config::AppConfig;
-use crate::auth::AuthModule;
-use crate::organizational_units::OrganizationalUnitsModule;
-use crate::users::UsersModule;
-use std::sync::Arc;
-
-pub struct AppState {
-    pub auth_module: Arc<AuthModule>,
-    pub config_module: Arc<AppConfig>,
-    pub users_module: Arc<UsersModule>,
-    pub organizational_units_module: Arc<OrganizationalUnitsModule>,
+pub async fn try_create(
+    _claims: Claims,
+    _db_pools: PgPool,
+    _payload: CreateRequest,
+) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
+    todo!();
 }

@@ -19,9 +19,10 @@
 
 use super::{
     AuthModule,
-    dto::{claims::Claims, login::LoginResponse, login::UserPublic, register::RegisterResponse},
+    dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
+use crate::common::dto::SimpleMessageResponse;
 use crate::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
     common::{dto::OkResponse, error::FriendlyError},
@@ -67,21 +68,18 @@ impl AuthPasswordHasher for Argon2Hasher {
 }
 
 pub async fn try_login(
+    repo: &mut Box<dyn AuthRepository + Send + Sync>,
     auth_module: Arc<AuthModule>,
     payload: LoginRequest,
 ) -> Result<OkResponse<LoginResponse>, FriendlyError> {
-    let user = auth_module
-        .repo
-        .get_user_by_email(&payload.email)
-        .await
-        .map_err(|_| {
-            FriendlyError::UserFacing(
-                StatusCode::UNAUTHORIZED,
-                "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-                "Hibás e-mail cím vagy jelszó".to_string(),
-            )
-            .trace(tracing::Level::DEBUG)
-        })?;
+    let user = repo.get_user_by_email(&payload.email).await.map_err(|_| {
+        FriendlyError::UserFacing(
+            StatusCode::UNAUTHORIZED,
+            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+            "Hibás e-mail cím vagy jelszó".to_string(),
+        )
+        .trace(tracing::Level::DEBUG)
+    })?;
 
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
@@ -127,10 +125,10 @@ pub async fn try_login(
 }
 
 pub async fn try_register(
-    repo: Arc<dyn AuthRepository>,
+    repo: &mut Box<dyn AuthRepository + Send + Sync>,
     password_hasher: Arc<dyn AuthPasswordHasher>,
     payload: RegisterRequest,
-) -> Result<OkResponse<RegisterResponse>, FriendlyError> {
+) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let password_hash = password_hasher
         .hash_password(payload.password.as_str())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
@@ -153,7 +151,7 @@ pub async fn try_register(
             }
         })?;
 
-    Ok(OkResponse::new(RegisterResponse {
+    Ok(OkResponse::new(SimpleMessageResponse {
         message: "A felhasználó sikeresen létrehozva".to_string(),
     }))
 }

@@ -17,18 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::model::User;
+use crate::common::repository::PoolWrapper;
 use crate::{
-    auth::dto::register::RegisterRequest,
-    auth::repository::AuthRepository,
-    common::{error::DatabaseError, repository::PostgresRepo},
+    auth::dto::register::RegisterRequest, auth::repository::AuthRepository,
+    common::error::DatabaseError,
 };
 use async_trait::async_trait;
 use uuid::Uuid;
 
-use super::model::User;
-
 #[async_trait]
-impl AuthRepository for PostgresRepo {
+impl AuthRepository for PoolWrapper {
     async fn insert_user(
         &self,
         payload: &RegisterRequest,
@@ -44,17 +43,20 @@ impl AuthRepository for PostgresRepo {
         .bind(password_hash)
         .bind(payload.first_name.as_str())
         .bind(payload.last_name.as_str())
-        .execute(&self.db)
+        .execute(&self.pool)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         Ok(())
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError> {
+    async fn get_user_by_email(
+        &self,
+        email: &str
+    ) -> Result<User, DatabaseError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
                 .bind(email)
-                .fetch_one(&self.db)
+                .fetch_one(&self.pool)
                 .await
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         )

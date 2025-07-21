@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2024"
 
 [dependencies]
-axum = "0.8.4"
+axum = { version = "0.8.4" , features = ["macros"]}
 axum-extra = { version = "0.10.1", features = ["cookie", "cookie-key-expansion", "cookie-private", "cookie-signed", "typed-header"] }
 jsonwebtoken = { version = "9.3.1", features = ["use_pem"] }
 serde = { version = "1.0.219", features = ["derive"]}

@@ -17,6 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub struct PostgresRepo {
-    pub db: sqlx::PgPool,
+use sqlx::PgPool;
+
+pub struct PoolWrapper {
+    pub pool: PgPool,
+}
+
+impl PoolWrapper {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
 }

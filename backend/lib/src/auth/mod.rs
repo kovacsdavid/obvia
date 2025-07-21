@@ -19,10 +19,10 @@
 
 use std::sync::Arc;
 
-use repository::AuthRepository;
 use service::AuthPasswordHasher;
 
 use crate::app::config::AppConfig;
+use crate::app::database::PgPoolManagerTrait;
 
 pub mod dto;
 pub mod handler;
@@ -34,7 +34,7 @@ pub mod service;
 pub mod tests;
 
 pub struct AuthModule {
-    pub repo: Arc<dyn AuthRepository>,
+    pub db_pools: Arc<dyn PgPoolManagerTrait>,
     pub password_hasher: Arc<dyn AuthPasswordHasher>,
     pub config: Arc<AppConfig>,
 }

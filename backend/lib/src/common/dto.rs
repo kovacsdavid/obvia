@@ -55,3 +55,8 @@ pub struct ErrorBody<T: Serialize> {
     pub global: String,
     pub fields: Option<T>,
 }
+
+#[derive(Serialize)]
+pub struct SimpleMessageResponse {
+    pub message: String,
+}

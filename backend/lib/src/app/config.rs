@@ -33,8 +33,12 @@ pub struct ServerConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
-    url: String,
-    pool_size: u32,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub database: String,
+    pub pool_size: u32,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -57,7 +61,11 @@ impl Default for ServerConfig {
 impl Default for DatabaseConfig {
     fn default() -> Self {
         DatabaseConfig {
-            url: "postgres://user:password@localhost/db".to_string(),
+            host: String::from("localhost"),
+            port: 5432,
+            username: String::from("user"),
+            password: String::from("password"),
+            database: String::from("database"),
             pool_size: 5,
         }
     }
@@ -105,8 +113,11 @@ impl ServerConfig {
 }
 
 impl DatabaseConfig {
-    pub fn url(&self) -> &str {
-        &self.url
+    pub fn url(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.database
+        )
     }
 
     pub fn pool_size(&self) -> u32 {

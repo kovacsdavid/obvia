@@ -17,15 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::AppConfig;
-use crate::auth::AuthModule;
-use crate::organizational_units::OrganizationalUnitsModule;
-use crate::users::UsersModule;
+use crate::app::database::PgPoolManager;
 use std::sync::Arc;
 
-pub struct AppState {
-    pub auth_module: Arc<AuthModule>,
-    pub config_module: Arc<AppConfig>,
-    pub users_module: Arc<UsersModule>,
-    pub organizational_units_module: Arc<OrganizationalUnitsModule>,
+mod dto;
+mod handler;
+mod model;
+pub(crate) mod repository;
+pub mod routes;
+mod service;
+
+pub struct OrganizationalUnitsModule {
+    pub db_pools: Arc<PgPoolManager>,
 }

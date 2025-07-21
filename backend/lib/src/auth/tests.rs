@@ -17,19 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use axum::{Json, extract::State, http::StatusCode};
+use axum::{Json, http::StatusCode};
 use chrono::Utc;
 use mockall::predicate::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::app::database::MockPgPoolManagerTrait;
 use crate::auth::dto::register::RegisterRequestHelper;
+use crate::auth::handler::{login_inner, register_inner};
+use crate::auth::repository::AuthRepository;
 use crate::{
     app::config::AppConfig,
     auth::{
         AuthModule,
         dto::{login::LoginRequest, register::RegisterRequest},
-        handler::{login, register},
         repository::MockAuthRepository,
         service::{Argon2Hasher, MockAuthPasswordHasher},
     },
@@ -39,31 +41,8 @@ use crate::{
 
 #[tokio::test]
 async fn test_login_success() {
-    let mut repo = MockAuthRepository::new();
-    repo.expect_get_user_by_email()
-        .with(eq("testuser@example.com"))
-        .returning(|_| Ok(User {
-            id: Uuid::new_v4(),
-            email: "testuser@example.com".to_string(),
-            password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-            first_name: Some("Test".to_string()),
-            last_name: Some("User".to_string()),
-            phone: Some("+123456789".to_string()),
-            status: "active".to_string(),
-            last_login_at: Some(Utc::now()),
-            profile_picture_url: None,
-            locale: Some("hu-HU".to_string()),
-            invited_by: None,
-            email_verified_at: Some(Utc::now()),
-            notes: None,
-            is_superuser: false,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            deleted_at: None,
-        }));
-
     let auth_module = AuthModule {
-        repo: Arc::new(repo),
+        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -72,36 +51,41 @@ async fn test_login_success() {
         password: "correctpassword".to_string(),
     };
 
-    let response = login(State(Arc::new(auth_module)), Json(request)).await;
+    let repo_factory = || async {
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(|_| Ok(User {
+                id: Uuid::new_v4(),
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Utc::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Utc::now()),
+                notes: None,
+                is_superuser: false,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+            }));
+        Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+    };
+
+    let response = login_inner(Arc::new(auth_module), request, repo_factory).await;
 
     assert_eq!(response.status(), StatusCode::OK);
 }
+
 #[tokio::test]
 async fn test_login_success_return_jwt() {
-    let mut repo = MockAuthRepository::new();
-    repo.expect_get_user_by_email()
-        .with(eq("testuser@example.com"))
-        .returning(|_| Ok(User {
-            id: Uuid::new_v4(),
-            email: "testuser@example.com".to_string(),
-            password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-            first_name: Some("Test".to_string()),
-            last_name: Some("User".to_string()),
-            phone: Some("+123456789".to_string()),
-            status: "active".to_string(),
-            last_login_at: Some(Utc::now()),
-            profile_picture_url: None,
-            locale: Some("hu-HU".to_string()),
-            invited_by: None,
-            email_verified_at: Some(Utc::now()),
-            notes: None,
-            is_superuser: false,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            deleted_at: None,
-        }));
     let auth_module = AuthModule {
-        repo: Arc::new(repo),
+        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -110,7 +94,33 @@ async fn test_login_success_return_jwt() {
         password: "correctpassword".to_string(),
     };
 
-    let response = login(State(Arc::new(auth_module)), Json(request)).await;
+    let repo_factory = || async {
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(|_| Ok(User {
+                id: Uuid::new_v4(),
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Utc::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Utc::now()),
+                notes: None,
+                is_superuser: false,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+            }));
+        Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+    };
+
+    let response = login_inner(Arc::new(auth_module), request, repo_factory).await;
 
     assert_eq!(response.status(), StatusCode::OK);
 
@@ -133,31 +143,8 @@ async fn test_login_success_return_jwt() {
 
 #[tokio::test]
 async fn test_login_failure() {
-    let mut repo = MockAuthRepository::new();
-    repo.expect_get_user_by_email()
-        .with(eq("testuser@example.com"))
-        .returning(|_| Ok(User {
-            id: Uuid::new_v4(),
-            email: "testuser@example.com".to_string(),
-            password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-            first_name: Some("Test".to_string()),
-            last_name: Some("User".to_string()),
-            phone: Some("+123456789".to_string()),
-            status: "active".to_string(),
-            last_login_at: Some(Utc::now()),
-            profile_picture_url: None,
-            locale: Some("hu-HU".to_string()),
-            invited_by: None,
-            email_verified_at: Some(Utc::now()),
-            notes: None,
-            is_superuser: false,
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-            deleted_at: None,
-        }));
-
     let auth_module = AuthModule {
-        repo: Arc::new(repo),
+        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -166,7 +153,33 @@ async fn test_login_failure() {
         password: "incorrectpassword".to_string(),
     };
 
-    let response = login(State(Arc::new(auth_module)), Json(request)).await;
+    let repo_factory = || async {
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(|_| Ok(User {
+                id: Uuid::new_v4(),
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Utc::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Utc::now()),
+                notes: None,
+                is_superuser: false,
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+            }));
+        Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+    };
+
+    let response = login_inner(Arc::new(auth_module), request, repo_factory).await;
 
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
 }
@@ -176,18 +189,12 @@ async fn test_login_failure() {
 #[tokio::test]
 async fn test_register_success() {
     let register_request_helper = RegisterRequestHelper {
-        email: "testuser@example.com".to_string().try_into().unwrap(),
-        first_name: "Test".to_string().try_into().unwrap(),
-        last_name: "User".to_string().try_into().unwrap(),
-        password: "Password1!".to_string().try_into().unwrap(),
-        password_confirm: "Password1!".to_string().try_into().unwrap(),
+        email: "testuser@example.com".to_string(),
+        first_name: "Test".to_string(),
+        last_name: "User".to_string(),
+        password: "Password1!".to_string(),
+        password_confirm: "Password1!".to_string(),
     };
-    let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
-    let mut repo = MockAuthRepository::new();
-    repo.expect_insert_user()
-        .with(eq(register_request.clone()), eq("hashed_password"))
-        .returning(|_, _| Ok(()));
-
     let mut password_hasher = MockAuthPasswordHasher::new();
     password_hasher
         .expect_hash_password()
@@ -195,12 +202,26 @@ async fn test_register_success() {
         .returning(|_| Ok("hashed_password".to_string()));
 
     let auth_module = Arc::new(AuthModule {
-        repo: Arc::new(repo),
+        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(password_hasher),
         config: Arc::new(AppConfig::default()),
     });
+    let repo_factory = || async {
+        let register_request_helper = register_request_helper.clone();
+        let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user()
+            .with(eq(register_request.clone()), eq("hashed_password"))
+            .returning(|_, _| Ok(()));
+        Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+    };
 
-    let response = register(State(auth_module), Ok(Json(register_request_helper))).await;
+    let response = register_inner(
+        auth_module.clone(),
+        Ok(Json(register_request_helper.clone())),
+        repo_factory,
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::CREATED);
 }
 
@@ -213,15 +234,7 @@ async fn test_register_user_already_exists() {
         password: "Password1!".to_string(),
         password_confirm: "Password1!".to_string(),
     };
-    let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
-    let mut repo = MockAuthRepository::new();
-    repo.expect_insert_user()
-        .with(eq(register_request.clone()), eq("hashed_password"))
-        .returning(|_, _| {
-            Err(DatabaseError::DatabaseError(
-                "duplicate key value violates unique constraint".to_string(),
-            ))
-        });
+
     let mut password_hasher = MockAuthPasswordHasher::new();
     password_hasher
         .expect_hash_password()
@@ -229,11 +242,29 @@ async fn test_register_user_already_exists() {
         .returning(|_| Ok("hashed_password".to_string()));
 
     let auth_module = Arc::new(AuthModule {
-        repo: Arc::new(repo),
+        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(password_hasher),
         config: Arc::new(AppConfig::default()),
     });
+    let repo_factory = || async {
+        let register_request_helper = register_request_helper.clone();
+        let register_request = RegisterRequest::try_from(register_request_helper.clone()).unwrap();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user()
+            .with(eq(register_request.clone()), eq("hashed_password"))
+            .returning(|_, _| {
+                Err(DatabaseError::DatabaseError(
+                    "duplicate key value violates unique constraint".to_string(),
+                ))
+            });
+        Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+    };
 
-    let response = register(State(auth_module), Ok(Json(register_request_helper))).await;
+    let response = register_inner(
+        auth_module.clone(),
+        Ok(Json(register_request_helper.clone())),
+        repo_factory,
+    )
+    .await;
     assert_eq!(response.status(), StatusCode::CONFLICT);
 }

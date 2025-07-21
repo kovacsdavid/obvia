@@ -5,3 +5,7 @@ members = [
 ]
 
 resolver = "3"
+
+[workspace.metadata]
+clippy = { deny = ["unsafe_code"] }
+

@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#![forbid(unsafe_code)]
 
 pub mod app;
 pub mod auth;
 pub mod common;
+pub mod organizational_units;
 pub mod users;

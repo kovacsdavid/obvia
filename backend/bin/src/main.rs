@@ -16,19 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#![forbid(unsafe_code)]
 
 use axum::Router;
+use backend_lib::app::database::{PgPoolManager, PgPoolManagerTrait};
+use backend_lib::organizational_units::OrganizationalUnitsModule;
 use backend_lib::{
     app::{app_state::AppState, config::AppConfig},
-    auth::{
-        self,
-        routes::{auth_routes, test_protected_routes},
-        service::Argon2Hasher,
-    },
-    common::repository::PostgresRepo,
+    auth::{self, routes::routes as auth_routes, service::Argon2Hasher},
+    organizational_units::routes::routes as organizational_units_routes,
     users::UsersModule,
 };
-use sqlx::{Pool, Postgres, postgres::PgPoolOptions};
 use std::sync::Arc;
 use tokio::signal;
 use tower_http::trace::TraceLayer;
@@ -44,44 +42,38 @@ fn init_subscriber() {
     .expect("setting default subscriber failed");
 }
 
-fn init_config() -> anyhow::Result<AppConfig> {
-    Ok(AppConfig::from_env()?)
-}
-
-async fn init_db(config: Arc<AppConfig>) -> anyhow::Result<Pool<Postgres>> {
-    Ok(PgPoolOptions::new()
-        .max_connections(config.database().pool_size())
-        .connect(config.database().url())
-        .await?)
-}
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_subscriber();
-    let config = Arc::new(init_config()?);
-    let db_pool = init_db(config.clone()).await?;
-    sqlx::migrate!("../migrations").run(&db_pool).await?;
-    serve(config.clone(), db_pool).await?;
+    let config = Arc::new(AppConfig::from_env()?);
+    let db_pools = Arc::new(PgPoolManager::new(config.database()).await?);
+    sqlx::migrate!("../migrations")
+        .run(&db_pools.get_main_pool())
+        .await?;
+    serve(config.clone(), db_pools.clone()).await?;
     Ok(())
 }
 
-async fn serve(config: Arc<AppConfig>, db: Pool<Postgres>) -> anyhow::Result<()> {
-    let auth_repo = PostgresRepo { db: db.clone() };
+async fn serve(config: Arc<AppConfig>, db_pools: Arc<PgPoolManager>) -> anyhow::Result<()> {
     let auth_module = auth::AuthModule {
-        repo: Arc::new(auth_repo),
+        db_pools: db_pools.clone(),
         password_hasher: Arc::new(Argon2Hasher),
         config: config.clone(),
     };
     let users_module = Arc::new(UsersModule {});
+    let organizational_units_module = Arc::new(OrganizationalUnitsModule {
+        db_pools: db_pools.clone(),
+    });
     let state = Arc::new(AppState {
         auth_module: Arc::new(auth_module),
         config_module: config.clone(),
         users_module,
+        organizational_units_module,
     });
 
     let app = Router::new()
         .merge(auth_routes(state.clone()))
-        .merge(test_protected_routes(state.clone()))
+        .merge(organizational_units_routes(state.clone()))
         .layer(TraceLayer::new_for_http());
 
     let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();

@@ -20,7 +20,7 @@
 -- Add up migration script here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TABLE companies (
+CREATE TABLE organizational_units (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL UNIQUE,
     db_host VARCHAR(255) NOT NULL,
@@ -33,15 +33,17 @@ CREATE TABLE companies (
     deleted_at TIMESTAMPTZ
 );
 
-CREATE TABLE user_companies (
+CREATE TABLE user_organizational_units (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL,
-    company_id UUID NOT NULL,
+    organizational_unit_id UUID NOT NULL,
     role VARCHAR(64) NOT NULL DEFAULT 'member',
     invited_by UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
     CONSTRAINT fk_user FOREIGN KEY(user_id) REFERENCES users(id),
-    CONSTRAINT fk_company FOREIGN KEY(company_id) REFERENCES companies(id),
-    CONSTRAINT user_company_unique UNIQUE(user_id, company_id)
+    CONSTRAINT fk_invited_by FOREIGN KEY (invited_by) REFERENCES users(id),
+    CONSTRAINT fk_company FOREIGN KEY(organizational_unit_id) REFERENCES organizational_units(id),
+    CONSTRAINT user_company_unique UNIQUE(user_id, organizational_unit_id)
 );

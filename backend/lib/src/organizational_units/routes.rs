@@ -17,15 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::AppConfig;
-use crate::auth::AuthModule;
-use crate::organizational_units::OrganizationalUnitsModule;
-use crate::users::UsersModule;
+use crate::app::app_state::AppState;
+use crate::auth::middleware::require_auth;
+use crate::organizational_units::handler::{
+    create as managed_companies_create, get as managed_companies_get,
+    list as managed_companies_list,
+};
+use axum::Router;
+use axum::middleware::from_fn_with_state;
+use axum::routing::{get, post};
 use std::sync::Arc;
 
-pub struct AppState {
-    pub auth_module: Arc<AuthModule>,
-    pub config_module: Arc<AppConfig>,
-    pub users_module: Arc<UsersModule>,
-    pub organizational_units_module: Arc<OrganizationalUnitsModule>,
+pub fn routes(state: Arc<AppState>) -> Router {
+    Router::new().nest(
+        "/organizational_units",
+        Router::new()
+            .route("/create", post(managed_companies_create))
+            .route("/get", get(managed_companies_get))
+            .route("/list", get(managed_companies_list))
+            .layer(from_fn_with_state(state.clone(), require_auth))
+            .with_state(state.organizational_units_module.clone()),
+    )
 }

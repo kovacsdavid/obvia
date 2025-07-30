@@ -122,15 +122,17 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
           {isLoggedIn ? <UserData /> : null}
         </SidebarHeader>
         <SidebarContent>
-          {data.navMain.map((item) => (
-              item.items.length === 0 ? null :
+          {data.navMain.map((item) => {
+            const filteredItems = item.items.filter((item) => (
+              !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
+            ));
+            return (
+              filteredItems.length === 0 ? null :
                   <SidebarGroup key={item.title}>
                     <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
                     <SidebarGroupContent>
                       <SidebarMenu>
-                        {item.items.filter((item) => (
-                          !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
-                          )).map((item) => (
+                        {filteredItems.map((item) => (
                             <SidebarMenuItem key={item.title}>
                               <SidebarMenuButton asChild isActive={item.isActive}>
                                 {
@@ -165,7 +167,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
                       </SidebarMenu>
                     </SidebarGroupContent>
                   </SidebarGroup>
-          ))}
+          )})}
         </SidebarContent>
         <SidebarRail/>
       </Sidebar>

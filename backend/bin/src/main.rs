@@ -19,64 +19,31 @@
 #![forbid(unsafe_code)]
 
 use axum::Router;
-use backend_lib::app::database::{PgPoolManager, PgPoolManagerTrait};
-use backend_lib::organizational_units::OrganizationalUnitsModule;
-use backend_lib::{
-    app::{app_state::AppState, config::AppConfig},
-    auth::{self, routes::routes as auth_routes, service::Argon2Hasher},
-    organizational_units::routes::routes as organizational_units_routes,
-    users::UsersModule,
+use backend_lib::app::database::PgPoolManagerTrait;
+use backend_lib::app::init::{
+    app, app_state, config, migrate_main_db, pg_pool_manager, subscriber,
 };
+use backend_lib::app::{app_state::AppState, config::AppConfig};
 use std::sync::Arc;
 use tokio::signal;
-use tower_http::trace::TraceLayer;
-use tracing::Level;
-use tracing_subscriber::FmtSubscriber;
 
-fn init_subscriber() {
-    tracing::subscriber::set_global_default(
-        FmtSubscriber::builder()
-            .with_max_level(Level::TRACE)
-            .finish(),
-    )
-    .expect("setting default subscriber failed");
+async fn init() -> anyhow::Result<(Arc<AppConfig>, Arc<AppState>)> {
+    subscriber();
+    let config = config()?;
+    let pool_manager = pg_pool_manager(config.clone()).await?;
+    let app_state = Arc::new(app_state(pool_manager.clone(), config.clone()).await);
+    migrate_main_db(&pool_manager.get_main_pool()).await?;
+    Ok((config, app_state))
 }
-
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    init_subscriber();
-    let config = Arc::new(AppConfig::from_env()?);
-    let db_pools =
-        Arc::new(PgPoolManager::new(config.main_database(), config.base_tenant_database()).await?);
-    sqlx::migrate!("../migrations")
-        .run(&db_pools.get_main_pool())
-        .await?;
-    serve(config.clone(), db_pools.clone()).await?;
+    serve().await?;
     Ok(())
 }
 
-async fn serve(config: Arc<AppConfig>, db_pools: Arc<PgPoolManager>) -> anyhow::Result<()> {
-    let auth_module = auth::AuthModule {
-        db_pools: db_pools.clone(),
-        password_hasher: Arc::new(Argon2Hasher),
-        config: config.clone(),
-    };
-    let users_module = Arc::new(UsersModule {});
-    let organizational_units_module = Arc::new(OrganizationalUnitsModule {
-        db_pools: db_pools.clone(),
-        config: config.clone(),
-    });
-    let state = Arc::new(AppState {
-        auth_module: Arc::new(auth_module),
-        config_module: config.clone(),
-        users_module,
-        organizational_units_module,
-    });
-
-    let app = Router::new()
-        .merge(auth_routes(state.clone()))
-        .merge(organizational_units_routes(state.clone()))
-        .layer(TraceLayer::new_for_http());
+async fn serve() -> anyhow::Result<()> {
+    let (config, app_state) = init().await?;
+    let app = app(app_state).await;
 
     let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
     let listener = tokio::net::TcpListener::bind(addr).await?;

@@ -86,12 +86,12 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .bind(
             payload
                 .db_host
-                .unwrap_or(app_config.base_tenant_database().host.clone()),
+                .unwrap_or(app_config.default_tenant_database().host.clone()),
         )
         .bind(
             payload
                 .db_port
-                .unwrap_or(app_config.base_tenant_database().port as i32),
+                .unwrap_or(app_config.default_tenant_database().port as i32),
         )
         .bind(
             payload
@@ -104,7 +104,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
                 .unwrap_or(organizational_unit_id.to_string()),
         )
         .bind(db_password.clone())
-        .bind(app_config.base_tenant_database().pool_size as i32)
+        .bind(app_config.default_tenant_database().pool_size as i32)
         .fetch_one(&mut *tx)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
@@ -140,7 +140,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             "GRANT tenant_{} to {};",
             DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-            app_config.base_tenant_database().username // safety: not user input
+            app_config.default_tenant_database().username // safety: not user input
         );
 
         let _grant = sqlx::query(&grant_sql)

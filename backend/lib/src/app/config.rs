@@ -23,7 +23,7 @@ use serde::Deserialize;
 pub struct AppConfig {
     server: ServerConfig,
     main_database: MainDatabaseConfig,
-    base_tenant_database: BaseTenantDatabaseConfig,
+    default_tenant_database: DefaultTenantDatabaseConfig,
     auth: AuthConfig,
 }
 
@@ -44,7 +44,7 @@ pub struct MainDatabaseConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct BaseTenantDatabaseConfig {
+pub struct DefaultTenantDatabaseConfig {
     pub host: String,
     pub port: u16,
     pub username: String,
@@ -106,9 +106,9 @@ impl Default for MainDatabaseConfig {
     }
 }
 
-impl Default for BaseTenantDatabaseConfig {
+impl Default for DefaultTenantDatabaseConfig {
     fn default() -> Self {
-        BaseTenantDatabaseConfig {
+        DefaultTenantDatabaseConfig {
             host: String::from("localhost"),
             port: 5432,
             username: String::from("user"),
@@ -157,8 +157,8 @@ impl AppConfig {
         &self.main_database
     }
 
-    pub fn base_tenant_database(&self) -> &BaseTenantDatabaseConfig {
-        &self.base_tenant_database
+    pub fn default_tenant_database(&self) -> &DefaultTenantDatabaseConfig {
+        &self.default_tenant_database
     }
 
     pub fn auth(&self) -> &AuthConfig {
@@ -189,7 +189,7 @@ impl MainDatabaseConfig {
     }
 }
 
-impl BaseTenantDatabaseConfig {
+impl DefaultTenantDatabaseConfig {
     pub fn url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",

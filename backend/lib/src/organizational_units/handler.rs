@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::database::PgPoolManagerTrait;
 use crate::auth::dto::claims::Claims;
 use crate::auth::middleware::AuthenticatedUser;
 use crate::common::error::FriendlyError;
@@ -78,7 +77,9 @@ pub async fn create(
         payload,
         || async {
             Box::new(PoolWrapper::new(
-                organizational_unit_module.db_pools.get_base_tenant_pool(),
+                organizational_unit_module
+                    .pool_manager
+                    .get_default_tenant_pool(),
             )) as Box<dyn OrganizationalUnitsRepository + Send + Sync>
         },
     )

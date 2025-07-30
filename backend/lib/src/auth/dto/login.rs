@@ -60,6 +60,7 @@ impl LoginResponse {
     pub fn new(user: UserPublic, token: String) -> Self {
         Self { user, token }
     }
+    #[allow(dead_code)]
     pub fn token(&self) -> &String {
         &self.token
     }

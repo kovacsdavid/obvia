@@ -42,7 +42,7 @@ use crate::{
 #[tokio::test]
 async fn test_login_success() {
     let auth_module = AuthModule {
-        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
+        pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -85,7 +85,7 @@ async fn test_login_success() {
 #[tokio::test]
 async fn test_login_success_return_jwt() {
     let auth_module = AuthModule {
-        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
+        pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -144,7 +144,7 @@ async fn test_login_success_return_jwt() {
 #[tokio::test]
 async fn test_login_failure() {
     let auth_module = AuthModule {
-        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
+        pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(Argon2Hasher),
         config: Arc::new(AppConfig::default()),
     };
@@ -202,7 +202,7 @@ async fn test_register_success() {
         .returning(|_| Ok("hashed_password".to_string()));
 
     let auth_module = Arc::new(AuthModule {
-        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
+        pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(password_hasher),
         config: Arc::new(AppConfig::default()),
     });
@@ -242,7 +242,7 @@ async fn test_register_user_already_exists() {
         .returning(|_| Ok("hashed_password".to_string()));
 
     let auth_module = Arc::new(AuthModule {
-        db_pools: Arc::new(MockPgPoolManagerTrait::new()),
+        pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
         password_hasher: Arc::new(password_hasher),
         config: Arc::new(AppConfig::default()),
     });

@@ -53,21 +53,28 @@ impl Claims {
     pub fn sub(&self) -> &String {
         &self.sub
     }
+
+    #[allow(dead_code)]
     pub fn exp(&self) -> usize {
         self.exp
     }
+    #[allow(dead_code)]
     pub fn iat(&self) -> usize {
         self.iat
     }
+    #[allow(dead_code)]
     pub fn nbf(&self) -> usize {
         self.nbf
     }
+    #[allow(dead_code)]
     pub fn iss(&self) -> &String {
         &self.iss
     }
+    #[allow(dead_code)]
     pub fn aud(&self) -> &String {
         &self.aud
     }
+    #[allow(dead_code)]
     pub fn jti(&self) -> &String {
         &self.jti
     }

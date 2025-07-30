@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::{BaseTenantDatabaseConfig, MainDatabaseConfig, TenantDatabaseConfig};
+use crate::app::config::{DefaultTenantDatabaseConfig, MainDatabaseConfig, TenantDatabaseConfig};
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -32,7 +32,7 @@ use std::time::Duration;
 #[async_trait]
 pub trait PgPoolManagerTrait: Send + Sync {
     fn get_main_pool(&self) -> PgPool;
-    fn get_base_tenant_pool(&self) -> PgPool;
+    fn get_default_tenant_pool(&self) -> PgPool;
     fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>>;
     async fn add_tenant_pool(
         &self,
@@ -43,14 +43,14 @@ pub trait PgPoolManagerTrait: Send + Sync {
 
 pub struct PgPoolManager {
     main_pool: PgPool,
-    base_tenant_pool: PgPool,
+    default_tenant_pool: PgPool,
     tenant_pools: Arc<RwLock<HashMap<String, PgPool>>>,
 }
 
 impl PgPoolManager {
     pub async fn new(
         main_database_config: &MainDatabaseConfig,
-        base_tenant_database_config: &BaseTenantDatabaseConfig,
+        base_tenant_database_config: &DefaultTenantDatabaseConfig,
     ) -> Result<PgPoolManager> {
         let main_pool = PgPoolOptions::new()
             .max_connections(main_database_config.pool_size)
@@ -64,7 +64,7 @@ impl PgPoolManager {
             .await?;
         Ok(Self {
             main_pool,
-            base_tenant_pool,
+            default_tenant_pool: base_tenant_pool,
             tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }
@@ -75,8 +75,8 @@ impl PgPoolManagerTrait for PgPoolManager {
     fn get_main_pool(&self) -> PgPool {
         self.main_pool.clone()
     }
-    fn get_base_tenant_pool(&self) -> PgPool {
-        self.base_tenant_pool.clone()
+    fn get_default_tenant_pool(&self) -> PgPool {
+        self.default_tenant_pool.clone()
     }
     fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>> {
         let guard = self

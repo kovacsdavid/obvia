@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod error;
-pub mod handler;
-pub mod model;
-pub mod repository;
-pub mod routes;
-pub mod service;
+mod error;
+mod handler;
+pub(crate) mod model;
+mod repository;
+mod routes;
+mod service;
 #[cfg(test)]
-pub mod tests;
+mod tests;
 
 pub struct UsersModule {}

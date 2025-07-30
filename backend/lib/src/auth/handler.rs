@@ -58,7 +58,7 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> Response {
     login_inner(auth_module.clone(), payload, || async {
-        Box::new(PoolWrapper::new(auth_module.db_pools.get_main_pool()))
+        Box::new(PoolWrapper::new(auth_module.pool_manager.get_main_pool()))
             as Box<dyn AuthRepository + Send + Sync>
     })
     .await
@@ -100,7 +100,7 @@ pub async fn register(
     payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
 ) -> Response {
     register_inner(auth_module.clone(), payload, || async {
-        Box::new(PoolWrapper::new(auth_module.db_pools.get_main_pool()))
+        Box::new(PoolWrapper::new(auth_module.pool_manager.get_main_pool()))
             as Box<dyn AuthRepository + Send + Sync>
     })
     .await

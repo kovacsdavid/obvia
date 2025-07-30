@@ -23,8 +23,8 @@ pub(crate) mod first_name;
 pub(crate) mod last_name;
 pub(crate) mod password;
 
-pub use ddl_parameter::DdlParameter;
-pub use email::Email;
-pub use first_name::FirstName;
-pub use last_name::LastName;
-pub use password::Password;
+pub(crate) use ddl_parameter::DdlParameter;
+pub(crate) use email::Email;
+pub(crate) use first_name::FirstName;
+pub(crate) use last_name::LastName;
+pub(crate) use password::Password;

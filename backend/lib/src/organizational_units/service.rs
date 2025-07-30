@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::database::PgPoolManagerTrait;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
@@ -39,7 +38,7 @@ pub async fn try_create(
     {
         Ok(organizational_unit) => {
             match organizational_units_module
-                .db_pools
+                .pool_manager
                 .add_tenant_pool(
                     organizational_unit.id.to_string(),
                     &organizational_unit.into(),

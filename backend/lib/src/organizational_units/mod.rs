@@ -18,17 +18,17 @@
  */
 
 use crate::app::config::AppConfig;
-use crate::app::database::PgPoolManager;
+use crate::app::database::PgPoolManagerTrait;
 use std::sync::Arc;
 
 mod dto;
 mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;
-pub mod routes;
+pub(crate) mod routes;
 mod service;
 
 pub struct OrganizationalUnitsModule {
-    pub db_pools: Arc<PgPoolManager>,
+    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
 }

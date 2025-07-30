@@ -24,17 +24,17 @@ use service::AuthPasswordHasher;
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
 
-pub mod dto;
-pub mod handler;
-pub mod middleware;
-pub mod repository;
-pub mod routes;
-pub mod service;
+pub(crate) mod dto;
+mod handler;
+pub(crate) mod middleware;
+pub(crate) mod repository;
+pub(crate) mod routes;
+pub(crate) mod service;
 #[cfg(test)]
 pub mod tests;
 
 pub struct AuthModule {
-    pub db_pools: Arc<dyn PgPoolManagerTrait>,
+    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub password_hasher: Arc<dyn AuthPasswordHasher>,
     pub config: Arc<AppConfig>,
 }

@@ -26,6 +26,7 @@ use std::str::FromStr;
 pub struct DdlParameter(String);
 
 impl DdlParameter {
+    #[allow(dead_code)]
     pub fn as_str(&self) -> &str {
         &self.0
     }

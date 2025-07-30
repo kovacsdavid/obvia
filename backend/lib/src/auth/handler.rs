@@ -45,8 +45,8 @@ where
     F: Fn() -> Fut + Send + Sync,
     Fut: Future<Output = Box<dyn AuthRepository + Send + Sync>>,
 {
-    let mut repo = repo_factory().await;
-    match try_login(&mut repo, auth_module.clone(), payload).await {
+    let repo = repo_factory().await;
+    match try_login(&*repo, auth_module.clone(), payload).await {
         Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
         Err(e) => e.into_response(),
     }
@@ -76,9 +76,8 @@ where
     match payload {
         Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
             Ok(user_input) => {
-                let mut repo = repo_factory().await;
-                match try_register(&mut repo, auth_module.password_hasher.clone(), user_input).await
-                {
+                let repo = repo_factory().await;
+                match try_register(&*repo, auth_module.password_hasher.clone(), user_input).await {
                     Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
                     Err(e) => e.into_response(),
                 }

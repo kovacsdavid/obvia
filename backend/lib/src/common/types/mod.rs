@@ -17,11 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub mod email;
-pub mod first_name;
-pub mod last_name;
-pub mod password;
+pub(crate) mod ddl_parameter;
+pub(crate) mod email;
+pub(crate) mod first_name;
+pub(crate) mod last_name;
+pub(crate) mod password;
 
+pub use ddl_parameter::DdlParameter;
 pub use email::Email;
 pub use first_name::FirstName;
 pub use last_name::LastName;

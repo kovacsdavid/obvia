@@ -20,9 +20,22 @@
 host = "0.0.0.0"
 port = 3000
 
-# === Database settings ===
-[database]
-url = "postgres://user:password@localhost/db"
+# === Main Database settings ===
+[main_database]
+host = "db_host"
+port = 5432
+username = "db_user"
+password = "db_password"
+database = "db_database"
+pool_size = 10
+
+# === Tenant Database settings ===
+[tenant_database]
+host = "db_host"
+port = 5432
+username = "db_user"
+password = "db_password"
+database = "db_database"
 pool_size = 10
 
 # === Auth module settings ===

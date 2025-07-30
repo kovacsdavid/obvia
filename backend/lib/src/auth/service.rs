@@ -68,7 +68,7 @@ impl AuthPasswordHasher for Argon2Hasher {
 }
 
 pub async fn try_login(
-    repo: &mut Box<dyn AuthRepository + Send + Sync>,
+    repo: &(dyn AuthRepository + Send + Sync),
     auth_module: Arc<AuthModule>,
     payload: LoginRequest,
 ) -> Result<OkResponse<LoginResponse>, FriendlyError> {
@@ -125,7 +125,7 @@ pub async fn try_login(
 }
 
 pub async fn try_register(
-    repo: &mut Box<dyn AuthRepository + Send + Sync>,
+    repo: &(dyn AuthRepository + Send + Sync),
     password_hasher: Arc<dyn AuthPasswordHasher>,
     payload: RegisterRequest,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {

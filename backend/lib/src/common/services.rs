@@ -17,18 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::AppConfig;
-use crate::app::database::PgPoolManager;
-use std::sync::Arc;
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 
-mod dto;
-mod handler;
-mod model;
-pub(crate) mod repository;
-pub mod routes;
-mod service;
+pub fn generate_string_csprng(length: usize) -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-pub struct OrganizationalUnitsModule {
-    pub db_pools: Arc<PgPoolManager>,
-    pub config: Arc<AppConfig>,
+    let mut rng = StdRng::from_os_rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
 }

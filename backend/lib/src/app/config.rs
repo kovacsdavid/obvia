@@ -21,7 +21,8 @@ use serde::Deserialize;
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct AppConfig {
     server: ServerConfig,
-    database: DatabaseConfig,
+    main_database: MainDatabaseConfig,
+    tenant_database: TenantDatabaseConfig,
     auth: AuthConfig,
 }
 
@@ -32,7 +33,16 @@ pub struct ServerConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct DatabaseConfig {
+pub struct MainDatabaseConfig {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub database: String,
+    pub pool_size: u32,
+}
+#[derive(Debug, Clone, Deserialize)]
+pub struct TenantDatabaseConfig {
     pub host: String,
     pub port: u16,
     pub username: String,
@@ -58,9 +68,22 @@ impl Default for ServerConfig {
     }
 }
 
-impl Default for DatabaseConfig {
+impl Default for MainDatabaseConfig {
     fn default() -> Self {
-        DatabaseConfig {
+        MainDatabaseConfig {
+            host: String::from("localhost"),
+            port: 5432,
+            username: String::from("user"),
+            password: String::from("password"),
+            database: String::from("database"),
+            pool_size: 5,
+        }
+    }
+}
+
+impl Default for TenantDatabaseConfig {
+    fn default() -> Self {
+        TenantDatabaseConfig {
             host: String::from("localhost"),
             port: 5432,
             username: String::from("user"),
@@ -93,8 +116,12 @@ impl AppConfig {
         &self.server
     }
 
-    pub fn database(&self) -> &DatabaseConfig {
-        &self.database
+    pub fn main_database(&self) -> &MainDatabaseConfig {
+        &self.main_database
+    }
+
+    pub fn tenant_database(&self) -> &TenantDatabaseConfig {
+        &self.tenant_database
     }
 
     pub fn auth(&self) -> &AuthConfig {
@@ -112,7 +139,7 @@ impl ServerConfig {
     }
 }
 
-impl DatabaseConfig {
+impl MainDatabaseConfig {
     pub fn url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",

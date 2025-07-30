@@ -46,7 +46,7 @@ fn init_subscriber() {
 async fn main() -> anyhow::Result<()> {
     init_subscriber();
     let config = Arc::new(AppConfig::from_env()?);
-    let db_pools = Arc::new(PgPoolManager::new(config.database()).await?);
+    let db_pools = Arc::new(PgPoolManager::new(config.main_database()).await?);
     sqlx::migrate!("../migrations")
         .run(&db_pools.get_main_pool())
         .await?;
@@ -63,6 +63,7 @@ async fn serve(config: Arc<AppConfig>, db_pools: Arc<PgPoolManager>) -> anyhow::
     let users_module = Arc::new(UsersModule {});
     let organizational_units_module = Arc::new(OrganizationalUnitsModule {
         db_pools: db_pools.clone(),
+        config: config.clone(),
     });
     let state = Arc::new(AppState {
         auth_module: Arc::new(auth_module),

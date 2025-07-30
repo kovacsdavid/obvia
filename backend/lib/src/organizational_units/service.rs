@@ -16,16 +16,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::config::AppConfig;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
 use crate::organizational_units::dto::CreateRequest;
-use sqlx::PgPool;
+use crate::organizational_units::repository::OrganizationalUnitsRepository;
+use std::sync::Arc;
+use tracing::Level;
 
 pub async fn try_create(
-    _claims: Claims,
-    _db_pools: PgPool,
-    _payload: CreateRequest,
+    repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    claims: Claims,
+    payload: CreateRequest,
+    app_config: Arc<AppConfig>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
-    todo!();
+    match repo.insert_and_connect(payload, claims, app_config).await {
+        Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
+            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
+        })),
+        Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+    }
 }

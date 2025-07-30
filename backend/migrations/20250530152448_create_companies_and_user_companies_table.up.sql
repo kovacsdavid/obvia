@@ -22,7 +22,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE organizational_units (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     db_host VARCHAR(255) NOT NULL,
     db_port INTEGER NOT NULL DEFAULT 5432,
     db_name VARCHAR(255) NOT NULL,

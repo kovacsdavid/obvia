@@ -17,11 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
+use crate::auth::dto::claims::Claims;
 use crate::auth::middleware::AuthenticatedUser;
 use crate::common::error::FriendlyError;
+use crate::common::repository::PoolWrapper;
 use crate::organizational_units::OrganizationalUnitsModule;
 use crate::organizational_units::dto::{CreateRequest, CreateRequestHelper};
+use crate::organizational_units::repository::OrganizationalUnitsRepository;
 use crate::organizational_units::service::try_create;
 use axum::Json;
 use axum::extract::State;
@@ -32,21 +36,21 @@ use axum::response::Response;
 use std::sync::Arc;
 use tracing::Level;
 
-pub async fn create(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(organizational_unit_module): State<Arc<OrganizationalUnitsModule>>,
+pub async fn create_inner<F, Fut>(
+    claims: Claims,
+    app_config: Arc<AppConfig>,
     payload: Result<Json<CreateRequestHelper>, JsonRejection>,
-) -> Response {
+    repo_factory: F,
+) -> Response
+where
+    F: Fn() -> Fut + Send + Sync,
+    Fut: Future<Output = Box<dyn OrganizationalUnitsRepository + Send + Sync>>,
+{
     match payload {
         Ok(Json(payload)) => match CreateRequest::try_from(payload) {
             Ok(user_input) => {
-                match try_create(
-                    claims,
-                    organizational_unit_module.db_pools.get_main_pool(),
-                    user_input,
-                )
-                .await
-                {
+                let mut repo = repo_factory().await;
+                match try_create(&mut *repo, claims, user_input, app_config).await {
                     Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
                     Err(e) => e.into_response(),
                 }
@@ -61,6 +65,24 @@ pub async fn create(
         .trace(Level::DEBUG)
         .into_response(),
     }
+}
+
+pub async fn create(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(organizational_unit_module): State<Arc<OrganizationalUnitsModule>>,
+    payload: Result<Json<CreateRequestHelper>, JsonRejection>,
+) -> Response {
+    create_inner(
+        claims,
+        organizational_unit_module.config.clone(),
+        payload,
+        || async {
+            Box::new(PoolWrapper::new(
+                organizational_unit_module.db_pools.get_main_pool(),
+            )) as Box<dyn OrganizationalUnitsRepository + Send + Sync>
+        },
+    )
+    .await
 }
 
 pub async fn get(

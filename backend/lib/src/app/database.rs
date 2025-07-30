@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::DatabaseConfig;
+use crate::app::config::MainDatabaseConfig;
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -33,7 +33,8 @@ use std::time::Duration;
 pub trait PgPoolManagerTrait: Send + Sync {
     fn get_main_pool(&self) -> PgPool;
     fn get_company_pool(&self, company_id: &str) -> Result<Option<PgPool>>;
-    async fn add_company_pool(&self, company_id: String, config: &DatabaseConfig) -> Result<()>;
+    async fn add_company_pool(&self, company_id: String, config: &MainDatabaseConfig)
+    -> Result<()>;
 }
 
 pub struct PgPoolManager {
@@ -42,7 +43,7 @@ pub struct PgPoolManager {
 }
 
 impl PgPoolManager {
-    pub async fn new(config: &DatabaseConfig) -> Result<PgPoolManager> {
+    pub async fn new(config: &MainDatabaseConfig) -> Result<PgPoolManager> {
         let main_pool = PgPoolOptions::new()
             .max_connections(config.pool_size)
             .acquire_timeout(Duration::from_secs(3))
@@ -67,7 +68,11 @@ impl PgPoolManagerTrait for PgPoolManager {
             .map_err(|_| anyhow::anyhow!("Failed to acquire read lock on company pools"))?;
         Ok(guard.get(company_id).cloned())
     }
-    async fn add_company_pool(&self, company_id: String, config: &DatabaseConfig) -> Result<()> {
+    async fn add_company_pool(
+        &self,
+        company_id: String,
+        config: &MainDatabaseConfig,
+    ) -> Result<()> {
         let pool = PgPoolOptions::new()
             .max_connections(config.pool_size)
             .acquire_timeout(Duration::from_secs(3))

@@ -20,5 +20,6 @@
 pub mod dto;
 pub mod error;
 pub mod repository;
+pub(crate) mod services;
 pub mod types;
 pub mod utils;

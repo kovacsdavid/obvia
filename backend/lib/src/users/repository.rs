@@ -49,10 +49,7 @@ impl AuthRepository for PoolWrapper {
         Ok(())
     }
 
-    async fn get_user_by_email(
-        &self,
-        email: &str
-    ) -> Result<User, DatabaseError> {
+    async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
                 .bind(email)

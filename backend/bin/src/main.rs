@@ -46,7 +46,8 @@ fn init_subscriber() {
 async fn main() -> anyhow::Result<()> {
     init_subscriber();
     let config = Arc::new(AppConfig::from_env()?);
-    let db_pools = Arc::new(PgPoolManager::new(config.main_database()).await?);
+    let db_pools =
+        Arc::new(PgPoolManager::new(config.main_database(), config.base_tenant_database()).await?);
     sqlx::migrate!("../migrations")
         .run(&db_pools.get_main_pool())
         .await?;

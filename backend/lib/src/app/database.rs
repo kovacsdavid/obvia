@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::MainDatabaseConfig;
+use crate::app::config::{BaseTenantDatabaseConfig, MainDatabaseConfig, TenantDatabaseConfig};
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -32,26 +32,40 @@ use std::time::Duration;
 #[async_trait]
 pub trait PgPoolManagerTrait: Send + Sync {
     fn get_main_pool(&self) -> PgPool;
-    fn get_company_pool(&self, company_id: &str) -> Result<Option<PgPool>>;
-    async fn add_company_pool(&self, company_id: String, config: &MainDatabaseConfig)
-    -> Result<()>;
+    fn get_base_tenant_pool(&self) -> PgPool;
+    fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>>;
+    async fn add_tenant_pool(
+        &self,
+        company_id: String,
+        config: &TenantDatabaseConfig,
+    ) -> Result<()>;
 }
 
 pub struct PgPoolManager {
     main_pool: PgPool,
-    company_pools: Arc<RwLock<HashMap<String, PgPool>>>,
+    base_tenant_pool: PgPool,
+    tenant_pools: Arc<RwLock<HashMap<String, PgPool>>>,
 }
 
 impl PgPoolManager {
-    pub async fn new(config: &MainDatabaseConfig) -> Result<PgPoolManager> {
+    pub async fn new(
+        main_database_config: &MainDatabaseConfig,
+        base_tenant_database_config: &BaseTenantDatabaseConfig,
+    ) -> Result<PgPoolManager> {
         let main_pool = PgPoolOptions::new()
-            .max_connections(config.pool_size)
+            .max_connections(main_database_config.pool_size)
             .acquire_timeout(Duration::from_secs(3))
-            .connect(&config.url())
+            .connect(&main_database_config.url())
+            .await?;
+        let base_tenant_pool = PgPoolOptions::new()
+            .max_connections(base_tenant_database_config.pool_size)
+            .acquire_timeout(Duration::from_secs(3))
+            .connect(&base_tenant_database_config.url())
             .await?;
         Ok(Self {
             main_pool,
-            company_pools: Arc::new(RwLock::new(HashMap::new())),
+            base_tenant_pool,
+            tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }
 }
@@ -61,17 +75,20 @@ impl PgPoolManagerTrait for PgPoolManager {
     fn get_main_pool(&self) -> PgPool {
         self.main_pool.clone()
     }
-    fn get_company_pool(&self, company_id: &str) -> Result<Option<PgPool>> {
+    fn get_base_tenant_pool(&self) -> PgPool {
+        self.base_tenant_pool.clone()
+    }
+    fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>> {
         let guard = self
-            .company_pools
+            .tenant_pools
             .read()
             .map_err(|_| anyhow::anyhow!("Failed to acquire read lock on company pools"))?;
         Ok(guard.get(company_id).cloned())
     }
-    async fn add_company_pool(
+    async fn add_tenant_pool(
         &self,
         company_id: String,
-        config: &MainDatabaseConfig,
+        config: &TenantDatabaseConfig,
     ) -> Result<()> {
         let pool = PgPoolOptions::new()
             .max_connections(config.pool_size)
@@ -81,12 +98,11 @@ impl PgPoolManagerTrait for PgPoolManager {
 
         {
             let mut pools = self
-                .company_pools
+                .tenant_pools
                 .write()
                 .map_err(|_| anyhow::anyhow!("Failed to acquire write lock on company pools"))?;
             pools.insert(company_id, pool);
         }
-
         Ok(())
     }
 }

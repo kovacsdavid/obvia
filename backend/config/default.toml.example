@@ -29,8 +29,8 @@ password = "db_password"
 database = "db_database"
 pool_size = 10
 
-# === Tenant Database settings ===
-[tenant_database]
+# === Base Tenant Database settings ===
+[base_tenant_database]
 host = "db_host"
 port = 5432
 username = "db_user"

@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
 use crate::auth::dto::claims::Claims;
 use crate::auth::middleware::AuthenticatedUser;
@@ -38,7 +37,7 @@ use tracing::Level;
 
 pub async fn create_inner<F, Fut>(
     claims: Claims,
-    app_config: Arc<AppConfig>,
+    organizational_units_module: Arc<OrganizationalUnitsModule>,
     payload: Result<Json<CreateRequestHelper>, JsonRejection>,
     repo_factory: F,
 ) -> Response
@@ -50,7 +49,8 @@ where
         Ok(Json(payload)) => match CreateRequest::try_from(payload) {
             Ok(user_input) => {
                 let mut repo = repo_factory().await;
-                match try_create(&mut *repo, claims, user_input, app_config).await {
+                match try_create(&mut *repo, claims, user_input, organizational_units_module).await
+                {
                     Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
                     Err(e) => e.into_response(),
                 }
@@ -74,11 +74,11 @@ pub async fn create(
 ) -> Response {
     create_inner(
         claims,
-        organizational_unit_module.config.clone(),
+        organizational_unit_module.clone(),
         payload,
         || async {
             Box::new(PoolWrapper::new(
-                organizational_unit_module.db_pools.get_main_pool(),
+                organizational_unit_module.db_pools.get_base_tenant_pool(),
             )) as Box<dyn OrganizationalUnitsRepository + Send + Sync>
         },
     )

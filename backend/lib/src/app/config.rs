@@ -16,13 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct AppConfig {
     server: ServerConfig,
     main_database: MainDatabaseConfig,
-    tenant_database: TenantDatabaseConfig,
+    base_tenant_database: BaseTenantDatabaseConfig,
     auth: AuthConfig,
 }
 
@@ -41,7 +42,18 @@ pub struct MainDatabaseConfig {
     pub database: String,
     pub pool_size: u32,
 }
+
 #[derive(Debug, Clone, Deserialize)]
+pub struct BaseTenantDatabaseConfig {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub database: String,
+    pub pool_size: u32,
+}
+
+#[derive(Debug, Clone)]
 pub struct TenantDatabaseConfig {
     pub host: String,
     pub port: u16,
@@ -49,6 +61,19 @@ pub struct TenantDatabaseConfig {
     pub password: String,
     pub database: String,
     pub pool_size: u32,
+}
+
+impl From<OrganizationalUnit> for TenantDatabaseConfig {
+    fn from(value: OrganizationalUnit) -> Self {
+        Self {
+            host: value.db_host,
+            port: value.db_port as u16,
+            username: format!("tenant_{}", value.db_user.replace("-", "")),
+            password: value.db_password,
+            database: format!("tenant_{}", value.db_name.replace("-", "")),
+            pool_size: value.db_max_pool_size as u32,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -81,6 +106,18 @@ impl Default for MainDatabaseConfig {
     }
 }
 
+impl Default for BaseTenantDatabaseConfig {
+    fn default() -> Self {
+        BaseTenantDatabaseConfig {
+            host: String::from("localhost"),
+            port: 5432,
+            username: String::from("user"),
+            password: String::from("password"),
+            database: String::from("database"),
+            pool_size: 5,
+        }
+    }
+}
 impl Default for TenantDatabaseConfig {
     fn default() -> Self {
         TenantDatabaseConfig {
@@ -120,8 +157,8 @@ impl AppConfig {
         &self.main_database
     }
 
-    pub fn tenant_database(&self) -> &TenantDatabaseConfig {
-        &self.tenant_database
+    pub fn base_tenant_database(&self) -> &BaseTenantDatabaseConfig {
+        &self.base_tenant_database
     }
 
     pub fn auth(&self) -> &AuthConfig {
@@ -140,6 +177,32 @@ impl ServerConfig {
 }
 
 impl MainDatabaseConfig {
+    pub fn url(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.database
+        )
+    }
+
+    pub fn pool_size(&self) -> u32 {
+        self.pool_size
+    }
+}
+
+impl BaseTenantDatabaseConfig {
+    pub fn url(&self) -> String {
+        format!(
+            "postgres://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.database
+        )
+    }
+
+    pub fn pool_size(&self) -> u32 {
+        self.pool_size
+    }
+}
+
+impl TenantDatabaseConfig {
     pub fn url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",

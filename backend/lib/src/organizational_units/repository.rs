@@ -41,7 +41,7 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
         payload: CreateRequest,
         claims: Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<(), DatabaseError>;
+    ) -> Result<OrganizationalUnit, DatabaseError>;
     #[allow(dead_code)]
     async fn get_all_by_user_uuid(
         &mut self,
@@ -65,7 +65,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         payload: CreateRequest,
         claims: Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<(), DatabaseError> {
+    ) -> Result<OrganizationalUnit, DatabaseError> {
         let mut tx = self
             .pool
             .begin()
@@ -76,22 +76,22 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         let db_password = payload
             .db_password
             .unwrap_or_else(|| generate_string_csprng(40));
-        let _organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
+        let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
             "INSERT INTO organizational_units (
-            id, name, db_host, db_port, db_name, db_user, db_password
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
         )
         .bind(organizational_unit_id)
         .bind(payload.name)
         .bind(
             payload
                 .db_host
-                .unwrap_or(app_config.tenant_database().host.clone()),
+                .unwrap_or(app_config.base_tenant_database().host.clone()),
         )
         .bind(
             payload
                 .db_port
-                .unwrap_or(app_config.tenant_database().port as i32),
+                .unwrap_or(app_config.base_tenant_database().port as i32),
         )
         .bind(
             payload
@@ -104,6 +104,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
                 .unwrap_or(organizational_unit_id.to_string()),
         )
         .bind(db_password.clone())
+        .bind(app_config.base_tenant_database().pool_size as i32)
         .fetch_one(&mut *tx)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
@@ -139,7 +140,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             "GRANT tenant_{} to {};",
             DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-            app_config.tenant_database().username // safety: not user input
+            app_config.base_tenant_database().username // safety: not user input
         );
 
         let _grant = sqlx::query(&grant_sql)
@@ -166,7 +167,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        Ok(())
+        Ok(organizational_unit)
     }
 
     async fn get_all_by_user_uuid(

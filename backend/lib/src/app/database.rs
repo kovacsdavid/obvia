@@ -50,21 +50,21 @@ pub struct PgPoolManager {
 impl PgPoolManager {
     pub async fn new(
         main_database_config: &MainDatabaseConfig,
-        base_tenant_database_config: &DefaultTenantDatabaseConfig,
+        default_tenant_database_config: &DefaultTenantDatabaseConfig,
     ) -> Result<PgPoolManager> {
         let main_pool = PgPoolOptions::new()
             .max_connections(main_database_config.pool_size)
             .acquire_timeout(Duration::from_secs(3))
             .connect(&main_database_config.url())
             .await?;
-        let base_tenant_pool = PgPoolOptions::new()
-            .max_connections(base_tenant_database_config.pool_size)
+        let default_tenant_pool = PgPoolOptions::new()
+            .max_connections(default_tenant_database_config.pool_size)
             .acquire_timeout(Duration::from_secs(3))
-            .connect(&base_tenant_database_config.url())
+            .connect(&default_tenant_database_config.url())
             .await?;
         Ok(Self {
             main_pool,
-            default_tenant_pool: base_tenant_pool,
+            default_tenant_pool,
             tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }

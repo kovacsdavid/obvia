@@ -23,6 +23,16 @@ use crate::organizational_units::OrganizationalUnitsModule;
 use crate::users::UsersModule;
 use std::sync::Arc;
 
+/// `AppState` is a shared state structure that holds references to various application modules.
+/// It is intended to be used across the application to provide shared access to core components.
+///
+/// # Notes
+///
+/// * All fields are wrapped in `Arc` (Atomic Reference Counting smart pointer) to enable thread-safe access
+///   to shared resources across the application.
+/// * This structure is commonly utilized within asynchronous or multi-threaded contexts where shared state
+///   is required.
+/// * Reorganization may be required in the future because I assume most of the modules will use mostly the same resources
 pub struct AppState {
     pub auth_module: Arc<AuthModule>,
     pub config_module: Arc<AppConfig>,

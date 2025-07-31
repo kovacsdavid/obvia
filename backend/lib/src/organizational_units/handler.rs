@@ -25,12 +25,12 @@ use crate::organizational_units::OrganizationalUnitsModule;
 use crate::organizational_units::dto::{CreateRequest, CreateRequestHelper};
 use crate::organizational_units::repository::OrganizationalUnitsRepository;
 use crate::organizational_units::service::try_create;
-use axum::Json;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use axum::{Json, debug_handler};
 use std::sync::Arc;
 use tracing::Level;
 
@@ -66,6 +66,7 @@ where
     }
 }
 
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(organizational_unit_module): State<Arc<OrganizationalUnitsModule>>,

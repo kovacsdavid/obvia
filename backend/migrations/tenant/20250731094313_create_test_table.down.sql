@@ -16,9 +16,5 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-pub mod app_state;
-pub mod config;
-pub mod database;
-pub mod init;
-pub(crate) mod services;
+-- Add down migration script here
+DROP TABLE test;

@@ -16,9 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+    
+-- Add up migration script here
+CREATE
+EXTENSION IF NOT EXISTS "uuid-ossp";
 
-pub mod app_state;
-pub mod config;
-pub mod database;
-pub mod init;
-pub(crate) mod services;
+CREATE TABLE test
+(
+    id               UUID PRIMARY KEY      DEFAULT uuid_generate_v4(),
+    name             VARCHAR(255) NOT NULL,
+    created_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    deleted_at       TIMESTAMPTZ
+);

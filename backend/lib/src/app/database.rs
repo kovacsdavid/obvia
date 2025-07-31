@@ -27,18 +27,16 @@ use sqlx::postgres::PgPoolOptions;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait PgPoolManagerTrait: Send + Sync {
     fn get_main_pool(&self) -> PgPool;
     fn get_default_tenant_pool(&self) -> PgPool;
-    fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>>;
-    async fn add_tenant_pool(
-        &self,
-        company_id: String,
-        config: &TenantDatabaseConfig,
-    ) -> Result<()>;
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>>;
+    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &TenantDatabaseConfig)
+    -> Result<Uuid>;
 }
 
 pub struct PgPoolManager {
@@ -78,18 +76,18 @@ impl PgPoolManagerTrait for PgPoolManager {
     fn get_default_tenant_pool(&self) -> PgPool {
         self.default_tenant_pool.clone()
     }
-    fn get_tenant_pool(&self, company_id: &str) -> Result<Option<PgPool>> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>> {
         let guard = self
             .tenant_pools
             .read()
             .map_err(|_| anyhow::anyhow!("Failed to acquire read lock on company pools"))?;
-        Ok(guard.get(company_id).cloned())
+        Ok(guard.get(&tenant_id.to_string()).cloned())
     }
     async fn add_tenant_pool(
         &self,
-        company_id: String,
+        tenant_id: Uuid,
         config: &TenantDatabaseConfig,
-    ) -> Result<()> {
+    ) -> Result<Uuid> {
         let pool = PgPoolOptions::new()
             .max_connections(config.pool_size)
             .acquire_timeout(Duration::from_secs(3))
@@ -101,8 +99,8 @@ impl PgPoolManagerTrait for PgPoolManager {
                 .tenant_pools
                 .write()
                 .map_err(|_| anyhow::anyhow!("Failed to acquire write lock on company pools"))?;
-            pools.insert(company_id, pool);
+            pools.insert(tenant_id.to_string(), pool);
         }
-        Ok(())
+        Ok(tenant_id)
     }
 }

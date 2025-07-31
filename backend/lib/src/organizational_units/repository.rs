@@ -35,25 +35,26 @@ use uuid::Uuid;
 #[async_trait]
 pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     #[allow(dead_code)]
-    async fn get_by_uuid(&mut self, uuid: &str) -> Result<OrganizationalUnit, DatabaseError>;
+    async fn get_by_uuid(&self, uuid: &Uuid) -> Result<OrganizationalUnit, DatabaseError>;
     async fn insert_and_connect(
-        &mut self,
+        &self,
         payload: CreateRequest,
         claims: Claims,
         app_config: Arc<AppConfig>,
     ) -> Result<OrganizationalUnit, DatabaseError>;
     #[allow(dead_code)]
     async fn get_all_by_user_uuid(
-        &mut self,
+        &self,
         user_uuid: &str,
     ) -> Result<Vec<OrganizationalUnit>, DatabaseError>;
+    async fn get_all(&self) -> Result<Vec<OrganizationalUnit>, DatabaseError>;
 }
 
 #[async_trait]
 impl OrganizationalUnitsRepository for PoolWrapper {
-    async fn get_by_uuid(&mut self, uuid: &str) -> Result<OrganizationalUnit, DatabaseError> {
+    async fn get_by_uuid(&self, uuid: &Uuid) -> Result<OrganizationalUnit, DatabaseError> {
         Ok(sqlx::query_as::<_, OrganizationalUnit>(
-            "SELECT * FROM organizational_units WHERE uuid = $1",
+            "SELECT * FROM organizational_units WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
         .fetch_one(&self.pool)
@@ -61,7 +62,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
     }
     async fn insert_and_connect(
-        &mut self,
+        &self,
         payload: CreateRequest,
         claims: Claims,
         app_config: Arc<AppConfig>,
@@ -171,13 +172,22 @@ impl OrganizationalUnitsRepository for PoolWrapper {
     }
 
     async fn get_all_by_user_uuid(
-        &mut self,
+        &self,
         user_uuid: &str,
     ) -> Result<Vec<OrganizationalUnit>, DatabaseError> {
         sqlx::query_as::<_, OrganizationalUnit>(
-            "SELECT * FROM organizational_units WHERE user_uuid = $1",
+            "SELECT * FROM organizational_units WHERE user_uuid = $1 AND deleted_at IS NULL",
         )
         .bind(user_uuid)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
+    }
+
+    async fn get_all(&self) -> Result<Vec<OrganizationalUnit>, DatabaseError> {
+        sqlx::query_as::<_, OrganizationalUnit>(
+            "SELECT * FROM organizational_units WHERE deleted_at IS NULL",
+        )
         .fetch_all(&self.pool)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))

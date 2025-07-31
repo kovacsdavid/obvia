@@ -19,21 +19,22 @@
 #![forbid(unsafe_code)]
 
 use axum::Router;
-use backend_lib::app::database::PgPoolManagerTrait;
+use backend_lib::app::config::AppConfig;
 use backend_lib::app::init::{
-    app, app_state, config, migrate_main_db, pg_pool_manager, subscriber,
+    app, app_state, config, init_tenant_pools, migrate, pg_pool_manager, subscriber,
 };
-use backend_lib::app::{app_state::AppState, config::AppConfig};
 use std::sync::Arc;
 use tokio::signal;
 
-async fn init() -> anyhow::Result<(Arc<AppConfig>, Arc<AppState>)> {
+async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     subscriber();
     let config = config()?;
     let pool_manager = pg_pool_manager(config.clone()).await?;
     let app_state = Arc::new(app_state(pool_manager.clone(), config.clone()).await);
-    migrate_main_db(&pool_manager.get_main_pool()).await?;
-    Ok((config, app_state))
+    let app = app(app_state).await;
+    init_tenant_pools(pool_manager.clone()).await?;
+    migrate(pool_manager.clone()).await?;
+    Ok((config, app))
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,8 +43,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn serve() -> anyhow::Result<()> {
-    let (config, app_state) = init().await?;
-    let app = app(app_state).await;
+    let (config, app) = init().await?;
 
     let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
     let listener = tokio::net::TcpListener::bind(addr).await?;

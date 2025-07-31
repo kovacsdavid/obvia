@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::app::services::migrate_tenant_db;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
@@ -39,15 +40,31 @@ pub async fn try_create(
         Ok(organizational_unit) => {
             match organizational_units_module
                 .pool_manager
-                .add_tenant_pool(
-                    organizational_unit.id.to_string(),
-                    &organizational_unit.into(),
-                )
+                .add_tenant_pool(organizational_unit.id, &organizational_unit.clone().into())
                 .await
             {
-                Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
-                    message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
-                })),
+                Ok(_) => {
+                    match &organizational_units_module
+                        .pool_manager
+                        .get_tenant_pool(organizational_unit.id)
+                        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
+                    {
+                        Some(tenant_pool) => match migrate_tenant_db(tenant_pool).await {
+                            Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
+                                message: String::from(
+                                    "Szervezeti egység létrehozása sikeresen megtörtént!",
+                                ),
+                            })),
+                            Err(e) => {
+                                Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR))
+                            }
+                        },
+                        None => Err(FriendlyError::Internal(
+                            "Could not get tenant_pool".to_string(),
+                        )
+                        .trace(Level::ERROR)),
+                    }
+                }
                 Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
             }
         }

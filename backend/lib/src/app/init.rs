@@ -20,17 +20,19 @@
 use crate::app::app_state::AppState;
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManager;
+use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
 use crate::auth;
 use crate::auth::service::Argon2Hasher;
 use crate::organizational_units::{self, OrganizationalUnitsModule};
 use crate::users::UsersModule;
 use anyhow::Result;
 use axum::Router;
-use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+
+pub use crate::app::services::init_tenant_pools;
 
 pub fn subscriber() {
     tracing::subscriber::set_global_default(
@@ -51,8 +53,10 @@ pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<Arc<PgPoolManager
     ))
 }
 
-pub async fn migrate_main_db(main_pool: &PgPool) -> Result<()> {
-    Ok(sqlx::migrate!("../migrations").run(main_pool).await?)
+pub async fn migrate(pool_manager: Arc<PgPoolManager>) -> Result<()> {
+    migrate_main_db(pool_manager.clone()).await?;
+    migrate_all_tenant_dbs(pool_manager.clone()).await?;
+    Ok(())
 }
 
 pub async fn app_state(pool_manager: Arc<PgPoolManager>, config: Arc<AppConfig>) -> AppState {

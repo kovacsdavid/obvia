@@ -34,8 +34,6 @@ CREATE TABLE users (
     locale VARCHAR(16) DEFAULT 'hu-HU',
     invited_by UUID,
     email_verified_at TIMESTAMPTZ,
-    notes TEXT,
-    is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ

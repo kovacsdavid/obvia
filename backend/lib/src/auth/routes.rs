@@ -22,6 +22,25 @@ use crate::app::app_state::AppState;
 use axum::{Router, routing::post};
 use std::sync::Arc;
 
+/// Configures the application routes for the authentication module.
+///
+/// This function sets up the routing structure for authentication-related
+/// endpoints using the `Router` from the `axum` library. It nests authentication
+/// routes under the "/auth" path and associates handlers with specific HTTP methods.
+///
+/// # Arguments
+///
+/// * `state` - An `Arc<AppState>` instance that holds shared application state,
+///   including the `auth_module` for authentication-specific handling.
+///
+/// # Routes
+///
+/// - `POST /auth/register`: Handled by the `register` function for user registration.
+/// - `POST /auth/login`: Handled by the `login` function for user login.
+///
+/// # Returns
+///
+/// A `Router` instance with the configured "/auth" routes and the provided application state.
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new().nest(
         "/auth",

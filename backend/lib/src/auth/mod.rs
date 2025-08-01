@@ -33,6 +33,23 @@ pub(crate) mod service;
 #[cfg(test)]
 pub mod tests;
 
+/// `AuthModule` is a structure that represents the authentication module in the application.
+/// It encapsulates the required components for managing authentication operations.
+///
+/// # Fields
+///
+/// * `pool_manager` - An `Arc`-wrapped implementation of the `PgPoolManagerTrait` trait, providing the interface
+///   for database connection pooling. This is used to manage database interactions securely and efficiently.
+///
+/// * `password_hasher` - An `Arc`-wrapped implementation of the `AuthPasswordHasher` trait, responsible for
+///   hashing and verifying passwords. This ensures that user passwords are stored and processed securely.
+///
+/// * `config` - An `Arc`-wrapped instance of the `AppConfig` structure, which holds the application's configuration
+///   setting necessary for configuring the authentication behavior.
+///
+/// # Notes
+///
+/// Using `Arc` for the fields allows safe sharing of these components across multiple threads.
 pub struct AuthModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub password_hasher: Arc<dyn AuthPasswordHasher>,

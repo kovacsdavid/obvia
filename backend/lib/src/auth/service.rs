@@ -49,6 +49,30 @@ pub trait AuthPasswordHasher: Send + Sync + 'static {
 pub struct Argon2Hasher;
 
 impl AuthPasswordHasher for Argon2Hasher {
+    ///
+    /// Hashes a plaintext password using the Argon2 algorithm.
+    ///
+    /// This function generates a random salt using a cryptographically secure random number generator
+    /// (`OsRng`), and then hashes the provided password using the Argon2 hashing algorithm with the
+    /// generated salt. The function returns the resulting hash as a string if the process succeeds, or
+    /// an error message as a string if hashing fails.
+    ///
+    /// # Arguments
+    ///
+    /// * `password` - A string slice representing the plaintext password to be hashed.
+    ///
+    /// # Returns
+    ///
+    /// A `Result<String, String>`:
+    /// - `Ok(String)` containing the hashed password if successful.
+    /// - `Err(String)` containing the error message if hashing fails.
+    ///
+    /// # Dependencies
+    ///
+    /// This function utilizes the following:
+    /// - `Argon2` from the `argon2` crate for secure password hashing.
+    /// - `SaltString` from the `argon2` crate to generate a random salt.
+    /// - `OsRng` from the `rand` crate for cryptographically secure random number generation.
     fn hash_password(&self, password: &str) -> Result<String, String> {
         let salt = SaltString::generate(&mut OsRng);
         Argon2::default()
@@ -57,6 +81,20 @@ impl AuthPasswordHasher for Argon2Hasher {
             .map_err(|e| e.to_string())
     }
 
+    /// Verifies whether the provided password matches the given hash using the Argon2 hashing algorithm.
+    ///
+    /// # Parameters
+    /// - `password`: A string slice representing the plaintext password to be verified.
+    /// - `hash`: A string slice containing the hashed password to verify against.
+    ///
+    /// # Returns
+    /// - `Ok(true)`: If the password matches the hash.
+    /// - `Err(String)`: If an error occurs during hash parsing or verification. The error message is returned as a `String`.
+    ///
+    /// # Errors
+    /// This function returns an error if:
+    /// - The provided `hash` string is not a valid password hash (e.g., invalid format or corrupted data).
+    /// - The password does not match the provided hash.
     fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String> {
         let parsed_hash = PasswordHash::new(hash).map_err(|e| e.to_string())?;
         let argon2 = Argon2::default();
@@ -67,6 +105,45 @@ impl AuthPasswordHasher for Argon2Hasher {
     }
 }
 
+/// Attempts to authenticate a user based on the provided credentials. If the login succeeds, a JWT token is
+/// generated and returned along with the user's public information.
+///
+/// # Arguments
+/// * `repo` - A repository implementing the `AuthRepository` trait, responsible for querying user data.
+/// * `auth_module` - A shared reference to the `AuthModule`, containing the configurations required for authentication.
+/// * `payload` - The `LoginRequest` struct containing the user's email and password provided for login.
+///
+/// # Returns
+/// * `Ok(OkResponse<LoginResponse>)` - Contains the authenticated user's public information and the generated JWT token
+///   if login is successful.
+/// * `Err(FriendlyError)` - Returns an error in the following scenarios:
+///   - If the user does not exist or the email is invalid, an `UNAUTHORIZED` error is returned with a user-facing message.
+///   - If the provided password does not match the stored password hash, an `UNAUTHORIZED` error is returned.
+///   - If any internal issue occurs, such as invalid password hashing or issues in generating the JWT token,
+///     an internal error is returned.
+///
+/// # Errors
+/// - `FriendlyError::UserFacing` - If the user provides incorrect credentials (email or password).
+/// - `FriendlyError::Internal` - If an internal issue occurs, such as hashing or token encoding errors.
+///
+/// # Workflow
+/// 1. Retrieves the user data by email using the `AuthRepository`.
+/// 2. Verifies the provided password against the stored password hash using the Argon2 algorithm.
+/// 3. Prepares JWT claims, including user ID, issued-at, expiration, not-before timestamps, issuer, audience,
+///    and a unique token identifier.
+/// 4. Generates a JWT token using the derived claims and a secret key.
+/// 5. Returns the user's public information and generated token on successful login.
+///
+/// # Security Notes
+/// - This function ensures that sensitive information such as the authentication secret and password hash
+///   are not exposed. Errors are surfaced through generic user-facing messages to ensure security.
+/// - Password verification is performed using a secure Argon2 hashing algorithm.
+///
+/// # Dependencies
+/// - `AuthRepository` for fetching user details.
+/// - `argon2` crate for password hashing and verification.
+/// - `jsonwebtoken` crate for JWT creation.
+/// - `chrono` crate for timestamps and expiration calculations.
 pub async fn try_login(
     repo: &(dyn AuthRepository + Send + Sync),
     auth_module: Arc<AuthModule>,
@@ -124,6 +201,30 @@ pub async fn try_login(
     )))
 }
 
+/// Attempts to register a new user in the system.
+///
+/// This function performs the following tasks:
+/// 1. Hashes the provided password from the registration payload.
+/// 2. Attempts to store the user's information, along with the hashed password, in the provided repository.
+///
+/// # Arguments
+/// - `repo`: A reference to an object implementing the `AuthRepository` trait for user storage operations. Must be thread-safe (`Send` and `Sync`).
+/// - `password_hasher`: A thread-safe reference-counted pointer to an object implementing the `AuthPasswordHasher` trait for password hashing.
+/// - `payload`: A `RegisterRequest` object containing the user's registration information (e.g., email, password).
+///
+/// # Returns
+/// - `Ok(OkResponse<SimpleMessageResponse>)`: If the user is successfully registered, returns a success message wrapped in an `OkResponse`.
+/// - `Err(FriendlyError)`: If any error occurs during registration, it produces a `FriendlyError`:
+///   - If the provided email already exists in the repository, a user-facing error (`StatusCode::CONFLICT`) is returned with the message: "Ez az e-mail cím már foglalt" ("This email address is already taken").
+///   - For any other errors during password hashing or database operations, an internal error is returned.
+///
+/// # Errors
+/// - `FriendlyError::UserFacing`: Indicates business logic errors, such as duplicate email addresses.
+/// - `FriendlyError::Internal`: Indicates unexpected system errors during operations (e.g., failed hashing or database issues).
+///
+/// # Notes
+/// - The email duplication check relies on the database rejecting duplicate entries based on a unique constraint.
+/// - Ensure that the password hashing utility is properly configured and secure.
 pub async fn try_register(
     repo: &(dyn AuthRepository + Send + Sync),
     password_hasher: Arc<dyn AuthPasswordHasher>,

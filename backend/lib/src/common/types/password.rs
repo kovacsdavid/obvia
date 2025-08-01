@@ -59,7 +59,7 @@ fn is_valid_password(s: &str) -> bool {
 
 impl FromStr for Password {
     type Err = String;
-    
+
     /// Attempts to create a `Password` instance from the provided string slice.
     ///
     /// # Parameters
@@ -88,7 +88,7 @@ impl std::convert::TryFrom<String> for Password {
     type Error = String;
     /// Attempts to create an instance of the type implementing this method from the given `String`.
     ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If 
+    /// This function takes a `String` as input and tries to parse it into the desired type. If
     /// parsing is successful, it returns `Ok(Self)` containing the created instance.
     /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
     ///
@@ -110,7 +110,7 @@ impl std::convert::TryFrom<String> for Password {
 }
 
 impl<'de> Deserialize<'de> for Password {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized 
+    /// A custom implementation of the `deserialize` method for a type that can be deserialized
     /// from a string using the Serde library.
     ///
     /// # Type Parameters:
@@ -127,7 +127,7 @@ impl<'de> Deserialize<'de> for Password {
     ///
     /// # Behavior:
     /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`) 
+    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
     ///    using the `parse` method.
     /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
     ///    generate a descriptive error message.
@@ -180,6 +180,6 @@ mod tests {
     #[test]
     fn test_display_masks_password() {
         let pw: Password = "abc12345".parse().unwrap();
-        assert_eq!(format!("{}", pw), "********");
+        assert_eq!(format!("{pw}"), "********");
     }
 }

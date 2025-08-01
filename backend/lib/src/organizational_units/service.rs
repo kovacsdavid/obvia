@@ -27,6 +27,31 @@ use crate::organizational_units::repository::OrganizationalUnitsRepository;
 use std::sync::Arc;
 use tracing::Level;
 
+/// Asynchronously creates a new organizational unit and performs necessary configurations.
+///
+/// This function interacts with the specified repository to insert and connect a new organizational unit
+/// based on the provided payload and claims. After a successful insertion, it configures the
+/// tenant database for the newly created organizational unit, including adding and setting
+/// up the tenant pool and running database migrations.
+///
+/// # Parameters
+/// - `repo`: A mutable reference to a repository implementing the `OrganizationalUnitsRepository` trait,
+///    which handles persistence and retrieval of organizational unit data.
+/// - `claims`: A `Claims` object containing authorization and authentication details for the current user.
+/// - `payload`: A `CreateRequest` object containing the input data required to create the organizational unit.
+/// - `organizational_units_module`: An `Arc` reference to the `OrganizationalUnitsModule`, which provides
+///    configuration and management capabilities for organizational unit-related tasks.
+///
+/// # Returns
+/// If successful, returns an `OkResponse` object containing a `SimpleMessageResponse` with a success message.
+/// If any error occurs during the process, such as failure to insert the organizational unit,
+/// add the tenant pool, or complete database migrations, a `FriendlyError` is returned with appropriate error details.
+///
+/// # Errors
+/// - Returns `FriendlyError::Internal` if:
+///   - The organizational unit could not be inserted or connected in the repository.
+///   - Adding the tenant pool for the newly created organizational unit fails.
+///   - Retrieving the tenant pool or executing database migrations encounters an error.
 pub async fn try_create(
     repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
     claims: Claims,

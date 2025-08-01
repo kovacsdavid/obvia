@@ -44,7 +44,7 @@ impl<T: Serialize> OkResponse<T> {
     /// - `data`: The value of type `T` to initialize the struct with.
     ///
     /// # Returns
-    /// A new instance of the struct containing the specified `data` and 
+    /// A new instance of the struct containing the specified `data` and
     /// with `success` set to `true`.
     pub fn new(data: T) -> Self {
         Self {
@@ -95,13 +95,13 @@ impl<T: Serialize> ErrorResponse<T> {
 /// - `T`: A type that implements the `Serialize` trait, representing field-specific error details.
 ///
 /// # Fields
-/// - `reference` (`String`): 
-///   A unique identifier referencing the specific error instance. 
+/// - `reference` (`String`):
+///   A unique identifier referencing the specific error instance.
 ///   Typically used for tracking or debugging purposes.
-/// - `global` (`String`): 
+/// - `global` (`String`):
 ///   A message representing the global or top-level error description.
-/// - `fields` (`Option<T>`): 
-///   Optional field-level error details. Can be used to provide additional context for specific fields 
+/// - `fields` (`Option<T>`):
+///   Optional field-level error details. Can be used to provide additional context for specific fields
 ///   when the error is related to input validation or similar cases.
 #[derive(Serialize)]
 pub struct ErrorBody<T: Serialize> {

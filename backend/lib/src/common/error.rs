@@ -33,7 +33,7 @@ use super::dto::{ErrorBody, ErrorResponse};
 /// # Variants
 ///
 /// * `UserFacing(StatusCode, String, String)`:
-///   This variant is designed to represent errors that are intended to be displayed 
+///   This variant is designed to represent errors that are intended to be displayed
 ///   to the user. It contains:
 ///   - `StatusCode`: An HTTP status code indicating the type of error.
 ///   - `String`: An error identifier or code.
@@ -59,7 +59,7 @@ pub enum FriendlyError {
 
 impl FriendlyError {
     /// Logs the error information associated with the current `FriendlyError` instance
-    /// at the specified severity level using the `tracing` crate. 
+    /// at the specified severity level using the `tracing` crate.
     ///
     /// Depending on the variant of `FriendlyError`, this method will emit a different
     /// set of log messages:
@@ -151,12 +151,12 @@ impl FriendlyError {
 impl IntoResponse for FriendlyError {
     /// Converts a `FriendlyError` instance into an HTTP response.
     ///
-    /// This method translates an application-level error represented by the 
-    /// `FriendlyError` enum into an HTTP response that can be sent back to the client. 
+    /// This method translates an application-level error represented by the
+    /// `FriendlyError` enum into an HTTP response that can be sent back to the client.
     /// It supports two types of errors:
-    /// - `UserFacing`: Represents errors intended for the client with a specific status code, 
+    /// - `UserFacing`: Represents errors intended for the client with a specific status code,
     ///   error code, and descriptive message.
-    /// - `Internal`: Represents unexpected internal server errors, which are always 
+    /// - `Internal`: Represents unexpected internal server errors, which are always
     ///   translated into a generic message for the client
     ///
     /// # Variants
@@ -181,7 +181,7 @@ impl IntoResponse for FriendlyError {
     ///
     /// # Returns
     ///
-    /// An `axum::response::Response` object containing the HTTP status code and a JSON payload in 
+    /// An `axum::response::Response` object containing the HTTP status code and a JSON payload in
     /// the following structure:
     ///
     /// ```json
@@ -194,9 +194,11 @@ impl IntoResponse for FriendlyError {
     ///
     /// # Notes
     ///
-    /// - The function ensures that sensitive information about internal server errors is not exposed 
+    /// - The function ensures that sensitive information about internal server errors is not exposed
     ///   to the client.
     /// - It uses the `ErrorResponse` and `ErrorBody` structures to ensure consistent error formatting.
+    /// - If you want to propagate the fields use a specific error struct
+    ///   and implement axum `IntoResponse` on it (ex.: crate::organizational_unit::dto::CreateRequestError)
     fn into_response(self) -> Response {
         let msg_for_internal = "Váratlan hiba történt a feldolgozás során!".to_string();
         let (status, code, message) = match self {

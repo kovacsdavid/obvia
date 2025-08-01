@@ -26,9 +26,9 @@ use std::str::FromStr;
 ///
 /// This struct is used to encapsulate a single DDL parameter as a string for security purposes
 /// because in Postgres you can not bind params to DDL queries.
-/// 
+///
 /// # Security
-/// 
+///
 /// Always use this struct if parameter bindig is not possible to prevent SQL injection attacks!
 #[derive(Debug, PartialEq, Clone)]
 pub struct DdlParameter(String);
@@ -59,13 +59,13 @@ impl DdlParameter {
 /// # Returns
 /// - `true` if the string matches the specified pattern.
 /// - `false` if the string is invalid or there is a problem compiling the regular expression.
-/// 
+///
 /// # Note
-/// 
-/// This may be too strict but enough for now. 
-/// 
+///
+/// This may be too strict but enough for now.
+///
 /// # Safety
-/// 
+///
 /// Do not let any chars here that can be used in an SQLi attack!
 fn is_valid_ddl_parameter(s: &str) -> bool {
     match Regex::new(r##"^[A-Za-z0-9]{1,255}$"##) {
@@ -112,7 +112,7 @@ impl FromStr for DdlParameter {
 }
 
 impl<'de> Deserialize<'de> for DdlParameter {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized 
+    /// A custom implementation of the `deserialize` method for a type that can be deserialized
     /// from a string using the Serde library.
     ///
     /// # Type Parameters:
@@ -129,7 +129,7 @@ impl<'de> Deserialize<'de> for DdlParameter {
     ///
     /// # Behavior:
     /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`) 
+    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
     ///    using the `parse` method.
     /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
     ///    generate a descriptive error message.

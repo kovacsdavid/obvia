@@ -21,7 +21,6 @@ use serde::{Deserialize, Deserializer};
 use std::fmt;
 use std::str::FromStr;
 
-
 /// A struct representing a first name as a simple wrapper around a `String`.
 ///
 /// The `FirstName` struct encapsulates a single `String` value representing a first name,
@@ -90,7 +89,7 @@ impl std::convert::TryFrom<String> for FirstName {
 
     /// Attempts to create an instance of the type implementing this method from the given `String`.
     ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If 
+    /// This function takes a `String` as input and tries to parse it into the desired type. If
     /// parsing is successful, it returns `Ok(Self)` containing the created instance.
     /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
     ///
@@ -113,7 +112,7 @@ impl std::convert::TryFrom<String> for FirstName {
 }
 
 impl<'de> Deserialize<'de> for FirstName {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized 
+    /// A custom implementation of the `deserialize` method for a type that can be deserialized
     /// from a string using the Serde library.
     ///
     /// # Type Parameters:
@@ -130,7 +129,7 @@ impl<'de> Deserialize<'de> for FirstName {
     ///
     /// # Behavior:
     /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`) 
+    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
     ///    using the `parse` method.
     /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
     ///    generate a descriptive error message.

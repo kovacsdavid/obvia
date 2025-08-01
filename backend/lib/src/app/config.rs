@@ -165,16 +165,13 @@ impl From<OrganizationalUnit> for TenantDatabaseConfig {
 ///
 /// # Fields
 ///
-/// * `jwt_secret` - A `String` representing the secret key used to sign and verify JWTs.
-///                  This value is critical for ensuring the integrity and authenticity of the tokens.
+/// * `jwt_secret` - A `String` representing the secret key used to sign and verify JWTs. This value is critical for ensuring the integrity and authenticity of the tokens.
 ///
 /// * `jwt_issuer` - A `String` representing the issuer of the JWTs.
 ///
-/// * `jwt_audience` - A `String` indicating the intended audience who can use the JWTs.
-///                    A unique identifier associated with the clients or consumers of the service.
+/// * `jwt_audience` - A `String` indicating the intended audience who can use the JWTs. A unique identifier associated with the clients or consumers of the service.
 ///
-/// * `jwt_expiration_mins` - A `u64` representing the expiration time for JWTs in minutes.
-///                           This determines the duration after which the token will become invalid.
+/// * `jwt_expiration_mins` - A `u64` representing the expiration time for JWTs in minutes. This determines the duration after which the token will become invalid.
 #[derive(Debug, Clone, Deserialize)]
 pub struct AuthConfig {
     jwt_secret: String,

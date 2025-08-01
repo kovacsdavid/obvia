@@ -92,8 +92,7 @@ pub fn config() -> Result<Arc<AppConfig>> {
 ///
 /// # Arguments
 ///
-/// * `config` - An `Arc` containing the `AppConfig`. The `AppConfig` holds the necessary
-///              database connection information for both the main and default tenant database.
+/// * `config` - An `Arc` containing the `AppConfig`. The `AppConfig` holds the necessary database connection information for both the main and default tenant database.
 ///
 /// # Returns
 ///

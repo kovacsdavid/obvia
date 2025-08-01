@@ -85,8 +85,7 @@ impl FromStr for DdlParameter {
     /// it returns a `Result::Err` containing an error message.
     ///
     /// # Parameters
-    /// - `s`: A string slice representing the DDL parameter to be validated and used
-    ///        for creating a new `DdlParameter` instance.
+    /// - `s`: A string slice representing the DDL parameter to be validated and used for creating a new `DdlParameter` instance.
     ///
     /// # Returns
     /// - `Ok(DdlParameter)`: If the string provided is a valid DDL parameter.

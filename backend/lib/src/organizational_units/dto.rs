@@ -107,20 +107,12 @@ impl IntoResponse for CreateRequestError {
 /// A structure representing a request for creating an organizational_unit resource.
 ///
 /// # Fields
-/// - `name`:
-///     The name of the organizational_unit to be created. This field is mandatory and must
-///     be provided during initialization.
-/// - `db_host`:
-///     An optional field specifying the hostname or IP address of the database server.
-/// - `db_port`:
-///     An optional field representing the port number for connecting to the database.
-/// - `db_name`:
-///     An optional field specifying the name of the database.
-/// - `db_user`:
-///     An optional field for the username required to connect to the database.
-/// - `db_password`:
-///     An optional field for providing the password required for authentication when
-///     connecting to the database.
+/// - `name`: The name of the organizational_unit to be created. This field is mandatory and must be provided during initialization.
+/// - `db_host`: An optional field specifying the hostname or IP address of the database server.
+/// - `db_port`: An optional field representing the port number for connecting to the database.
+/// - `db_name`: An optional field specifying the name of the database.
+/// - `db_user`: An optional field for the username required to connect to the database.
+/// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[allow(dead_code)]
 pub struct CreateRequest {
     pub name: String,
@@ -136,14 +128,11 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
     /// Attempts to create an instance of `CreateRequest` from a `CreateRequestHelper` value.
     ///
     /// # Parameters
-    /// - `value`: The `CreateRequestHelper` instance containing the necessary fields to construct
-    ///            a `CreateRequest`.
+    /// - `value`: The `CreateRequestHelper` instance containing the necessary fields to construct a `CreateRequest`.
     ///
     /// # Returns
-    /// - `Ok(CreateRequest)`: Returns an initialized instance of `CreateRequest` if all required
-    ///                        fields from the `CreateRequestHelper` are successfully mapped.
-    /// - `Err(Self::Error)`: Returns an error if the conversion fails. In this implementation,
-    ///                       conversion is always successful, so this branch is never reached.
+    /// - `Ok(CreateRequest)`: Returns an initialized instance of `CreateRequest` if all required fields from the `CreateRequestHelper` are successfully mapped.
+    /// - `Err(Self::Error)`: Returns an error if the conversion fails. In this implementation, conversion is always successful, so this branch is never reached.
     ///
     /// # Fields Mapping
     /// - `name`: Mapped directly from `value.name`.
@@ -169,12 +158,9 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
 ///
 /// Fields:
 /// - `user_id` (`Uuid`): The unique identifier for the user.
-/// - `organizational_unit_id` (`Uuid`): The unique identifier for the organizational unit the user
-///    is connected to.
-/// - `role` (`String`): The role of the user in the organizational unit. Examples of roles
-///    could include "admin", "member", or other custom-defined roles.
-/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to
-///    the organizational unit, if applicable. This field is optional and may be `None` if the user created the organizational unit.
+/// - `organizational_unit_id` (`Uuid`): The unique identifier for the organizational unit the user is connected to.
+/// - `role` (`String`): The role of the user in the organizational unit. Examples of roles could include "admin", "member", or other custom-defined roles.
+/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to the organizational unit, if applicable. This field is optional and may be `None` if the user created the organizational unit.
 #[allow(dead_code)]
 pub struct UserOrganizationalUnitConnect {
     pub user_id: Uuid,

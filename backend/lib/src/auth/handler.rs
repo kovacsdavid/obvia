@@ -50,8 +50,7 @@ use std::sync::Arc;
 /// # Parameters
 /// - `auth_module`: A shared reference-counted pointer (`Arc`) to the `AuthModule`, responsible for authentication logic.
 /// - `payload`: The `LoginRequest` payload containing the login credentials and related information.
-/// - `repo_factory`: A factory function producing a future that resolves to an instance of `AuthRepository`.
-///    This allows the function to dynamically access the repository when needed and makes testing easier.
+/// - `repo_factory`: A factory function producing a future that resolves to an instance of `AuthRepository`. This allows the function to dynamically access the repository when needed and makes testing easier.
 ///
 /// # Returns
 /// - A `Response` representing the result of the login process. On success, it returns a `200 OK` response
@@ -129,15 +128,13 @@ pub async fn login(
 /// - On success, responds with `201 Created` and the registered user information in JSON format.
 /// - On failure, responds with detailed error messages, such as:
 ///   - `400 Bad Request` for invalid input structure.
-///   - `422 Unprocessable Entry` Relevant error response from the internal `try_register` function
-///      for other failure cases.
+///   - `422 Unprocessable Entry` Relevant error response from the internal `try_register` function for other failure cases.
 ///
 /// # Error Handling
 ///
 /// - If the input `payload` cannot be parsed into a `RegisterRequest`, the function returns a
 ///   `400 Bad Request` error with a user-friendly error message.
-/// - `422 Unprocessable Entry` If the `try_register` function encounters an error during the
-///    registration process, the specific error details are returned in the response.
+/// - `422 Unprocessable Entry` If the `try_register` function encounters an error during the registration process, the specific error details are returned in the response.
 ///
 /// # Notes
 ///

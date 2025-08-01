@@ -35,12 +35,10 @@ use tracing::Level;
 /// up the tenant pool and running database migrations.
 ///
 /// # Parameters
-/// - `repo`: A mutable reference to a repository implementing the `OrganizationalUnitsRepository` trait,
-///    which handles persistence and retrieval of organizational unit data.
+/// - `repo`: A mutable reference to a repository implementing the `OrganizationalUnitsRepository` trait, which handles persistence and retrieval of organizational unit data.
 /// - `claims`: A `Claims` object containing authorization and authentication details for the current user.
 /// - `payload`: A `CreateRequest` object containing the input data required to create the organizational unit.
-/// - `organizational_units_module`: An `Arc` reference to the `OrganizationalUnitsModule`, which provides
-///    configuration and management capabilities for organizational unit-related tasks.
+/// - `organizational_units_module`: An `Arc` reference to the `OrganizationalUnitsModule`, which provides configuration and management capabilities for organizational unit-related tasks.
 ///
 /// # Returns
 /// If successful, returns an `OkResponse` object containing a `SimpleMessageResponse` with a success message.

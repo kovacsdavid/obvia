@@ -105,7 +105,6 @@ impl std::convert::TryFrom<String> for FirstName {
     /// # Errors
     ///
     /// Returns an error if the provided `String` cannot be parsed into the target type.
-
     fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse()
     }

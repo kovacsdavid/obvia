@@ -42,13 +42,6 @@ use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 pub trait AuthPasswordHasher: Send + Sync + 'static {
-    fn hash_password(&self, password: &str) -> Result<String, String>;
-    fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String>;
-}
-
-pub struct Argon2Hasher;
-
-impl AuthPasswordHasher for Argon2Hasher {
     ///
     /// Hashes a plaintext password using the Argon2 algorithm.
     ///
@@ -73,13 +66,7 @@ impl AuthPasswordHasher for Argon2Hasher {
     /// - `Argon2` from the `argon2` crate for secure password hashing.
     /// - `SaltString` from the `argon2` crate to generate a random salt.
     /// - `OsRng` from the `rand` crate for cryptographically secure random number generation.
-    fn hash_password(&self, password: &str) -> Result<String, String> {
-        let salt = SaltString::generate(&mut OsRng);
-        Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
-            .map(|hash| hash.to_string())
-            .map_err(|e| e.to_string())
-    }
+    fn hash_password(&self, password: &str) -> Result<String, String>;
 
     /// Verifies whether the provided password matches the given hash using the Argon2 hashing algorithm.
     ///
@@ -95,6 +82,19 @@ impl AuthPasswordHasher for Argon2Hasher {
     /// This function returns an error if:
     /// - The provided `hash` string is not a valid password hash (e.g., invalid format or corrupted data).
     /// - The password does not match the provided hash.
+    fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String>;
+}
+
+pub struct Argon2Hasher;
+
+impl AuthPasswordHasher for Argon2Hasher {
+    fn hash_password(&self, password: &str) -> Result<String, String> {
+        let salt = SaltString::generate(&mut OsRng);
+        Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .map(|hash| hash.to_string())
+            .map_err(|e| e.to_string())
+    }
     fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String> {
         let parsed_hash = PasswordHash::new(hash).map_err(|e| e.to_string())?;
         let argon2 = Argon2::default();

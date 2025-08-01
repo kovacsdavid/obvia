@@ -20,6 +20,16 @@
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
+/// Generates a random alphanumeric string of the specified length using a cryptographically secure pseudorandom number generator (CSPRNG).
+///
+/// # Parameters
+/// - `length`: The length of the string to generate.
+///
+/// # Returns
+/// A `String` containing randomly generated alphanumeric characters.
+///
+/// # Errors
+/// This function may panic if it fails to generate random values using the system's random number generator or if the length provided is excessively large.
 pub fn generate_string_csprng(length: usize) -> String {
     const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 

@@ -21,15 +21,35 @@ use serde::{Deserialize, Deserializer};
 use std::fmt;
 use std::str::FromStr;
 
+/// A struct representing a password as a simple wrapper around a `String`.
+///
+/// The `Password` struct encapsulates a single `String` value representing a password,
+/// providing additional type safety and semantic clarity in code.
 #[derive(Debug, PartialEq, Clone)]
 pub struct Password(String);
 
 impl Password {
+    /// Returns a string slice (`&str`) that represents the underlying content of the current instance.
     pub fn as_str(&self) -> &str {
         &self.0
     }
 }
 
+/// Checks if a given password string meets specific validity criteria.
+///
+/// A password is considered valid if it satisfies the following requirements:
+/// 1. It is at least 8 characters long.
+/// 2. It contains at least one alphabetic character (a-z or A-Z).
+/// 3. It contains at least one numeric digit (0-9).
+///
+/// # Arguments
+///
+/// * `s` - A string slice representing the password to be checked.
+///
+/// # Returns
+///
+/// * `true` if the password meets all the criteria.
+/// * `false` otherwise.
 fn is_valid_password(s: &str) -> bool {
     let len_ok = s.len() >= 8;
     let has_letter = s.chars().any(|c| c.is_alphabetic());
@@ -39,7 +59,22 @@ fn is_valid_password(s: &str) -> bool {
 
 impl FromStr for Password {
     type Err = String;
-
+    
+    /// Attempts to create a `Password` instance from the provided string slice.
+    ///
+    /// # Parameters
+    /// - `s`: A string slice representing the potential password.
+    ///
+    /// # Returns
+    /// - `Ok(Password)`: If the provided string is a valid password
+    /// - `Err(String)`: If the provided string is deemed invalid. The error contains a descriptive message.
+    ///
+    /// # Errors
+    /// - Returns an error with a message in Hungarian explaining that the password must be at least 8 characters long
+    ///   and contain both letters and numbers if the string does not pass the `is_valid_password` validation.
+    ///
+    /// # Validation
+    /// - The function relies on the external function `is_valid_password` to determine the validity of the input.
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if is_valid_password(s) {
             Ok(Password(s.to_owned()))
@@ -51,13 +86,56 @@ impl FromStr for Password {
 
 impl std::convert::TryFrom<String> for Password {
     type Error = String;
-
+    /// Attempts to create an instance of the type implementing this method from the given `String`.
+    ///
+    /// This function takes a `String` as input and tries to parse it into the desired type. If 
+    /// parsing is successful, it returns `Ok(Self)` containing the created instance.
+    /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - A `String` that represents the source value to be parsed into the target type.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Self)` - If the parsing is successful.
+    /// * `Err(Self::Error)` - If the parsing fails, enclosing the error describing the failure.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the provided `String` cannot be parsed into the target type.
     fn try_from(value: String) -> Result<Self, Self::Error> {
         value.parse()
     }
 }
 
 impl<'de> Deserialize<'de> for Password {
+    /// A custom implementation of the `deserialize` method for a type that can be deserialized 
+    /// from a string using the Serde library.
+    ///
+    /// # Type Parameters:
+    /// - `D`: The deserializer type implementing the `serde::Deserializer` trait.
+    ///
+    /// # Parameters:
+    /// - `deserializer`: A deserializer instance to read and interpret the input data
+    ///   and convert it into the appropriate type.
+    ///
+    /// # Returns:
+    /// - `Result<Self, D::Error>`: Returns either:
+    ///   - The successfully deserialized instance of the type (`Self`).
+    ///   - An error of type `D::Error` if deserialization fails.
+    ///
+    /// # Behavior:
+    /// 1. The function first attempts to deserialize the input data into a `String`.
+    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`) 
+    ///    using the `parse` method.
+    /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
+    ///    generate a descriptive error message.
+    ///
+    /// # Errors:
+    /// - Returns an error if:
+    ///   - The input data cannot be deserialized into a `String`.
+    ///   - The parsed string cannot be converted into the type being deserialized.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -68,6 +146,7 @@ impl<'de> Deserialize<'de> for Password {
 }
 
 impl fmt::Display for Password {
+    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "********")
     }

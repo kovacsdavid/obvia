@@ -19,11 +19,27 @@
 
 use sqlx::PgPool;
 
+/// A wrapper around a `PgPool` instance, primarily used to manage the PostgreSQL connection pool.
+///
+/// The `PoolWrapper` struct provides a convenient way to encapsulate a `PgPool`
+/// instance, allowing it to be passed around more easily throughout an application.
+///
+/// # Fields
+/// * `pool` - The PostgreSQL connection pool represented by `PgPool` from the `sqlx` crate.
 pub struct PoolWrapper {
     pub pool: PgPool,
 }
 
 impl PoolWrapper {
+    /// Creates a new instance of the struct with the provided PostgreSQL connection pool.
+    ///
+    /// # Arguments
+    ///
+    /// * `pool` - A `PgPool` representing the connection pool to a PostgreSQL database.
+    ///
+    /// # Returns
+    ///
+    /// Returns an instance of the struct initialized with the provided PostgreSQL connection pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

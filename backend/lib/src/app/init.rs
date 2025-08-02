@@ -20,7 +20,6 @@
 use crate::app::app_state::AppState;
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManager;
-use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
 use crate::auth;
 use crate::auth::service::Argon2Hasher;
 use crate::organizational_units::{self, OrganizationalUnitsModule};
@@ -33,6 +32,7 @@ use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
 pub use crate::app::services::init_tenant_pools;
+pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
 
 /// Sets up a global tracing subscriber for the application with a specified logging level.
 ///
@@ -107,37 +107,6 @@ pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<Arc<PgPoolManager
     Ok(Arc::new(
         PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?,
     ))
-}
-
-/// Performs database migration for the main database and all tenant databases.
-///
-/// This function is responsible for orchestrating the migration process for both the main
-/// database and all tenant-specific databases.
-///
-/// # Arguments
-///
-/// * `pool_manager` - A reference-counted `PgPoolManager` that manages database connection
-///   pools, ensuring thread-safe and efficient handling of database operations.
-///
-/// # Returns
-///
-/// * `Ok(())` if the migration process for both the main database and tenant databases
-///   completes successfully.
-/// * `Err` if an error occurs during the migration process for either the main database
-///   or any tenant database.
-///
-/// # Errors
-///
-/// This function returns an error if:
-/// * An issue occurs while migrating the main database.
-/// * An issue occurs while migrating any of the tenant databases.
-///
-/// The returned error can be used to diagnose and address specific issues encountered during
-/// the migration process.
-pub async fn migrate(pool_manager: Arc<PgPoolManager>) -> Result<()> {
-    migrate_main_db(pool_manager.clone()).await?;
-    migrate_all_tenant_dbs(pool_manager.clone()).await?;
-    Ok(())
 }
 
 /// Initializes and constructs the application state.

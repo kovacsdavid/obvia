@@ -21,7 +21,8 @@
 use axum::Router;
 use backend_lib::app::config::AppConfig;
 use backend_lib::app::init::{
-    app, app_state, config, init_tenant_pools, migrate, pg_pool_manager, subscriber,
+    app, app_state, config, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
+    pg_pool_manager, subscriber,
 };
 use std::sync::Arc;
 use tokio::signal;
@@ -54,8 +55,9 @@ async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     let pool_manager = pg_pool_manager(config.clone()).await?;
     let app_state = Arc::new(app_state(pool_manager.clone(), config.clone()));
     let app = app(app_state).await;
+    migrate_main_db(pool_manager.clone()).await?;
     init_tenant_pools(pool_manager.clone()).await?;
-    migrate(pool_manager.clone()).await?;
+    migrate_all_tenant_dbs(pool_manager.clone()).await?;
     Ok((config, app))
 }
 

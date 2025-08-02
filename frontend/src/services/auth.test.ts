@@ -54,7 +54,7 @@ describe("login", () => {
     const response = await login(request);
 
     expect(response).toEqual(mockResponse);
-    expect(fetch).toHaveBeenCalledWith(`/api/login`, expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(`/api/auth/login`, expect.objectContaining({
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify(request),
@@ -195,7 +195,7 @@ describe("register", () => {
     const response = await register(request);
 
     expect(response).toEqual(mockResponse);
-    expect(fetch).toHaveBeenCalledWith(`/api/register`, expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(`/api/auth/register`, expect.objectContaining({
       method: "POST",
       headers: {"Content-Type": "application/json"},
       body: JSON.stringify({

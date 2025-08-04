@@ -16,8 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::types::tenant::db_host::DbHost;
+use crate::common::types::tenant::db_name::DbName;
+use crate::common::types::tenant::db_password::DbPassword;
+use crate::common::types::tenant::db_port::DbPort;
+use crate::common::types::tenant::db_user::DbUser;
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
+#[cfg(test)]
+use std::str::FromStr;
 
 /// The `AppConfig` struct is the main application configuration model used for deserializing
 /// and storing the configuration details for different components of the application.
@@ -40,7 +48,8 @@ use serde::Deserialize;
 ///
 /// This struct is intended to be used as the central configuration hub for initializing
 /// necessary dependencies of the application.
-#[derive(Debug, Clone, Deserialize, Default)]
+#[cfg_attr(test, derive(Debug, Clone, Deserialize, Default))]
+#[cfg_attr(not(test), derive(Debug, Clone, Deserialize))]
 pub struct AppConfig {
     server: ServerConfig,
     main_database: MainDatabaseConfig,
@@ -101,11 +110,11 @@ pub struct MainDatabaseConfig {
 /// - `pool_size` (`u32`): The size of the database connection pool.
 #[derive(Debug, Clone, Deserialize)]
 pub struct DefaultTenantDatabaseConfig {
-    pub host: String,
-    pub port: u16,
-    pub username: String,
-    pub password: String,
-    pub database: String,
+    pub host: DbHost,
+    pub port: DbPort,
+    pub username: DbUser,
+    pub password: DbPassword,
+    pub database: DbName,
     pub pool_size: u32,
 }
 
@@ -223,6 +232,7 @@ impl Default for MainDatabaseConfig {
     }
 }
 
+#[cfg(test)]
 impl Default for DefaultTenantDatabaseConfig {
     /// Provides a default implementation for the `DefaultTenantDatabaseConfig` struct.
     ///
@@ -238,11 +248,11 @@ impl Default for DefaultTenantDatabaseConfig {
     /// These default values are used for local development or testing scenarios.
     fn default() -> Self {
         DefaultTenantDatabaseConfig {
-            host: String::from("localhost"),
-            port: 5432,
-            username: String::from("user"),
-            password: String::from("password"),
-            database: String::from("database"),
+            host: DbHost::from_str("example.com").unwrap(),
+            port: DbPort::try_from(5432).unwrap(),
+            username: DbUser::from_str("user").unwrap(),
+            password: DbPassword::from_str("on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD").unwrap(),
+            database: DbName::from_str("database").unwrap(),
             pool_size: 5,
         }
     }

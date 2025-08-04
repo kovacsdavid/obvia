@@ -22,6 +22,7 @@ use crate::common::error::DatabaseError;
 use crate::common::repository::PoolWrapper;
 use crate::common::services::generate_string_csprng;
 use crate::common::types::DdlParameter;
+use crate::common::types::tenant::db_password::DbPassword;
 use crate::organizational_units::dto::CreateRequest;
 use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
 use async_trait::async_trait;
@@ -189,37 +190,43 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
         let organizational_unit_id = Uuid::new_v4();
-        let db_password = payload
-            .db_password
-            .unwrap_or_else(|| generate_string_csprng(40));
+        let db_password = match payload.db_password {
+            Some(pw) => pw,
+            None => DbPassword::from_str(&generate_string_csprng(40))
+                .map_err(DatabaseError::DatabaseError)?,
+        };
         let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
             "INSERT INTO organizational_units (
             id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
         )
         .bind(organizational_unit_id)
-        .bind(payload.name)
+        .bind(payload.name.as_str())
         .bind(
             payload
                 .db_host
-                .unwrap_or(app_config.default_tenant_database().host.clone()),
+                .unwrap_or(app_config.default_tenant_database().host.clone())
+                .as_str(),
         )
         .bind(
             payload
                 .db_port
-                .unwrap_or(app_config.default_tenant_database().port as i32),
+                .unwrap_or(app_config.default_tenant_database().port.clone())
+                .as_i64(),
         )
         .bind(
             payload
                 .db_name
-                .unwrap_or(organizational_unit_id.to_string()),
+                .unwrap_or(organizational_unit_id.into())
+                .as_str(),
         )
         .bind(
             payload
                 .db_user
-                .unwrap_or(organizational_unit_id.to_string()),
+                .unwrap_or(organizational_unit_id.into())
+                .as_str(),
         )
-        .bind(db_password.clone())
+        .bind(db_password.clone().as_str())
         .bind(app_config.default_tenant_database().pool_size as i32)
         .fetch_one(&mut *tx)
         .await
@@ -244,7 +251,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             "CREATE USER tenant_{} WITH PASSWORD '{}'",
             DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
                 .map_err(DatabaseError::DatabaseError)?,
-            DdlParameter::from_str(&db_password).map_err(DatabaseError::DatabaseError)?
+            DdlParameter::from_str(db_password.as_str()).map_err(DatabaseError::DatabaseError)?
         );
 
         let _create_user = sqlx::query(&create_user_sql)

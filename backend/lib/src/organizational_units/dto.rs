@@ -16,12 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::tenant::db_host::DbHost;
+use crate::common::types::tenant::db_name::DbName;
+use crate::common::types::tenant::db_password::DbPassword;
+use crate::common::types::tenant::db_port::DbPort;
+use crate::common::types::tenant::db_user::DbUser;
+use crate::common::types::tenant::name::Name;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use std::str::FromStr;
 use uuid::Uuid;
 
 /// A structure that represents a helper for creating a request with optional database configuration details.
@@ -42,6 +48,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct CreateRequestHelper {
     pub name: String,
+    pub db_self_hosted: bool,
     pub db_host: Option<String>,
     pub db_port: Option<i32>,
     pub db_name: Option<String>,
@@ -68,6 +75,7 @@ pub struct CreateRequestHelper {
 #[derive(Debug, Serialize)]
 pub struct CreateRequestError {
     pub name: Option<String>,
+    pub db_self_hosted: Option<String>,
     pub db_host: Option<String>,
     pub db_port: Option<String>,
     pub db_name: Option<String>,
@@ -115,41 +123,124 @@ impl IntoResponse for CreateRequestError {
 /// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[allow(dead_code)]
 pub struct CreateRequest {
-    pub name: String,
-    pub db_host: Option<String>,
-    pub db_port: Option<i32>,
-    pub db_name: Option<String>,
-    pub db_user: Option<String>,
-    pub db_password: Option<String>,
+    pub name: Name,
+    pub db_self_hosted: bool,
+    pub db_host: Option<DbHost>,
+    pub db_port: Option<DbPort>,
+    pub db_name: Option<DbName>,
+    pub db_user: Option<DbUser>,
+    pub db_password: Option<DbPassword>,
 }
 
 impl TryFrom<CreateRequestHelper> for CreateRequest {
     type Error = CreateRequestError;
-    /// Attempts to create an instance of `CreateRequest` from a `CreateRequestHelper` value.
-    ///
-    /// # Parameters
-    /// - `value`: The `CreateRequestHelper` instance containing the necessary fields to construct a `CreateRequest`.
-    ///
-    /// # Returns
-    /// - `Ok(CreateRequest)`: Returns an initialized instance of `CreateRequest` if all required fields from the `CreateRequestHelper` are successfully mapped.
-    /// - `Err(Self::Error)`: Returns an error if the conversion fails. In this implementation, conversion is always successful, so this branch is never reached.
-    ///
-    /// # Fields Mapping
-    /// - `name`: Mapped directly from `value.name`.
-    /// - `db_host`: Mapped directly from `value.db_host`.
-    /// - `db_port`: Mapped directly from `value.db_port`.
-    /// - `db_name`: Mapped directly from `value.db_name`.
-    /// - `db_user`: Mapped directly from `value.db_user`.
-    /// - `db_password`: Mapped directly from `value.db_password`.
+    // TODO: new docs
     fn try_from(value: CreateRequestHelper) -> Result<Self, Self::Error> {
-        // TODO: Adjust this to fit managed and self hosted postgres instances
+        let mut error = CreateRequestError {
+            name: None,
+            db_self_hosted: None,
+            db_host: None,
+            db_port: None,
+            db_name: None,
+            db_user: None,
+            db_password: None,
+        };
+
+        let name = Name::try_from(value.name);
+        let mut db_host: Option<DbHost> = None;
+        let mut db_port: Option<DbPort> = None;
+        let mut db_name: Option<DbName> = None;
+        let mut db_user: Option<DbUser> = None;
+        let mut db_password: Option<DbPassword> = None;
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if value.db_self_hosted {
+            const REQUIRED_IF_SELF_HOSTED_ERROR: &str =
+                "A mező kitöltése kötelező, ha saját adatbázist üzemeltet";
+            match &value.db_host {
+                Some(val) => {
+                    db_host = match DbHost::from_str(val) {
+                        Ok(db_host) => Some(db_host),
+                        Err(e) => {
+                            error.db_host = Some(e.to_string());
+                            None
+                        }
+                    }
+                }
+                None => {
+                    error.db_host = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
+                }
+            }
+            match value.db_port {
+                Some(val) => {
+                    db_port = match DbPort::try_from(val) {
+                        Ok(db_port) => Some(db_port),
+                        Err(e) => {
+                            error.db_port = Some(e.to_string());
+                            None
+                        }
+                    }
+                }
+                None => {
+                    error.db_port = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
+                }
+            }
+            match &value.db_name {
+                Some(val) => {
+                    db_name = match DbName::from_str(val) {
+                        Ok(db_name) => Some(db_name),
+                        Err(e) => {
+                            error.db_name = Some(e.to_string());
+                            None
+                        }
+                    }
+                }
+                None => {
+                    error.db_name = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
+                }
+            }
+            match &value.db_user {
+                Some(val) => {
+                    db_user = match DbUser::from_str(val) {
+                        Ok(db_user) => Some(db_user),
+                        Err(e) => {
+                            error.db_user = Some(e.to_string());
+                            None
+                        }
+                    }
+                }
+                None => {
+                    error.db_user = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
+                }
+            }
+            match &value.db_password {
+                Some(val) => {
+                    db_password = match DbPassword::from_str(val) {
+                        Ok(db_password) => Some(db_password),
+                        Err(e) => {
+                            error.db_password = Some(e.to_string());
+                            None
+                        }
+                    }
+                }
+                None => {
+                    error.db_password = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
+                }
+            }
+        }
+
+        // TODO: if err
         Ok(CreateRequest {
-            name: value.name,
-            db_host: value.db_host,
-            db_port: value.db_port,
-            db_name: value.db_name,
-            db_user: value.db_user,
-            db_password: value.db_password,
+            name: name.unwrap(),
+            db_self_hosted: value.db_self_hosted,
+            db_host,
+            db_port,
+            db_name,
+            db_user,
+            db_password,
         })
     }
 }

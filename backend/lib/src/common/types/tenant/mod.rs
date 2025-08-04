@@ -17,15 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod ddl_parameter;
-pub(crate) mod email;
-pub(crate) mod first_name;
-pub(crate) mod last_name;
-pub(crate) mod password;
-pub(crate) mod tenant;
-
-pub(crate) use ddl_parameter::DdlParameter;
-pub(crate) use email::Email;
-pub(crate) use first_name::FirstName;
-pub(crate) use last_name::LastName;
-pub(crate) use password::Password;
+pub(crate) mod db_host;
+pub(crate) mod db_name;
+pub(crate) mod db_password;
+pub(crate) mod db_port;
+pub(crate) mod db_user;
+pub(crate) mod name;

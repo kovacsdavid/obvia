@@ -19,6 +19,7 @@
 
 export interface OrganizationalUnitRequest {
     name: string;
+    dbSelfHosted: boolean;
     dbHost: string;
     dbPort: number;
     dbName: string;

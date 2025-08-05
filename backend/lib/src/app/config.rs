@@ -22,6 +22,7 @@ use crate::common::types::tenant::db_name::DbName;
 use crate::common::types::tenant::db_password::DbPassword;
 use crate::common::types::tenant::db_port::DbPort;
 use crate::common::types::tenant::db_user::DbUser;
+use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
 #[cfg(test)]
@@ -110,7 +111,7 @@ pub struct MainDatabaseConfig {
 /// - `pool_size` (`u32`): The size of the database connection pool.
 #[derive(Debug, Clone, Deserialize)]
 pub struct DefaultTenantDatabaseConfig {
-    pub host: DbHost,
+    pub host: ValueObject<DbHost>,
     pub port: DbPort,
     pub username: DbUser,
     pub password: DbPassword,
@@ -248,7 +249,7 @@ impl Default for DefaultTenantDatabaseConfig {
     /// These default values are used for local development or testing scenarios.
     fn default() -> Self {
         DefaultTenantDatabaseConfig {
-            host: DbHost::from_str("example.com").unwrap(),
+            host: ValueObject::new(DbHost("example.com".to_string())).unwrap(),
             port: DbPort::try_from(5432).unwrap(),
             username: DbUser::from_str("user").unwrap(),
             password: DbPassword::from_str("on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD").unwrap(),

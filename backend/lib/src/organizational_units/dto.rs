@@ -23,6 +23,7 @@ use crate::common::types::tenant::db_password::DbPassword;
 use crate::common::types::tenant::db_port::DbPort;
 use crate::common::types::tenant::db_user::DbUser;
 use crate::common::types::tenant::name::Name;
+use crate::common::types::value_object::ValueObject;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -125,7 +126,7 @@ impl IntoResponse for CreateRequestError {
 pub struct CreateRequest {
     pub name: Name,
     pub db_self_hosted: bool,
-    pub db_host: Option<DbHost>,
+    pub db_host: Option<ValueObject<DbHost>>,
     pub db_port: Option<DbPort>,
     pub db_name: Option<DbName>,
     pub db_user: Option<DbUser>,
@@ -147,7 +148,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
         };
 
         let name = Name::try_from(value.name);
-        let mut db_host: Option<DbHost> = None;
+        let mut db_host: Option<ValueObject<DbHost>> = None;
         let mut db_port: Option<DbPort> = None;
         let mut db_name: Option<DbName> = None;
         let mut db_user: Option<DbUser> = None;
@@ -162,7 +163,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
                 "A mező kitöltése kötelező, ha saját adatbázist üzemeltet";
             match &value.db_host {
                 Some(val) => {
-                    db_host = match DbHost::from_str(val) {
+                    db_host = match ValueObject::new(DbHost(val.clone())) {
                         Ok(db_host) => Some(db_host),
                         Err(e) => {
                             error.db_host = Some(e.to_string());

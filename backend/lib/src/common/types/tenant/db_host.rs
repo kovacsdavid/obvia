@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
@@ -34,19 +35,102 @@ use std::str::FromStr;
 ///
 /// * `0`: The inner `String` containing the hostname or address of the database.
 #[derive(Debug, Clone)]
-pub struct DbHost(String);
+pub struct DbHost(pub String);
 
-impl DbHost {
-    /// Returns a string slice (`&str`) referencing the inner string data.
+impl Display for DbHost {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
     ///
-    /// # Notes
-    /// - This function borrows the inner string (`self.0`) as a shared reference.
+    /// # Parameters
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
     ///
-    /// # Allowance
-    /// The `#[allow(dead_code)]` attribute indicates that the function may not always be used and avoids warnings during compilation.
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
+    /// # Returns
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl ValueObjectable for DbHost {
+    type DataType = String;
+
+    /// Validates the input string stored in the `self.0` field. The function checks whether the string
+    /// represents a valid global IP address or a valid domain name (subject to specific constraints).
+    ///
+    /// # Validation Process
+    /// - If the string can be parsed into an IP address, it ensures that the IP address is global
+    ///   (not a private or reserved address).
+    /// - If the string is not a valid IP address, it checks whether the string matches the structure
+    ///   of a valid domain name using a regular expression. Additionally, it ensures that the string
+    ///   does not include ".local" or "localhost", which are not considered valid.
+    ///
+    /// # Returns
+    /// - `Ok(())`: If the string passes all validation checks.
+    /// - `Err(String)`: Returns an error with the message "Hibás adatbázis kiszolgáló" (Hungarian for
+    ///   "Invalid database server") if the string is determined to be invalid.
+    ///
+    /// # Errors
+    /// - The function relies on `IpAddr::from_str` and `Regex::new`. If either fails (invalid input
+    ///   or regex compilation error), the function will handle the failure within the matching logic.
+    fn validate(&self) -> Result<(), String> {
+        let res = match IpAddr::from_str(&self.0) {
+            Ok(ip) => is_global(&ip),
+            Err(_) => match Regex::new(
+                r##"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"##,
+            ) {
+                Ok(re) => {
+                    re.is_match(&self.0)
+                        && !self.0.contains(".local")
+                        && !self.0.contains("localhost")
+                }
+                Err(_) => false,
+            },
+        };
+        match res {
+            true => Ok(()),
+            false => Err(String::from("Hibás adatbázis kiszolgáló")),
+        }
+    }
+
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
         &self.0
+    }
+}
+
+impl<'de> Deserialize<'de> for ValueObject<DbHost> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
+    ///
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `DbHost` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
+    ///
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
+    ///
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
+    ///
+    /// # Returns
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
+    ///
+    /// # Errors
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        ValueObject::new(DbHost(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -150,145 +234,6 @@ fn is_global(ip: &IpAddr) -> bool {
     }
 }
 
-/// Validates whether a given string is a valid database host.
-///
-/// The function checks the input string against the following criteria:
-/// 1. If the input is an IP address, it uses the `is_global` function to determine
-///    if the IP address is globally routable.
-/// 2. If the input is not an IP address, it validates the string as a hostname
-///    using a regex pattern.
-/// 3. The hostname must not include ".local" or "localhost".
-///
-/// If the input fails either IP address validation or hostname validation, the function returns `false`.
-///
-/// # Arguments
-///
-/// * `s` - A string slice that holds the potential database host to validate.
-///
-/// # Returns
-///
-/// * `true` if the provided string is a valid globally routable IP address or a valid hostname that does not contain ".local" or "localhost".
-/// * `false` otherwise.
-///
-/// # Errors
-///
-/// * If a regular expression fails to compile, the function will return `false`.
-fn is_valid_db_host(s: &str) -> bool {
-    match IpAddr::from_str(s) {
-        Ok(ip) => is_global(&ip),
-        Err(_) => match Regex::new(
-            r##"^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"##,
-        ) {
-            Ok(re) => re.is_match(s) && !s.contains(".local") && !s.contains("localhost"),
-            Err(_) => false,
-        },
-    }
-}
-
-impl TryFrom<String> for DbHost {
-    type Error = String;
-
-    /// Attempts to create an instance of the type implementing this method from the given `String`.
-    ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If
-    /// parsing is successful, it returns `Ok(Self)` containing the created instance.
-    /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - A `String` that represents the source value to be parsed into the target type.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Self)` - If the parsing is successful.
-    /// * `Err(Self::Error)` - If the parsing fails, enclosing the error describing the failure.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the provided `String` cannot be parsed into the target type.
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
-    }
-}
-
-impl FromStr for DbHost {
-    type Err = String;
-
-    /// Attempts to create an instance of `DbHost` from the given string slice.
-    ///
-    /// This function validates the provided string to ensure it meets the criteria
-    /// for a valid database host. If the string is valid, it constructs a new
-    /// `DbHost` instance and returns it wrapped in a `Result::Ok`. Otherwise,
-    /// it returns a `Result::Err` containing an error message.
-    ///
-    /// # Parameters
-    /// - `s`: A string slice representing the database string to be validated and used for creating a new `DbHost` instance.
-    ///
-    /// # Returns
-    /// - `Ok(DbHost)`: If the string provided is a valid database host.
-    /// - `Err(String)`: If the string is invalid, containing an error message.
-    ///
-    /// # Errors
-    /// - Returns `"Hibás adatbázis kiszolgáló"` as the error message if validation fails.
-    ///
-    /// # Note
-    /// The function `is_valid_db_host(s: &str)` is expected to perform the
-    /// validation logic and must be defined elsewhere in the module.
-    ///
-    /// # Implements
-    /// This function is a part of the `FromStr` trait implementation for the `DbHost` type,
-    /// enabling string-to-`DbHost` conversions.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match is_valid_db_host(s) {
-            true => Ok(DbHost(s.to_string())),
-            false => Err(String::from("Hibás adatbázis kiszolgáló")),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for DbHost {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized
-    /// from a string using the Serde library.
-    ///
-    /// # Type Parameters:
-    /// - `D`: The deserializer type implementing the `serde::Deserializer` trait.
-    ///
-    /// # Parameters:
-    /// - `deserializer`: A deserializer instance to read and interpret the input data
-    ///   and convert it into the appropriate type.
-    ///
-    /// # Returns:
-    /// - `Result<Self, D::Error>`: Returns either:
-    ///   - The successfully deserialized instance of the type (`Self`).
-    ///   - An error of type `D::Error` if deserialization fails.
-    ///
-    /// # Behavior:
-    /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
-    ///    using the `parse` method.
-    /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
-    ///    generate a descriptive error message.
-    ///
-    /// # Errors:
-    /// - Returns an error if:
-    ///   - The input data cannot be deserialized into a `String`.
-    ///   - The parsed string cannot be converted into the type being deserialized.
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        s.parse().map_err(serde::de::Error::custom)
-    }
-}
-
-impl Display for DbHost {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -307,8 +252,9 @@ mod tests {
         ];
         for host in valid_hosts {
             //panic!("{}", host);
-            let db_host: DbHost = serde_json::from_str(format!("\"{}\"", &host).as_str()).unwrap();
-            assert_eq!(db_host.as_str(), host);
+            let db_host: ValueObject<DbHost> =
+                serde_json::from_str(format!("\"{}\"", &host).as_str()).unwrap();
+            assert_eq!(db_host.extract().get_value(), host);
         }
     }
     #[test]
@@ -350,7 +296,7 @@ mod tests {
             r#" "#,
         ];
         for host in invalid_hosts {
-            let db_host: Result<DbHost, _> =
+            let db_host: Result<ValueObject<DbHost>, _> =
                 serde_json::from_str(format!("\"{}\"", &host).as_str());
             assert!(db_host.is_err());
         }

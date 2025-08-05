@@ -96,7 +96,7 @@ impl<'de> Deserialize<'de> for ValueObject<DdlParameter> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `SampleObject` and validates it by calling `ValueObject::new`.
+    /// It then wraps the string in a `DdlParameter` and validates it by calling `ValueObject::new`.
     /// If the validation fails, a custom deserialization error is returned.
     ///
     /// # Type Parameters
@@ -148,6 +148,10 @@ mod tests {
         assert!(ddl_parameter.is_err());
         let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
             serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d"DROP""#);
+        assert!(ddl_parameter.is_err());
+        let ddl_parameter: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#""""#);
+        assert!(ddl_parameter.is_err());
+        let ddl_parameter: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#"" ""#);
         assert!(ddl_parameter.is_err());
     }
 }

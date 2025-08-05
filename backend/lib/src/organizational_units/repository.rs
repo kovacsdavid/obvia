@@ -23,7 +23,7 @@ use crate::common::repository::PoolWrapper;
 use crate::common::services::generate_string_csprng;
 use crate::common::types::DdlParameter;
 use crate::common::types::tenant::db_password::DbPassword;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::organizational_units::dto::CreateRequest;
 use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
 use async_trait::async_trait;
@@ -207,7 +207,8 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             payload
                 .db_host
                 .unwrap_or(app_config.default_tenant_database().host.clone())
-                .as_str(),
+                .extract()
+                .get_value(),
         )
         .bind(
             payload

@@ -28,7 +28,6 @@ use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use uuid::Uuid;
 
 /// A structure that represents a helper for creating a request with optional database configuration details.
@@ -129,7 +128,7 @@ pub struct CreateRequest {
     pub db_host: Option<ValueObject<DbHost>>,
     pub db_port: Option<ValueObject<DbPort>>,
     pub db_name: Option<ValueObject<DbName>>,
-    pub db_user: Option<DbUser>,
+    pub db_user: Option<ValueObject<DbUser>>,
     pub db_password: Option<ValueObject<DbPassword>>,
 }
 
@@ -151,7 +150,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
         let mut db_host: Option<ValueObject<DbHost>> = None;
         let mut db_port: Option<ValueObject<DbPort>> = None;
         let mut db_name: Option<ValueObject<DbName>> = None;
-        let mut db_user: Option<DbUser> = None;
+        let mut db_user: Option<ValueObject<DbUser>> = None;
         let mut db_password: Option<ValueObject<DbPassword>> = None;
 
         if let Err(e) = &name {
@@ -205,7 +204,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
             }
             match &value.db_user {
                 Some(val) => {
-                    db_user = match DbUser::from_str(val) {
+                    db_user = match ValueObject::new(DbUser(val.clone())) {
                         Ok(db_user) => Some(db_user),
                         Err(e) => {
                             error.db_user = Some(e.to_string());

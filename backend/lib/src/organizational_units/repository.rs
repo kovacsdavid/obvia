@@ -230,8 +230,13 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .bind(
             payload
                 .db_user
-                .unwrap_or(organizational_unit_id.into())
-                .as_str(),
+                .unwrap_or(
+                    organizational_unit_id
+                        .try_into()
+                        .map_err(DatabaseError::DatabaseError)?,
+                )
+                .extract()
+                .get_value(),
         )
         .bind(db_password.clone().extract().get_value())
         .bind(app_config.default_tenant_database().pool_size as i32)

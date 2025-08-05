@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::str::FromStr;
 use uuid::Uuid;
 
 /// Represents the databse username.
@@ -35,128 +35,113 @@ use uuid::Uuid;
 /// * `0`: The inner `String` containing theusername of the database.
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DbUser(String);
+pub struct DbUser(pub String);
 
-impl DbUser {
-    /// Returns a string slice (`&str`) referencing the inner string data.
+impl ValueObjectable for DbUser {
+    type DataType = String;
+
+    /// Validates the format of a username using a regular expression.
     ///
-    /// # Notes
-    /// - This function borrows the inner string (`self.0`) as a shared reference.
+    /// # Returns
+    /// - `Ok(())`: If the username matches the required format.
+    /// - `Err(String)`: If the username does not match the required format,
+    ///   or if there is an error creating the regular expression.
     ///
-    /// # Allowance
-    /// The `#[allow(dead_code)]` attribute indicates that the function may not always be used and avoids warnings during compilation.
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
+    /// The valid username format follows these rules:
+    /// - Must start with a letter (A-Z or a-z).
+    /// - May only contain alphanumeric characters (A-Z, a-z, 0-9) and underscores (_).
+    /// - Must be between 1 and 60 characters in length, inclusive.
+    ///
+    /// # Errors
+    /// Returns an error string `"Hibás felhasználónév formátum"` if:
+    /// - The username format is invalid.
+    /// - There is an issue creating the regular expression.
+    fn validate(&self) -> Result<(), String> {
+        match Regex::new(r##"^[A-Za-z][A-Za-z0-9_]{0,59}$"##) {
+            Ok(re) => match re.is_match(&self.0) {
+                true => Ok(()),
+                false => Err("Hibás felhasználónév formátum".to_string()),
+            },
+            Err(_) => Err("Hibás felhasználónév formátum".to_string()),
+        }
+    }
+
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-///
-/// Validates if the given string is a valid database username.
-///
-/// A valid database username must adhere to the following rules:
-/// 1. It should only contain uppercase letters (`A-Z`), lowercase letters (`a-z`), and digits (`0-9`).
-/// 2. The length of the username must be between 40 and 99 characters (inclusive).
-///
-/// # Arguments
-///
-/// * `s` - A string slice reference representing the username to validate.
-///
-/// # Returns
-///
-/// * `true` - If the username is valid according to the above criteria.
-/// * `false` - If the username is invalid or if there is an error while compiling the regex.
-fn is_valid_db_user(s: &str) -> bool {
-    match Regex::new(r##"^[A-Za-z][A-Za-z0-9_]{0,59}$"##) {
-        Ok(re) => re.is_match(s),
-        Err(_) => false,
-    }
-}
-
-impl FromStr for DbUser {
-    type Err = String;
-
-    /// Attempts to create an instance of `DbUser` from the given string slice.
-    ///
-    /// This function validates the provided string to ensure it meets the criteria
-    /// for a valid database username. If the string is valid, it constructs a new
-    /// `DbUser` instance and returns it wrapped in a `Result::Ok`. Otherwise,
-    /// it returns a `Result::Err` containing an error message.
+impl Display for DbUser {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
     ///
     /// # Parameters
-    /// - `s`: A string slice representing the database username to be validated and used for creating a new `DbUser` instance.
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
     ///
     /// # Returns
-    /// - `Ok(DbUser)`: If the string provided is a valid database username.
-    /// - `Err(String)`: If the string is invalid, containing an error message.
-    ///
-    /// # Errors
-    /// - Returns `"Hibás felhasználónév formátum"` as the error message if validation fails.
-    ///
-    /// # Note
-    /// The function `is_valid_db_user(s: &str)` is expected to perform the
-    /// validation logic and must be defined elsewhere in the module.
-    ///
-    /// # Implements
-    /// This function is a part of the `FromStr` trait implementation for the `DbUser` type,
-    /// enabling string-to-`DbUser` conversions.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if is_valid_db_user(s) {
-            Ok(DbUser(s.to_string()))
-        } else {
-            Err("Hibás felhasználónév formátum".to_string())
-        }
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-// TODO: docs
-impl From<Uuid> for DbUser {
-    fn from(uuid: Uuid) -> Self {
-        DbUser(uuid.to_string())
-    }
-}
-
-impl TryFrom<String> for DbUser {
-    type Error = String;
-
-    /// Attempts to create an instance of the type implementing this method from the given `String`.
+impl<'de> Deserialize<'de> for ValueObject<DbUser> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If
-    /// parsing is successful, it returns `Ok(Self)` containing the created instance.
-    /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `DbUser` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
     ///
-    /// # Arguments
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
     ///
-    /// * `value` - A `String` that represents the source value to be parsed into the target type.
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
     ///
     /// # Returns
-    ///
-    /// * `Ok(Self)` - If the parsing is successful.
-    /// * `Err(Self::Error)` - If the parsing fails, enclosing the error describing the failure.
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
     ///
     /// # Errors
-    ///
-    /// Returns an error if the provided `String` cannot be parsed into the target type.
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
-    }
-}
-
-impl<'de> Deserialize<'de> for DbUser {
-    /// A custom implementation of the `deserialize` method
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        s.parse().map_err(serde::de::Error::custom)
+        ValueObject::new(DbUser(s)).map_err(serde::de::Error::custom)
     }
 }
 
-impl Display for DbUser {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl TryFrom<Uuid> for ValueObject<DbUser> {
+    type Error = String;
+    /// Attempts to create an instance of `Self` from a given `Uuid` value.
+    ///
+    /// This function converts a `Uuid` into a `DbUser`, which is then wrapped
+    /// in a `ValueObject`. It leverages the `ValueObject::new` method to perform
+    /// the construction. If the conversion is successful, a `Result::Ok(Self)`
+    /// is returned; otherwise, a `Result::Err(Self::Error)` is returned.
+    ///
+    /// # Parameters
+    /// - `value`: A `Uuid` instance that will be converted into the custom type.
+    ///
+    /// # Returns
+    /// - `Ok(Self)`: If the conversion and the creation of the `ValueObject` are successful.
+    /// - `Err(Self::Error)`: If there is an error during the creation of the `ValueObject`.
+    ///
+    /// # Errors
+    /// This function will return an error if the `ValueObject::new` fails for any reason.
+    fn try_from(value: Uuid) -> Result<Self, Self::Error> {
+        ValueObject::new(DbUser(value.to_string()))
     }
 }
 
@@ -169,16 +154,19 @@ mod tests {
         let valid_db_users = vec![r#"db_user"#];
         for db_user in valid_db_users {
             //panic!("{}", host);
-            let db_user: DbUser =
+            let not_a_db_user_shadow: ValueObject<DbUser> =
                 serde_json::from_str(format!("\"{}\"", &db_user).as_str()).unwrap();
-            assert_eq!(db_user.as_str(), db_user.as_str());
+            assert_eq!(
+                *not_a_db_user_shadow.extract().get_value(),
+                db_user.to_string()
+            );
         }
     }
     #[test]
     fn test_invalid_db_user() {
         let invalid_db_users = vec![r#"4db_user"#, r#"123"#, r#""#, r#" "#];
         for db_user in invalid_db_users {
-            let db_user: Result<DbUser, _> =
+            let db_user: Result<ValueObject<DbUser>, _> =
                 serde_json::from_str(format!("\"{}\"", &db_user).as_str());
             assert!(db_user.is_err());
         }

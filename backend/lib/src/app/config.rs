@@ -25,8 +25,6 @@ use crate::common::types::tenant::db_user::DbUser;
 use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
-#[cfg(test)]
-use std::str::FromStr;
 
 /// The `AppConfig` struct is the main application configuration model used for deserializing
 /// and storing the configuration details for different components of the application.
@@ -113,7 +111,7 @@ pub struct MainDatabaseConfig {
 pub struct DefaultTenantDatabaseConfig {
     pub host: ValueObject<DbHost>,
     pub port: ValueObject<DbPort>,
-    pub username: DbUser,
+    pub username: ValueObject<DbUser>,
     pub password: ValueObject<DbPassword>,
     pub database: ValueObject<DbName>,
     pub pool_size: u32,
@@ -251,7 +249,7 @@ impl Default for DefaultTenantDatabaseConfig {
         DefaultTenantDatabaseConfig {
             host: ValueObject::new(DbHost("example.com".to_string())).unwrap(),
             port: ValueObject::new(DbPort(5432)).unwrap(),
-            username: DbUser::from_str("user").unwrap(),
+            username: ValueObject::new(DbUser("user".to_string())).unwrap(),
             password: ValueObject::new(DbPassword(
                 "on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD".to_string(),
             ))

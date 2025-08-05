@@ -23,6 +23,7 @@ use super::{
     repository::AuthRepository,
 };
 use crate::common::dto::SimpleMessageResponse;
+use crate::common::types::value_object::ValueObjectable;
 use crate::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
     common::{dto::OkResponse, error::FriendlyError},
@@ -231,7 +232,7 @@ pub async fn try_register(
     payload: RegisterRequest,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let password_hash = password_hasher
-        .hash_password(payload.password.as_str())
+        .hash_password(payload.password.extract().get_value())
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
         .to_string();
 

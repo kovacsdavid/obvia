@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{ErrorBody, ErrorResponse};
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::common::types::{Email, FirstName, LastName, Password};
 use ::serde::Serialize;
 use axum::Json;
@@ -182,7 +182,7 @@ pub struct RegisterRequest {
     pub email: Email,
     pub first_name: ValueObject<FirstName>,
     pub last_name: ValueObject<LastName>,
-    pub password: Password,
+    pub password: ValueObject<Password>,
     pub password_confirm: String,
 }
 
@@ -238,7 +238,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
         let email_result = Email::try_from(value.email);
         let first_name_result = ValueObject::new(FirstName(value.first_name));
         let last_name_result = ValueObject::new(LastName(value.last_name));
-        let password_result = Password::try_from(value.password);
+        let password_result = ValueObject::new(Password(value.password));
 
         if let Err(e) = &email_result {
             errors.email = Some(e.to_string());
@@ -253,7 +253,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
             errors.password = Some(e.to_string());
         }
         if let Ok(password) = &password_result {
-            if password.as_str() != value.password_confirm.clone() {
+            if password.extract().get_value().clone() != value.password_confirm.clone() {
                 errors.password_confirm =
                     Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
             }

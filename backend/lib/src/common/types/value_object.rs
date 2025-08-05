@@ -45,7 +45,7 @@ use std::fmt::Display;
 ///
 /// ### Returns
 /// * `&Self::DataType` - A reference to the associated type `DataType` that represents the underlying data.
-pub trait ValueObjectDataContainer: Display {
+pub trait ValueObjectable: Display {
     type DataType;
     /// Validates the implementation or object.
     ///
@@ -79,12 +79,12 @@ pub trait ValueObjectDataContainer: Display {
 ///   any additional behavior or logic beyond encapsulation.
 /// - It is often used to enforce type safety for specific domain concepts where primitive
 ///   types alone might not provide adequate clarity or constraint.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ValueObject<DataType>(DataType);
 
 impl<DataType> ValueObject<DataType>
 where
-    DataType: ValueObjectDataContainer,
+    DataType: ValueObjectable,
 {
     /// Creates a new `ValueObject` instance from the provided `data`.
     ///
@@ -97,7 +97,7 @@ where
     ///
     /// # Errors
     /// - Returns an error `String` if the `validate()` method fails to validate the passed `data`.
-    fn new(data: DataType) -> Result<ValueObject<DataType>, String> {
+    pub fn new(data: DataType) -> Result<ValueObject<DataType>, String> {
         data.validate()?;
         Ok(ValueObject(data))
     }
@@ -146,7 +146,7 @@ where
 #[derive(Debug, Clone)]
 pub struct SampleObject(String);
 
-impl ValueObjectDataContainer for SampleObject {
+impl ValueObjectable for SampleObject {
     type DataType = String;
     /// Validates whether the current object meets a specific condition.
     ///

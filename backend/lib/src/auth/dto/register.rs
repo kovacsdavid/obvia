@@ -18,6 +18,7 @@
  */
 
 use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::value_object::ValueObject;
 use crate::common::types::{Email, FirstName, LastName, Password};
 use ::serde::Serialize;
 use axum::Json;
@@ -179,7 +180,7 @@ impl IntoResponse for RegisterRequestError {
 #[derive(Debug, PartialEq, Clone)]
 pub struct RegisterRequest {
     pub email: Email,
-    pub first_name: FirstName,
+    pub first_name: ValueObject<FirstName>,
     pub last_name: LastName,
     pub password: Password,
     pub password_confirm: String,
@@ -235,7 +236,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
         };
 
         let email_result = Email::try_from(value.email);
-        let first_name_result = FirstName::try_from(value.first_name);
+        let first_name_result = ValueObject::new(FirstName(value.first_name));
         let last_name_result = LastName::try_from(value.last_name);
         let password_result = Password::try_from(value.password);
 

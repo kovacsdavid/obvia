@@ -19,6 +19,7 @@
 
 use super::model::User;
 use crate::common::repository::PoolWrapper;
+use crate::common::types::value_object::ValueObjectable;
 use crate::{
     auth::dto::register::RegisterRequest, auth::repository::AuthRepository,
     common::error::DatabaseError,
@@ -41,7 +42,7 @@ impl AuthRepository for PoolWrapper {
         .bind(Uuid::new_v4())
         .bind(payload.email.as_str())
         .bind(password_hash)
-        .bind(payload.first_name.as_str())
+        .bind(payload.first_name.extract().get_value())
         .bind(payload.last_name.as_str())
         .execute(&self.pool)
         .await

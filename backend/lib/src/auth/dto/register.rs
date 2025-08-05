@@ -179,7 +179,7 @@ impl IntoResponse for RegisterRequestError {
 /// - `RegisterRequestHelper`
 #[derive(Debug, PartialEq, Clone)]
 pub struct RegisterRequest {
-    pub email: Email,
+    pub email: ValueObject<Email>,
     pub first_name: ValueObject<FirstName>,
     pub last_name: ValueObject<LastName>,
     pub password: ValueObject<Password>,
@@ -235,7 +235,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
             password_confirm: None,
         };
 
-        let email_result = Email::try_from(value.email);
+        let email_result = ValueObject::new(Email(value.email));
         let first_name_result = ValueObject::new(FirstName(value.first_name));
         let last_name_result = ValueObject::new(LastName(value.last_name));
         let password_result = ValueObject::new(Password(value.password));

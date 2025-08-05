@@ -40,7 +40,7 @@ impl AuthRepository for PoolWrapper {
             ) VALUES ($1, $2, $3, $4, $5)",
         )
         .bind(Uuid::new_v4())
-        .bind(payload.email.as_str())
+        .bind(payload.email.extract().get_value())
         .bind(password_hash)
         .bind(payload.first_name.extract().get_value())
         .bind(payload.last_name.extract().get_value())

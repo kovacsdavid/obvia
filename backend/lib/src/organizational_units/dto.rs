@@ -123,7 +123,7 @@ impl IntoResponse for CreateRequestError {
 /// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[allow(dead_code)]
 pub struct CreateRequest {
-    pub name: Name,
+    pub name: ValueObject<Name>,
     pub db_self_hosted: bool,
     pub db_host: Option<ValueObject<DbHost>>,
     pub db_port: Option<ValueObject<DbPort>>,
@@ -146,7 +146,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
             db_password: None,
         };
 
-        let name = Name::try_from(value.name);
+        let name = ValueObject::new(Name(value.name));
         let mut db_host: Option<ValueObject<DbHost>> = None;
         let mut db_port: Option<ValueObject<DbPort>> = None;
         let mut db_name: Option<ValueObject<DbName>> = None;

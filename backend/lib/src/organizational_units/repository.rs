@@ -201,7 +201,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
         )
         .bind(organizational_unit_id)
-        .bind(payload.name.as_str())
+        .bind(payload.name.extract().get_value())
         .bind(
             payload
                 .db_host

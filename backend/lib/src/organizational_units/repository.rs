@@ -29,7 +29,6 @@ use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalU
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -193,7 +192,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         let organizational_unit_id = Uuid::new_v4();
         let db_password = match payload.db_password {
             Some(pw) => pw,
-            None => DbPassword::from_str(&generate_string_csprng(40))
+            None => ValueObject::new(DbPassword(generate_string_csprng(40)))
                 .map_err(DatabaseError::DatabaseError)?,
         };
         let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
@@ -233,7 +232,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
                 .unwrap_or(organizational_unit_id.into())
                 .as_str(),
         )
-        .bind(db_password.clone().as_str())
+        .bind(db_password.clone().extract().get_value())
         .bind(app_config.default_tenant_database().pool_size as i32)
         .fetch_one(&mut *tx)
         .await

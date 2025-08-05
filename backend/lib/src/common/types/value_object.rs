@@ -144,7 +144,7 @@ where
 /// # Note
 /// This is just an example implementation!
 #[derive(Debug, Clone)]
-pub struct SampleObject(String);
+pub struct SampleObject(pub String);
 
 impl ValueObjectable for SampleObject {
     type DataType = String;

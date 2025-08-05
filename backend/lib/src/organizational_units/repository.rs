@@ -23,6 +23,7 @@ use crate::common::repository::PoolWrapper;
 use crate::common::services::generate_string_csprng;
 use crate::common::types::DdlParameter;
 use crate::common::types::tenant::db_password::DbPassword;
+use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::dto::CreateRequest;
 use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
 use async_trait::async_trait;
@@ -249,9 +250,12 @@ impl OrganizationalUnitsRepository for PoolWrapper {
 
         let create_user_sql = format!(
             "CREATE USER tenant_{} WITH PASSWORD '{}'",
-            DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
-                .map_err(DatabaseError::DatabaseError)?,
-            DdlParameter::from_str(db_password.as_str()).map_err(DatabaseError::DatabaseError)?
+            ValueObject::new(DdlParameter(
+                organizational_unit_id.to_string().replace("-", "")
+            ))
+            .map_err(DatabaseError::DatabaseError)?,
+            ValueObject::new(DdlParameter(db_password.to_string()))
+                .map_err(DatabaseError::DatabaseError)?
         );
 
         let _create_user = sqlx::query(&create_user_sql)
@@ -261,8 +265,10 @@ impl OrganizationalUnitsRepository for PoolWrapper {
 
         let grant_sql = format!(
             "GRANT tenant_{} to {};",
-            DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            ValueObject::new(DdlParameter(
+                organizational_unit_id.to_string().replace("-", "")
+            ))
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
             app_config.default_tenant_database().username // safety: not user input
         );
 
@@ -277,10 +283,14 @@ impl OrganizationalUnitsRepository for PoolWrapper {
 
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-            DdlParameter::from_str(&organizational_unit_id.to_string().replace("-", ""))
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            ValueObject::new(DdlParameter(
+                organizational_unit_id.to_string().replace("-", "")
+            ))
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            ValueObject::new(DdlParameter(
+                organizational_unit_id.to_string().replace("-", "")
+            ))
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)

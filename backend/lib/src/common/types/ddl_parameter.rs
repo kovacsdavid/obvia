@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::str::FromStr;
 
 /// Represents a Data Definition Language (DDL) parameter.
 ///
@@ -31,125 +31,95 @@ use std::str::FromStr;
 ///
 /// Always use this struct if parameter bindig is not possible to prevent SQL injection attacks!
 #[derive(Debug, PartialEq, Clone)]
-pub struct DdlParameter(String);
+pub struct DdlParameter(pub String);
 
-impl DdlParameter {
-    /// Returns a string slice (`&str`) referencing the inner string data.
+impl ValueObjectable for DdlParameter {
+    type DataType = String;
+
+    /// Validates the current instance of the struct.
     ///
-    /// # Notes
-    /// - This function borrows the inner string (`self.0`) as a shared reference.
+    /// This function checks if the instance (assumed to be a string stored in `self.0`) matches a regular
+    /// expression pattern. The pattern ensures that the string:
+    /// - Consists only of alphanumeric characters (A-Za-z0-9).
+    /// - Has a length between 1 and 255 characters.
     ///
-    /// # Allowance
-    /// The `#[allow(dead_code)]` attribute indicates that the function may not always be used and avoids warnings during compilation.
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
+    /// # Returns
+    ///
+    /// - `Ok(())`: If the string matches the regular expression pattern.
+    /// - `Err(String)`: If the string does not match the pattern, or if there is an error in creating
+    ///   the regular expression.
+    ///
+    /// # Errors
+    ///
+    /// - Returns an error with the message `"Hibás DDL paraméter!"` if the string does not adhere to the
+    ///   defined validation rules or if the regular expression fails to compile.
+    ///
+    /// # Note
+    /// The error messages returned are in Hungarian, and the message `"Hibás DDL paraméter!"` translates to
+    /// `"Invalid DDL parameter!"` in English. It is indicating that the provided string is not valid.
+    fn validate(&self) -> Result<(), String> {
+        match Regex::new(r##"^[A-Za-z0-9]{1,255}$"##) {
+            Ok(re) => match re.is_match(&self.0) {
+                true => Ok(()),
+                false => Err("Hibás DDL paraméter!".to_string()),
+            },
+            Err(_) => Err("Hibás DDL paraméter!".to_string()),
+        }
+    }
+
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-/// Checks if the given string is a valid DDL (Data Definition Language) parameter.
-///
-/// A valid DDL parameter:
-/// - Contains only alphanumeric characters (A-Z, a-z, 0-9).
-/// - Has a length between 1 and 255 characters.
-///
-/// # Parameters
-/// - `s`: A reference to the string (`&str`) to be validated.
-///
-/// # Returns
-/// - `true` if the string matches the specified pattern.
-/// - `false` if the string is invalid or there is a problem compiling the regular expression.
-///
-/// # Note
-///
-/// This may be too strict but enough for now.
-///
-/// # Safety
-///
-/// Do not let any chars here that can be used in an SQLi attack!
-fn is_valid_ddl_parameter(s: &str) -> bool {
-    match Regex::new(r##"^[A-Za-z0-9]{1,255}$"##) {
-        Ok(re) => re.is_match(s),
-        Err(_) => false,
-    }
-}
-
-impl FromStr for DdlParameter {
-    type Err = String;
-
-    /// Attempts to create an instance of `DdlParameter` from the given string slice.
-    ///
-    /// This function validates the provided string to ensure it meets the criteria
-    /// for a valid DDL parameter. If the string is valid, it constructs a new
-    /// `DdlParameter` instance and returns it wrapped in a `Result::Ok`. Otherwise,
-    /// it returns a `Result::Err` containing an error message.
+impl Display for DdlParameter {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
     ///
     /// # Parameters
-    /// - `s`: A string slice representing the DDL parameter to be validated and used for creating a new `DdlParameter` instance.
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
     ///
     /// # Returns
-    /// - `Ok(DdlParameter)`: If the string provided is a valid DDL parameter.
-    /// - `Err(String)`: If the string is invalid, containing an error message.
-    ///
-    /// # Errors
-    /// - Returns `"Hibás DDL paraméter!"` as the error message if validation fails.
-    ///
-    /// # Note
-    /// The function `is_valid_ddl_parameter(s: &str)` is expected to perform the
-    /// validation logic and must be defined elsewhere in the module.
-    ///
-    /// # Implements
-    /// This function is a part of the `FromStr` trait implementation for the `DdlParameter` type,
-    /// enabling string-to-`DdlParameter` conversions.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if is_valid_ddl_parameter(s) {
-            Ok(DdlParameter(s.to_string()))
-        } else {
-            Err("Hibás DDL paraméter!".to_string())
-        }
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl<'de> Deserialize<'de> for DdlParameter {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized
-    /// from a string using the Serde library.
+impl<'de> Deserialize<'de> for ValueObject<DdlParameter> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
-    /// # Type Parameters:
-    /// - `D`: The deserializer type implementing the `serde::Deserializer` trait.
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `SampleObject` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
     ///
-    /// # Parameters:
-    /// - `deserializer`: A deserializer instance to read and interpret the input data
-    ///   and convert it into the appropriate type.
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
     ///
-    /// # Returns:
-    /// - `Result<Self, D::Error>`: Returns either:
-    ///   - The successfully deserialized instance of the type (`Self`).
-    ///   - An error of type `D::Error` if deserialization fails.
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
     ///
-    /// # Behavior:
-    /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
-    ///    using the `parse` method.
-    /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
-    ///    generate a descriptive error message.
+    /// # Returns
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
     ///
-    /// # Errors:
-    /// - Returns an error if:
-    ///   - The input data cannot be deserialized into a `String`.
-    ///   - The parsed string cannot be converted into the type being deserialized.
+    /// # Errors
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        s.parse().map_err(serde::de::Error::custom)
-    }
-}
-
-impl Display for DdlParameter {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        ValueObject::new(DdlParameter(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -160,20 +130,23 @@ mod tests {
 
     #[test]
     fn test_valid_ddl_parameter() {
-        let ddl_parameter: DdlParameter =
+        let ddl_parameter: ValueObject<DdlParameter> =
             serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d""#).unwrap();
-        assert_eq!(ddl_parameter.as_str(), "bc5690796fc8414e93e32fcdaae3156d");
+        assert_eq!(
+            ddl_parameter.extract().get_value(),
+            "bc5690796fc8414e93e32fcdaae3156d"
+        );
     }
 
     #[test]
     fn test_invalid_ddl_parameter() {
-        let ddl_parameter: Result<DdlParameter, _> =
+        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
             serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d'DROP""#);
         assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<DdlParameter, _> =
+        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
             serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d;DROP""#);
         assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<DdlParameter, _> =
+        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
             serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d"DROP""#);
         assert!(ddl_parameter.is_err());
     }

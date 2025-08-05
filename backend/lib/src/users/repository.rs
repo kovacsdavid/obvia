@@ -43,7 +43,7 @@ impl AuthRepository for PoolWrapper {
         .bind(payload.email.as_str())
         .bind(password_hash)
         .bind(payload.first_name.extract().get_value())
-        .bind(payload.last_name.as_str())
+        .bind(payload.last_name.extract().get_value())
         .execute(&self.pool)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;

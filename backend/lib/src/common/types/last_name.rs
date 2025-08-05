@@ -17,137 +17,89 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use serde::{Deserialize, Deserializer};
-use std::fmt;
-use std::str::FromStr;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use serde::Deserialize;
+use std::fmt::Display;
 
 /// A struct representing a last name as a simple wrapper around a `String`.
 ///
 /// The `LastName` struct encapsulates a single `String` value representing a last name,
 /// providing additional type safety and semantic clarity in code.
 #[derive(Debug, PartialEq, Clone)]
-pub struct LastName(String);
+pub struct LastName(pub String);
 
-impl LastName {
-    /// Returns a string slice (`&str`) that represents the underlying content of the current instance.
-    pub fn as_str(&self) -> &str {
+impl ValueObjectable for LastName {
+    type DataType = String;
+    /// Validates the format of a last name by ensuring it meets certain criteria:
+    /// - The string is not empty after trimming whitespace.
+    /// - The string contains only alphabetic characters, hyphens ('-'), or spaces (' ').
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the last name meets all the validation criteria.
+    /// * `Err(String)` - If the last name fails validation, returning an error message.
+    ///
+    /// # Error
+    /// Will return `"Hibás vezetéknév formátum"` if the last name is invalid.
+    fn validate(&self) -> Result<(), String> {
+        let trimmed = self.0.trim();
+        match !trimmed.is_empty()
+            && trimmed
+                .chars()
+                .all(|c| c.is_alphabetic() || c == '-' || c == ' ')
+        {
+            true => Ok(()),
+            false => Err("Hibás vezetéknév formátum".to_string()),
+        }
+    }
+    fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-/// Checks if a given string is a valid last name.
-///
-/// A valid last name is defined as:
-/// 1. Not being empty after trimming leading and trailing whitespace.
-/// 2. Only containing alphabetic characters, hyphens (`-`), or spaces (` `).
-///
-/// # Parameters
-/// - `s`: A string slice reference (`&str`) representing the last name to validate.
-///
-/// # Returns
-/// - `true`: If the input string meets the criteria for a valid last name.
-/// - `false`: Otherwise.
-fn is_valid_last_name(s: &str) -> bool {
-    let trimmed = s.trim();
-    !trimmed.is_empty()
-        && trimmed
-            .chars()
-            .all(|c| c.is_alphabetic() || c == '-' || c == ' ')
-}
-
-impl FromStr for LastName {
-    type Err = String;
-
-    /// Attempts to create a `LastName` instance from the provided string slice.
+impl Display for LastName {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
     ///
     /// # Parameters
-    /// - `s`: A string slice representing the potential last name.
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
     ///
     /// # Returns
-    /// - `Ok(LastName)`: If the provided string is a valid last name after being trimmed.
-    /// - `Err(String)`: If the provided string is deemed invalid. The error contains a descriptive message.
-    ///
-    /// # Errors
-    /// - Returns an error with the message `"Hibás vezetéknév formátum"` (Hungarian for "Invalid last name format")
-    ///   if the string does not pass the `is_valid_last_name` validation.
-    ///
-    /// # Validation
-    /// - The function relies on the external function `is_valid_last_name` to determine the validity of the input.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if is_valid_last_name(s) {
-            Ok(LastName(s.trim().to_string()))
-        } else {
-            Err("Hibás vezetéknév formátum".to_string())
-        }
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl std::convert::TryFrom<String> for LastName {
-    type Error = String;
-
-    /// Attempts to create an instance of the type implementing this method from the given `String`.
+impl<'de> Deserialize<'de> for ValueObject<LastName> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If
-    /// parsing is successful, it returns `Ok(Self)` containing the created instance.
-    /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `LastName` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
     ///
-    /// # Arguments
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
     ///
-    /// * `value` - A `String` that represents the source value to be parsed into the target type.
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
     ///
     /// # Returns
-    ///
-    /// * `Ok(Self)` - If the parsing is successful.
-    /// * `Err(Self::Error)` - If the parsing fails, enclosing the error describing the failure.
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
     ///
     /// # Errors
-    ///
-    /// Returns an error if the provided `String` cannot be parsed into the target type.
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
-    }
-}
-
-impl<'de> Deserialize<'de> for LastName {
-    /// A custom implementation of the `deserialize` method for a type that can be deserialized
-    /// from a string using the Serde library.
-    ///
-    /// # Type Parameters:
-    /// - `D`: The deserializer type implementing the `serde::Deserializer` trait.
-    ///
-    /// # Parameters:
-    /// - `deserializer`: A deserializer instance to read and interpret the input data
-    ///   and convert it into the appropriate type.
-    ///
-    /// # Returns:
-    /// - `Result<Self, D::Error>`: Returns either:
-    ///   - The successfully deserialized instance of the type (`Self`).
-    ///   - An error of type `D::Error` if deserialization fails.
-    ///
-    /// # Behavior:
-    /// 1. The function first attempts to deserialize the input data into a `String`.
-    /// 2. Then, it tries to parse the deserialized string into the target type (`Self`)
-    ///    using the `parse` method.
-    /// 3. If parsing fails, an error is returned using `serde::de::Error::custom` to
-    ///    generate a descriptive error message.
-    ///
-    /// # Errors:
-    /// - Returns an error if:
-    ///   - The input data cannot be deserialized into a `String`.
-    ///   - The parsed string cannot be converted into the type being deserialized.
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: Deserializer<'de>,
+        D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        s.parse().map_err(serde::de::Error::custom)
-    }
-}
-
-impl fmt::Display for LastName {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        ValueObject::new(LastName(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -158,19 +110,19 @@ mod tests {
 
     #[test]
     fn test_valid_last_name() {
-        let name: LastName = serde_json::from_str(r#""Kovács""#).unwrap();
-        assert_eq!(name.as_str(), "Kovács");
-        let name: LastName = serde_json::from_str(r#""Kovács-Kovács""#).unwrap();
-        assert_eq!(name.as_str(), "Kovács-Kovács");
+        let name: ValueObject<LastName> = serde_json::from_str(r#""Kovács""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Kovács");
+        let name: ValueObject<LastName> = serde_json::from_str(r#""Kovács-Kovács""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Kovács-Kovács");
     }
 
     #[test]
     fn test_invalid_last_name() {
-        let name: Result<LastName, _> = serde_json::from_str(r#""""#);
+        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""""#);
         assert!(name.is_err());
-        let name: Result<LastName, _> = serde_json::from_str(r#""123""#);
+        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""123""#);
         assert!(name.is_err());
-        let name: Result<LastName, _> = serde_json::from_str(r#""Kovács!""#);
+        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""Kovács!""#);
         assert!(name.is_err());
     }
 }

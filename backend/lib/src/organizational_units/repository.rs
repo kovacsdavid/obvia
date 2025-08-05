@@ -219,8 +219,13 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .bind(
             payload
                 .db_name
-                .unwrap_or(organizational_unit_id.into())
-                .as_str(),
+                .unwrap_or(
+                    organizational_unit_id
+                        .try_into()
+                        .map_err(DatabaseError::DatabaseError)?,
+                )
+                .extract()
+                .get_value(),
         )
         .bind(
             payload

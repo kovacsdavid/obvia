@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::str::FromStr;
 use uuid::Uuid;
 
 /// Represents the database name.
@@ -34,114 +34,96 @@ use uuid::Uuid;
 ///
 /// * `0`: The inner `String` containing the hostname or address of the database.
 #[derive(Debug, PartialEq, Clone)]
-pub struct DbName(String);
+pub struct DbName(pub String);
 
-impl DbName {
-    /// Returns a string slice (`&str`) referencing the inner string data.
+impl ValueObjectable for DbName {
+    type DataType = String;
+
+    /// Validates the database name stored in the object.
     ///
-    /// # Notes
-    /// - This function borrows the inner string (`self.0`) as a shared reference.
+    /// # Description
+    /// This method checks whether the contained string meets the following criteria:
+    /// - It only contains alphanumeric characters (uppercase and lowercase letters, and digits).
+    /// - Its length is between 1 and 99 characters (inclusive).
     ///
-    /// # Allowance
-    /// The `#[allow(dead_code)]` attribute indicates that the function may not always be used and avoids warnings during compilation.
-    #[allow(dead_code)]
-    pub fn as_str(&self) -> &str {
+    /// The function uses a regular expression to ensure the string adheres to these rules.
+    ///
+    /// # Returns
+    /// - `Ok(())` if the database name is valid.
+    /// - `Err(String)` with an error message ("Hibás adatbázis név!") if the validation fails.
+    ///
+    /// # Errors
+    /// - Returns an error message if the regular expression itself cannot be created (though this situation is highly unlikely since the regex pattern is constant and valid).
+    fn validate(&self) -> Result<(), String> {
+        match Regex::new(r##"^[A-Za-z0-9]{1,99}$"##) {
+            Ok(re) => match re.is_match(&self.0) {
+                true => Ok(()),
+                false => Err("Hibás adatbázis név!".to_string()),
+            },
+            Err(_) => Err("Hibás adatbázis név!".to_string()),
+        }
+    }
+
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-// TODO: docs
-fn is_valid_db_name(s: &str) -> bool {
-    match Regex::new(r##"^[A-Za-z0-9]{1,99}$"##) {
-        Ok(re) => re.is_match(s),
-        Err(_) => false,
-    }
-}
-
-// TODO: docs
-impl From<Uuid> for DbName {
-    fn from(uuid: Uuid) -> Self {
-        DbName(uuid.to_string())
-    }
-}
-
-impl TryFrom<String> for DbName {
-    type Error = String;
-
-    /// Attempts to create an instance of the type implementing this method from the given `String`.
-    ///
-    /// This function takes a `String` as input and tries to parse it into the desired type. If
-    /// parsing is successful, it returns `Ok(Self)` containing the created instance.
-    /// If parsing fails, it returns a `Result::Err` containing the appropriate error.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - A `String` that represents the source value to be parsed into the target type.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Self)` - If the parsing is successful.
-    /// * `Err(Self::Error)` - If the parsing fails, enclosing the error describing the failure.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the provided `String` cannot be parsed into the target type.
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        value.parse()
-    }
-}
-
-impl FromStr for DbName {
-    type Err = String;
-
-    /// Attempts to create an instance of `DbName` from the given string slice.
-    ///
-    /// This function validates the provided string to ensure it meets the criteria
-    /// for a valid database name. If the string is valid, it constructs a new
-    /// `DbName` instance and returns it wrapped in a `Result::Ok`. Otherwise,
-    /// it returns a `Result::Err` containing an error message.
+impl Display for DbName {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
     ///
     /// # Parameters
-    /// - `s`: A string slice representing the database name to be validated and used for creating a new `DbName` instance.
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
     ///
     /// # Returns
-    /// - `Ok(DbName)`: If the string provided is a valid database name.
-    /// - `Err(String)`: If the string is invalid, containing an error message.
-    ///
-    /// # Errors
-    /// - Returns `"Hibás adatbázis név!"` as the error message if validation fails.
-    ///
-    /// # Note
-    /// The function `is_valid_db_name(s: &str)` is expected to perform the
-    /// validation logic and must be defined elsewhere in the module.
-    ///
-    /// # Implements
-    /// This function is a part of the `FromStr` trait implementation for the `DbName` type,
-    /// enabling string-to-`DbName` conversions.
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if is_valid_db_name(s) {
-            Ok(DbName(s.to_string()))
-        } else {
-            Err("Hibás adatbázis név!".to_string())
-        }
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl<'de> Deserialize<'de> for DbName {
-    /// A custom implementation of the `deserialize` method
+impl<'de> Deserialize<'de> for ValueObject<DbName> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
+    ///
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `DbName` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
+    ///
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
+    ///
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
+    ///
+    /// # Returns
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
+    ///
+    /// # Errors
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        s.parse().map_err(serde::de::Error::custom)
+        ValueObject::new(DbName(s)).map_err(serde::de::Error::custom)
     }
 }
 
-impl Display for DbName {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+impl TryFrom<Uuid> for ValueObject<DbName> {
+    type Error = String;
+    fn try_from(value: Uuid) -> Result<Self, Self::Error> {
+        ValueObject::new(DbName(value.to_string()))
     }
 }
 
@@ -154,8 +136,9 @@ mod tests {
         let valid_names = vec![r#"mydatabase"#];
         for name in valid_names {
             //panic!("{}", host);
-            let db_name: DbName = serde_json::from_str(format!("\"{}\"", &name).as_str()).unwrap();
-            assert_eq!(db_name.as_str(), name);
+            let db_name: ValueObject<DbName> =
+                serde_json::from_str(format!("\"{}\"", &name).as_str()).unwrap();
+            assert_eq!(db_name.extract().to_string(), name);
         }
     }
     #[test]
@@ -170,7 +153,7 @@ mod tests {
             r#" "#,
         ];
         for name in invalid_names {
-            let db_name: Result<DbName, _> =
+            let db_name: Result<ValueObject<DbName>, _> =
                 serde_json::from_str(format!("\"{}\"", &name).as_str());
             assert!(db_name.is_err());
         }

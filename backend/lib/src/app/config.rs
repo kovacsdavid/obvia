@@ -115,7 +115,7 @@ pub struct DefaultTenantDatabaseConfig {
     pub port: DbPort,
     pub username: DbUser,
     pub password: DbPassword,
-    pub database: DbName,
+    pub database: ValueObject<DbName>,
     pub pool_size: u32,
 }
 
@@ -253,7 +253,7 @@ impl Default for DefaultTenantDatabaseConfig {
             port: DbPort::try_from(5432).unwrap(),
             username: DbUser::from_str("user").unwrap(),
             password: DbPassword::from_str("on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD").unwrap(),
-            database: DbName::from_str("database").unwrap(),
+            database: ValueObject::new(DbName("database".to_string())).unwrap(),
             pool_size: 5,
         }
     }

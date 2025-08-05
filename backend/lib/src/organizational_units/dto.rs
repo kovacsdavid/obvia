@@ -128,7 +128,7 @@ pub struct CreateRequest {
     pub db_self_hosted: bool,
     pub db_host: Option<ValueObject<DbHost>>,
     pub db_port: Option<DbPort>,
-    pub db_name: Option<DbName>,
+    pub db_name: Option<ValueObject<DbName>>,
     pub db_user: Option<DbUser>,
     pub db_password: Option<DbPassword>,
 }
@@ -150,7 +150,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
         let name = Name::try_from(value.name);
         let mut db_host: Option<ValueObject<DbHost>> = None;
         let mut db_port: Option<DbPort> = None;
-        let mut db_name: Option<DbName> = None;
+        let mut db_name: Option<ValueObject<DbName>> = None;
         let mut db_user: Option<DbUser> = None;
         let mut db_password: Option<DbPassword> = None;
 
@@ -191,7 +191,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
             }
             match &value.db_name {
                 Some(val) => {
-                    db_name = match DbName::from_str(val) {
+                    db_name = match ValueObject::new(DbName(val.clone())) {
                         Ok(db_name) => Some(db_name),
                         Err(e) => {
                             error.db_name = Some(e.to_string());

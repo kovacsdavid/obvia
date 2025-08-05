@@ -112,7 +112,7 @@ pub struct MainDatabaseConfig {
 #[derive(Debug, Clone, Deserialize)]
 pub struct DefaultTenantDatabaseConfig {
     pub host: ValueObject<DbHost>,
-    pub port: DbPort,
+    pub port: ValueObject<DbPort>,
     pub username: DbUser,
     pub password: ValueObject<DbPassword>,
     pub database: ValueObject<DbName>,
@@ -250,7 +250,7 @@ impl Default for DefaultTenantDatabaseConfig {
     fn default() -> Self {
         DefaultTenantDatabaseConfig {
             host: ValueObject::new(DbHost("example.com".to_string())).unwrap(),
-            port: DbPort::try_from(5432).unwrap(),
+            port: ValueObject::new(DbPort(5432)).unwrap(),
             username: DbUser::from_str("user").unwrap(),
             password: ValueObject::new(DbPassword(
                 "on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD".to_string(),

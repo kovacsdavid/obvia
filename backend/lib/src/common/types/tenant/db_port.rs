@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::Deserialize;
 use serde::de::{self, Visitor};
 use std::fmt::Display;
@@ -32,70 +33,53 @@ use std::fmt::Display;
 ///
 /// * `0`: The inner `String` containing the port of the database.
 #[derive(Debug, PartialEq, Clone)]
-pub struct DbPort(u16);
+pub struct DbPort(pub i64);
 
-impl DbPort {
-    /// Returns a copy of the inner value.
-    #[allow(dead_code)]
-    pub fn as_i64(&self) -> i64 {
-        self.0 as i64
-    }
-}
+impl ValueObjectable for DbPort {
+    type DataType = i64;
 
-impl TryFrom<i32> for DbPort {
-    type Error = String;
-    /// Attempts to create a `DbPort` instance from a given `i32` value.
+    /// Validates the value of the database port stored in the current instance.
     ///
-    /// # Parameters
-    /// - `value`: An `i32` integer representing the value to be converted into a database port.
+    /// This function checks if the port value (assumed to be stored as `self.0`)
+    /// falls within the valid range for common database ports (1025 to 65535 inclusive).
+    /// If the value is within the valid range, the function returns `Ok(())`.
+    /// Otherwise, it returns an `Err` with a specific error message.
     ///
     /// # Returns
-    /// - `Ok(DbPort)` if the provided `value` is greater than 1024 and successfully
-    ///   converted to a `u16`.
-    /// - `Err(String)` if the provided `value` is less than or equal to 1024,
-    ///   or if the conversion to `u16` fails.
-    ///
-    /// # Errors
-    /// Returns the error message `"Hibás adatbázis port"` in the following cases:
-    /// - The `value` is less than or equal to 1024 (invalid database port).
-    /// - The `value` cannot be converted into a valid `u16` (e.g., it exceeds the `u16` range).
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        let err = String::from("Hibás adatbázis port");
-        if value > 1024 {
-            Ok(DbPort(u16::try_from(value).map_err(|_| err)?))
+    /// - `Ok(())` if the `self.0` value is valid (i.e., greater than 1024 and less than or equal 65535).
+    /// - `Err(String)` containing an error message ("Hibás adatbázis port") if the value is outside the valid range.
+    fn validate(&self) -> Result<(), String> {
+        if self.0 > 1024 && self.0 <= 65535 {
+            Ok(())
         } else {
-            Err(err)
+            Err(String::from("Hibás adatbázis port"))
         }
     }
-}
 
-impl TryFrom<i64> for DbPort {
-    type Error = String;
-    /// Attempts to create a `DbPort` instance from a given `i64` value.
-    ///
-    /// # Parameters
-    /// - `value`: An `i64` integer representing the value to be converted into a database port.
+    /// Retrieves a reference to the value contained within the struct.
     ///
     /// # Returns
-    /// - `Ok(DbPort)` if the provided `value` is greater than 1024 and successfully
-    ///   converted to a `u16`.
-    /// - `Err(String)` if the provided `value` is less than or equal to 1024,
-    ///   or if the conversion to `u16` fails.
-    ///
-    /// # Errors
-    /// Returns the error message `"Hibás adatbázis port"` in the following cases:
-    /// - The `value` is less than or equal to 1024 (invalid database port).
-    /// - The `value` cannot be converted into a valid `u16` (e.g., it exceeds the `u16` range).
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        let err = String::from("Hibás adatbázis port");
-        if value > 1024 {
-            Ok(DbPort(u16::try_from(value).map_err(|_| err)?))
-        } else {
-            Err(err)
-        }
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
+        &self.0
     }
 }
 
+impl Display for DbPort {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
+    ///
+    /// # Parameters
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
+    ///
+    /// # Returns
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 /// A struct representing the `DbPortVisitor`.
 ///
 /// `DbPortVisitor` is a type that can be used as a custom visitor in the context of deserialization or similar use cases.
@@ -106,7 +90,7 @@ impl TryFrom<i64> for DbPort {
 struct DbPortVisitor;
 
 impl<'de> Visitor<'de> for DbPortVisitor {
-    type Value = DbPort;
+    type Value = ValueObject<DbPort>;
 
     /// Formats an expected value description for error messages.
     ///
@@ -153,7 +137,7 @@ impl<'de> Visitor<'de> for DbPortVisitor {
     where
         E: de::Error,
     {
-        DbPort::try_from(v).map_err(de::Error::custom)
+        ValueObject::new(DbPort(v)).map_err(de::Error::custom)
     }
     /// Visits a `u64` value during deserialization and attempts to convert it into a `DbPort`.
     ///
@@ -184,11 +168,12 @@ impl<'de> Visitor<'de> for DbPortVisitor {
     where
         E: de::Error,
     {
-        DbPort::try_from(i64::try_from(v).map_err(de::Error::custom)?).map_err(de::Error::custom)
+        ValueObject::new(DbPort(i64::try_from(v).map_err(de::Error::custom)?))
+            .map_err(de::Error::custom)
     }
 }
 
-impl<'de> Deserialize<'de> for DbPort {
+impl<'de> Deserialize<'de> for ValueObject<DbPort> {
     /// A custom implementation of the `deserialize` method
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -198,21 +183,14 @@ impl<'de> Deserialize<'de> for DbPort {
     }
 }
 
-impl Display for DbPort {
-    /// Implements the `fmt` method for formatting the current type using the `Display` trait.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
 
-    #[derive(Deserialize)]
+    #[derive(Deserialize, Debug)]
     struct Test {
-        pub port: DbPort,
+        pub port: ValueObject<DbPort>,
     }
     #[test]
     fn test_valid_db_port() {
@@ -222,7 +200,7 @@ mod tests {
                 "port": port,
             });
             let test = Test::deserialize(&data).unwrap();
-            assert_eq!(test.port.as_i64(), port);
+            assert_eq!(*test.port.extract().get_value(), port);
         }
     }
     #[test]
@@ -232,23 +210,46 @@ mod tests {
             let data = json!({
                 "port": port,
             });
-            assert!(Test::deserialize(&data).is_err());
+            assert_eq!(
+                Test::deserialize(&data).unwrap_err().to_string(),
+                "Hibás adatbázis port"
+            );
         }
         let data = json!({
                 "port": "",
         });
-        assert!(Test::deserialize(&data).is_err());
+        assert!(
+            Test::deserialize(&data)
+                .unwrap_err()
+                .to_string()
+                .contains("an integer between -2^63 and 2^63-1")
+        );
         let data = json!({
                 "port": " ",
         });
-        assert!(Test::deserialize(&data).is_err());
+        assert!(
+            Test::deserialize(&data)
+                .unwrap_err()
+                .to_string()
+                .contains("an integer between -2^63 and 2^63-1")
+        );
         let data = json!({
                 "port": "asdflkj",
         });
-        assert!(Test::deserialize(&data).is_err());
+        assert!(
+            Test::deserialize(&data)
+                .unwrap_err()
+                .to_string()
+                .contains("an integer between -2^63 and 2^63-1")
+        );
         let data = json!({
                 "port": null,
         });
-        assert!(Test::deserialize(&data).is_err());
+        assert!(
+            Test::deserialize(&data)
+                .unwrap_err()
+                .to_string()
+                .contains("an integer between -2^63 and 2^63-1")
+        );
     }
 }

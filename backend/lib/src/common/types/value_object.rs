@@ -227,14 +227,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn sample_object_test() {
-        let res = serde_json::from_str::<ValueObject<SampleObject>>(r#""test""#)
-            .unwrap_err()
-            .to_string();
-        assert_eq!(res, "Invalid sample object!");
+    fn valid_sample_object_test() {
         let sample_object =
             serde_json::from_str::<ValueObject<SampleObject>>(r#""sample_object""#).unwrap();
         let res = sample_object.extract();
         assert_eq!(res.get_value(), "sample_object");
+    }
+    #[test]
+    fn invalid_sample_object_test() {
+        let res = serde_json::from_str::<ValueObject<SampleObject>>(r#""test""#)
+            .unwrap_err()
+            .to_string();
+        assert_eq!(res, "Invalid sample object!");
     }
 }

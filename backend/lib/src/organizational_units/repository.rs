@@ -213,7 +213,8 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             payload
                 .db_port
                 .unwrap_or(app_config.default_tenant_database().port.clone())
-                .as_i64(),
+                .extract()
+                .get_value(),
         )
         .bind(
             payload

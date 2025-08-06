@@ -124,7 +124,7 @@ impl IntoResponse for CreateRequestError {
 #[allow(dead_code)]
 pub struct CreateRequest {
     pub name: ValueObject<Name>,
-    pub db_self_hosted: bool,
+    pub is_self_hosted: bool,
     pub db_host: Option<ValueObject<DbHost>>,
     pub db_port: Option<ValueObject<DbPort>>,
     pub db_name: Option<ValueObject<DbName>>,
@@ -235,7 +235,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
         // TODO: if err
         Ok(CreateRequest {
             name: name.unwrap(),
-            db_self_hosted: value.db_self_hosted,
+            is_self_hosted: value.db_self_hosted,
             db_host,
             db_port,
             db_name,

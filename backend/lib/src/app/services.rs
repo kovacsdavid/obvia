@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::config::TenantDatabaseConfig;
 use crate::app::database::{PgPoolManager, PgPoolManagerTrait};
 use crate::common::repository::PoolWrapper;
 use crate::organizational_units::repository::OrganizationalUnitsRepository;
@@ -157,16 +158,21 @@ pub async fn init_tenant_pools(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::R
     let organizational_units =
         <PoolWrapper as OrganizationalUnitsRepository>::get_all(&repo).await?;
     for organizational_unit in organizational_units {
-        match pg_pool_manager
-            .add_tenant_pool(organizational_unit.id, &organizational_unit.into())
-            .await
-        {
-            Ok(organizational_unit_id) => info!(
-                "Tenant pool initialization is successful: {}",
-                &organizational_unit_id
-            ),
-            // TODO: Notify the administrator about the failed tenant pool initialization
-            Err(e) => error!("Tenant pool initialization failed: {}", e),
+        match TenantDatabaseConfig::try_from(&organizational_unit) {
+            Ok(db_config) => {
+                match pg_pool_manager
+                    .add_tenant_pool(organizational_unit.id, &db_config)
+                    .await
+                {
+                    Ok(organizational_unit_id) => info!(
+                        "Tenant pool initialization is successful: {}",
+                        &organizational_unit_id
+                    ),
+                    // TODO: Notify the administrator about the failed tenant pool initialization
+                    Err(e) => error!("Tenant pool initialization failed: {}", e),
+                }
+            }
+            Err(e) => error!("Error parsing organizational_unit: {}", e),
         }
     }
     Ok(())

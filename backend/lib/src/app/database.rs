@@ -17,7 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::{DefaultTenantDatabaseConfig, MainDatabaseConfig, TenantDatabaseConfig};
+use crate::app::config::{
+    BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider, TenantDatabaseConfig,
+};
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -190,16 +192,16 @@ impl PgPoolManager {
     /// This function will return an error if either the `main_pool` or `default_tenant_pool`
     /// connections fail to initialize.
     pub async fn new(
-        main_database_config: &MainDatabaseConfig,
-        default_tenant_database_config: &DefaultTenantDatabaseConfig,
+        main_database_config: &BasicDatabaseConfig,
+        default_tenant_database_config: &BasicDatabaseConfig,
     ) -> Result<PgPoolManager> {
         let main_pool = PgPoolOptions::new()
-            .max_connections(main_database_config.pool_size)
+            .max_connections(main_database_config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
             .connect(&main_database_config.url())
             .await?;
         let default_tenant_pool = PgPoolOptions::new()
-            .max_connections(default_tenant_database_config.pool_size)
+            .max_connections(default_tenant_database_config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
             .connect(&default_tenant_database_config.url())
             .await?;
@@ -232,7 +234,7 @@ impl PgPoolManagerTrait for PgPoolManager {
         config: &TenantDatabaseConfig,
     ) -> Result<Uuid> {
         let pool = PgPoolOptions::new()
-            .max_connections(config.pool_size)
+            .max_connections(config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
             .connect(&config.url())
             .await?;

@@ -16,13 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::app::config::AppConfig;
+use crate::app::config::{AppConfig, DatabasePoolSizeProvider};
 use crate::auth::dto::claims::Claims;
 use crate::common::error::DatabaseError;
 use crate::common::repository::PoolWrapper;
 use crate::common::services::generate_string_csprng;
 use crate::common::types::DdlParameter;
-use crate::common::types::tenant::db_password::DbPassword;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::organizational_units::dto::CreateRequest;
 use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
@@ -183,18 +182,33 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         claims: Claims,
         app_config: Arc<AppConfig>,
     ) -> Result<OrganizationalUnit, DatabaseError> {
+        let organizational_unit_id = Uuid::new_v4();
+        let db_host = match payload.db_host {
+            Some(val) => val.extract().get_value().clone(),
+            None => app_config.default_tenant_database().host.clone(),
+        };
+        let db_port = match payload.db_port {
+            Some(val) => *val.extract().get_value(),
+            None => app_config.default_tenant_database().port as i64,
+        };
+        let db_name = match payload.db_name {
+            Some(val) => val.extract().get_value().clone(),
+            None => organizational_unit_id.to_string(),
+        };
+        let db_user = match payload.db_user {
+            Some(val) => val.extract().get_value().clone(),
+            None => organizational_unit_id.to_string(),
+        };
+        let db_password = match payload.db_password {
+            Some(val) => val.extract().get_value().clone(),
+            None => generate_string_csprng(40),
+        };
         let mut tx = self
             .pool
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        let organizational_unit_id = Uuid::new_v4();
-        let db_password = match payload.db_password {
-            Some(pw) => pw,
-            None => ValueObject::new(DbPassword(generate_string_csprng(40)))
-                .map_err(DatabaseError::DatabaseError)?,
-        };
         let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
             "INSERT INTO organizational_units (
             id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
@@ -202,44 +216,15 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         )
         .bind(organizational_unit_id)
         .bind(payload.name.extract().get_value())
+        .bind(&db_host)
+        .bind(db_port)
+        .bind(&db_name)
+        .bind(&db_user)
+        .bind(&db_password)
         .bind(
-            payload
-                .db_host
-                .unwrap_or(app_config.default_tenant_database().host.clone())
-                .extract()
-                .get_value(),
+            i32::try_from(app_config.default_tenant_database().max_pool_size())
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         )
-        .bind(
-            payload
-                .db_port
-                .unwrap_or(app_config.default_tenant_database().port.clone())
-                .extract()
-                .get_value(),
-        )
-        .bind(
-            payload
-                .db_name
-                .unwrap_or(
-                    organizational_unit_id
-                        .try_into()
-                        .map_err(DatabaseError::DatabaseError)?,
-                )
-                .extract()
-                .get_value(),
-        )
-        .bind(
-            payload
-                .db_user
-                .unwrap_or(
-                    organizational_unit_id
-                        .try_into()
-                        .map_err(DatabaseError::DatabaseError)?,
-                )
-                .extract()
-                .get_value(),
-        )
-        .bind(db_password.clone().extract().get_value())
-        .bind(app_config.default_tenant_database().pool_size as i32)
         .fetch_one(&mut *tx)
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;

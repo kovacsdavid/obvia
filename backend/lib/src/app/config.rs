@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::common::types::tenant::db_host::DbHost;
 use crate::common::types::tenant::db_name::DbName;
 use crate::common::types::tenant::db_password::DbPassword;
@@ -25,6 +24,7 @@ use crate::common::types::tenant::db_user::DbUser;
 use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
+use std::fmt::Display;
 
 /// The `AppConfig` struct is the main application configuration model used for deserializing
 /// and storing the configuration details for different components of the application.
@@ -51,8 +51,8 @@ use serde::Deserialize;
 #[cfg_attr(not(test), derive(Debug, Clone, Deserialize))]
 pub struct AppConfig {
     server: ServerConfig,
-    main_database: MainDatabaseConfig,
-    default_tenant_database: DefaultTenantDatabaseConfig,
+    main_database: BasicDatabaseConfig,
+    default_tenant_database: BasicDatabaseConfig,
     auth: AuthConfig,
 }
 
@@ -72,98 +72,230 @@ pub struct ServerConfig {
     port: u16,
 }
 
-/// Represents the configuration settings required to connect to the main database.
-///
-/// This struct is intended to be deserialized from a configuration file or environment variables.
-/// It provides detailed options for specifying database connection properties.
-///
-/// # Fields
-///
-/// * `host` - The hostname or IP address of the database server.
-/// * `port` - The port number on which the database server is running.
-/// * `username` - The username required for authentication with the database.
-/// * `password` - The password required for authentication with the database.
-/// * `database` - The name of the specific database to connect to.
-/// * `pool_size` - The maximum size of the connection pool for managing database connections.
-#[derive(Debug, Clone, Deserialize)]
-pub struct MainDatabaseConfig {
-    pub host: String,
-    pub port: u16,
-    pub username: String,
-    pub password: String,
-    pub database: String,
-    pub pool_size: u32,
-}
+pub type BasicDatabaseConfig = DatabaseConfig<String, u16, String, String, String, u32>;
 
-/// Represents the configuration settings for the default tenant database server.
-///
-/// This structure holds the necessary parameters to connect to the default tenant database,
-/// including connection details and pool size settings.
-///
-/// # Fields
-/// - `host` (`String`): The hostname or IP address of the database server.
-/// - `port` (`u16`): The port on which the database server is listening.
-/// - `username` (`String`): The username used to authenticate with the database.
-/// - `password` (`String`): The password used to authenticate with the database.
-/// - `database` (`String`): The name of the specific database to connect to.
-/// - `pool_size` (`u32`): The size of the database connection pool.
-#[derive(Debug, Clone, Deserialize)]
-pub struct DefaultTenantDatabaseConfig {
-    pub host: ValueObject<DbHost>,
-    pub port: ValueObject<DbPort>,
-    pub username: ValueObject<DbUser>,
-    pub password: ValueObject<DbPassword>,
-    pub database: ValueObject<DbName>,
-    pub pool_size: u32,
-}
+pub type TenantDatabaseConfig = DatabaseConfig<
+    ValueObject<DbHost>,
+    ValueObject<DbPort>,
+    ValueObject<DbUser>,
+    ValueObject<DbPassword>,
+    ValueObject<DbName>,
+    u32,
+>;
 
-/// A structure representing the configuration details required to connect to a tenant-specific database.
+/// A trait that provides a database connection URL.
 ///
-/// This configuration includes details such as the database host, port, authentication credentials,
-/// database name, and connection pool size.
-///
-/// # Fields
-///
-/// * `host` - The hostname of the database server (e.g., "localhost" or "db.example.com").
-/// * `port` - The port on which the database is running. Typically, 5432 for PostgreSQL.
-/// * `username` - The username required for authenticating with the database server.
-/// * `password` - The password corresponding to the `username` for database authentication.
-/// * `database` - The name of the specific database to connect to.
-/// * `pool_size` - The maximum number of connections allowed in the connection pool.
-#[derive(Debug, Clone)]
-pub struct TenantDatabaseConfig {
-    pub host: String,
-    pub port: u16,
-    pub username: String,
-    pub password: String,
-    pub database: String,
-    pub pool_size: u32,
-}
-
-impl From<OrganizationalUnit> for TenantDatabaseConfig {
-    /// Converts an `OrganizationalUnit` struct into a new instance of the implementing type.
+/// This trait is meant to be implemented by types that can supply a valid
+/// database connection URL. The provided `url` method is used to fetch
+/// the connection string, which can then be utilized to establish connections
+/// to a database.
+pub trait DatabaseUrlProvider {
+    /// Returns a string representation of the URL.
     ///
-    /// # Parameters
-    /// - `value`: An instance of the `OrganizationalUnit` struct containing database configuration details.
+    /// # Description
+    /// This method generates and returns the URL as a `String` that
+    /// represents the resource it is associated with. The specific
+    /// implementation of the URL generation logic will depend on the
+    /// struct or enum that implements this method.
     ///
     /// # Returns
-    /// A new instance of the implementing type, populated using the properties of the given `OrganizationalUnit`.
+    /// - A `String` containing the URL.
+    fn url(&self) -> String;
+}
+
+/// A trait that provides the ability to obtain the maximum size configuration
+/// for a database connection pool. This can be implemented by any type that
+/// manages or represents settings related to database connection pooling.
+pub trait DatabasePoolSizeProvider {
+    type MaxPoolSizeType;
+
+    /// Retrieves the maximum size of the connection pool.
     ///
-    /// # Field Mappings
-    /// - `host`: Mapped directly from `value.db_host`.
-    /// - `port`: Converted from `value.db_port` to `u16`.
-    /// - `username`: Constructed by prefixing `"tenant_"` to `value.db_user`, with all `"-"` characters removed.
-    /// - `password`: Mapped directly from `value.db_password`.
-    /// - `database`: Constructed by prefixing `"tenant_"` to `value.db_name`, with all `"-"` characters removed.
-    /// - `pool_size`: Converted from `value.db_max_pool_size` to `u32`.
-    fn from(value: OrganizationalUnit) -> Self {
+    /// This method returns the maximum number of connections that can be maintained
+    /// in the pool at any given time. The value is defined by the pool's configuration
+    /// settings and reflects the upper limit of resources allocated for handling connections.
+    ///
+    /// # Returns
+    ///
+    /// * `Self::MaxPoolSizeType` - The type representing the maximum pool size, as defined
+    ///   by the implementation.
+    fn max_pool_size(&self) -> Self::MaxPoolSizeType;
+}
+
+/// A generic configuration structure for database connection settings.
+///
+/// This struct is designed to be flexible with its field types, allowing
+/// for a range of configurations depending on the use case. The generic
+/// types provide the ability to define the specific types for each
+/// configuration field, such as strings, integers, or custom wrapper types.
+///
+/// ## Generic Parameters
+/// - `HostType`: The type of the host field, commonly a `String`.
+/// - `PortType`: The type of the port field, typically an integer like `u16` or `i32`.
+/// - `UserType`: The type of the username field, usually a `String`.
+/// - `PasswordType`: The type of the password field, often a `String` or a secure wrapper.
+/// - `DatabaseType`: The type of the database name, generally a `String`.
+/// - `MaxPoolSizeType`: The type of maximum pool size for managing database connections, commonly a numeric type like `u32`.
+///
+/// ## Fields
+/// - `host`: The host address of the database server (e.g., "localhost" or an IP address).
+/// - `port`: The port used to connect to the database server.
+/// - `username`: The username for authentication with the database.
+/// - `password`: The password for authentication with the database.
+/// - `database`: The name of the specific database to connect to.
+/// - `max_pool_size`: An optional parameter specifying the maximum size of the connection pool. If `None`, a default maximum size may be used depending on the implementation.
+#[derive(Debug, Clone, Deserialize)]
+pub struct DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+{
+    pub host: HostType,
+    pub port: PortType,
+    pub username: UserType,
+    pub password: PasswordType,
+    pub database: DatabaseType,
+    pub max_pool_size: Option<MaxPoolSizeType>,
+}
+
+impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
+    type Error = String;
+    /// Attempts to convert an `OrganizationalUnit` reference into the corresponding object of the implementing type.
+    ///
+    /// This function maps the fields of the `OrganizationalUnit` into their respective strongly typed `ValueObject`
+    /// wrappers for database configuration parameters. The function validates and constructs each field, returning
+    /// an error if any field is invalid or if an intermediate operation (e.g., type conversion) fails.
+    ///
+    /// # Arguments
+    /// * `value` - A reference to an `OrganizationalUnit` object that holds the database configuration details.
+    ///
+    /// # Returns
+    /// * `Ok(Self)` - If all fields are successfully validated and converted.
+    /// * `Err(Self::Error)` - If any validation or conversion fails during the mapping process.
+    ///
+    /// # Errors
+    /// Returns an error in the following cases:
+    /// * The `DbHost`, `DbPort`, `DbUser`, `DbPassword`, or `DbName` fields cannot be constructed due to invalid values.
+    /// * The conversion of `db_max_pool_size` to `u32` fails (e.g., due to the value being out of range).
+    ///
+    /// # Notes
+    /// * This implementation uses the `ValueObject::new` function to wrap raw values into their respective types.
+    /// * It's important that all fields in the `OrganizationalUnit` adhere to the expected format
+    ///   and constraints for successful conversion.
+    fn try_from(value: &OrganizationalUnit) -> Result<Self, Self::Error> {
+        Ok(Self {
+            host: ValueObject::new(DbHost(value.db_host.clone()))?,
+            port: ValueObject::new(DbPort(value.db_port as i64))?,
+            username: ValueObject::new(DbUser(value.db_user.clone()))?,
+            password: ValueObject::new(DbPassword(value.db_password.clone()))?,
+            database: ValueObject::new(DbName(value.db_name.clone()))?,
+            max_pool_size: Some(
+                u32::try_from(value.db_max_pool_size)
+                    .map_err(|_| "Invalid pool size".to_string())?,
+            ),
+        })
+    }
+}
+
+impl<HostType, PortType, UserType, PasswordType, DatabaseType> DatabasePoolSizeProvider
+    for DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, u32>
+{
+    type MaxPoolSizeType = u32;
+
+    /// Returns the maximum pool size.
+    ///
+    /// This method retrieves the maximum pool size for the object. If the `max_pool_size` is set,
+    /// it will return its value. Otherwise, it defaults to `3`. The default value can be updated in
+    /// the future to read from a global configuration, as indicated by the TODO comment.
+    ///
+    /// # Returns
+    /// * `u32` - The maximum pool size, defaulting to `3` if not explicitly set.
+    fn max_pool_size(&self) -> u32 {
+        self.max_pool_size.unwrap_or(3) // TODO: read global default from cfg!
+    }
+}
+
+impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType> DatabaseUrlProvider
+    for DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+where
+    HostType: Display,
+    PortType: Display,
+    UserType: Display,
+    PasswordType: Display,
+    DatabaseType: Display,
+    MaxPoolSizeType: Display,
+{
+    /// Constructs and returns a PostgreSQL connection URL as a `String`.
+    ///
+    /// The URL follows the format:
+    /// `postgresql://<username>:<password>@<host>:<port>/<database>`
+    ///
+    /// # Returns
+    /// * A `String` containing the PostgreSQL connection URL.
+    ///
+    /// # Notes
+    ///
+    /// This function assumes that the struct fields `username`, `password`, `host`, `port`, and
+    /// `database` are properly initialized and valid. An incorrect or missing field value
+    /// may result in an invalid URL.
+    fn url(&self) -> String {
+        format!(
+            "postgresql://{}:{}@{}:{}/{}",
+            self.username, self.password, self.host, self.port, self.database
+        )
+    }
+}
+
+#[cfg(test)]
+impl Default for TenantDatabaseConfig {
+    /// Provides a default implementation for the database configuration settings.
+    ///
+    /// # Returns
+    /// A `Self` instance populated with default values for the following fields:
+    ///
+    /// - `host`: Defaults to "localhost".
+    /// - `port`: Defaults to 5432.
+    /// - `username`: Defaults to "user".
+    /// - `password`: Defaults to "password".
+    /// - `database`: Defaults to "database".
+    /// - `pool_size`: Defaults to `Some(5)`.
+    ///
+    /// Each field is wrapped in a `ValueObject` for validation and ensures safe initialization.
+    /// Uses `unwrap()` to assume successful creation of `ValueObject` instances for valid inputs.
+    fn default() -> Self {
         Self {
-            host: value.db_host,
-            port: value.db_port as u16,
-            username: format!("tenant_{}", value.db_user.replace("-", "")),
-            password: value.db_password,
-            database: format!("tenant_{}", value.db_name.replace("-", "")),
-            pool_size: value.db_max_pool_size as u32,
+            host: ValueObject::new(DbHost("localhost".to_string())).unwrap(),
+            port: ValueObject::new(DbPort(5432)).unwrap(),
+            username: ValueObject::new(DbUser("user".to_string())).unwrap(),
+            password: ValueObject::new(DbPassword("password".to_string())).unwrap(),
+            database: ValueObject::new(DbName("database".to_string())).unwrap(),
+            max_pool_size: Some(5),
+        }
+    }
+}
+
+#[cfg(test)]
+impl Default for BasicDatabaseConfig {
+    /// Provides a default implementation for the `default` method, which initializes
+    /// a new instance of the struct with predefined default configuration values.
+    ///
+    /// # Returns
+    ///
+    /// - `Self`: A new instance of the struct populated with default settings.
+    ///
+    /// # Default Values
+    ///
+    /// - `host`: `"localhost"`
+    /// - `port`: `5432`
+    /// - `username`: `"user"`
+    /// - `password`: `"password"`
+    /// - `database`: `"database"`
+    /// - `pool_size`: `Some(5)`
+    fn default() -> Self {
+        Self {
+            host: String::from("localhost"),
+            port: 5432,
+            username: String::from("user"),
+            password: String::from("password"),
+            database: String::from("database"),
+            max_pool_size: Some(5),
         }
     }
 }
@@ -202,84 +334,6 @@ impl Default for ServerConfig {
         ServerConfig {
             host: "127.0.0.1".to_string(),
             port: 3000,
-        }
-    }
-}
-
-impl Default for MainDatabaseConfig {
-    /// Provides a default configuration for the `MainDatabaseConfig` struct.
-    ///
-    /// # Returns
-    /// A `MainDatabaseConfig` instance initialized with the following default values:
-    /// - `host`: `"localhost"`
-    /// - `port`: `5432`
-    /// - `username`: `"user"`
-    /// - `password`: `"password"`
-    /// - `database`: `"database"`
-    /// - `pool_size`: `5`
-    ///
-    /// These default values are used for local development or testing scenarios.
-    fn default() -> Self {
-        MainDatabaseConfig {
-            host: String::from("localhost"),
-            port: 5432,
-            username: String::from("user"),
-            password: String::from("password"),
-            database: String::from("database"),
-            pool_size: 5,
-        }
-    }
-}
-
-#[cfg(test)]
-impl Default for DefaultTenantDatabaseConfig {
-    /// Provides a default implementation for the `DefaultTenantDatabaseConfig` struct.
-    ///
-    /// This implementation returns a struct initialized with default values:
-    ///
-    /// - `host`: `"localhost"` - The default hostname of the database server.
-    /// - `port`: `5432` - The default port for the database connection.
-    /// - `username`: `"user"` - The default username for the database connection.
-    /// - `password`: `"password"` - The default password for the database connection.
-    /// - `database`: `"database"` - The default name of the database.
-    /// - `pool_size`: `5` - The default size of the connection pool.
-    ///
-    /// These default values are used for local development or testing scenarios.
-    fn default() -> Self {
-        DefaultTenantDatabaseConfig {
-            host: ValueObject::new(DbHost("example.com".to_string())).unwrap(),
-            port: ValueObject::new(DbPort(5432)).unwrap(),
-            username: ValueObject::new(DbUser("user".to_string())).unwrap(),
-            password: ValueObject::new(DbPassword(
-                "on2GRECh3DR0zDRU66pplY11hsDZ3Z53Lh43hVxD".to_string(),
-            ))
-            .unwrap(),
-            database: ValueObject::new(DbName("database".to_string())).unwrap(),
-            pool_size: 5,
-        }
-    }
-}
-impl Default for TenantDatabaseConfig {
-    /// Provides a default implementation for the `TenantDatabaseConfig` struct.
-    ///
-    /// This implementation returns a struct initialized with default values:
-    ///
-    /// - `host`: `"localhost"` - The default hostname of the database server.
-    /// - `port`: `5432` - The default port for the database connection.
-    /// - `username`: `"user"` - The default username for the database connection.
-    /// - `password`: `"password"` - The default password for the database connection.
-    /// - `database`: `"database"` - The default name of the database.
-    /// - `pool_size`: `5` - The default size of the connection pool.
-    ///
-    /// These default values are used for local development or testing scenarios.
-    fn default() -> Self {
-        TenantDatabaseConfig {
-            host: String::from("localhost"),
-            port: 5432,
-            username: String::from("user"),
-            password: String::from("password"),
-            database: String::from("database"),
-            pool_size: 5,
         }
     }
 }
@@ -339,12 +393,12 @@ impl AppConfig {
     }
 
     /// Provides access to the main database configuration.
-    pub fn main_database(&self) -> &MainDatabaseConfig {
+    pub fn main_database(&self) -> &BasicDatabaseConfig {
         &self.main_database
     }
 
     /// Returns a reference to the `DefaultTenantDatabaseConfig` instance.
-    pub fn default_tenant_database(&self) -> &DefaultTenantDatabaseConfig {
+    pub fn default_tenant_database(&self) -> &BasicDatabaseConfig {
         &self.default_tenant_database
     }
 
@@ -363,82 +417,6 @@ impl ServerConfig {
     /// Returns the port number.
     pub fn port(&self) -> u16 {
         self.port
-    }
-}
-
-impl MainDatabaseConfig {
-    /// Constructs a PostgreSQL URL string using the provided connection parameters.
-    ///
-    /// This method formats a connection string in the following format:
-    /// `postgres://username:password@host:port/database`.
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the constructed PostgreSQL database connection URL.
-    ///
-    /// # Note / Safety
-    ///
-    /// Ensure there are no invalid characters in the fields!
-    pub fn url(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database
-        )
-    }
-    /// Returns the pool_size.
-    pub fn pool_size(&self) -> u32 {
-        self.pool_size
-    }
-}
-
-impl DefaultTenantDatabaseConfig {
-    /// Constructs a PostgreSQL URL string using the provided connection parameters.
-    ///
-    /// This method formats a connection string in the following format:
-    /// `postgres://username:password@host:port/database`.
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the constructed PostgreSQL database connection URL.
-    ///
-    /// # Note / Safety
-    ///
-    /// Ensure there are no invalid characters in the fields!
-    pub fn url(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database
-        )
-    }
-
-    /// Returns the pool_size.
-    pub fn pool_size(&self) -> u32 {
-        self.pool_size
-    }
-}
-
-impl TenantDatabaseConfig {
-    /// Constructs a PostgreSQL URL string using the provided connection parameters.
-    ///
-    /// This method formats a connection string in the following format:
-    /// `postgres://username:password@host:port/database`.
-    ///
-    /// # Returns
-    ///
-    /// A `String` containing the constructed PostgreSQL database connection URL.
-    ///
-    /// # Note / Safety
-    ///
-    /// Ensure there are no invalid characters in the fields!
-    pub fn url(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database
-        )
-    }
-    /// Returns the pool_size.
-    pub fn pool_size(&self) -> u32 {
-        self.pool_size
     }
 }
 

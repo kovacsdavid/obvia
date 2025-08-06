@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::app::config::TenantDatabaseConfig;
 use crate::app::services::migrate_tenant_db;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
@@ -56,6 +57,11 @@ pub async fn try_create(
     payload: CreateRequest,
     organizational_units_module: Arc<OrganizationalUnitsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
+    // try_connection
+    // insert organizational_unit and connect with user
+    // if (managed) { create database user and database }
+    // add_tenant_pool
+
     match repo
         .insert_and_connect(payload, claims, organizational_units_module.config.clone())
         .await
@@ -63,7 +69,11 @@ pub async fn try_create(
         Ok(organizational_unit) => {
             match organizational_units_module
                 .pool_manager
-                .add_tenant_pool(organizational_unit.id, &organizational_unit.clone().into())
+                .add_tenant_pool(
+                    organizational_unit.id,
+                    &TenantDatabaseConfig::try_from(&organizational_unit)
+                        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?,
+                )
                 .await
             {
                 Ok(_) => {

@@ -29,6 +29,7 @@ CREATE TABLE organizational_units (
     db_user VARCHAR(255) NOT NULL,
     db_password VARCHAR(255) NOT NULL,
     db_max_pool_size INTEGER NOT NULL,
+    db_ssl_mode VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ

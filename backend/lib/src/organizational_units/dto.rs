@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::config::TenantDatabaseConfig;
 use crate::common::dto::{ErrorBody, ErrorResponse};
 use crate::common::types::tenant::db_host::DbHost;
 use crate::common::types::tenant::db_name::DbName;
@@ -121,6 +122,7 @@ impl IntoResponse for CreateRequestError {
 /// - `db_name`: An optional field specifying the name of the database.
 /// - `db_user`: An optional field for the username required to connect to the database.
 /// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
+#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CreateRequest {
     pub name: ValueObject<Name>,
@@ -130,6 +132,45 @@ pub struct CreateRequest {
     pub db_name: Option<ValueObject<DbName>>,
     pub db_user: Option<ValueObject<DbUser>>,
     pub db_password: Option<ValueObject<DbPassword>>,
+}
+
+impl CreateRequest {
+    /// Checks if the instance is self-hosted.
+    ///
+    /// This method returns the value of the `is_self_hosted` field, indicating whether
+    /// the instance is self-hosted or not.
+    ///
+    /// # Returns
+    /// * `true` - If the instance is self-hosted.
+    /// * `false` - If the instance is not self-hosted.
+    pub fn is_self_hosted(&self) -> bool {
+        self.is_self_hosted
+    }
+}
+
+impl TryInto<TenantDatabaseConfig> for CreateRequest {
+    type Error = String;
+    fn try_into(self) -> Result<TenantDatabaseConfig, Self::Error> {
+        Ok(TenantDatabaseConfig {
+            host: self
+                .db_host
+                .ok_or_else(|| "db_host is missing".to_string())?,
+            port: self
+                .db_port
+                .ok_or_else(|| "db_port is missing".to_string())?,
+            username: self
+                .db_user
+                .ok_or_else(|| "db_user is missing".to_string())?,
+            password: self
+                .db_password
+                .ok_or_else(|| "db_password is missing".to_string())?,
+            database: self
+                .db_name
+                .ok_or_else(|| "db_name is missing".to_string())?,
+            max_pool_size: None,
+            ssl_mode: None,
+        })
+    }
 }
 
 impl TryFrom<CreateRequestHelper> for CreateRequest {

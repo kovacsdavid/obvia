@@ -28,6 +28,8 @@ use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalU
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgConnection;
+use sqlx::error::BoxDynError;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -96,28 +98,70 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     ///   the organizational unit could not be found.
     #[allow(dead_code)]
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<OrganizationalUnit, DatabaseError>;
-    /// Inserts a new organizational unit into the database and establishes relationships
-    /// or connections as needed.
+
+    /// Sets up a self-hosted instance for a specific organizational unit based on the provided payload.
     ///
     /// # Parameters
-    /// - `payload`: The `CreateRequest` containing the data necessary to create an
-    ///              organizational unit.
-    /// - `claims`: An instance of `Claims` containing authentication and authorization
-    ///             context for the current operation.
-    /// - `app_config`: A thread-safe reference (`Arc`) to the application's configuration
-    ///                 settings (`AppConfig`).
+    /// - `&self`: A reference to the current struct instance.
+    /// - `payload: CreateRequest` - Contains the necessary data to create and configure the self-hosted instance.
+    /// - `claims: Claims` - Represents the authorization and authentication claims of the current user or process,
+    ///   used to validate permissions or access rights.
+    /// - `app_config: Arc<AppConfig>` - A reference-counted pointer to the application configuration
+    ///   which may include global settings or contextual configuration required for the operation.
     ///
     /// # Returns
-    /// - `Ok(OrganizationalUnit)`: The newly created `OrganizationalUnit` instance if the
-    ///                             operation is successful.
-    /// - `Err(DatabaseError)`: A `DatabaseError` instance if an error occurs during the
-    ///                         database operation.
+    /// - `Result<OrganizationalUnit, DatabaseError>`:
+    ///   - On success, returns an `OrganizationalUnit` representing the created or updated self-hosted instance.
+    ///   - On failure, returns a `DatabaseError` if there are issues such as database queries or constraints.
     ///
     /// # Errors
-    /// This function returns a `DatabaseError` in the following scenarios:
-    /// - The database operation to insert the organizational unit fails.
-    /// - Establishing relationships between the new unit and other entities fails.
-    async fn insert_and_connect(
+    /// This function returns a `DatabaseError` in one of the following cases:
+    /// - If there is an issue executing database operations necessary for setting up the organizational unit.
+    /// - If any constraint or validation fails during the setup process.
+    ///
+    /// # Notes
+    /// - This function is asynchronous and should be awaited.
+    /// - Ensure proper validation of the `payload` and `claims` before invoking this function to prevent runtime errors.
+    /// - The `app_config` should contain all required configuration values for successfully setting up the instance.
+    async fn setup_self_hosted(
+        &self,
+        payload: CreateRequest,
+        claims: Claims,
+        app_config: Arc<AppConfig>,
+    ) -> Result<OrganizationalUnit, DatabaseError>;
+
+    /// Sets up a managed resource based on the provided parameters.
+    ///
+    /// This asynchronous function is responsible for configuring and initializing
+    /// a managed resource using the given payload, user claims, and application configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `payload` - A `CreateRequest` object that contains the information
+    ///   necessary for creating or setting up the resource.
+    /// * `claims` - A `Claims` object that provides authentication and authorization
+    ///   information about the current user or context.
+    /// * `app_config` - An `Arc<AppConfig>` reference, which provides access to
+    ///   application-level configuration that may be required during setup.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - If the managed resource setup is successful.
+    /// * `Err(DatabaseError)` - If there is an issue interacting with the database
+    ///   or other errors occur during the setup process.
+    ///
+    /// # Errors
+    ///
+    /// This function returns a `DatabaseError` in cases such as:
+    /// - Database connectivity issues.
+    /// - Validation errors while processing the `payload`.
+    /// - Insufficient permissions based on the provided `claims`.
+    ///
+    /// # Notes
+    ///
+    /// This function assumes that the caller has already validated the input `payload`
+    /// and that the `claims` contain the necessary permissions for executing the action.
+    async fn setup_managed(
         &self,
         payload: CreateRequest,
         claims: Claims,
@@ -176,126 +220,70 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
     }
-    async fn insert_and_connect(
+    async fn setup_self_hosted(
         &self,
         payload: CreateRequest,
         claims: Claims,
         app_config: Arc<AppConfig>,
     ) -> Result<OrganizationalUnit, DatabaseError> {
-        let organizational_unit_id = Uuid::new_v4();
-        let db_host = match payload.db_host {
-            Some(val) => val.extract().get_value().clone(),
-            None => app_config.default_tenant_database().host.clone(),
-        };
-        let db_port = match payload.db_port {
-            Some(val) => *val.extract().get_value(),
-            None => app_config.default_tenant_database().port as i64,
-        };
-        let db_name = match payload.db_name {
-            Some(val) => val.extract().get_value().clone(),
-            None => organizational_unit_id.to_string(),
-        };
-        let db_user = match payload.db_user {
-            Some(val) => val.extract().get_value().clone(),
-            None => organizational_unit_id.to_string(),
-        };
-        let db_password = match payload.db_password {
-            Some(val) => val.extract().get_value().clone(),
-            None => generate_string_csprng(40),
-        };
         let mut tx = self
             .pool
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
-            "INSERT INTO organizational_units (
-            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
-        )
-        .bind(organizational_unit_id)
-        .bind(payload.name.extract().get_value())
-        .bind(&db_host)
-        .bind(db_port)
-        .bind(&db_name)
-        .bind(&db_user)
-        .bind(&db_password)
-        .bind(
-            i32::try_from(app_config.default_tenant_database().max_pool_size())
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-        )
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-
-        let _connect = sqlx::query_as::<_, UserOrganizationalUnit>(
-            "INSERT INTO user_organizational_units (
-            user_id, organizational_unit_id, role 
-            ) VALUES ($1, $2, $3) RETURNING *",
-        )
-        .bind(
-            Uuid::parse_str(claims.sub())
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-        )
-        .bind(organizational_unit_id)
-        .bind("owner")
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-
-        let create_user_sql = format!(
-            "CREATE USER tenant_{} WITH PASSWORD '{}'",
-            ValueObject::new(DdlParameter(
-                organizational_unit_id.to_string().replace("-", "")
-            ))
-            .map_err(DatabaseError::DatabaseError)?,
-            ValueObject::new(DdlParameter(db_password.to_string()))
-                .map_err(DatabaseError::DatabaseError)?
-        );
-
-        let _create_user = sqlx::query(&create_user_sql)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-
-        let grant_sql = format!(
-            "GRANT tenant_{} to {};",
-            ValueObject::new(DdlParameter(
-                organizational_unit_id.to_string().replace("-", "")
-            ))
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-            app_config.default_tenant_database().username // safety: not user input
-        );
-
-        let _grant = sqlx::query(&grant_sql)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        let organizational_unit =
+            insert_and_connect_with_user(&mut tx, &payload, &claims, app_config.clone())
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
         tx.commit()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
+        Ok(organizational_unit)
+    }
+    async fn setup_managed(
+        &self,
+        payload: CreateRequest,
+        claims: Claims,
+        app_config: Arc<AppConfig>,
+    ) -> Result<OrganizationalUnit, DatabaseError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        let organizational_unit =
+            insert_and_connect_with_user(&mut tx, &payload, &claims, app_config.clone())
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        create_database_user_for_managed(&mut tx, &organizational_unit, app_config)
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        tx.commit()
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+        // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
             ValueObject::new(DdlParameter(
-                organizational_unit_id.to_string().replace("-", "")
+                organizational_unit.id.to_string().replace("-", "")
             ))
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
             ValueObject::new(DdlParameter(
-                organizational_unit_id.to_string().replace("-", "")
+                organizational_unit.id.to_string().replace("-", "")
             ))
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
-            .bind(organizational_unit_id)
-            .bind(organizational_unit_id.to_string())
+            .bind(organizational_unit.id)
+            .bind(organizational_unit.id.to_string())
             .execute(&self.pool)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-
         Ok(organizational_unit)
     }
 
@@ -320,4 +308,103 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
     }
+}
+
+async fn insert_and_connect_with_user(
+    conn: &mut PgConnection,
+    payload: &CreateRequest,
+    claims: &Claims,
+    app_config: Arc<AppConfig>,
+) -> Result<OrganizationalUnit, BoxDynError> {
+    let organizational_unit_id = Uuid::new_v4();
+    let db_host = match &payload.db_host {
+        Some(val) => val.extract().get_value().clone(),
+        None => app_config.default_tenant_database().host.clone(),
+    };
+    let db_port = match &payload.db_port {
+        Some(val) => *val.extract().get_value(),
+        None => app_config.default_tenant_database().port as i64,
+    };
+    let db_name = match &payload.db_name {
+        Some(val) => val.extract().get_value().clone(),
+        None => organizational_unit_id.to_string(),
+    };
+    let db_user = match &payload.db_user {
+        Some(val) => val.extract().get_value().clone(),
+        None => organizational_unit_id.to_string(),
+    };
+    let db_password = match &payload.db_password {
+        Some(val) => val.extract().get_value().clone(),
+        None => generate_string_csprng(40),
+    };
+    let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
+        "INSERT INTO organizational_units (
+            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+    )
+    .bind(organizational_unit_id)
+    .bind(payload.name.extract().get_value())
+    .bind(&db_host)
+    .bind(db_port)
+    .bind(&db_name)
+    .bind(&db_user)
+    .bind(&db_password)
+    .bind(
+        i32::try_from(app_config.default_tenant_database().max_pool_size())
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+    )
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+    let _connect = sqlx::query_as::<_, UserOrganizationalUnit>(
+        "INSERT INTO user_organizational_units (
+            user_id, organizational_unit_id, role
+            ) VALUES ($1, $2, $3) RETURNING *",
+    )
+    .bind(Uuid::parse_str(claims.sub()).map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
+    .bind(organizational_unit_id)
+    .bind("owner")
+    .fetch_one(&mut *conn)
+    .await
+    .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+    Ok(organizational_unit)
+}
+
+async fn create_database_user_for_managed(
+    conn: &mut PgConnection,
+    organizational_unit: &OrganizationalUnit,
+    app_config: Arc<AppConfig>,
+) -> Result<(), BoxDynError> {
+    let create_user_sql = format!(
+        "CREATE USER tenant_{} WITH PASSWORD '{}'",
+        ValueObject::new(DdlParameter(
+            organizational_unit.id.to_string().replace("-", "")
+        ))
+        .map_err(DatabaseError::DatabaseError)?,
+        ValueObject::new(DdlParameter(organizational_unit.db_password.to_string()))
+            .map_err(DatabaseError::DatabaseError)?
+    );
+
+    let _create_user = sqlx::query(&create_user_sql)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+    let grant_sql = format!(
+        "GRANT tenant_{} to {};",
+        ValueObject::new(DdlParameter(
+            organizational_unit.id.to_string().replace("-", "")
+        ))
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+        app_config.default_tenant_database().username // safety: not user input
+    );
+
+    let _grant = sqlx::query(&grant_sql)
+        .execute(&mut *conn)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+    Ok(())
 }

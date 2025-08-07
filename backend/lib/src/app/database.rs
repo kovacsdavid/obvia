@@ -20,13 +20,15 @@
 use crate::app::config::{
     BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider, TenantDatabaseConfig,
 };
+use crate::common::error::DatabaseError;
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgSslMode};
+use sqlx::{ConnectOptions, PgConnection, PgPool};
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use uuid::Uuid;
@@ -247,5 +249,70 @@ impl PgPoolManagerTrait for PgPoolManager {
             pools.insert(tenant_id.to_string(), pool);
         }
         Ok(tenant_id)
+    }
+}
+
+/// `PgConnectionTester` is a struct used for testing or verifying connections to a PostgreSQL database.
+///
+/// This struct can be utilized to establish and validate connectivity to the database,
+/// ensuring that the connection details and configurations are correctly set up.
+pub struct PgConnectionTester {}
+
+impl PgConnectionTester {
+    /// Tests the connection to a PostgreSQL database using the provided configuration and SSL mode.
+    ///
+    /// # Parameters
+    /// - `config`: A type that implements the `DatabaseUrlProvider` trait, providing the database URL.
+    /// - `ssl_mode`: The desired `PgSslMode` to configure the SSL behavior for the connection.
+    ///
+    /// # Returns
+    /// - `Ok(PgConnection)`: A successfully established PostgreSQL connection.
+    /// - `Err(sqlx::Error)`: If there's an error in building the connection options,
+    ///   connecting to the database, or any other database-related issue.
+    ///
+    /// # Errors
+    /// - Returns an error if the configuration URL is invalid or if the connection cannot be established.
+    pub async fn test_connect(
+        config: &impl DatabaseUrlProvider,
+        ssl_mode: PgSslMode,
+    ) -> sqlx::Result<PgConnection, sqlx::Error> {
+        let conn = PgConnectOptions::from_str(&config.url())?
+            .ssl_mode(ssl_mode)
+            .connect()
+            .await?;
+        Ok(conn)
+    }
+    /// Checks if the database connected to the provided `PgConnection` is empty (has no tables).
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - A mutable reference to a `PgConnection` representing the connection to the PostgreSQL database.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` if the database has no tables (is empty).
+    /// * `Err(DatabaseError)` if the database contains tables or in case of a query execution error.
+    ///
+    /// # Errors
+    ///
+    /// This function returns a `DatabaseError` in two cases:
+    /// * If the query fails to execute due to a database connection or syntax error.
+    /// * If the count of tables in the database schema is greater than zero, indicating that the database is not empty.
+    pub async fn is_empty_database(conn: &mut PgConnection) -> Result<(), DatabaseError> {
+        let result = sqlx::query_scalar::<_, i32>(
+            "SELECT count(*) as number_of_tables
+                    FROM information_schema.tables
+                    WHERE table_schema = 'public'",
+        )
+        .fetch_one(conn)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        if result == 0 {
+            Ok(())
+        } else {
+            Err(DatabaseError::DatabaseError(
+                "Database is not empty".to_string(),
+            ))
+        }
     }
 }

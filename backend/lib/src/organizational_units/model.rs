@@ -50,6 +50,7 @@ pub struct OrganizationalUnit {
     pub db_user: String,
     pub db_password: String,
     pub db_max_pool_size: i32,
+    pub db_ssl_mode: String,
     pub created_at: chrono::DateTime<chrono::Local>,
     pub updated_at: chrono::DateTime<chrono::Local>,
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,

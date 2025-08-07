@@ -24,7 +24,9 @@ use crate::common::types::tenant::db_user::DbUser;
 use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
+use sqlx::postgres::PgSslMode;
 use std::fmt::Display;
+use std::str::FromStr;
 
 /// The `AppConfig` struct is the main application configuration model used for deserializing
 /// and storing the configuration details for different components of the application.
@@ -122,6 +124,33 @@ pub trait DatabasePoolSizeProvider {
     fn max_pool_size(&self) -> Self::MaxPoolSizeType;
 }
 
+/// The `DatabasePgSslModeProvider` trait defines a contract for providing the PostgreSQL SSL mode configuration.
+///
+/// Implementors of this trait are responsible for determining the appropriate SSL mode that should
+/// be used when connecting to a PostgreSQL database. SSL mode specifies the level of security the
+/// connection should have regarding encryption and certificate validation.
+///
+/// # Required Method
+///
+/// ## `pg_ssl_mode`
+///
+/// Returns the configured `PgSslMode` for the database connection, or a descriptive `String` error
+/// if the SSL mode could not be determined.
+///
+/// # Returns
+/// - `Ok(PgSslMode)`: The SSL mode to be used for the PostgreSQL database connection.
+/// - `Err(String)`: An error message indicating why the SSL mode could not be retrieved.
+pub trait DatabasePgSslModeProvider {
+    /// Retrieves the SSL mode configuration for the PostgreSQL connection.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(PgSslMode)` - If the SSL mode is successfully obtained.
+    /// - `Err(String)` - If there is an error determining the SSL mode,
+    ///   with a message describing the issue.
+    fn pg_ssl_mode(&self) -> Result<PgSslMode, String>;
+}
+
 /// A generic configuration structure for database connection settings.
 ///
 /// This struct is designed to be flexible with its field types, allowing
@@ -153,6 +182,20 @@ pub struct DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseTy
     pub password: PasswordType,
     pub database: DatabaseType,
     pub max_pool_size: Option<MaxPoolSizeType>,
+    pub ssl_mode: Option<String>,
+}
+
+impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+    DatabasePgSslModeProvider
+    for DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+{
+    fn pg_ssl_mode(&self) -> Result<PgSslMode, String> {
+        if let Some(ssl_mode) = &self.ssl_mode {
+            Ok(PgSslMode::from_str(ssl_mode).map_err(|_| "Invalid SSL mode".to_string())?)
+        } else {
+            Ok(PgSslMode::VerifyFull)
+        }
+    }
 }
 
 impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
@@ -180,6 +223,7 @@ impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
     /// * It's important that all fields in the `OrganizationalUnit` adhere to the expected format
     ///   and constraints for successful conversion.
     fn try_from(value: &OrganizationalUnit) -> Result<Self, Self::Error> {
+        PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
             host: ValueObject::new(DbHost(value.db_host.clone()))?,
             port: ValueObject::new(DbPort(value.db_port as i64))?,
@@ -190,6 +234,7 @@ impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
                 u32::try_from(value.db_max_pool_size)
                     .map_err(|_| "Invalid pool size".to_string())?,
             ),
+            ssl_mode: Some(value.db_ssl_mode.clone()),
         })
     }
 }
@@ -256,6 +301,7 @@ impl Default for TenantDatabaseConfig {
     /// - `password`: Defaults to "password".
     /// - `database`: Defaults to "database".
     /// - `pool_size`: Defaults to `Some(5)`.
+    /// - `ssl_mode`: "prefer"
     ///
     /// Each field is wrapped in a `ValueObject` for validation and ensures safe initialization.
     /// Uses `unwrap()` to assume successful creation of `ValueObject` instances for valid inputs.
@@ -267,6 +313,7 @@ impl Default for TenantDatabaseConfig {
             password: ValueObject::new(DbPassword("password".to_string())).unwrap(),
             database: ValueObject::new(DbName("database".to_string())).unwrap(),
             max_pool_size: Some(5),
+            ssl_mode: Some("prefer".to_string()),
         }
     }
 }
@@ -288,6 +335,7 @@ impl Default for BasicDatabaseConfig {
     /// - `password`: `"password"`
     /// - `database`: `"database"`
     /// - `pool_size`: `Some(5)`
+    /// - `ssl_mode`: "prefer"
     fn default() -> Self {
         Self {
             host: String::from("localhost"),
@@ -296,6 +344,7 @@ impl Default for BasicDatabaseConfig {
             password: String::from("password"),
             database: String::from("database"),
             max_pool_size: Some(5),
+            ssl_mode: Some("prefer".to_string()),
         }
     }
 }

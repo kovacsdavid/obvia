@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::app::config::TenantDatabaseConfig;
+use crate::app::config::BasicDatabaseConfig;
 use crate::app::database::{PgPoolManager, PgPoolManagerTrait};
 use crate::common::repository::PoolWrapper;
 use crate::organizational_units::repository::OrganizationalUnitsRepository;
@@ -158,7 +158,7 @@ pub async fn init_tenant_pools(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::R
     let organizational_units =
         <PoolWrapper as OrganizationalUnitsRepository>::get_all(&repo).await?;
     for organizational_unit in organizational_units {
-        match TenantDatabaseConfig::try_from(&organizational_unit) {
+        match BasicDatabaseConfig::try_from(&organizational_unit) {
             Ok(db_config) => {
                 match pg_pool_manager
                     .add_tenant_pool(organizational_unit.id, &db_config)

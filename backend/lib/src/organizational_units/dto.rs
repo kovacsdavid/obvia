@@ -49,7 +49,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct CreateRequestHelper {
     pub name: String,
-    pub db_self_hosted: bool,
+    pub is_self_hosted: bool,
     pub db_host: Option<String>,
     pub db_port: Option<i32>,
     pub db_name: Option<String>,
@@ -76,12 +76,30 @@ pub struct CreateRequestHelper {
 #[derive(Debug, Serialize)]
 pub struct CreateRequestError {
     pub name: Option<String>,
-    pub db_self_hosted: Option<String>,
+    pub is_self_hosted: Option<String>,
     pub db_host: Option<String>,
     pub db_port: Option<String>,
     pub db_name: Option<String>,
     pub db_user: Option<String>,
     pub db_password: Option<String>,
+}
+
+impl CreateRequestError {
+    /// Checks if the current instance of the struct is empty.
+    ///
+    ///
+    /// # Returns
+    /// * `true` - If all fields are `None`.
+    /// * `false` - If at least one field has a value.
+    pub fn is_empty(&self) -> bool {
+        self.name.is_none()
+            && self.is_self_hosted.is_none()
+            && self.db_host.is_none()
+            && self.db_port.is_none()
+            && self.db_name.is_none()
+            && self.db_user.is_none()
+            && self.db_password.is_none()
+    }
 }
 
 impl IntoResponse for CreateRequestError {
@@ -179,7 +197,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
     fn try_from(value: CreateRequestHelper) -> Result<Self, Self::Error> {
         let mut error = CreateRequestError {
             name: None,
-            db_self_hosted: None,
+            is_self_hosted: None,
             db_host: None,
             db_port: None,
             db_name: None,
@@ -198,7 +216,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
             error.name = Some(e.to_string());
         }
 
-        if value.db_self_hosted {
+        if value.is_self_hosted {
             const REQUIRED_IF_SELF_HOSTED_ERROR: &str =
                 "A mező kitöltése kötelező, ha saját adatbázist üzemeltet";
             match &value.db_host {
@@ -272,17 +290,19 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
                 }
             }
         }
-
-        // TODO: if err
-        Ok(CreateRequest {
-            name: name.unwrap(),
-            is_self_hosted: value.db_self_hosted,
-            db_host,
-            db_port,
-            db_name,
-            db_user,
-            db_password,
-        })
+        if error.is_empty() {
+            Ok(CreateRequest {
+                name: name.unwrap(),
+                is_self_hosted: value.is_self_hosted,
+                db_host,
+                db_port,
+                db_name,
+                db_user,
+                db_password,
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 

@@ -55,7 +55,7 @@ impl ValueObjectable for DbName {
     /// # Errors
     /// - Returns an error message if the regular expression itself cannot be created (though this situation is highly unlikely since the regex pattern is constant and valid).
     fn validate(&self) -> Result<(), String> {
-        match Regex::new(r##"^[A-Za-z0-9]{1,99}$"##) {
+        match Regex::new(r##"^tenant_[A-Za-z0-9]{1,50}$"##) {
             Ok(re) => match re.is_match(&self.0) {
                 true => Ok(()),
                 false => Err("Hibás adatbázis név!".to_string()),
@@ -133,7 +133,7 @@ mod tests {
 
     #[test]
     fn test_valid_db_name() {
-        let valid_names = vec![r#"mydatabase"#];
+        let valid_names = vec![r#"tenant_mydatabase"#];
         for name in valid_names {
             //panic!("{}", host);
             let db_name: ValueObject<DbName> =

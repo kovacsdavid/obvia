@@ -26,7 +26,7 @@ import {AlertCircle, Terminal} from "lucide-react";
 
 export default function Create() {
   const [name, setName] = React.useState("");
-  const [dbSelfHosted, setDbSeflHosted] = React.useState<boolean | "indeterminate">(false);
+  const [dbIsSelfHosted, setDbIsSelfHosted] = React.useState<boolean | "indeterminate">(false);
   const [dbHost, setDbHost] = React.useState("");
   const [dbPort, setDbPort] = React.useState("");
   const [dbName, setDbName] = React.useState("");
@@ -43,14 +43,14 @@ export default function Create() {
     setDbName("");
     setDbUser("");
     setDbPassword("");
-  }, [setDbSeflHosted]);
+  }, [setDbIsSelfHosted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const dbPortNumber = parseInt(dbPort, 10);
     dispatch(create({
       name,
-      dbSelfHosted: dbSelfHosted === true,
+      dbIsSelfHosted: dbIsSelfHosted === true,
       dbHost,
       dbPort: dbPortNumber,
       dbName,
@@ -75,10 +75,10 @@ export default function Create() {
       />
       {error?.fields?.name && <div className="text-red-600">{error.fields.name}</div>}
       <div className="flex items-start gap-3 mt-7 mb-5">
-        <Checkbox id="self_hosted_db" checked={dbSelfHosted} onCheckedChange={setDbSeflHosted}/>
+        <Checkbox id="self_hosted_db" checked={dbIsSelfHosted} onCheckedChange={setDbIsSelfHosted}/>
         <Label htmlFor="self_hosted_db">Saját adatbázist használok (haladó)</Label>
       </div>
-      {dbSelfHosted === true && (
+      {dbIsSelfHosted === true && (
         <>
           <Alert variant="destructive">
             <AlertCircle/>
@@ -143,7 +143,6 @@ export default function Create() {
             </AlertDescription>
           </Alert>
           <div className={"flex"}>
-
             <div className="flex items-center justify-center px-3 border border-r-0 rounded-l bg-gray-50">
               {"tenant_"}
             </div>
@@ -158,12 +157,26 @@ export default function Create() {
 
           {error?.fields?.db_name && <div className="text-red-600">{error.fields.db_name}</div>}
           <Label htmlFor="db_user">Adatbázis felhasználó</Label>
-          <Input
-            id="db_user"
-            type="text"
-            value={dbUser}
-            onChange={e => setDbUser(e.target.value)}
-          />
+          <Alert variant="default">
+            <Terminal/>
+            <AlertTitle>Előtag szükséges!</AlertTitle>
+            <AlertDescription>
+              Biztonsági okokból a rendszerhez hozzáadott adatbázis felhasználónak tartalmaznia kell a "tenant_" előtagot.
+              Kérem, hogy az adatbázis felhasznált ennek megfelelően nevezze el!
+            </AlertDescription>
+          </Alert>
+          <div className={"flex"}>
+            <div className="flex items-center justify-center px-3 border border-r-0 rounded-l bg-gray-50">
+              {"tenant_"}
+            </div>
+            <Input
+              id="db_user"
+              type="text"
+              value={dbUser}
+              onChange={e => setDbUser(e.target.value)}
+            />
+          </div>
+
           {error?.fields?.db_user && <div className="text-red-600">{error.fields.db_user}</div>}
           <Label htmlFor="db_password">Adatbázis jelszó</Label>
           <Alert variant="default">

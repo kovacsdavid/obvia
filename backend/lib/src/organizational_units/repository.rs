@@ -16,14 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::app::config::{AppConfig, DatabasePoolSizeProvider};
+use crate::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::auth::dto::claims::Claims;
 use crate::common::error::DatabaseError;
 use crate::common::repository::PoolWrapper;
-use crate::common::services::generate_string_csprng;
 use crate::common::types::DdlParameter;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
-use crate::organizational_units::dto::CreateRequest;
+use crate::common::types::value_object::ValueObject;
 use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
 use async_trait::async_trait;
 #[cfg(test)]
@@ -125,9 +123,9 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     /// - The `app_config` should contain all required configuration values for successfully setting up the instance.
     async fn setup_self_hosted(
         &self,
-        payload: CreateRequest,
-        claims: Claims,
-        app_config: Arc<AppConfig>,
+        name: &str,
+        db_config: &BasicDatabaseConfig,
+        claims: &Claims,
     ) -> Result<OrganizationalUnit, DatabaseError>;
 
     /// Sets up a managed resource based on the provided parameters.
@@ -163,8 +161,10 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     /// and that the `claims` contain the necessary permissions for executing the action.
     async fn setup_managed(
         &self,
-        payload: CreateRequest,
-        claims: Claims,
+        uuid: Uuid,
+        name: &str,
+        db_config: &BasicDatabaseConfig,
+        claims: &Claims,
         app_config: Arc<AppConfig>,
     ) -> Result<OrganizationalUnit, DatabaseError>;
     /// Asynchronously retrieves all organizational units associated with a specific user UUID.
@@ -222,10 +222,11 @@ impl OrganizationalUnitsRepository for PoolWrapper {
     }
     async fn setup_self_hosted(
         &self,
-        payload: CreateRequest,
-        claims: Claims,
-        app_config: Arc<AppConfig>,
+        name: &str,
+        db_config: &BasicDatabaseConfig,
+        claims: &Claims,
     ) -> Result<OrganizationalUnit, DatabaseError> {
+        let uuid = Uuid::new_v4();
         let mut tx = self
             .pool
             .begin()
@@ -233,7 +234,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
         let organizational_unit =
-            insert_and_connect_with_user(&mut tx, &payload, &claims, app_config.clone())
+            insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
                 .await
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
@@ -245,8 +246,10 @@ impl OrganizationalUnitsRepository for PoolWrapper {
     }
     async fn setup_managed(
         &self,
-        payload: CreateRequest,
-        claims: Claims,
+        uuid: Uuid,
+        name: &str,
+        db_config: &BasicDatabaseConfig,
+        claims: &Claims,
         app_config: Arc<AppConfig>,
     ) -> Result<OrganizationalUnit, DatabaseError> {
         let mut tx = self
@@ -255,7 +258,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         let organizational_unit =
-            insert_and_connect_with_user(&mut tx, &payload, &claims, app_config.clone())
+            insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
                 .await
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         create_database_user_for_managed(&mut tx, &organizational_unit, app_config)
@@ -312,47 +315,28 @@ impl OrganizationalUnitsRepository for PoolWrapper {
 
 async fn insert_and_connect_with_user(
     conn: &mut PgConnection,
-    payload: &CreateRequest,
+    uuid: Uuid,
+    name: &str,
+    db_config: &BasicDatabaseConfig,
     claims: &Claims,
-    app_config: Arc<AppConfig>,
 ) -> Result<OrganizationalUnit, BoxDynError> {
-    let organizational_unit_id = Uuid::new_v4();
-    let db_host = match &payload.db_host {
-        Some(val) => val.extract().get_value().clone(),
-        None => app_config.default_tenant_database().host.clone(),
-    };
-    let db_port = match &payload.db_port {
-        Some(val) => *val.extract().get_value(),
-        None => app_config.default_tenant_database().port as i64,
-    };
-    let db_name = match &payload.db_name {
-        Some(val) => val.extract().get_value().clone(),
-        None => organizational_unit_id.to_string(),
-    };
-    let db_user = match &payload.db_user {
-        Some(val) => val.extract().get_value().clone(),
-        None => organizational_unit_id.to_string(),
-    };
-    let db_password = match &payload.db_password {
-        Some(val) => val.extract().get_value().clone(),
-        None => generate_string_csprng(40),
-    };
     let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
         "INSERT INTO organizational_units (
-            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
     )
-    .bind(organizational_unit_id)
-    .bind(payload.name.extract().get_value())
-    .bind(&db_host)
-    .bind(db_port)
-    .bind(&db_name)
-    .bind(&db_user)
-    .bind(&db_password)
+    .bind(uuid)
+    .bind(name)
+    .bind(&db_config.host)
+    .bind(i32::from(db_config.port))
+    .bind(&db_config.database)
+    .bind(&db_config.username)
+    .bind(&db_config.password)
     .bind(
-        i32::try_from(app_config.default_tenant_database().max_pool_size())
+        i32::try_from(db_config.max_pool_size())
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
     )
+    .bind(&db_config.ssl_mode)
     .fetch_one(&mut *conn)
     .await
     .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
@@ -363,7 +347,7 @@ async fn insert_and_connect_with_user(
             ) VALUES ($1, $2, $3) RETURNING *",
     )
     .bind(Uuid::parse_str(claims.sub()).map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
-    .bind(organizational_unit_id)
+    .bind(uuid)
     .bind("owner")
     .fetch_one(&mut *conn)
     .await

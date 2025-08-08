@@ -57,7 +57,7 @@ impl ValueObjectable for DbUser {
     /// - The username format is invalid.
     /// - There is an issue creating the regular expression.
     fn validate(&self) -> Result<(), String> {
-        match Regex::new(r##"^[A-Za-z][A-Za-z0-9_]{0,59}$"##) {
+        match Regex::new(r##"^tenant_[A-Za-z0-9_]{1,50}$"##) {
             Ok(re) => match re.is_match(&self.0) {
                 true => Ok(()),
                 false => Err("Hibás felhasználónév formátum".to_string()),
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_valid_db_user() {
-        let valid_db_users = vec![r#"db_user"#];
+        let valid_db_users = vec![r#"tenant_db_user"#];
         for db_user in valid_db_users {
             //panic!("{}", host);
             let not_a_db_user_shadow: ValueObject<DbUser> =

@@ -17,9 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::{
-    BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider, TenantDatabaseConfig,
-};
+use crate::app::config::{BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider};
 use crate::common::error::DatabaseError;
 use anyhow::Result;
 use async_trait::async_trait;
@@ -138,8 +136,7 @@ pub trait PgPoolManagerTrait: Send + Sync {
     ///
     /// * `Result<Uuid>` - On success, returns the UUID of the newly created tenant pool.
     ///   On failure, returns an error wrapped in a `Result`.
-    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &TenantDatabaseConfig)
-    -> Result<Uuid>;
+    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &BasicDatabaseConfig) -> Result<Uuid>;
 }
 
 /// `PgPoolManager` is a structure designed to manage multiple instances of PostgreSQL connection pools.
@@ -230,11 +227,7 @@ impl PgPoolManagerTrait for PgPoolManager {
             .map_err(|_| anyhow::anyhow!("Failed to acquire read lock on company pools"))?;
         Ok(guard.get(&tenant_id.to_string()).cloned())
     }
-    async fn add_tenant_pool(
-        &self,
-        tenant_id: Uuid,
-        config: &TenantDatabaseConfig,
-    ) -> Result<Uuid> {
+    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &BasicDatabaseConfig) -> Result<Uuid> {
         let pool = PgPoolOptions::new()
             .max_connections(config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))

@@ -21,7 +21,7 @@ use crate::common::types::tenant::db_name::DbName;
 use crate::common::types::tenant::db_password::DbPassword;
 use crate::common::types::tenant::db_port::DbPort;
 use crate::common::types::tenant::db_user::DbUser;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::organizational_units::model::OrganizationalUnit;
 use serde::Deserialize;
 use sqlx::postgres::PgSslMode;
@@ -198,6 +198,39 @@ impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
     }
 }
 
+impl From<TenantDatabaseConfig> for BasicDatabaseConfig {
+    /// Converts a `TenantDatabaseConfig` into another data type by extracting and transforming its values.
+    ///
+    /// This function takes an instance of `TenantDatabaseConfig` and constructs a new instance of the
+    /// target type (`Self`) by extracting and cloning specific values from the source.
+    ///
+    /// # Parameters
+    /// - `value`: An instance of `TenantDatabaseConfig` containing the configuration details to be converted.
+    ///
+    /// # Returns
+    /// A new instance of the target structure (`Self`) populated with the extracted and transformed values.
+    ///
+    /// # Fields Mapping:
+    /// - `host`: Extracted, de-referenced, and cloned from `value.host` using its internal methods.
+    /// - `port`: Extracted, de-referenced, and cast to `u16` from `value.port`.
+    /// - `username`: Extracted and cloned from `value.username`.
+    /// - `password`: Extracted and cloned from `value.password`.
+    /// - `database`: Extracted and cloned from `value.database`.
+    /// - `max_pool_size`: Directly assigned from `value.max_pool_size`.
+    /// - `ssl_mode`: Directly assigned from `value.ssl_mode`.
+    fn from(value: TenantDatabaseConfig) -> Self {
+        Self {
+            host: value.host.extract().get_value().clone(),
+            port: *value.port.extract().get_value() as u16,
+            username: value.username.extract().get_value().clone(),
+            password: value.password.extract().get_value().clone(),
+            database: value.database.extract().get_value().clone(),
+            max_pool_size: value.max_pool_size,
+            ssl_mode: value.ssl_mode,
+        }
+    }
+}
+
 impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
     type Error = String;
     /// Attempts to convert an `OrganizationalUnit` reference into the corresponding object of the implementing type.
@@ -230,6 +263,47 @@ impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
             username: ValueObject::new(DbUser(value.db_user.clone()))?,
             password: ValueObject::new(DbPassword(value.db_password.clone()))?,
             database: ValueObject::new(DbName(value.db_name.clone()))?,
+            max_pool_size: Some(
+                u32::try_from(value.db_max_pool_size)
+                    .map_err(|_| "Invalid pool size".to_string())?,
+            ),
+            ssl_mode: Some(value.db_ssl_mode.clone()),
+        })
+    }
+}
+
+impl TryFrom<&OrganizationalUnit> for BasicDatabaseConfig {
+    type Error = String;
+    /// Attempts to convert an `OrganizationalUnit` reference into the corresponding object of the implementing type.
+    ///
+    /// This function maps the fields of the `OrganizationalUnit` into their respective strongly typed `ValueObject`
+    /// wrappers for database configuration parameters. The function validates and constructs each field, returning
+    /// an error if any field is invalid or if an intermediate operation (e.g., type conversion) fails.
+    ///
+    /// # Arguments
+    /// * `value` - A reference to an `OrganizationalUnit` object that holds the database configuration details.
+    ///
+    /// # Returns
+    /// * `Ok(Self)` - If all fields are successfully validated and converted.
+    /// * `Err(Self::Error)` - If any validation or conversion fails during the mapping process.
+    ///
+    /// # Errors
+    /// Returns an error in the following cases:
+    /// * The `DbHost`, `DbPort`, `DbUser`, `DbPassword`, or `DbName` fields cannot be constructed due to invalid values.
+    /// * The conversion of `db_max_pool_size` to `u32` fails (e.g., due to the value being out of range).
+    ///
+    /// # Notes
+    /// * This implementation uses the `ValueObject::new` function to wrap raw values into their respective types.
+    /// * It's important that all fields in the `OrganizationalUnit` adhere to the expected format
+    ///   and constraints for successful conversion.
+    fn try_from(value: &OrganizationalUnit) -> Result<Self, Self::Error> {
+        PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
+        Ok(Self {
+            host: value.db_host.clone(),
+            port: value.db_port as u16,
+            username: value.db_user.clone(),
+            password: value.db_password.clone(),
+            database: value.db_name.clone(),
             max_pool_size: Some(
                 u32::try_from(value.db_max_pool_size)
                     .map_err(|_| "Invalid pool size".to_string())?,

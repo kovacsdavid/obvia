@@ -18,87 +18,89 @@
  */
 
 export interface OrganizationalUnitRequest {
-    name: string;
-    dbSelfHosted: boolean;
-    dbHost: string;
-    dbPort: number;
-    dbName: string;
-    dbUser: string;
-    dbPassword: string;
+  name: string;
+  dbIsSelfHosted: boolean;
+  dbHost: string;
+  dbPort: number;
+  dbName: string;
+  dbUser: string;
+  dbPassword: string;
 }
 
 export interface OrganizationalUnitResponse {
-    success: boolean,
-    data?: {
-        message: string,
-    },
-    error?: {
-        reference: string | null,
-        global: string | null,
-        fields: Record<string, string | null>,
-    }
+  success: boolean,
+  data?: {
+    message: string,
+  },
+  error?: {
+    reference: string | null,
+    global: string | null,
+    fields: Record<string, string | null>,
+  }
 }
 
 export function isOrganizationalUnitResponse(data: unknown): data is OrganizationalUnitResponse {
-    return (
-        typeof data === "object" &&
-        data !== null &&
-        "success" in data &&
-        typeof data.success === "boolean" &&
-        (
-            !("data" in data) ||
-            (typeof data.data === "object" &&
-                data.data !== null &&
-                "message" in data.data &&
-                typeof data.data.message === "string")
-        ) &&
-        (
-            !("error" in data) ||
-            (typeof data.error === "object" &&
-                data.error !== null &&
-                "reference" in data.error &&
-                (data.error.reference === null || typeof data.error.reference === "string") &&
-                "global" in data.error &&
-                (data.error.global === null || typeof data.error.global === "string") &&
-                "fields" in data.error &&
-                typeof data.error.fields === "object")
-        )
-    );
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    typeof data.success === "boolean" &&
+    (
+      !("data" in data) ||
+      (typeof data.data === "object" &&
+        data.data !== null &&
+        "message" in data.data &&
+        typeof data.data.message === "string")
+    ) &&
+    (
+      !("error" in data) ||
+      (typeof data.error === "object" &&
+        data.error !== null &&
+        "reference" in data.error &&
+        (data.error.reference === null || typeof data.error.reference === "string") &&
+        "global" in data.error &&
+        (data.error.global === null || typeof data.error.global === "string") &&
+        "fields" in data.error &&
+        typeof data.error.fields === "object")
+    )
+  );
 }
 
 export async function create({
-    name,
-    dbHost,
-    dbPort,
-    dbName,
-    dbUser,
-    dbPassword
+                               name,
+                               dbIsSelfHosted,
+                               dbHost,
+                               dbPort,
+                               dbName,
+                               dbUser,
+                               dbPassword
 
                              }: OrganizationalUnitRequest, token: string | null): Promise<OrganizationalUnitResponse> {
-    const response = await fetch(`/api/organizational_units/create`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+  const response = await fetch(`/api/organizational_units/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
 
-        },
-        body: JSON.stringify({
-            name,
-            dbHost,
-            dbPort,
-            dbName,
-            dbUser,
-            dbPassword
-        })
-    });
-    let responseJson;
-    try {
-        responseJson = await response.json();
-    } catch {
-        throw new Error("Server responded with invalid JSON format");
-    }
-    if (!isOrganizationalUnitResponse(responseJson)) {
-        throw new Error("Server responded with invalid data");
-    }
-    return responseJson;
+    },
+    body: JSON.stringify({
+      name,
+      is_self_hosted: dbIsSelfHosted,
+      db_host: dbHost,
+      db_port: dbPort,
+      db_name: dbName,
+      db_user: dbUser,
+      db_password: dbPassword
+    })
+  });
+  let responseJson;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error("Server responded with invalid JSON format");
+  }
+  if (!isOrganizationalUnitResponse(responseJson)) {
+    throw new Error("Server responded with invalid data");
+  }
+  return responseJson;
 }

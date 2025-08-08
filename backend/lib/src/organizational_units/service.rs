@@ -17,12 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::config::TenantDatabaseConfig;
+use crate::app::config::{BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::app::database::PgConnectionTester;
 use crate::app::services::migrate_tenant_db;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
+use crate::common::services::generate_string_csprng;
+use crate::common::types::value_object::ValueObjectable;
 use crate::organizational_units::OrganizationalUnitsModule;
 use crate::organizational_units::dto::CreateRequest;
 use crate::organizational_units::repository::OrganizationalUnitsRepository;
@@ -30,6 +32,7 @@ use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use tracing::Level;
+use uuid::Uuid;
 
 /// Handles the process of setting up a self-hosted organizational unit in the system.
 ///
@@ -77,16 +80,18 @@ async fn self_hosted(
     match &mut PgConnectionTester::test_connect(&config, PgSslMode::VerifyFull).await {
         Ok(conn) => match PgConnectionTester::is_empty_database(conn).await {
             Ok(_) => match repo
-                .setup_self_hosted(payload, claims, organizational_units_module.config.clone())
+                .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
                 .await
             {
                 Ok(organizational_unit) => match organizational_units_module
                     .pool_manager
                     .add_tenant_pool(
                         organizational_unit.id,
-                        &TenantDatabaseConfig::try_from(&organizational_unit).map_err(|e| {
-                            FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                        })?,
+                        &TenantDatabaseConfig::try_from(&organizational_unit)
+                            .map_err(|e| {
+                                FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
+                            })?
+                            .into(),
                     )
                     .await
                 {
@@ -186,8 +191,31 @@ async fn managed(
     payload: CreateRequest,
     organizational_units_module: Arc<OrganizationalUnitsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
+    let uuid = Uuid::new_v4();
+    let db_config = BasicDatabaseConfig {
+        host: organizational_units_module
+            .config
+            .default_tenant_database()
+            .host
+            .clone(),
+        port: organizational_units_module
+            .config
+            .default_tenant_database()
+            .port,
+        username: format!("tenant_{}", uuid.to_string().replace("-", "")),
+        password: generate_string_csprng(40),
+        database: format!("tenant_{}", uuid.to_string().replace("-", "")),
+        max_pool_size: None,
+        ssl_mode: Some(String::from("disable")),
+    };
     match repo
-        .setup_managed(payload, claims, organizational_units_module.config.clone())
+        .setup_managed(
+            uuid,
+            payload.name.extract().get_value(),
+            &db_config,
+            &claims,
+            organizational_units_module.config.clone(),
+        )
         .await
     {
         Ok(organizational_unit) => {
@@ -195,7 +223,7 @@ async fn managed(
                 .pool_manager
                 .add_tenant_pool(
                     organizational_unit.id,
-                    &TenantDatabaseConfig::try_from(&organizational_unit)
+                    &BasicDatabaseConfig::try_from(&organizational_unit)
                         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?,
                 )
                 .await

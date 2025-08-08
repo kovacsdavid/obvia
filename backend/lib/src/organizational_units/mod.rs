@@ -21,7 +21,7 @@ use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
 use std::sync::Arc;
 
-mod dto;
+pub(crate) mod dto;
 mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;

@@ -17,7 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::app::config::BasicDatabaseConfig;
-use crate::app::database::{PgPoolManager, PgPoolManagerTrait};
+use crate::app::database::{
+    DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
+};
 use crate::common::repository::PoolWrapper;
 use crate::organizational_units::repository::OrganizationalUnitsRepository;
 use sqlx::PgPool;
@@ -128,9 +130,7 @@ pub async fn migrate_all_tenant_dbs(pg_pool_manager: Arc<PgPoolManager>) -> anyh
 /// Ensure that the `../migrations/tenant` directory contains all the necessary
 /// migration files in the correct format expected by `sqlx`.
 pub async fn migrate_tenant_db(tenant_pool: &PgPool) -> anyhow::Result<()> {
-    Ok(sqlx::migrate!("../migrations/tenant")
-        .run(tenant_pool)
-        .await?)
+    PgDatabaseMigrator.migrate_tenant_db(tenant_pool).await
 }
 
 /// Initializes tenant-specific database connection pools.

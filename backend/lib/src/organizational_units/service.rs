@@ -18,8 +18,7 @@
  */
 
 use crate::app::config::{BasicDatabaseConfig, TenantDatabaseConfig};
-use crate::app::database::PgConnectionTester;
-use crate::app::services::migrate_tenant_db;
+use crate::app::database::{DatabaseMigrator, PgConnectionTester};
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
@@ -69,6 +68,7 @@ use uuid::Uuid;
 /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
 async fn self_hosted(
     repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateRequest,
     organizational_units_module: Arc<OrganizationalUnitsModule>,
@@ -78,63 +78,66 @@ async fn self_hosted(
         .try_into()
         .map_err(|e: String| FriendlyError::Internal(e).trace(Level::ERROR))?;
     match &mut PgConnectionTester::test_connect(&config, PgSslMode::VerifyFull).await {
-        Ok(conn) => match PgConnectionTester::is_empty_database(conn).await {
-            Ok(_) => match repo
-                .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
-                .await
-            {
-                Ok(organizational_unit) => match organizational_units_module
-                    .pool_manager
-                    .add_tenant_pool(
-                        organizational_unit.id,
-                        &TenantDatabaseConfig::try_from(&organizational_unit)
-                            .map_err(|e| {
-                                FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                            })?
-                            .into(),
-                    )
+        Ok(conn) => {
+            match PgConnectionTester::is_empty_database(conn).await {
+                Ok(_) => match repo
+                    .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
                     .await
                 {
-                    Ok(_) => {
-                        match &organizational_units_module
-                            .pool_manager
-                            .get_tenant_pool(organizational_unit.id)
-                            .map_err(|e| {
-                                FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                            })? {
-                            Some(tenant_pool) => match migrate_tenant_db(tenant_pool).await {
-                                Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
-                                    message: String::from(
-                                        "Szervezeti egység létrehozása sikeresen megtörtént!",
-                                    ),
-                                })),
-                                Err(e) => {
-                                    Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR))
+                    Ok(organizational_unit) => match organizational_units_module
+                        .pool_manager
+                        .add_tenant_pool(
+                            organizational_unit.id,
+                            &TenantDatabaseConfig::try_from(&organizational_unit)
+                                .map_err(|e| {
+                                    FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
+                                })?
+                                .into(),
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            match &organizational_units_module
+                                .pool_manager
+                                .get_tenant_pool(organizational_unit.id)
+                                .map_err(|e| {
+                                    FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
+                                })? {
+                                Some(tenant_pool) => {
+                                    match migrator.migrate_tenant_db(tenant_pool).await {
+                                        Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
+                                            message: String::from(
+                                                "Szervezeti egység létrehozása sikeresen megtörtént!",
+                                            ),
+                                        })),
+                                        Err(e) => Err(FriendlyError::Internal(e.to_string())
+                                            .trace(Level::ERROR)),
+                                    }
                                 }
-                            },
-                            None => Err(FriendlyError::Internal(
-                                "Could not get tenant_pool".to_string(),
-                            )
-                            .trace(Level::ERROR)),
+                                None => Err(FriendlyError::Internal(
+                                    "Could not get tenant_pool".to_string(),
+                                )
+                                .trace(Level::ERROR)),
+                            }
                         }
-                    }
-                    Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+                        Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+                    },
+                    Err(_) => Err(FriendlyError::UserFacing(
+                        StatusCode::UNPROCESSABLE_ENTITY,
+                        "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_DATABASE".to_string(),
+                        "Nem sikerült csatlakozni az adatbázishoz".to_string(),
+                    )
+                    .trace(Level::INFO)),
                 },
                 Err(_) => Err(FriendlyError::UserFacing(
                     StatusCode::UNPROCESSABLE_ENTITY,
-                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_DATABASE".to_string(),
+                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
+                        .to_string(),
                     "Nem sikerült csatlakozni az adatbázishoz".to_string(),
                 )
                 .trace(Level::INFO)),
-            },
-            Err(_) => Err(FriendlyError::UserFacing(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
-                    .to_string(),
-                "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-            )
-            .trace(Level::INFO)),
-        },
+            }
+        }
         Err(_) => Err(FriendlyError::UserFacing(
             StatusCode::UNPROCESSABLE_ENTITY,
             "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE".to_string(),
@@ -187,6 +190,7 @@ async fn self_hosted(
 ///   in Hungarian. Modify it if localization is necessary for other languages.
 async fn managed(
     repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateRequest,
     organizational_units_module: Arc<OrganizationalUnitsModule>,
@@ -234,7 +238,7 @@ async fn managed(
                         .get_tenant_pool(organizational_unit.id)
                         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
                     {
-                        Some(tenant_pool) => match migrate_tenant_db(tenant_pool).await {
+                        Some(tenant_pool) => match migrator.migrate_tenant_db(tenant_pool).await {
                             Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
                                 message: String::from(
                                     "Szervezeti egység létrehozása sikeresen megtörtént!",
@@ -291,13 +295,14 @@ async fn managed(
 /// of the error for better clarity and user experience.
 pub async fn try_create(
     repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateRequest,
     organizational_units_module: Arc<OrganizationalUnitsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     if payload.is_self_hosted() {
-        self_hosted(repo, claims, payload, organizational_units_module).await
+        self_hosted(repo, migrator, claims, payload, organizational_units_module).await
     } else {
-        managed(repo, claims, payload, organizational_units_module).await
+        managed(repo, migrator, claims, payload, organizational_units_module).await
     }
 }

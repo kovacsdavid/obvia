@@ -309,3 +309,20 @@ impl PgConnectionTester {
         }
     }
 }
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait DatabaseMigrator {
+    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<()>;
+}
+
+pub struct PgDatabaseMigrator;
+
+#[async_trait]
+impl DatabaseMigrator for PgDatabaseMigrator {
+    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<()> {
+        Ok(sqlx::migrate!("../migrations/tenant")
+            .run(tenant_pool)
+            .await?)
+    }
+}

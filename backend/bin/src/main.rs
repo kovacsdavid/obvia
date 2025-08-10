@@ -18,6 +18,7 @@
  */
 #![forbid(unsafe_code)]
 
+use anyhow::anyhow;
 use axum::Router;
 use backend_lib::app::config::AppConfig;
 use backend_lib::app::init::{
@@ -53,7 +54,8 @@ async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     subscriber();
     let config = config()?;
     let pool_manager = pg_pool_manager(config.clone()).await?;
-    let app_state = Arc::new(app_state(pool_manager.clone(), config.clone()));
+    let app_state =
+        Arc::new(app_state(pool_manager.clone(), config.clone()).map_err(|e| anyhow!("{}", e))?);
     let app = app(app_state).await;
     migrate_main_db(pool_manager.clone()).await?;
     init_tenant_pools(pool_manager.clone()).await?;

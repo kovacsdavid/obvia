@@ -18,7 +18,8 @@
  */
 
 use crate::app::config::AppConfig;
-use crate::app::database::PgPoolManagerTrait;
+use crate::app::database::{DatabaseMigrator, PgPoolManagerTrait};
+use crate::organizational_units::repository::OrganizationalUnitsRepository;
 use std::sync::Arc;
 
 pub(crate) mod dto;
@@ -31,4 +32,7 @@ mod service;
 pub struct OrganizationalUnitsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub repo_factory:
+        Box<dyn Fn() -> Box<dyn OrganizationalUnitsRepository + Send + Sync> + Send + Sync>,
+    pub migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
 }

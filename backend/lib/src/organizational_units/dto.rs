@@ -46,7 +46,7 @@ use uuid::Uuid;
 /// * `db_user` - An optional field that specifies the username for database authentication. This field is represented as an `Option<String>`.
 ///
 /// * `db_password` - An optional field that specifies the password for database authentication. This field is represented as an `Option<String>`.
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct CreateRequestHelper {
     pub name: String,
     pub is_self_hosted: bool,

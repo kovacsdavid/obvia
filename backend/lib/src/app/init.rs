@@ -17,9 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::app_state::AppState;
+use crate::app::app_state::{AppState, AppStateBuilder};
 use crate::app::config::AppConfig;
-use crate::app::database::PgPoolManager;
+use crate::app::database::{
+    DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
+};
 use crate::auth;
 use crate::auth::service::Argon2Hasher;
 use crate::organizational_units::{self, OrganizationalUnitsModule};
@@ -33,6 +35,8 @@ use tracing_subscriber::FmtSubscriber;
 
 pub use crate::app::services::init_tenant_pools;
 pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
+use crate::common::repository::PoolWrapper;
+use crate::organizational_units::repository::OrganizationalUnitsRepository;
 
 /// Sets up a global tracing subscriber for the application with a specified logging level.
 ///
@@ -109,57 +113,60 @@ pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<Arc<PgPoolManager
     ))
 }
 
-/// Initializes and constructs the application state.
+/// Constructs an instance of `AppState`, which acts as the central state and dependency manager for the application.
 ///
-/// This function sets up the state for the application by creating and configuring
-/// various modules such as authentication, users, and organizational units. It takes
-/// in references to shared resources such as a database connection pool manager and
-/// application configuration, and then constructs the `AppState` structure.
+/// This function is primarily responsible for setting up the various modules and dependencies required by the application,
+/// such as authentication, organizational units, and user management modules. It uses the provided database pool manager
+/// and application configuration to configure each module.
 ///
-/// # Parameters
-/// - `pool_manager`: An `Arc`-wrapped `PgPoolManager` that provides access to the
-///   database connection pool for the application.
-/// - `config`: An `Arc`-wrapped `AppConfig` object containing application configuration
-///   values such as environment settings, application secrets, or other necessary config
-///   options.
+/// # Arguments
+///
+/// * `pool_manager` - An `Arc` reference to an object implementing the `PgPoolManagerTrait` trait. This is used to manage
+///   database connection pools for the application.
+/// * `config` - An `Arc` reference to an `AppConfig` object, which provides configuration values for the application.
 ///
 /// # Returns
-/// An instance of `AppState`, which contains references to the initialized modules required
-/// for the application's functionality:
-/// - `auth_module`: The authentication module, initialized with dependencies for managing
-///   user authentication, password hashing, and configuration.
-/// - `config_module`: A shared reference to the application configuration.
-/// - `users_module`: The users module, currently represented with no additional setup.
-/// - `organizational_units_module`: The module for managing organizational units,
-///   initialized with dependencies like the database connection pool and configuration.
 ///
-/// # Notes
-/// - The use of `Arc` ensures that the state and shared resources can be safely cloned
-///   and accessed concurrently across multiple asynchronous tasks.
-///
+/// Returns a `Result<AppState, String>`:
+/// - `Ok(AppState)` on successful initialization, containing the built application state with all modules set up.
+/// - `Err(String)` if an error occurs during the initialization process, returning a descriptive error message.
 /// # Errors
-/// Currently, this function does not return any errors. However, if additional
-/// initialization logic is added in the future that could fail (e.g., loading
-/// configurations or establishing database connections), error handling may need
-/// to be included.
-pub fn app_state(pool_manager: Arc<PgPoolManager>, config: Arc<AppConfig>) -> AppState {
-    let auth_module = auth::AuthModule {
-        pool_manager: pool_manager.clone(),
-        password_hasher: Arc::new(Argon2Hasher),
-        config: config.clone(),
-    };
-    let users_module = Arc::new(UsersModule {});
-    let organizational_units_module = Arc::new(OrganizationalUnitsModule {
-        pool_manager: pool_manager.clone(),
-        config: config.clone(),
-    });
-
-    AppState {
-        auth_module: Arc::new(auth_module),
-        config_module: config.clone(),
-        users_module,
-        organizational_units_module,
-    }
+///
+/// If any error occurs during the setup process, such as failing to initialize a module or resolve dependencies, the function
+/// will return an error message wrapped in a `String`.
+///
+/// # Note
+///
+/// The function makes heavy use of closures to define factories for repositories and migrators, ensuring that the necessary
+/// instances are created dynamically at runtime.
+pub fn app_state(
+    pool_manager: Arc<dyn PgPoolManagerTrait>,
+    config: Arc<AppConfig>,
+) -> Result<AppState, String> {
+    let pool_manager_clone = pool_manager.clone();
+    AppStateBuilder::new()
+        .users_module(Arc::new(UsersModule {}))
+        .config_module(config.clone())
+        .organizational_units_module(Arc::new(OrganizationalUnitsModule {
+            pool_manager: pool_manager.clone(),
+            config: config.clone(),
+            repo_factory: Box::new(
+                move || -> Box<dyn OrganizationalUnitsRepository + Send + Sync> {
+                    Box::new(PoolWrapper::new(
+                        pool_manager_clone.get_default_tenant_pool(),
+                    ))
+                },
+            ),
+            migrator_factory: Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
+                Box::new(PgDatabaseMigrator)
+            }),
+        }))
+        .auth_module(Arc::new(auth::AuthModule {
+            pool_manager: pool_manager.clone(),
+            password_hasher: Arc::new(Argon2Hasher),
+            config: config.clone(),
+        }))
+        .build()
 }
 
 /// Sets up and returns the main application router.

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
 
 /// Represents the structure of the claims contained in a JSON Web Token (JWT).
@@ -50,15 +50,15 @@ use serde::{Deserialize, Serialize};
 /// This struct is typically used to validate, decode, or create JWTs in the application.
 /// By accessing its fields, you can ensure the token's integrity, validate its audience,
 /// and enforce time-based constraints.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct Claims {
-    sub: String, // User's unique ID (e.g., UUID as a string)
-    exp: usize,  // Expiration time (as a UNIX timestamp)
-    iat: usize,  // Issued at (as a UNIX timestamp)
-    nbf: usize,  // Not valid before (as a UNIX timestamp)
-    iss: String, // Issuer (e.g., your service domain)
-    aud: String, // Audience (e.g., your frontend client ID or domain)
-    jti: String, // JWT ID (unique per token, e.g., UUID)
+    sub: String,
+    exp: usize,
+    iat: usize,
+    nbf: usize,
+    iss: String,
+    aud: String,
+    jti: String,
 }
 
 impl Claims {
@@ -96,6 +96,63 @@ impl Claims {
             jti,
         }
     }
+
+    /// Attempts to create an instance of the struct by decoding and validating a JWT.
+    ///
+    /// This function validates the provided JWT string (`s`) using the supplied decoding key (`decoding_key`)
+    /// and enforces specific claims (`"sub"`, `"exp"`, `"iat"`, `"nbf"`, `"iss"`, `"aud"`, `"jti"`).
+    ///
+    /// # Parameters
+    ///
+    /// - `s`: A reference to the JWT string token to decode and validate.
+    /// - `decoding_key`: A byte slice containing the secret key used to decode the token.
+    /// - `iss`: The expected issuer (claims field `"iss"`) of the token for validation.
+    /// - `aud`: The expected audience (claims field `"aud"`) of the token for validation.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(Self)`: Returns an instance of the struct if the token is successfully decoded and all validations pass.
+    /// - `Err(String)`: Returns an error string if the token is invalid or any validation (e.g., claim checks) fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error with the message `"Invalid token"` if decoding fails or the token is invalid.
+    pub fn from_token(s: &str, decoding_key: &[u8], iss: &str, aud: &str) -> Result<Self, String> {
+        let mut validator = Validation::new(Algorithm::HS256);
+        validator.set_issuer(&[iss]);
+        validator.set_audience(&[aud]);
+        validator.set_required_spec_claims(&["sub", "exp", "iat", "nbf", "iss", "aud", "jti"]);
+        Ok(
+            decode::<Claims>(s, &DecodingKey::from_secret(decoding_key), &validator)
+                .map_err(|_| String::from("Invalid token"))?
+                .claims,
+        )
+    }
+
+    /// Converts the current instance of the object into a valid token string using a provided encoding key.
+    ///
+    /// # Arguments
+    ///
+    /// * `encoding_key` - A byte slice representing the secret key used for encoding the token.
+    ///
+    /// # Returns
+    ///
+    /// This function returns a `Result`:
+    /// * `Ok(String)` - Contains the encoded token as a `String` if the operation is successful.
+    /// * `Err(String)` - Contains an error message as a `String` if the encoding process fails.
+    ///
+    /// # Errors
+    ///
+    /// Returns an `Err` with the message `"Could not encode token"` if the token encoding fails.
+    pub fn to_token(&self, encoding_key: &[u8]) -> Result<String, String> {
+        encode(
+            &Header::default(),
+            &self,
+            &EncodingKey::from_secret(encoding_key),
+        )
+        .map_err(|_| String::from("Could not encode token"))
+    }
+
     /// Returns a reference to the `sub` field of the object.
     /// `sub` The subject of the token, which represents the user's unique identifier (e.g., a UUID as a string).
     pub fn sub(&self) -> &String {

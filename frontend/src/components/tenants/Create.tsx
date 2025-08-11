@@ -21,7 +21,7 @@ import React from "react";
 import {useAppDispatch, useAppSelector} from "@/store/hooks.ts";
 import {Button, Input, Label, Checkbox, Alert, AlertTitle, AlertDescription} from "@/components/ui";
 import type {RootState} from "@/store";
-import {create} from "@/store/slices/organizational_unit.ts";
+import {create} from "@/store/slices/tenants.ts";
 import {AlertCircle, Terminal} from "lucide-react";
 
 export default function Create() {
@@ -34,7 +34,7 @@ export default function Create() {
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
   const error = useAppSelector(
-    (state: RootState) => state.organizationalUnits.error
+    (state: RootState) => state.tenants.error
   );
 
   React.useEffect(() => {

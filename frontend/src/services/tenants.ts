@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface OrganizationalUnitRequest {
+export interface TenantsRequest {
   name: string;
   dbIsSelfHosted: boolean;
   dbHost: string;
@@ -27,7 +27,7 @@ export interface OrganizationalUnitRequest {
   dbPassword: string;
 }
 
-export interface OrganizationalUnitResponse {
+export interface TenantsResponse {
   success: boolean,
   data?: {
     message: string,
@@ -39,7 +39,7 @@ export interface OrganizationalUnitResponse {
   }
 }
 
-export function isOrganizationalUnitResponse(data: unknown): data is OrganizationalUnitResponse {
+export function isTenantsResponse(data: unknown): data is TenantsResponse {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -75,8 +75,8 @@ export async function create({
                                dbUser,
                                dbPassword
 
-                             }: OrganizationalUnitRequest, token: string | null): Promise<OrganizationalUnitResponse> {
-  const response = await fetch(`/api/organizational_units/create`, {
+                             }: TenantsRequest, token: string | null): Promise<TenantsResponse> {
+  const response = await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -99,7 +99,7 @@ export async function create({
   } catch {
     throw new Error("Server responded with invalid JSON format");
   }
-  if (!isOrganizationalUnitResponse(responseJson)) {
+  if (!isTenantsResponse(responseJson)) {
     throw new Error("Server responded with invalid data");
   }
   return responseJson;

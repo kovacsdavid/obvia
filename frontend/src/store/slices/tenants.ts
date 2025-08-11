@@ -18,11 +18,11 @@
  */
 
 import {createAsyncThunk, createSlice, type PayloadAction} from "@reduxjs/toolkit";
-import * as organizationalUnitApi from "@/services/organizational_unit";
-import {isOrganizationalUnitResponse} from "@/services/organizational_unit";
+import * as tenantsApi from "@/services/tenants.ts";
+import {isTenantsResponse} from "@/services/tenants.ts";
 import type {RootState} from "@/store";
 
-interface OrganizationalUnitState {
+interface TenantsState {
     status: "idle" | "loading" | "succeeded" | "failed",
     error: {
         global: string | null,
@@ -30,7 +30,7 @@ interface OrganizationalUnitState {
     }
 }
 
-const initialState: OrganizationalUnitState = {
+const initialState: TenantsState = {
     status: "idle",
     error: {
         global: null,
@@ -39,12 +39,12 @@ const initialState: OrganizationalUnitState = {
 }
 
 export const create = createAsyncThunk(
-    "organizational_unit/create",
-    async (requestData: organizationalUnitApi.OrganizationalUnitRequest, { rejectWithValue, getState }) => {
+    "tenants/create",
+    async (requestData: tenantsApi.TenantsRequest, { rejectWithValue, getState }) => {
         try {
             const rootState = getState() as RootState;
             const token =  rootState.auth.login.token;
-            const response = await organizationalUnitApi.create(requestData, token);
+            const response = await tenantsApi.create(requestData, token);
             if (response.success) {
                 return response;
             } else {
@@ -56,8 +56,8 @@ export const create = createAsyncThunk(
     }
 )
 
-const organizationalUnitSlice = createSlice({
-    name: "organizational_unit",
+const tenantsSlice = createSlice({
+    name: "tenants",
     initialState,
     reducers: {},
     extraReducers: (builder) => {
@@ -70,7 +70,7 @@ const organizationalUnitSlice = createSlice({
                 create.fulfilled,
                 (
                     state,
-                    action: PayloadAction<organizationalUnitApi.OrganizationalUnitResponse>
+                    action: PayloadAction<tenantsApi.TenantsResponse>
                 ) => {
                 state.status = "succeeded";
                 console.log(action);
@@ -78,7 +78,7 @@ const organizationalUnitSlice = createSlice({
             })
             .addCase(create.rejected, (state, action) => {
                 state.status = "failed";
-                if (isOrganizationalUnitResponse(action.payload) && typeof action.payload?.error !== "undefined") {
+                if (isTenantsResponse(action.payload) && typeof action.payload?.error !== "undefined") {
                     state.error = action.payload.error;
                 } else {
                     state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
@@ -87,4 +87,4 @@ const organizationalUnitSlice = createSlice({
     }
 });
 
-export default organizationalUnitSlice.reducer;
+export default tenantsSlice.reducer;

@@ -25,7 +25,7 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
-import Create from "@/components/organizational_units/Create.tsx";
+import Create from "@/components/tenants/Create.tsx";
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);

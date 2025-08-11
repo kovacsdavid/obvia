@@ -20,13 +20,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { combineReducers } from "redux";
 import authReducer from "@/store/slices/auth";
-import organizationalUnitReducer from "@/store/slices/organizational_unit";
+import tenantsReducer from "@/store/slices/tenants.ts";
 import storage from "redux-persist/lib/storage";
 import { persistStore, persistReducer } from "redux-persist";
 
 const rootReducer = combineReducers ({
   auth: authReducer,
-  organizationalUnits: organizationalUnitReducer,
+  tenants: tenantsReducer,
 })
 
 const persistConfig = {

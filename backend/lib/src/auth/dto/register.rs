@@ -26,11 +26,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
 
-#[derive(Serialize)]
-pub struct RegisterResponse {
-    pub message: String,
-}
-
 /// This is a helper struct for registration requests.
 ///
 /// # Fields
@@ -252,11 +247,11 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
         if let Err(e) = &password_result {
             errors.password = Some(e.to_string());
         }
-        if let Ok(password) = &password_result {
-            if password.extract().get_value().clone() != value.password_confirm.clone() {
-                errors.password_confirm =
-                    Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
-            }
+        if let Ok(password) = &password_result
+            && password.extract().get_value().clone() != value.password_confirm.clone()
+        {
+            errors.password_confirm =
+                Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
         }
 
         if errors.is_empty() {

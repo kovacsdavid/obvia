@@ -21,7 +21,7 @@ use crate::app::database::{
     DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
 };
 use crate::common::repository::PoolWrapper;
-use crate::organizational_units::repository::OrganizationalUnitsRepository;
+use crate::tenants::repository::TenantsRepository;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tracing::{error, info};
@@ -53,8 +53,8 @@ pub async fn migrate_main_db(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Res
 
 /// Migrates all tenant databases
 ///
-/// This function retrieves a list of all organizational units from the main database,
-/// gets the corresponding tenant database pool for each organizational unit, and
+/// This function retrieves a list of all tenants from the main database,
+/// gets the corresponding tenant database pool for each tenant, and
 /// attempts to run a database migration for the tenant database. It logs the result
 /// of the migration for each tenant.
 ///
@@ -66,14 +66,14 @@ pub async fn migrate_main_db(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Res
 /// # Returns
 ///
 /// Returns `Ok(())` if tenant database migrations have completed. Returns an `Err`
-/// if there's an issue retrieving the organizational units or establishing a tenant-specific
+/// if there's an issue retrieving the tenants or establishing a tenant-specific
 /// database connection. This function will not terminate early if there are error during the
 /// migration process for any tenant.
 ///
 /// # Errors
 ///
 /// This function will return an error if:
-/// - It fails to retrieve all organizational units from the main database.
+/// - It fails to retrieve all tenants from the main database.
 ///
 /// Individual tenant database migration errors will not cause the function to terminate early.
 /// Instead, they will be logged as errors, and migration will continue for all other tenants.
@@ -85,16 +85,12 @@ pub async fn migrate_main_db(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Res
 /// - Logs an error message for any tenant database migration failure.
 pub async fn migrate_all_tenant_dbs(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Result<()> {
     let repo = PoolWrapper::new(pg_pool_manager.get_main_pool());
-    let organizational_units =
-        <PoolWrapper as OrganizationalUnitsRepository>::get_all(&repo).await?;
-    for organizational_unit in organizational_units {
+    let tenants = <PoolWrapper as TenantsRepository>::get_all(&repo).await?;
+    for tenant in tenants {
         //TODO: This function should continue execution if there's an error retrieving the tenant pool
-        if let Some(tenant_pool) = pg_pool_manager.get_tenant_pool(organizational_unit.id)? {
+        if let Some(tenant_pool) = pg_pool_manager.get_tenant_pool(tenant.id)? {
             match migrate_tenant_db(&tenant_pool).await {
-                Ok(_) => info!(
-                    "Tenant database migration successful: {}",
-                    &organizational_unit.id
-                ),
+                Ok(_) => info!("Tenant database migration successful: {}", &tenant.id),
                 // TODO: Notify the administrator about the failed migration
                 Err(e) => error!("Tenant database migration failed: {}", e),
             }
@@ -135,7 +131,7 @@ pub async fn migrate_tenant_db(tenant_pool: &PgPool) -> anyhow::Result<()> {
 
 /// Initializes tenant-specific database connection pools.
 ///
-/// This function retrieves all organizational units from the primary database pool
+/// This function retrieves all tenants from the primary database pool
 /// and creates individual tenant connection pools for each of them.
 ///
 /// # Arguments
@@ -144,35 +140,30 @@ pub async fn migrate_tenant_db(tenant_pool: &PgPool) -> anyhow::Result<()> {
 ///
 /// # Workflow
 /// 1. Retrieves the primary database pool using the `PgPoolManager`.
-/// 2. Fetches all organizational units from the primary pool using the `OrganizationalUnitsRepository`.
-/// 3. Iterates over each organizational unit and attempts to create a new connection pool
+/// 2. Fetches all tenants from the primary pool using the `TenantsRepository`.
+/// 3. Iterates over each tenant and attempts to create a new connection pool
 ///    specific to that tenant using its ID and configuration.
 /// 4. Logs the success or failure of each tenant pool initialization.
 ///
 /// # Errors
 /// Returns an `anyhow::Error` if:
-/// - There's an issue fetching the organizational units.
-/// - Creating tenant-specific pools fails for any of the organizational units (logged individually).
+/// - There's an issue fetching the tenants.
+/// - Creating tenant-specific pools fails for any of the tenants (logged individually).
 pub async fn init_tenant_pools(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Result<()> {
     let repo = PoolWrapper::new(pg_pool_manager.get_main_pool());
-    let organizational_units =
-        <PoolWrapper as OrganizationalUnitsRepository>::get_all(&repo).await?;
-    for organizational_unit in organizational_units {
-        match BasicDatabaseConfig::try_from(&organizational_unit) {
+    let tenants = <PoolWrapper as TenantsRepository>::get_all(&repo).await?;
+    for tenant in tenants {
+        match BasicDatabaseConfig::try_from(&tenant) {
             Ok(db_config) => {
-                match pg_pool_manager
-                    .add_tenant_pool(organizational_unit.id, &db_config)
-                    .await
-                {
-                    Ok(organizational_unit_id) => info!(
-                        "Tenant pool initialization is successful: {}",
-                        &organizational_unit_id
-                    ),
+                match pg_pool_manager.add_tenant_pool(tenant.id, &db_config).await {
+                    Ok(tenant_id) => {
+                        info!("Tenant pool initialization is successful: {}", &tenant_id)
+                    }
                     // TODO: Notify the administrator about the failed tenant pool initialization
                     Err(e) => error!("Tenant pool initialization failed: {}", e),
                 }
             }
-            Err(e) => error!("Error parsing organizational_unit: {}", e),
+            Err(e) => error!("Error parsing tenant: {}", e),
         }
     }
     Ok(())

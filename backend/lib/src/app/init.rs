@@ -24,7 +24,7 @@ use crate::app::database::{
 };
 use crate::auth;
 use crate::auth::service::Argon2Hasher;
-use crate::organizational_units::{self, OrganizationalUnitsModule};
+use crate::tenants::{self, TenantsModule};
 use crate::users::UsersModule;
 use anyhow::Result;
 use axum::Router;
@@ -36,7 +36,7 @@ use tracing_subscriber::FmtSubscriber;
 pub use crate::app::services::init_tenant_pools;
 pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
 use crate::common::repository::PoolWrapper;
-use crate::organizational_units::repository::OrganizationalUnitsRepository;
+use crate::tenants::repository::TenantsRepository;
 
 /// Sets up a global tracing subscriber for the application with a specified logging level.
 ///
@@ -116,7 +116,7 @@ pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<Arc<PgPoolManager
 /// Constructs an instance of `AppState`, which acts as the central state and dependency manager for the application.
 ///
 /// This function is primarily responsible for setting up the various modules and dependencies required by the application,
-/// such as authentication, organizational units, and user management modules. It uses the provided database pool manager
+/// such as authentication, tenants, and user management modules. It uses the provided database pool manager
 /// and application configuration to configure each module.
 ///
 /// # Arguments
@@ -147,16 +147,14 @@ pub fn app_state(
     AppStateBuilder::new()
         .users_module(Arc::new(UsersModule {}))
         .config_module(config.clone())
-        .organizational_units_module(Arc::new(OrganizationalUnitsModule {
+        .tenants_module(Arc::new(TenantsModule {
             pool_manager: pool_manager.clone(),
             config: config.clone(),
-            repo_factory: Box::new(
-                move || -> Box<dyn OrganizationalUnitsRepository + Send + Sync> {
-                    Box::new(PoolWrapper::new(
-                        pool_manager_clone.get_default_tenant_pool(),
-                    ))
-                },
-            ),
+            repo_factory: Box::new(move || -> Box<dyn TenantsRepository + Send + Sync> {
+                Box::new(PoolWrapper::new(
+                    pool_manager_clone.get_default_tenant_pool(),
+                ))
+            }),
             migrator_factory: Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
                 Box::new(PgDatabaseMigrator)
             }),
@@ -191,6 +189,6 @@ pub fn app_state(
 pub async fn app(app_state: Arc<AppState>) -> Router {
     Router::new()
         .merge(auth::routes::routes(app_state.clone()))
-        .merge(organizational_units::routes::routes(app_state.clone()))
+        .merge(tenants::routes::routes(app_state.clone()))
         .layer(TraceLayer::new_for_http())
 }

@@ -17,6 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
--- Add down migration script here
-DROP TABLE IF EXISTS user_companies;
-DROP TABLE IF EXISTS companies;
+pub(crate) mod db_host;
+pub(crate) mod db_name;
+pub(crate) mod db_password;
+pub(crate) mod db_port;
+pub(crate) mod db_user;
+pub(crate) mod name;
+
+pub(crate) use db_host::DbHost;
+pub(crate) use db_name::DbName;
+pub(crate) use db_password::DbPassword;
+pub(crate) use db_port::DbPort;
+pub(crate) use db_user::DbUser;
+pub(crate) use name::Name;

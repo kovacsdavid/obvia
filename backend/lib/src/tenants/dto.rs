@@ -18,13 +18,8 @@
  */
 use crate::app::config::TenantDatabaseConfig;
 use crate::common::dto::{ErrorBody, ErrorResponse};
-use crate::common::types::tenant::db_host::DbHost;
-use crate::common::types::tenant::db_name::DbName;
-use crate::common::types::tenant::db_password::DbPassword;
-use crate::common::types::tenant::db_port::DbPort;
-use crate::common::types::tenant::db_user::DbUser;
-use crate::common::types::tenant::name::Name;
 use crate::common::types::value_object::ValueObject;
+use crate::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -47,7 +42,7 @@ use uuid::Uuid;
 ///
 /// * `db_password` - An optional field that specifies the password for database authentication. This field is represented as an `Option<String>`.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-pub struct CreateRequestHelper {
+pub struct TenantCreateRequestHelper {
     pub name: String,
     pub is_self_hosted: bool,
     pub db_host: Option<String>,
@@ -58,7 +53,7 @@ pub struct CreateRequestHelper {
 }
 
 /// This struct contains optional fields that represent the potential issues or missing information
-/// related to organizational_unit creation
+/// related to tenant creation
 ///
 /// # Fields
 ///
@@ -71,10 +66,10 @@ pub struct CreateRequestHelper {
 ///
 /// # Usage
 ///
-/// This struct is typically used to encapsulate errors during creation requests of an organizational_unit
+/// This struct is typically used to encapsulate errors during creation requests of a tenant
 /// and to provide detailed feedback about specific fields that may have encountered an issue.
 #[derive(Debug, Serialize)]
-pub struct CreateRequestError {
+pub struct TenantCreateRequestError {
     pub name: Option<String>,
     pub is_self_hosted: Option<String>,
     pub db_host: Option<String>,
@@ -84,7 +79,7 @@ pub struct CreateRequestError {
     pub db_password: Option<String>,
 }
 
-impl CreateRequestError {
+impl TenantCreateRequestError {
     /// Checks if the current instance of the struct is empty.
     ///
     ///
@@ -102,7 +97,7 @@ impl CreateRequestError {
     }
 }
 
-impl IntoResponse for CreateRequestError {
+impl IntoResponse for TenantCreateRequestError {
     /// Converts the given error details into an HTTP response.
     ///
     /// This function constructs a response with a status code of `422 Unprocessable Entity`
@@ -131,10 +126,10 @@ impl IntoResponse for CreateRequestError {
     }
 }
 
-/// A structure representing a request for creating an organizational_unit resource.
+/// A structure representing a request for creating a tenant resource.
 ///
 /// # Fields
-/// - `name`: The name of the organizational_unit to be created. This field is mandatory and must be provided during initialization.
+/// - `name`: The name of the tenant to be created. This field is mandatory and must be provided during initialization.
 /// - `db_host`: An optional field specifying the hostname or IP address of the database server.
 /// - `db_port`: An optional field representing the port number for connecting to the database.
 /// - `db_name`: An optional field specifying the name of the database.
@@ -142,7 +137,7 @@ impl IntoResponse for CreateRequestError {
 /// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct CreateRequest {
+pub struct TenantCreateRequest {
     pub name: ValueObject<Name>,
     pub is_self_hosted: bool,
     pub db_host: Option<ValueObject<DbHost>>,
@@ -152,7 +147,7 @@ pub struct CreateRequest {
     pub db_password: Option<ValueObject<DbPassword>>,
 }
 
-impl CreateRequest {
+impl TenantCreateRequest {
     /// Checks if the instance is self-hosted.
     ///
     /// This method returns the value of the `is_self_hosted` field, indicating whether
@@ -166,7 +161,7 @@ impl CreateRequest {
     }
 }
 
-impl TryInto<TenantDatabaseConfig> for CreateRequest {
+impl TryInto<TenantDatabaseConfig> for TenantCreateRequest {
     type Error = String;
     fn try_into(self) -> Result<TenantDatabaseConfig, Self::Error> {
         Ok(TenantDatabaseConfig {
@@ -191,11 +186,11 @@ impl TryInto<TenantDatabaseConfig> for CreateRequest {
     }
 }
 
-impl TryFrom<CreateRequestHelper> for CreateRequest {
-    type Error = CreateRequestError;
+impl TryFrom<TenantCreateRequestHelper> for TenantCreateRequest {
+    type Error = TenantCreateRequestError;
     // TODO: new docs
-    fn try_from(value: CreateRequestHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateRequestError {
+    fn try_from(value: TenantCreateRequestHelper) -> Result<Self, Self::Error> {
+        let mut error = TenantCreateRequestError {
             name: None,
             is_self_hosted: None,
             db_host: None,
@@ -291,7 +286,7 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
             }
         }
         if error.is_empty() {
-            Ok(CreateRequest {
+            Ok(TenantCreateRequest {
                 name: name.unwrap(),
                 is_self_hosted: value.is_self_hosted,
                 db_host,
@@ -306,17 +301,17 @@ impl TryFrom<CreateRequestHelper> for CreateRequest {
     }
 }
 
-/// This struct is for creating connection between users and organizational units
+/// This struct is for creating connection between users and tenants
 ///
 /// Fields:
 /// - `user_id` (`Uuid`): The unique identifier for the user.
-/// - `organizational_unit_id` (`Uuid`): The unique identifier for the organizational unit the user is connected to.
-/// - `role` (`String`): The role of the user in the organizational unit. Examples of roles could include "admin", "member", or other custom-defined roles.
-/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to the organizational unit, if applicable. This field is optional and may be `None` if the user created the organizational unit.
+/// - `tenant_id` (`Uuid`): The unique identifier for the tenant the user is connected to.
+/// - `role` (`String`): The role of the user in the tenant. Examples of roles could include "admin", "member", or other custom-defined roles.
+/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to the tenant, if applicable. This field is optional and may be `None` if the user created the tenant.
 #[allow(dead_code)]
-pub struct UserOrganizationalUnitConnect {
+pub struct UserTenantConnect {
     pub user_id: Uuid,
-    pub organizational_unit_id: Uuid,
+    pub tenant_id: Uuid,
     pub role: String,
     pub invited_by: Option<Uuid>,
 }

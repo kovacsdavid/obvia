@@ -22,7 +22,7 @@ use crate::common::error::DatabaseError;
 use crate::common::repository::PoolWrapper;
 use crate::common::types::DdlParameter;
 use crate::common::types::value_object::ValueObject;
-use crate::organizational_units::model::{OrganizationalUnit, UserOrganizationalUnit};
+use crate::tenants::model::{Tenant, UserTenant};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -31,73 +31,73 @@ use sqlx::error::BoxDynError;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// The `OrganizationalUnitsRepository` trait defines the interface for interacting with
-/// the organizational units in the storage. It provides methods to query, insert,
-/// and retrieve organizational units, supporting asynchronous operations.
+/// The `TenantsRepository` trait defines the interface for interacting with
+/// the tenants in the storage. It provides methods to query, insert,
+/// and retrieve tenants, supporting asynchronous operations.
 ///
 /// # Methods
 ///
 /// * `get_by_uuid`:
-///   - Retrieves an `OrganizationalUnit` by its unique identifier (UUID).
+///   - Retrieves an `Tenant` by its unique identifier (UUID).
 ///   - This method may return a `DatabaseError` in case of a failure.
 ///
 ///   ### Parameters:
-///   - `uuid`: A reference to the UUID of the organizational unit to retrieve.
+///   - `uuid`: A reference to the UUID of the tenant to retrieve.
 ///
 ///   ### Returns:
-///   - `Result<OrganizationalUnit, DatabaseError>`: A result containing the
-///     organizational unit if found, or an error if the operation fails.
+///   - `Result<Tenant, DatabaseError>`: A result containing the
+///     tenant if found, or an error if the operation fails.
 ///
 /// * `insert_and_connect`:
-///   - Inserts a new `OrganizationalUnit` and associates it with other entities based
+///   - Inserts a new `Tenant` and associates it with other entities based
 ///     on the provided payload and claims.
 ///   - Performs additional configuration using `app_config`.
 ///
 ///   ### Parameters:
-///   - `payload`: The `CreateRequest` containing the data needed to insert a new organizational unit.
+///   - `payload`: The `CreateRequest` containing the data needed to insert a new tenant.
 ///   - `claims`: `Claims` associated with the authenticated user or system.
 ///   - `app_config`: Shared application configuration as an `Arc<AppConfig>`.
 ///
 ///   ### Returns:
-///   - `Result<OrganizationalUnit, DatabaseError>`: A result containing the newly created
-///     organizational unit, or an error if the operation fails.
+///   - `Result<Tenant, DatabaseError>`: A result containing the newly created
+///     tenant, or an error if the operation fails.
 ///
 /// * `get_all_by_user_uuid`:
-///   - Retrieves all `OrganizationalUnit`s associated with a particular user identified by their UUID.
+///   - Retrieves all `Tenant`s associated with a particular user identified by their UUID.
 ///   - Marked with `#[allow(dead_code)]` to suppress warnings if not actively used.
 ///
 ///   ### Parameters:
-///   - `user_uuid`: A reference to the UUID of the user whose organizational units
+///   - `user_uuid`: A reference to the UUID of the user whose tenants
 ///     are to be retrieved
 ///
 ///   ### Returns:
-///   - `Result<Vec<OrganizationalUnit>, DatabaseError>`: A result containing a vector
-///     of organizational units associated with the user, or an error if the operation fails.
+///   - `Result<Vec<Tenant>, DatabaseError>`: A result containing a vector
+///     of tenants associated with the user, or an error if the operation fails.
 ///
 /// * `get_all`:
-///   - Retrieves all `OrganizationalUnit`s available in the repository.
+///   - Retrieves all `Tenant`s available in the repository.
 ///
 ///   ### Returns:
-///   - `Result<Vec<OrganizationalUnit>, DatabaseError>`: A result containing a vector
-///     of all organizational units, or an error if the operation fails.
+///   - `Result<Vec<Tenant>, DatabaseError>`: A result containing a vector
+///     of all tenants, or an error if the operation fails.
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
-    /// Retrieves an `OrganizationalUnit` by its UUID.
+pub trait TenantsRepository: Send + Sync + 'static {
+    /// Retrieves an `Tenant` by its UUID.
     ///
     /// # Parameters
-    /// - `uuid`: A reference to the unique identifier (`Uuid`) of the organizational unit
+    /// - `uuid`: A reference to the unique identifier (`Uuid`) of the tenant
     ///           to be fetched.
     ///
     /// # Returns
-    /// - `Ok(OrganizationalUnit)`: If the organizational unit with the given UUID is found
+    /// - `Ok(Tenant)`: If the tenant with the given UUID is found
     ///   in the database.
     /// - `Err(DatabaseError)`: If there is an error during the database operation, or if
-    ///   the organizational unit could not be found.
+    ///   the tenant could not be found.
     #[allow(dead_code)]
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<OrganizationalUnit, DatabaseError>;
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, DatabaseError>;
 
-    /// Sets up a self-hosted instance for a specific organizational unit based on the provided payload.
+    /// Sets up a self-hosted instance for a specific tenant based on the provided payload.
     ///
     /// # Parameters
     /// - `&self`: A reference to the current struct instance.
@@ -108,13 +108,13 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     ///   which may include global settings or contextual configuration required for the operation.
     ///
     /// # Returns
-    /// - `Result<OrganizationalUnit, DatabaseError>`:
-    ///   - On success, returns an `OrganizationalUnit` representing the created or updated self-hosted instance.
+    /// - `Result<Tenant, DatabaseError>`:
+    ///   - On success, returns an `Tenant` representing the created or updated self-hosted instance.
     ///   - On failure, returns a `DatabaseError` if there are issues such as database queries or constraints.
     ///
     /// # Errors
     /// This function returns a `DatabaseError` in one of the following cases:
-    /// - If there is an issue executing database operations necessary for setting up the organizational unit.
+    /// - If there is an issue executing database operations necessary for setting up the tenant.
     /// - If any constraint or validation fails during the setup process.
     ///
     /// # Notes
@@ -126,7 +126,7 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<OrganizationalUnit, DatabaseError>;
+    ) -> Result<Tenant, DatabaseError>;
 
     /// Sets up a managed resource based on the provided parameters.
     ///
@@ -166,34 +166,31 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<OrganizationalUnit, DatabaseError>;
-    /// Asynchronously retrieves all organizational units associated with a specific user UUID.
+    ) -> Result<Tenant, DatabaseError>;
+    /// Asynchronously retrieves all tenants associated with a specific user UUID.
     ///
     /// # Parameters
-    /// - `user_uuid`: A string slice representing the UUID of the user whose organizational units
+    /// - `user_uuid`: A string slice representing the UUID of the user whose tenants
     ///   are to be retrieved.
     ///
     /// # Returns
-    /// - `Result<Vec<OrganizationalUnit>, DatabaseError>`:
-    ///   - On success: A vector containing all organizational units associated with the given user UUID.
+    /// - `Result<Vec<Tenant>, DatabaseError>`:
+    ///   - On success: A vector containing all tenants associated with the given user UUID.
     ///   - On failure: A `DatabaseError` indicating the reason for failure.
     ///
     /// # Errors
     /// - Returns a `DatabaseError` if the query fails or if an issue occurs during retrieval.
     #[allow(dead_code)]
-    async fn get_all_by_user_uuid(
-        &self,
-        user_uuid: Uuid,
-    ) -> Result<Vec<OrganizationalUnit>, DatabaseError>;
-    /// Retrieves all organizational units from the database.
+    async fn get_all_by_user_uuid(&self, user_uuid: Uuid) -> Result<Vec<Tenant>, DatabaseError>;
+    /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
-    /// `OrganizationalUnit` records stored in the database. If an error occurs
+    /// `Tenant` records stored in the database. If an error occurs
     /// during the database query, it returns a `DatabaseError`.
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<OrganizationalUnit>)` - A vector containing all organizational unit records.
+    /// * `Ok(Vec<Tenant>)` - A vector containing all tenant records.
     /// * `Err(DatabaseError)` - An error that occurred while querying the database.
     ///
     /// # Errors
@@ -205,15 +202,15 @@ pub trait OrganizationalUnitsRepository: Send + Sync + 'static {
     /// # Safety
     ///
     /// This function should not be used in any user facing scenario as it will not check if
-    /// the user is associated to the organizational_unit or not.
-    async fn get_all(&self) -> Result<Vec<OrganizationalUnit>, DatabaseError>;
+    /// the user is associated to the tenant or not.
+    async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError>;
 }
 
 #[async_trait]
-impl OrganizationalUnitsRepository for PoolWrapper {
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<OrganizationalUnit, DatabaseError> {
-        Ok(sqlx::query_as::<_, OrganizationalUnit>(
-            "SELECT * FROM organizational_units WHERE uuid = $1 AND deleted_at IS NULL",
+impl TenantsRepository for PoolWrapper {
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, DatabaseError> {
+        Ok(sqlx::query_as::<_, Tenant>(
+            "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
         .fetch_one(&self.pool)
@@ -225,7 +222,7 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<OrganizationalUnit, DatabaseError> {
+    ) -> Result<Tenant, DatabaseError> {
         let uuid = Uuid::new_v4();
         let mut tx = self
             .pool
@@ -233,16 +230,15 @@ impl OrganizationalUnitsRepository for PoolWrapper {
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        let organizational_unit =
-            insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
-                .await
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
         tx.commit()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        Ok(organizational_unit)
+        Ok(tenant)
     }
     async fn setup_managed(
         &self,
@@ -251,17 +247,16 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<OrganizationalUnit, DatabaseError> {
+    ) -> Result<Tenant, DatabaseError> {
         let mut tx = self
             .pool
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        let organizational_unit =
-            insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
-                .await
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        create_database_user_for_managed(&mut tx, &organizational_unit, app_config)
+        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        create_database_user_for_managed(&mut tx, &tenant, app_config)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         tx.commit()
@@ -271,31 +266,24 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            ValueObject::new(DdlParameter(
-                organizational_unit.id.to_string().replace("-", "")
-            ))
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
-            ValueObject::new(DdlParameter(
-                organizational_unit.id.to_string().replace("-", "")
-            ))
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
-            .bind(organizational_unit.id)
-            .bind(organizational_unit.id.to_string())
+            .bind(tenant.id)
+            .bind(tenant.id.to_string())
             .execute(&self.pool)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        Ok(organizational_unit)
+        Ok(tenant)
     }
 
-    async fn get_all_by_user_uuid(
-        &self,
-        user_uuid: Uuid,
-    ) -> Result<Vec<OrganizationalUnit>, DatabaseError> {
-        sqlx::query_as::<_, OrganizationalUnit>(
-            "SELECT * FROM organizational_units WHERE user_uuid = $1 AND deleted_at IS NULL",
+    async fn get_all_by_user_uuid(&self, user_uuid: Uuid) -> Result<Vec<Tenant>, DatabaseError> {
+        sqlx::query_as::<_, Tenant>(
+            "SELECT * FROM tenants WHERE user_uuid = $1 AND deleted_at IS NULL",
         )
         .bind(user_uuid)
         .fetch_all(&self.pool)
@@ -303,13 +291,11 @@ impl OrganizationalUnitsRepository for PoolWrapper {
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
     }
 
-    async fn get_all(&self) -> Result<Vec<OrganizationalUnit>, DatabaseError> {
-        sqlx::query_as::<_, OrganizationalUnit>(
-            "SELECT * FROM organizational_units WHERE deleted_at IS NULL",
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
+    async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError> {
+        sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
     }
 }
 
@@ -319,9 +305,9 @@ async fn insert_and_connect_with_user(
     name: &str,
     db_config: &BasicDatabaseConfig,
     claims: &Claims,
-) -> Result<OrganizationalUnit, BoxDynError> {
-    let organizational_unit = sqlx::query_as::<_, OrganizationalUnit>(
-        "INSERT INTO organizational_units (
+) -> Result<Tenant, BoxDynError> {
+    let tenant = sqlx::query_as::<_, Tenant>(
+        "INSERT INTO tenants (
             id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
     )
@@ -341,9 +327,9 @@ async fn insert_and_connect_with_user(
     .await
     .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-    let _connect = sqlx::query_as::<_, UserOrganizationalUnit>(
-        "INSERT INTO user_organizational_units (
-            user_id, organizational_unit_id, role
+    let _connect = sqlx::query_as::<_, UserTenant>(
+        "INSERT INTO user_tenants (
+            user_id, tenant_id, role
             ) VALUES ($1, $2, $3) RETURNING *",
     )
     .bind(Uuid::parse_str(claims.sub()).map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
@@ -353,21 +339,19 @@ async fn insert_and_connect_with_user(
     .await
     .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-    Ok(organizational_unit)
+    Ok(tenant)
 }
 
 async fn create_database_user_for_managed(
     conn: &mut PgConnection,
-    organizational_unit: &OrganizationalUnit,
+    tenant: &Tenant,
     app_config: Arc<AppConfig>,
 ) -> Result<(), BoxDynError> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        ValueObject::new(DdlParameter(
-            organizational_unit.id.to_string().replace("-", "")
-        ))
-        .map_err(DatabaseError::DatabaseError)?,
-        ValueObject::new(DdlParameter(organizational_unit.db_password.to_string()))
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
+            .map_err(DatabaseError::DatabaseError)?,
+        ValueObject::new(DdlParameter(tenant.db_password.to_string()))
             .map_err(DatabaseError::DatabaseError)?
     );
 
@@ -378,10 +362,8 @@ async fn create_database_user_for_managed(
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        ValueObject::new(DdlParameter(
-            organizational_unit.id.to_string().replace("-", "")
-        ))
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         app_config.default_tenant_database().username // safety: not user input
     );
 

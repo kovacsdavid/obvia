@@ -19,9 +19,9 @@
 
 use crate::auth::middleware::AuthenticatedUser;
 use crate::common::error::FriendlyError;
-use crate::organizational_units::OrganizationalUnitsModule;
-use crate::organizational_units::dto::{CreateRequest, CreateRequestHelper};
-use crate::organizational_units::service::try_create;
+use crate::tenants::TenantsModule;
+use crate::tenants::dto::{TenantCreateRequest, TenantCreateRequestHelper};
+use crate::tenants::service::try_create;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
@@ -31,24 +31,24 @@ use axum::{Json, debug_handler};
 use std::sync::Arc;
 use tracing::Level;
 
-/// Handles the creation of an organizational unit.
+/// Handles the creation of a tenant.
 ///
-/// This asynchronous function processes a request to create an organizational unit, performing
+/// This asynchronous function processes a request to create a tenant, performing
 /// authentication, state handling, and validation of the payload before delegating the core
 /// process to the `create_inner` function.
 ///
 /// # Parameters
 /// - `AuthenticatedUser(claims)`: Represents the authenticated user's claims, required for
 ///   authorization and context.
-/// - `State(organizational_unit_module)`: A shared state containing the `OrganizationalUnitsModule`
+/// - `State(tenants_module)`: A shared state containing the `TenantsModule`
 ///   object. This module provides access to necessary services and utilities related to
-///   organizational units.
+///   tenants.
 /// - `payload`: The input payload wrapped in a `Result` object, which contains either:
-///     - `Json<CreateRequestHelper>`: A valid JSON payload for creating an organizational unit.
+///     - `Json<CreateRequestHelper>`: A valid JSON payload for creating a tenant.
 ///     - `JsonRejection`: An error generated during JSON deserialization or validation.
 ///
 /// # Returns
-/// A `Response` object representing the outcome of the organizational unit creation process:
+/// A `Response` object representing the outcome of the tenant creation process:
 /// - A successful response if the creation operation completes successfully.
 /// - An appropriate error response if any step of the process fails (e.g., authentication error,
 ///   invalid payload, or data processing failure).
@@ -56,31 +56,23 @@ use tracing::Level;
 /// # Implementation Details
 /// This function does the following:
 /// 1. Extracts the authenticated user's claims.
-/// 2. Accesses the `OrganizationalUnitsModule` state.
+/// 2. Accesses the `TenantsModule` state.
 /// 3. Validates and processes the incoming JSON payload.
-/// 4. Invokes the `create_inner` function to perform the core logic of creating the organizational unit.
+/// 4. Invokes the `create_inner` function to perform the core logic of creating the tenant.
 ///    - Passes a closure that asynchronously generates a repository implementation (`PoolWrapper`),
 ///      which is used to interact with the data layer.
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(organizational_units_module): State<Arc<OrganizationalUnitsModule>>,
-    payload: Result<Json<CreateRequestHelper>, JsonRejection>,
+    State(tenants_module): State<Arc<TenantsModule>>,
+    payload: Result<Json<TenantCreateRequestHelper>, JsonRejection>,
 ) -> Response {
     match payload {
-        Ok(Json(payload)) => match CreateRequest::try_from(payload) {
+        Ok(Json(payload)) => match TenantCreateRequest::try_from(payload) {
             Ok(user_input) => {
-                let mut repo = (organizational_units_module.repo_factory)();
-                let migrator = (organizational_units_module.migrator_factory)();
-                match try_create(
-                    &mut *repo,
-                    &*migrator,
-                    claims,
-                    user_input,
-                    organizational_units_module,
-                )
-                .await
-                {
+                let mut repo = (tenants_module.repo_factory)();
+                let migrator = (tenants_module.migrator_factory)();
+                match try_create(&mut *repo, &*migrator, claims, user_input, tenants_module).await {
                     Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
                     Err(e) => e.into_response(),
                 }
@@ -97,10 +89,10 @@ pub async fn create(
     }
 }
 
-/// Handles the HTTP GET request for an organizational_unit
+/// Handles the HTTP GET request for a tenant
 ///
 /// This asynchronous function is designed to handle requests that require
-/// an authenticated user and access to the `OrganizationalUnitsModule` state.
+/// an authenticated user and access to the `TenantsModule` state.
 /// The implementation of this function is currently not provided (`todo!` macro),
 /// and should be implemented in the future to define its behavior.
 ///
@@ -110,8 +102,8 @@ pub async fn create(
 ///   The `_claims` parameter holds the claims or credentials associated with the user,
 ///   but it is currently unused in the function.
 ///
-/// * `State(_organizational_units_module)` - Provides access to the shared state of the
-///   `OrganizationalUnitsModule`. The state is wrapped in an `Arc` for thread-safe sharing,
+/// * `State(_tenants_module)` - Provides access to the shared state of the
+///   `TenantsModule`. The state is wrapped in an `Arc` for thread-safe sharing,
 ///   but it is currently unused in the function.
 ///
 /// # Returns
@@ -121,29 +113,28 @@ pub async fn create(
 /// implementation is pending.
 pub async fn get(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_organizational_units_module): State<Arc<OrganizationalUnitsModule>>,
+    State(_tenants_module): State<Arc<TenantsModule>>,
 ) -> Response {
     todo!();
 }
 
-/// Handles the listing of organizational units for an authenticated user.
+/// Handles the listing of tenants for an authenticated user.
 ///
-/// This asynchronous function processes a request to list organizational units, ensuring that
+/// This asynchronous function processes a request to list tenants, ensuring that
 /// the user is authenticated before proceeding. The function currently contains a placeholder
 /// (`todo!`) and needs implementation to fulfill its intended purpose.
 ///
 /// # Parameters
 /// - `AuthenticatedUser(_claims)`: The `_claims` represent the authentication
 ///   claims of the user. Currently unused.
-/// - `State(_organizational_units_module)`: Shared application state of type `Arc<OrganizationalUnitsModule>`,
+/// - `State(_tenants_module)`: Shared application state of type `Arc<TenantsModule>`,
 ///   used to facilitate the interaction with the data layer.
 ///
 /// # Returns
-/// - `Response`: An HTTP response that will eventually return the results of listing organizational
-///   units or an appropriate error response if issues occur.
+/// - `Response`: An HTTP response that will eventually return the results of listing tenants or an appropriate error response if issues occur.
 pub async fn list(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_organizational_units_module): State<Arc<OrganizationalUnitsModule>>,
+    State(_tenants_module): State<Arc<TenantsModule>>,
 ) -> Response {
     todo!();
 }
@@ -158,10 +149,8 @@ mod tests {
     use crate::auth::AuthModule;
     use crate::auth::dto::claims::Claims;
     use crate::auth::service::Argon2Hasher;
-    use crate::organizational_units::model::OrganizationalUnit;
-    use crate::organizational_units::repository::{
-        MockOrganizationalUnitsRepository, OrganizationalUnitsRepository,
-    };
+    use crate::tenants::model::Tenant;
+    use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
     use crate::users::UsersModule;
     use axum::body::Body;
     use axum::http::Request;
@@ -193,12 +182,12 @@ mod tests {
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
         let repo_factory = Box::new(|| {
-            let mut repo = MockOrganizationalUnitsRepository::new();
+            let mut repo = MockTenantsRepository::new();
             repo.expect_setup_managed()
                 .times(1)
                 .withf(|_, name, _, _, _| name == "test")
                 .returning(|uuid: Uuid, _, _, _, _| {
-                    Ok(OrganizationalUnit {
+                    Ok(Tenant {
                         id: uuid,
                         name: "test".to_string(),
                         db_host: "localhost".to_string(),
@@ -213,7 +202,7 @@ mod tests {
                         deleted_at: None,
                     })
                 });
-            Box::new(repo) as Box<dyn OrganizationalUnitsRepository + Send + Sync>
+            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
         });
 
         let migrator_factory = Box::new(|| {
@@ -227,7 +216,7 @@ mod tests {
 
         let config = Arc::new(AppConfig::default());
 
-        let payload = serde_json::to_string(&CreateRequestHelper {
+        let payload = serde_json::to_string(&TenantCreateRequestHelper {
             name: String::from("test"),
             is_self_hosted: false,
             db_host: None,
@@ -258,7 +247,7 @@ mod tests {
             .header("Authorization", format!("Bearer {}", bearer))
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/organizational_units/create")
+            .uri("/tenants/create")
             .body(Body::from(payload))
             .unwrap();
 
@@ -266,7 +255,7 @@ mod tests {
             AppStateBuilder::new()
                 .users_module(Arc::new(UsersModule {}))
                 .config_module(config.clone())
-                .organizational_units_module(Arc::new(OrganizationalUnitsModule {
+                .tenants_module(Arc::new(TenantsModule {
                     pool_manager: pool_manager_mock.clone(),
                     config: config.clone(),
                     repo_factory,

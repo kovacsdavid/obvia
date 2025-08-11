@@ -19,7 +19,7 @@
 
 use crate::app::app_state::AppState;
 use crate::auth::middleware::require_auth;
-use crate::organizational_units::handler::{
+use crate::tenants::handler::{
     create as managed_companies_create, get as managed_companies_get,
     list as managed_companies_list,
 };
@@ -28,27 +28,27 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use std::sync::Arc;
 
-/// Sets up application routes for the `/organizational_units` endpoint.
+/// Sets up application routes for the `/tenants` endpoint.
 ///
 /// This function creates a router and nests routes specific to
-/// managing organizational units. It ensures that proper middleware
+/// managing tenants. It ensures that proper middleware
 /// (e.g., authentication) is applied and associates the necessary
 /// application state to the nested routes.
 ///
 /// # Arguments
 ///
 /// * `state` - An `Arc<AppState>` that holds the application state.
-///   This includes shared state modules such as `organizational_units_module`.
+///   This includes shared state modules such as `tenants_module`.
 ///
 /// # Routes
 ///
-/// The following routes are available under the `/organizational_units` path:
+/// The following routes are available under the `/tenants` path:
 ///
-/// - `/create`: Handles HTTP POST requests to create a new organizational unit.
+/// - `/create`: Handles HTTP POST requests to create a new tenant.
 ///   This route is handled by the `managed_companies_create` function.
-/// - `/get`: Handles HTTP GET requests to retrieve a specific organizational unit.
+/// - `/get`: Handles HTTP GET requests to retrieve a specific tenant.
 ///   This route is handled by the `managed_companies_get` function.
-/// - `/list`: Handles HTTP GET requests to list all available organizational units.
+/// - `/list`: Handles HTTP GET requests to list all available tenants.
 ///   This route is handled by the `managed_companies_list` function.
 ///
 /// # Middleware
@@ -60,20 +60,20 @@ use std::sync::Arc;
 ///
 /// # State Association
 ///
-/// - The `organizational_units_module` section of the application state is associated
+/// - The `tenants_module` section of the application state is associated
 ///   with the nested router using `.with_state()`.
 ///
 /// # Returns
 ///
-/// A `Router` instance configured with the nested routes for managing organizational units.
+/// A `Router` instance configured with the nested routes for managing tenants.
 pub fn routes(state: Arc<AppState>) -> Router {
     Router::new().nest(
-        "/organizational_units",
+        "/tenants",
         Router::new()
             .route("/create", post(managed_companies_create))
             .route("/get", get(managed_companies_get))
             .route("/list", get(managed_companies_list))
             .layer(from_fn_with_state(state.clone(), require_auth))
-            .with_state(state.organizational_units_module.clone()),
+            .with_state(state.tenants_module.clone()),
     )
 }

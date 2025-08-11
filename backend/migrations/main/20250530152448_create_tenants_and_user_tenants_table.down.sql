@@ -17,9 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod db_host;
-pub(crate) mod db_name;
-pub(crate) mod db_password;
-pub(crate) mod db_port;
-pub(crate) mod db_user;
-pub(crate) mod name;
+-- Add down migration script here
+DROP TABLE IF EXISTS user_tenants;
+DROP TABLE IF EXISTS tenants;

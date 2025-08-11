@@ -24,35 +24,35 @@ use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
 use crate::common::services::generate_string_csprng;
 use crate::common::types::value_object::ValueObjectable;
-use crate::organizational_units::OrganizationalUnitsModule;
-use crate::organizational_units::dto::CreateRequest;
-use crate::organizational_units::repository::OrganizationalUnitsRepository;
+use crate::tenants::TenantsModule;
+use crate::tenants::dto::TenantCreateRequest;
+use crate::tenants::repository::TenantsRepository;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use tracing::Level;
 use uuid::Uuid;
 
-/// Handles the process of setting up a self-hosted organizational unit in the system.
+/// Handles the process of setting up a self-hosted tenant in the system.
 ///
 /// # Workflow
 ///
 /// 1. Converts the provided payload into a `TenantDatabaseConfig`.
 /// 2. Tests the connectivity to the provided PostgreSQL database with SSL mode verification.
 /// 3. Checks if the targeted database is empty.
-/// 4. Creates a new organizational unit in the repository.
-/// 5. Adds the organizational unit's database connection pool to the pool manager.
+/// 4. Creates a new tenant in the repository.
+/// 5. Adds the tenant's database connection pool to the pool manager.
 /// 6. Initializes the tenant's database schema by running migrations.
 /// 7. Returns a success message upon the successful completion of all the steps.
 ///
 /// # Parameters
-/// - `repo`: A mutable reference to a dynamic implementation of the `OrganizationalUnitsRepository` trait. Used to manage organizational units in the system.
+/// - `repo`: A mutable reference to a dynamic implementation of the `TenantsRepository` trait. Used to manage tenants in the system.
 /// - `claims`: The JWT claims of the requester, typically containing user identity and access details.
-/// - `payload`: The data required for creating a self-hosted organizational unit, like database configurations.
-/// - `organizational_units_module`: A shared reference (`Arc`) to the `OrganizationalUnitsModule` which holds relevant configurations and services.
+/// - `payload`: The data required for creating a self-hosted tenant, like database configurations.
+/// - `tenants_module`: A shared reference (`Arc`) to the `TenantsModule` which holds relevant configurations and services.
 ///
 /// # Returns
-/// - `Ok(OkResponse<SimpleMessageResponse>)`: If the self-hosted organizational unit setup is successful.
+/// - `Ok(OkResponse<SimpleMessageResponse>)`: If the self-hosted tenant setup is successful.
 /// - `Err(FriendlyError)`: If any step fails due to a validation, database connectivity, or internal system error.
 ///
 /// # Errors
@@ -67,11 +67,11 @@ use uuid::Uuid;
 /// # Panics
 /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
 async fn self_hosted(
-    repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: CreateRequest,
-    organizational_units_module: Arc<OrganizationalUnitsModule>,
+    payload: TenantCreateRequest,
+    tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let config: TenantDatabaseConfig = payload
         .clone()
@@ -84,11 +84,11 @@ async fn self_hosted(
                     .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
                     .await
                 {
-                    Ok(organizational_unit) => match organizational_units_module
+                    Ok(tenant) => match tenants_module
                         .pool_manager
                         .add_tenant_pool(
-                            organizational_unit.id,
-                            &TenantDatabaseConfig::try_from(&organizational_unit)
+                            tenant.id,
+                            &TenantDatabaseConfig::try_from(&tenant)
                                 .map_err(|e| {
                                     FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
                                 })?
@@ -97,9 +97,9 @@ async fn self_hosted(
                         .await
                     {
                         Ok(_) => {
-                            match &organizational_units_module
+                            match &tenants_module
                                 .pool_manager
-                                .get_tenant_pool(organizational_unit.id)
+                                .get_tenant_pool(tenant.id)
                                 .map_err(|e| {
                                     FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
                                 })? {
@@ -147,18 +147,18 @@ async fn self_hosted(
     }
 }
 
-/// Asynchronously manages the creation and setup of an organizational unit, including
+/// Asynchronously manages the creation and setup of a tenant, including
 /// the configuration and database initialization needed for a tenant environment.
 ///
 /// # Parameters
-/// * `repo` - A mutable reference to an implementation of the `OrganizationalUnitsRepository`
-///   trait. This represents the repository for managing organizational units in persistence
+/// * `repo` - A mutable reference to an implementation of the `TenantsRepository`
+///   trait. This represents the repository for managing tenants in persistence
 ///   storage.
 /// * `claims` - JWT claims representing the current authenticated user's context. This
 ///   could include permissions, roles, or other identifying information.
 /// * `payload` - The `CreateRequest` object containing the data required to create the
-///   organizational unit.
-/// * `organizational_units_module` - An `Arc`-wrapped instance of the `OrganizationalUnitsModule`,
+///   tenant.
+/// * `tenants_module` - An `Arc`-wrapped instance of the `TenantsModule`,
 ///   which provides configurations and pool management utilities for handling tenant databases.
 ///
 /// # Returns
@@ -168,19 +168,19 @@ async fn self_hosted(
 ///
 /// # Workflow
 /// 1. Calls the `setup_managed` method of the repository to initialize and persist the
-///    organizational unit using the provided payload, claims, and module configuration.
-/// 2. If successful, initializes a tenant database pool using the organizational unit's ID and
+///    tenant using the provided payload, claims, and module configuration.
+/// 2. If successful, initializes a tenant database pool using the tenant's ID and
 ///    configuration derived from `TenantDatabaseConfig`.
 /// 3. Attempts to retrieve the tenant database pool, and if found, runs database migration via
 ///    `migrate_tenant_db`.
-/// 4. If all steps complete successfully, confirms the creation of the organizational unit with
+/// 4. If all steps complete successfully, confirms the creation of the tenant with
 ///    a success message.
 /// 5. Any failure at any step is captured and returned as a `FriendlyError`, including
 ///    context for easier debugging.
 ///
 /// # Errors
 /// The function can return a `FriendlyError` in one of the following cases:
-/// * Failure to setup the organizational unit in the repository.
+/// * Failure to setup the tenant in the repository.
 /// * Failure to add a tenant pool to the pool manager.
 /// * Failure to retrieve the tenant pool from the pool manager.
 /// * Failure to perform database migrations for the tenant.
@@ -189,23 +189,16 @@ async fn self_hosted(
 /// * The success message, "Szervezeti egység létrehozása sikeresen megtörtént!", is hardcoded
 ///   in Hungarian. Modify it if localization is necessary for other languages.
 async fn managed(
-    repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: CreateRequest,
-    organizational_units_module: Arc<OrganizationalUnitsModule>,
+    payload: TenantCreateRequest,
+    tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let uuid = Uuid::new_v4();
     let db_config = BasicDatabaseConfig {
-        host: organizational_units_module
-            .config
-            .default_tenant_database()
-            .host
-            .clone(),
-        port: organizational_units_module
-            .config
-            .default_tenant_database()
-            .port,
+        host: tenants_module.config.default_tenant_database().host.clone(),
+        port: tenants_module.config.default_tenant_database().port,
         username: format!("tenant_{}", uuid.to_string().replace("-", "")),
         password: generate_string_csprng(40),
         database: format!("tenant_{}", uuid.to_string().replace("-", "")),
@@ -218,24 +211,24 @@ async fn managed(
             payload.name.extract().get_value(),
             &db_config,
             &claims,
-            organizational_units_module.config.clone(),
+            tenants_module.config.clone(),
         )
         .await
     {
-        Ok(organizational_unit) => {
-            match organizational_units_module
+        Ok(tenant) => {
+            match tenants_module
                 .pool_manager
                 .add_tenant_pool(
-                    organizational_unit.id,
-                    &BasicDatabaseConfig::try_from(&organizational_unit)
+                    tenant.id,
+                    &BasicDatabaseConfig::try_from(&tenant)
                         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?,
                 )
                 .await
             {
                 Ok(_) => {
-                    match &organizational_units_module
+                    match &tenants_module
                         .pool_manager
-                        .get_tenant_pool(organizational_unit.id)
+                        .get_tenant_pool(tenant.id)
                         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
                     {
                         Some(tenant_pool) => match migrator.migrate_tenant_db(tenant_pool).await {
@@ -261,21 +254,20 @@ async fn managed(
     }
 }
 
-/// Attempts to create an organizational unit based on the provided payload, handling both self-hosted
+/// Attempts to create a tenant based on the provided payload, handling both self-hosted
 /// and managed scenarios asynchronously.
 ///
 /// # Arguments
-/// * `repo` - A mutable reference to an object implementing the `OrganizationalUnitsRepository` trait,
-///   which allows for interaction with the underlying organizational units data store. Must be `Send` and `Sync`.
+/// * `repo` - A mutable reference to an object implementing the `TenantsRepository` trait,
+///   which allows for interaction with the underlying tenants data store. Must be `Send` and `Sync`.
 ///
 /// * `claims` - The authentication and authorization claims for the current user or process,
 ///   used to validate permissions for the requested operation.
 ///
-/// * `payload` - The `CreateRequest` object containing the necessary data to create the organizational
-///   unit. The `payload` determines whether the creation is for a self-hosted or managed unit.
+/// * `payload` - The `CreateRequest` object containing the necessary data to create the tenant. The `payload` determines whether the creation is for a self-hosted or managed unit.
 ///
-/// * `organizational_units_module` - An `Arc` reference to the `OrganizationalUnitsModule`,
-///   which encapsulates logic and dependencies for organizational units functionality.
+/// * `tenants_module` - An `Arc` reference to the `TenantsModule`,
+///   which encapsulates logic and dependencies for tenants functionality.
 ///
 /// # Returns
 /// Returns a `Result`:
@@ -284,7 +276,7 @@ async fn managed(
 /// * `Err(FriendlyError)` - Indicates a failure during the creation process, returning a user-friendly error.
 ///
 /// # Behavior
-/// This function evaluates whether the `payload` specifies a self-hosted or managed organizational unit:
+/// This function evaluates whether the `payload` specifies a self-hosted or managed tenant:
 /// * If `payload.is_self_hosted()` evaluates to true, the `self_hosted` function is invoked.
 /// * If false, the `managed` function is invoked.
 ///
@@ -294,15 +286,15 @@ async fn managed(
 /// If the creation fails, a `FriendlyError` is returned, which provides a user-comprehensible description
 /// of the error for better clarity and user experience.
 pub async fn try_create(
-    repo: &mut (dyn OrganizationalUnitsRepository + Send + Sync),
+    repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: CreateRequest,
-    organizational_units_module: Arc<OrganizationalUnitsModule>,
+    payload: TenantCreateRequest,
+    tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     if payload.is_self_hosted() {
-        self_hosted(repo, migrator, claims, payload, organizational_units_module).await
+        self_hosted(repo, migrator, claims, payload, tenants_module).await
     } else {
-        managed(repo, migrator, claims, payload, organizational_units_module).await
+        managed(repo, migrator, claims, payload, tenants_module).await
     }
 }

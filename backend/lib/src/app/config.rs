@@ -16,13 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::types::tenant::db_host::DbHost;
-use crate::common::types::tenant::db_name::DbName;
-use crate::common::types::tenant::db_password::DbPassword;
-use crate::common::types::tenant::db_port::DbPort;
-use crate::common::types::tenant::db_user::DbUser;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
-use crate::organizational_units::model::OrganizationalUnit;
+use crate::tenants::model::Tenant;
+use crate::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
 use serde::Deserialize;
 use sqlx::postgres::PgSslMode;
 use std::fmt::Display;
@@ -231,16 +227,16 @@ impl From<TenantDatabaseConfig> for BasicDatabaseConfig {
     }
 }
 
-impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
+impl TryFrom<&Tenant> for TenantDatabaseConfig {
     type Error = String;
-    /// Attempts to convert an `OrganizationalUnit` reference into the corresponding object of the implementing type.
+    /// Attempts to convert an `Tenant` reference into the corresponding object of the implementing type.
     ///
-    /// This function maps the fields of the `OrganizationalUnit` into their respective strongly typed `ValueObject`
+    /// This function maps the fields of the `Tenant` into their respective strongly typed `ValueObject`
     /// wrappers for database configuration parameters. The function validates and constructs each field, returning
     /// an error if any field is invalid or if an intermediate operation (e.g., type conversion) fails.
     ///
     /// # Arguments
-    /// * `value` - A reference to an `OrganizationalUnit` object that holds the database configuration details.
+    /// * `value` - A reference to an `Tenant` object that holds the database configuration details.
     ///
     /// # Returns
     /// * `Ok(Self)` - If all fields are successfully validated and converted.
@@ -253,9 +249,9 @@ impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
     ///
     /// # Notes
     /// * This implementation uses the `ValueObject::new` function to wrap raw values into their respective types.
-    /// * It's important that all fields in the `OrganizationalUnit` adhere to the expected format
+    /// * It's important that all fields in the `Tenant` adhere to the expected format
     ///   and constraints for successful conversion.
-    fn try_from(value: &OrganizationalUnit) -> Result<Self, Self::Error> {
+    fn try_from(value: &Tenant) -> Result<Self, Self::Error> {
         PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
             host: ValueObject::new(DbHost(value.db_host.clone()))?,
@@ -272,16 +268,16 @@ impl TryFrom<&OrganizationalUnit> for TenantDatabaseConfig {
     }
 }
 
-impl TryFrom<&OrganizationalUnit> for BasicDatabaseConfig {
+impl TryFrom<&Tenant> for BasicDatabaseConfig {
     type Error = String;
-    /// Attempts to convert an `OrganizationalUnit` reference into the corresponding object of the implementing type.
+    /// Attempts to convert an `Tenant` reference into the corresponding object of the implementing type.
     ///
-    /// This function maps the fields of the `OrganizationalUnit` into their respective strongly typed `ValueObject`
+    /// This function maps the fields of the `Tenant` into their respective strongly typed `ValueObject`
     /// wrappers for database configuration parameters. The function validates and constructs each field, returning
     /// an error if any field is invalid or if an intermediate operation (e.g., type conversion) fails.
     ///
     /// # Arguments
-    /// * `value` - A reference to an `OrganizationalUnit` object that holds the database configuration details.
+    /// * `value` - A reference to an `Tenant` object that holds the database configuration details.
     ///
     /// # Returns
     /// * `Ok(Self)` - If all fields are successfully validated and converted.
@@ -294,9 +290,9 @@ impl TryFrom<&OrganizationalUnit> for BasicDatabaseConfig {
     ///
     /// # Notes
     /// * This implementation uses the `ValueObject::new` function to wrap raw values into their respective types.
-    /// * It's important that all fields in the `OrganizationalUnit` adhere to the expected format
+    /// * It's important that all fields in the `Tenant` adhere to the expected format
     ///   and constraints for successful conversion.
-    fn try_from(value: &OrganizationalUnit) -> Result<Self, Self::Error> {
+    fn try_from(value: &Tenant) -> Result<Self, Self::Error> {
         PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
             host: value.db_host.clone(),

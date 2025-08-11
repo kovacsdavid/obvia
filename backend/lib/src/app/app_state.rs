@@ -19,7 +19,7 @@
 
 use crate::app::config::AppConfig;
 use crate::auth::AuthModule;
-use crate::organizational_units::OrganizationalUnitsModule;
+use crate::tenants::TenantsModule;
 use crate::users::UsersModule;
 use std::sync::Arc;
 
@@ -37,19 +37,19 @@ pub struct AppState {
     pub auth_module: Arc<AuthModule>,
     pub config_module: Arc<AppConfig>,
     pub users_module: Arc<UsersModule>,
-    pub organizational_units_module: Arc<OrganizationalUnitsModule>,
+    pub tenants_module: Arc<TenantsModule>,
 }
 
 /// A builder struct for constructing the `AppState` structure with optional modules.
 ///
 /// `AppStateBuilder` provides a convenient way to assemble the application state by configuring
-/// its optional components such as authentication, configuration, users, and organizational units.
+/// its optional components such as authentication, configuration, users, and tenants.
 #[derive(Default)]
 pub struct AppStateBuilder {
     pub auth_module: Option<Arc<AuthModule>>,
     pub config_module: Option<Arc<AppConfig>>,
     pub users_module: Option<Arc<UsersModule>>,
-    pub organizational_units_module: Option<Arc<OrganizationalUnitsModule>>,
+    pub tenants_module: Option<Arc<TenantsModule>>,
 }
 
 impl AppStateBuilder {
@@ -60,13 +60,13 @@ impl AppStateBuilder {
     /// - `auth_module`: None
     /// - `config_module`: None
     /// - `users_module`: None
-    /// - `organizational_units_module`: None
+    /// - `tenants_module`: None
     pub fn new() -> Self {
         Self {
             auth_module: None,
             config_module: None,
             users_module: None,
-            organizational_units_module: None,
+            tenants_module: None,
         }
     }
     /// Sets the authentication module for the current instance and returns the updated instance.
@@ -125,32 +125,29 @@ impl AppStateBuilder {
         self.users_module = Some(users_module);
         self
     }
-    /// Sets the `organizational_units_module` for the current instance.
+    /// Sets the `tenants_module` for the current instance.
     ///
-    /// This method accepts an `Arc<OrganizationalUnitsModule>` and updates the associated
+    /// This method accepts an `Arc<TenantsModule>` and updates the associated
     /// field in the struct. It returns the modified instance of the struct for method
     /// chaining.
     ///
     /// # Arguments
     ///
-    /// * `organizational_units_module` - An `Arc`-wrapped instance of `OrganizationalUnitsModule`
+    /// * `tenants_module` - An `Arc`-wrapped instance of `TenantsModule`
     ///   that will be set for the current instance.
     ///
     /// # Returns
     ///
-    /// Returns the modified instance of `Self` after the `organizational_units_module`
+    /// Returns the modified instance of `Self` after the `tenants_module`
     /// has been set.
-    pub fn organizational_units_module(
-        mut self,
-        organizational_units_module: Arc<OrganizationalUnitsModule>,
-    ) -> Self {
-        self.organizational_units_module = Some(organizational_units_module);
+    pub fn tenants_module(mut self, tenants_module: Arc<TenantsModule>) -> Self {
+        self.tenants_module = Some(tenants_module);
         self
     }
     /// Builds an `AppState` instance by initializing its required modules.
     ///
     /// This method validates that all mandatory modules (`auth_module`, `config_module`,
-    /// `users_module`, and `organizational_units_module`) have been provided. If any of these
+    /// `users_module`, and `tenants_module`) have been provided. If any of these
     /// modules are missing, it returns an `Err` with a descriptive error message.
     ///
     /// # Returns
@@ -162,15 +159,13 @@ impl AppStateBuilder {
     /// - If the `auth_module` is `None`, an error stating "Auth module is required" is returned.
     /// - If the `config_module` is `None`, an error stating "Config module is required" is returned.
     /// - If the `users_module` is `None`, an error stating "Users module is required" is returned.
-    /// - If the `organizational_units_module` is `None`, an error stating "Organizational units module is required" is returned.
+    /// - If the `tenants_module` is `None`, an error stating "Tenants module is required" is returned.
     pub fn build(self) -> Result<AppState, String> {
         Ok(AppState {
             auth_module: self.auth_module.ok_or("Auth module is required")?,
             config_module: self.config_module.ok_or("Config module is required")?,
             users_module: self.users_module.ok_or("Users module is required")?,
-            organizational_units_module: self
-                .organizational_units_module
-                .ok_or("Organizational units module is required")?,
+            tenants_module: self.tenants_module.ok_or("Tenants module is required")?,
         })
     }
 }

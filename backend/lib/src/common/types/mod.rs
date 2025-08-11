@@ -22,7 +22,6 @@ pub(crate) mod email;
 pub(crate) mod first_name;
 pub(crate) mod last_name;
 pub(crate) mod password;
-pub(crate) mod tenant;
 pub(crate) mod value_object;
 
 pub(crate) use ddl_parameter::DdlParameter;

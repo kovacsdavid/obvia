@@ -19,7 +19,7 @@
 
 use crate::app::config::AppConfig;
 use crate::app::database::{DatabaseMigrator, PgPoolManagerTrait};
-use crate::organizational_units::repository::OrganizationalUnitsRepository;
+use crate::tenants::repository::TenantsRepository;
 use std::sync::Arc;
 
 pub(crate) mod dto;
@@ -28,11 +28,11 @@ pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
 mod service;
+pub(crate) mod types;
 
-pub struct OrganizationalUnitsModule {
+pub struct TenantsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
-    pub repo_factory:
-        Box<dyn Fn() -> Box<dyn OrganizationalUnitsRepository + Send + Sync> + Send + Sync>,
+    pub repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
     pub migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
 }

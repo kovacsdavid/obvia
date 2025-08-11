@@ -21,5 +21,5 @@
 pub mod app;
 pub mod auth;
 pub mod common;
-pub mod organizational_units;
+pub mod tenants;
 pub mod users;

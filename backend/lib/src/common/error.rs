@@ -198,7 +198,7 @@ impl IntoResponse for FriendlyError {
     ///   to the client.
     /// - It uses the `ErrorResponse` and `ErrorBody` structures to ensure consistent error formatting.
     /// - If you want to propagate the fields use a specific error struct
-    ///   and implement axum `IntoResponse` on it (ex.: crate::organizational_unit::dto::CreateRequestError)
+    ///   and implement axum `IntoResponse` on it (ex.: crate::tenants::dto::TenantCreateRequestError)
     fn into_response(self) -> Response {
         let msg_for_internal = "Váratlan hiba történt a feldolgozás során!".to_string();
         let (status, code, message) = match self {

@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM rust:1.88.0 AS builder
+FROM --platform=$BUILDPLATFORM rust:1.89.0 AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]; then \

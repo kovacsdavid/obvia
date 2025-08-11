@@ -149,12 +149,14 @@ mod tests {
     use crate::auth::AuthModule;
     use crate::auth::dto::claims::Claims;
     use crate::auth::service::Argon2Hasher;
+    use crate::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::tenants::model::Tenant;
     use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
     use crate::users::UsersModule;
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Local;
+    use http_body_util::BodyExt;
     use sqlx::postgres::PgPoolOptions;
     use std::ops::Add;
     use std::time::Duration;
@@ -162,7 +164,7 @@ mod tests {
     use uuid::Uuid;
 
     #[tokio::test]
-    async fn test_create_inner_success() {
+    async fn test_create_managed_success() {
         let mut pool_manager_mock = MockPgPoolManagerTrait::new();
         pool_manager_mock
             .expect_add_tenant_pool()
@@ -274,5 +276,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+
+        let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
+            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
+        }))
+        .unwrap();
+
+        assert_eq!(&body[..], expected_response.as_bytes());
     }
 }

@@ -23,7 +23,16 @@ pub(crate) mod model;
 mod repository;
 mod routes;
 mod service;
-#[cfg(test)]
-mod tests;
 
 pub struct UsersModule {}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    impl Default for UsersModule {
+        fn default() -> Self {
+            UsersModule {}
+        }
+    }
+}

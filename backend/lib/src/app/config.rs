@@ -45,8 +45,7 @@ use std::str::FromStr;
 ///
 /// This struct is intended to be used as the central configuration hub for initializing
 /// necessary dependencies of the application.
-#[cfg_attr(test, derive(Debug, Clone, Deserialize, Default))]
-#[cfg_attr(not(test), derive(Debug, Clone, Deserialize))]
+#[derive(Debug, Clone, Deserialize)]
 pub struct AppConfig {
     server: ServerConfig,
     main_database: BasicDatabaseConfig,
@@ -358,67 +357,6 @@ where
     }
 }
 
-#[cfg(test)]
-impl Default for TenantDatabaseConfig {
-    /// Provides a default implementation for the database configuration settings.
-    ///
-    /// # Returns
-    /// A `Self` instance populated with default values for the following fields:
-    ///
-    /// - `host`: Defaults to "localhost".
-    /// - `port`: Defaults to 5432.
-    /// - `username`: Defaults to "user".
-    /// - `password`: Defaults to "password".
-    /// - `database`: Defaults to "database".
-    /// - `pool_size`: Defaults to `Some(5)`.
-    /// - `ssl_mode`: "prefer"
-    ///
-    /// Each field is wrapped in a `ValueObject` for validation and ensures safe initialization.
-    /// Uses `unwrap()` to assume successful creation of `ValueObject` instances for valid inputs.
-    fn default() -> Self {
-        Self {
-            host: ValueObject::new(DbHost("localhost".to_string())).unwrap(),
-            port: ValueObject::new(DbPort(5432)).unwrap(),
-            username: ValueObject::new(DbUser("user".to_string())).unwrap(),
-            password: ValueObject::new(DbPassword("password".to_string())).unwrap(),
-            database: ValueObject::new(DbName("database".to_string())).unwrap(),
-            max_pool_size: Some(5),
-            ssl_mode: Some("prefer".to_string()),
-        }
-    }
-}
-
-#[cfg(test)]
-impl Default for BasicDatabaseConfig {
-    /// Provides a default implementation for the `default` method, which initializes
-    /// a new instance of the struct with predefined default configuration values.
-    ///
-    /// # Returns
-    ///
-    /// - `Self`: A new instance of the struct populated with default settings.
-    ///
-    /// # Default Values
-    ///
-    /// - `host`: `"localhost"`
-    /// - `port`: `5432`
-    /// - `username`: `"user"`
-    /// - `password`: `"password"`
-    /// - `database`: `"database"`
-    /// - `pool_size`: `Some(5)`
-    /// - `ssl_mode`: "prefer"
-    fn default() -> Self {
-        Self {
-            host: String::from("localhost"),
-            port: 5432,
-            username: String::from("user"),
-            password: String::from("password"),
-            database: String::from("database"),
-            max_pool_size: Some(5),
-            ssl_mode: Some("prefer".to_string()),
-        }
-    }
-}
-
 /// `AuthConfig` is a configuration struct that provides the necessary details for handling
 /// JSON Web Token (JWT) authentication.
 ///
@@ -437,46 +375,6 @@ pub struct AuthConfig {
     jwt_issuer: String,
     jwt_audience: String,
     jwt_expiration_mins: u64,
-}
-
-impl Default for ServerConfig {
-    /// Provides a default implementation for the `ServerConfig` struct.
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `ServerConfig` with the following default values:
-    /// - `host`: `"127.0.0.1"`
-    /// - `port`: `3000`
-    ///
-    /// These default values are used for local development or testing scenarios.
-    fn default() -> Self {
-        ServerConfig {
-            host: "127.0.0.1".to_string(),
-            port: 3000,
-        }
-    }
-}
-
-impl Default for AuthConfig {
-    /// Provides a default implementation for the `AuthConfig` struct.
-    ///
-    /// This implementation initializes the `AuthConfig` structure with
-    /// the following default values:
-    ///
-    /// - `jwt_secret`: A default JWT secret string set to `"test_jwt_secret"`.
-    /// - `jwt_issuer`: A default issuer URL set to `"http://localhost"`.
-    /// - `jwt_audience`: A default audience URL set to `"http://localhost"`.
-    /// - `jwt_expiration_mins`: The default expiration time for JWTs, set to 60 minutes.
-    ///
-    /// These default values are used for local development or testing scenarios.
-    fn default() -> Self {
-        AuthConfig {
-            jwt_secret: "test_jwt_secret".to_string(),
-            jwt_issuer: "http://localhost".to_string(),
-            jwt_audience: "http://localhost".to_string(),
-            jwt_expiration_mins: 60,
-        }
-    }
 }
 
 impl AppConfig {
@@ -555,5 +453,120 @@ impl AuthConfig {
     /// Returns the jwt_expiration_mins.
     pub fn jwt_expiration_mins(&self) -> u64 {
         self.jwt_expiration_mins
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    impl Default for AuthConfig {
+        /// Provides a default implementation for the `AuthConfig` struct.
+        ///
+        /// This implementation initializes the `AuthConfig` structure with
+        /// the following default values:
+        ///
+        /// - `jwt_secret`: A default JWT secret string set to `"test_jwt_secret"`.
+        /// - `jwt_issuer`: A default issuer URL set to `"http://localhost"`.
+        /// - `jwt_audience`: A default audience URL set to `"http://localhost"`.
+        /// - `jwt_expiration_mins`: The default expiration time for JWTs, set to 60 minutes.
+        ///
+        /// These default values are used for local development or testing scenarios.
+        fn default() -> Self {
+            AuthConfig {
+                jwt_secret: "test_jwt_secret".to_string(),
+                jwt_issuer: "http://localhost".to_string(),
+                jwt_audience: "http://localhost".to_string(),
+                jwt_expiration_mins: 60,
+            }
+        }
+    }
+
+    impl Default for BasicDatabaseConfig {
+        /// Provides a default implementation for the `default` method, which initializes
+        /// a new instance of the struct with predefined default configuration values.
+        ///
+        /// # Returns
+        ///
+        /// - `Self`: A new instance of the struct populated with default settings.
+        ///
+        /// # Default Values
+        ///
+        /// - `host`: `"localhost"`
+        /// - `port`: `5432`
+        /// - `username`: `"user"`
+        /// - `password`: `"password"`
+        /// - `database`: `"database"`
+        /// - `pool_size`: `Some(5)`
+        /// - `ssl_mode`: "prefer"
+        fn default() -> Self {
+            Self {
+                host: String::from("localhost"),
+                port: 5432,
+                username: String::from("user"),
+                password: String::from("password"),
+                database: String::from("database"),
+                max_pool_size: Some(5),
+                ssl_mode: Some("prefer".to_string()),
+            }
+        }
+    }
+
+    impl Default for ServerConfig {
+        /// Provides a default implementation for the `ServerConfig` struct.
+        ///
+        /// # Returns
+        ///
+        /// A new instance of `ServerConfig` with the following default values:
+        /// - `host`: `"127.0.0.1"`
+        /// - `port`: `3000`
+        ///
+        /// These default values are used for local development or testing scenarios.
+        fn default() -> Self {
+            ServerConfig {
+                host: "127.0.0.1".to_string(),
+                port: 3000,
+            }
+        }
+    }
+
+    impl Default for TenantDatabaseConfig {
+        /// Provides a default implementation for the database configuration settings.
+        ///
+        /// # Returns
+        /// A `Self` instance populated with default values for the following fields:
+        ///
+        /// - `host`: Defaults to "localhost".
+        /// - `port`: Defaults to 5432.
+        /// - `username`: Defaults to "user".
+        /// - `password`: Defaults to "password".
+        /// - `database`: Defaults to "database".
+        /// - `pool_size`: Defaults to `Some(5)`.
+        /// - `ssl_mode`: "prefer"
+        ///
+        /// Each field is wrapped in a `ValueObject` for validation and ensures safe initialization.
+        /// Uses `unwrap()` to assume successful creation of `ValueObject` instances for valid inputs.
+        fn default() -> Self {
+            Self {
+                host: ValueObject::new(DbHost("localhost".to_string())).unwrap(),
+                port: ValueObject::new(DbPort(5432)).unwrap(),
+                username: ValueObject::new(DbUser("user".to_string())).unwrap(),
+                password: ValueObject::new(DbPassword("password".to_string())).unwrap(),
+                database: ValueObject::new(DbName("database".to_string())).unwrap(),
+                max_pool_size: Some(5),
+                ssl_mode: Some("prefer".to_string()),
+            }
+        }
+    }
+
+    impl Default for AppConfig {
+        fn default() -> Self {
+            AppConfig {
+                server: ServerConfig::default(),
+                main_database: BasicDatabaseConfig::default(),
+                default_tenant_database: BasicDatabaseConfig::default(),
+                auth: AuthConfig::default(),
+            }
+        }
     }
 }

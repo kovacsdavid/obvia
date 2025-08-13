@@ -146,17 +146,13 @@ mod tests {
     use crate::app::config::{AppConfig, BasicDatabaseConfig, DatabaseUrlProvider};
     use crate::app::database::{DatabaseMigrator, MockDatabaseMigrator, MockPgPoolManagerTrait};
     use crate::app::init::app;
-    use crate::auth::AuthModule;
     use crate::auth::dto::claims::Claims;
-    use crate::auth::service::Argon2Hasher;
     use crate::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::tenants::model::Tenant;
     use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
-    use crate::users::UsersModule;
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Local;
-    use http_body_util::BodyExt;
     use sqlx::postgres::PgPoolOptions;
     use std::ops::Add;
     use std::time::Duration;
@@ -253,31 +249,25 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = Arc::new(
-            AppStateBuilder::new()
-                .users_module(Arc::new(UsersModule {}))
-                .config_module(config.clone())
-                .tenants_module(Arc::new(TenantsModule {
-                    pool_manager: pool_manager_mock.clone(),
-                    config: config.clone(),
-                    repo_factory,
-                    migrator_factory,
-                }))
-                .auth_module(Arc::new(AuthModule {
-                    pool_manager: pool_manager_mock.clone(),
-                    password_hasher: Arc::new(Argon2Hasher),
-                    config: config.clone(),
-                }))
-                .build()
-                .unwrap(),
-        );
-        let app = app(app_state).await;
+        let app_state = AppStateBuilder::default()
+            .tenants_module(Arc::new(TenantsModule {
+                pool_manager: pool_manager_mock.clone(),
+                config: config.clone(),
+                repo_factory,
+                migrator_factory,
+            }))
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
 
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
 
-        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
 
         let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
             message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),

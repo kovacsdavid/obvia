@@ -36,3 +36,22 @@ pub struct TenantsModule {
     pub repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
     pub migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
 }
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    use crate::app::database::{MockDatabaseMigrator, MockPgPoolManagerTrait};
+    use crate::tenants::repository::MockTenantsRepository;
+
+    impl Default for TenantsModule {
+        fn default() -> Self {
+            TenantsModule {
+                pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+                config: Arc::new(AppConfig::default()),
+                repo_factory: Box::new(|| Box::new(MockTenantsRepository::new())),
+                migrator_factory: Box::new(|| Box::new(MockDatabaseMigrator::new())),
+            }
+        }
+    }
+}

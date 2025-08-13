@@ -36,75 +36,8 @@ use argon2::{
 use axum::http::StatusCode;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
-#[cfg(test)]
-use mockall::automock;
 use std::sync::Arc;
 use uuid::Uuid;
-
-#[cfg_attr(test, automock)]
-pub trait AuthPasswordHasher: Send + Sync + 'static {
-    ///
-    /// Hashes a plaintext password using the Argon2 algorithm.
-    ///
-    /// This function generates a random salt using a cryptographically secure random number generator
-    /// (`OsRng`), and then hashes the provided password using the Argon2 hashing algorithm with the
-    /// generated salt. The function returns the resulting hash as a string if the process succeeds, or
-    /// an error message as a string if hashing fails.
-    ///
-    /// # Arguments
-    ///
-    /// * `password` - A string slice representing the plaintext password to be hashed.
-    ///
-    /// # Returns
-    ///
-    /// A `Result<String, String>`:
-    /// - `Ok(String)` containing the hashed password if successful.
-    /// - `Err(String)` containing the error message if hashing fails.
-    ///
-    /// # Dependencies
-    ///
-    /// This function utilizes the following:
-    /// - `Argon2` from the `argon2` crate for secure password hashing.
-    /// - `SaltString` from the `argon2` crate to generate a random salt.
-    /// - `OsRng` from the `rand` crate for cryptographically secure random number generation.
-    fn hash_password(&self, password: &str) -> Result<String, String>;
-
-    /// Verifies whether the provided password matches the given hash using the Argon2 hashing algorithm.
-    ///
-    /// # Parameters
-    /// - `password`: A string slice representing the plaintext password to be verified.
-    /// - `hash`: A string slice containing the hashed password to verify against.
-    ///
-    /// # Returns
-    /// - `Ok(true)`: If the password matches the hash.
-    /// - `Err(String)`: If an error occurs during hash parsing or verification. The error message is returned as a `String`.
-    ///
-    /// # Errors
-    /// This function returns an error if:
-    /// - The provided `hash` string is not a valid password hash (e.g., invalid format or corrupted data).
-    /// - The password does not match the provided hash.
-    fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String>;
-}
-
-pub struct Argon2Hasher;
-
-impl AuthPasswordHasher for Argon2Hasher {
-    fn hash_password(&self, password: &str) -> Result<String, String> {
-        let salt = SaltString::generate(&mut OsRng);
-        Argon2::default()
-            .hash_password(password.as_bytes(), &salt)
-            .map(|hash| hash.to_string())
-            .map_err(|e| e.to_string())
-    }
-    fn verify_password(&self, password: &str, hash: &str) -> Result<bool, String> {
-        let parsed_hash = PasswordHash::new(hash).map_err(|e| e.to_string())?;
-        let argon2 = Argon2::default();
-        argon2
-            .verify_password(password.as_bytes(), &parsed_hash)
-            .map(|_| true)
-            .map_err(|e| e.to_string())
-    }
-}
 
 /// Attempts to authenticate a user based on the provided credentials. If the login succeeds, a JWT token is
 /// generated and returned along with the user's public information.
@@ -228,13 +161,13 @@ pub async fn try_login(
 /// - Ensure that the password hashing utility is properly configured and secure.
 pub async fn try_register(
     repo: &(dyn AuthRepository + Send + Sync),
-    password_hasher: Arc<dyn AuthPasswordHasher>,
     payload: RegisterRequest,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
-    let password_hash = password_hasher
-        .hash_password(payload.password.extract().get_value())
-        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?
-        .to_string();
+    let salt = SaltString::generate(&mut OsRng);
+    let password_hash = Argon2::default()
+        .hash_password(payload.password.extract().get_value().as_bytes(), &salt)
+        .map(|hash| hash.to_string())
+        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
     repo.insert_user(&payload, &password_hash)
         .await

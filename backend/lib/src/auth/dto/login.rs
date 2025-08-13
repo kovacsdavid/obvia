@@ -46,7 +46,7 @@ use uuid::Uuid;
 /// # Security
 /// - Make sure to handle the `password` field securely and avoid logging, storing or exposing it
 ///   in any other ways
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,

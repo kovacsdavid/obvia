@@ -47,7 +47,7 @@ use serde::Deserialize;
 /// # Security
 /// - Make sure to handle the `password` field securely and avoid logging, storing or exposing it
 ///   in any other ways
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
 pub struct RegisterRequestHelper {
     pub email: String,
     pub first_name: String,
@@ -172,7 +172,7 @@ impl IntoResponse for RegisterRequestError {
 ///   in any other ways
 /// # See also
 /// - `RegisterRequestHelper`
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct RegisterRequest {
     pub email: ValueObject<Email>,
     pub first_name: ValueObject<FirstName>,

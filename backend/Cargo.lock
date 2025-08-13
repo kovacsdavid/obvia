@@ -250,7 +250,6 @@ dependencies = [
  "chrono",
  "config",
  "headers",
- "http-body-util",
  "jsonwebtoken",
  "mockall",
  "pretty_assertions",

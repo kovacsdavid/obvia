@@ -44,7 +44,6 @@ pub struct AppState {
 ///
 /// `AppStateBuilder` provides a convenient way to assemble the application state by configuring
 /// its optional components such as authentication, configuration, users, and tenants.
-#[derive(Default)]
 pub struct AppStateBuilder {
     pub auth_module: Option<Arc<AuthModule>>,
     pub config_module: Option<Arc<AppConfig>>,
@@ -167,5 +166,28 @@ impl AppStateBuilder {
             users_module: self.users_module.ok_or("Users module is required")?,
             tenants_module: self.tenants_module.ok_or("Tenants module is required")?,
         })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for AppStateBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    impl Default for AppStateBuilder {
+        fn default() -> Self {
+            AppStateBuilder {
+                auth_module: Some(Arc::new(AuthModule::default())),
+                config_module: Some(Arc::new(AppConfig::default())),
+                users_module: Some(Arc::new(UsersModule::default())),
+                tenants_module: Some(Arc::new(TenantsModule::default())),
+            }
+        }
     }
 }

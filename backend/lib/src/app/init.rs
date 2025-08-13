@@ -23,7 +23,6 @@ use crate::app::database::{
     DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
 };
 use crate::auth;
-use crate::auth::service::Argon2Hasher;
 use crate::tenants::{self, TenantsModule};
 use crate::users::UsersModule;
 use anyhow::Result;
@@ -35,6 +34,7 @@ use tracing_subscriber::FmtSubscriber;
 
 pub use crate::app::services::init_tenant_pools;
 pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
+use crate::auth::repository::AuthRepository;
 use crate::common::repository::PoolWrapper;
 use crate::tenants::repository::TenantsRepository;
 
@@ -143,7 +143,8 @@ pub fn app_state(
     pool_manager: Arc<dyn PgPoolManagerTrait>,
     config: Arc<AppConfig>,
 ) -> Result<AppState, String> {
-    let pool_manager_clone = pool_manager.clone();
+    let tenant_pool_manager = pool_manager.clone();
+    let auth_pool_manager = pool_manager.clone();
     AppStateBuilder::new()
         .users_module(Arc::new(UsersModule {}))
         .config_module(config.clone())
@@ -152,7 +153,7 @@ pub fn app_state(
             config: config.clone(),
             repo_factory: Box::new(move || -> Box<dyn TenantsRepository + Send + Sync> {
                 Box::new(PoolWrapper::new(
-                    pool_manager_clone.get_default_tenant_pool(),
+                    tenant_pool_manager.get_default_tenant_pool(),
                 ))
             }),
             migrator_factory: Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
@@ -161,8 +162,10 @@ pub fn app_state(
         }))
         .auth_module(Arc::new(auth::AuthModule {
             pool_manager: pool_manager.clone(),
-            password_hasher: Arc::new(Argon2Hasher),
             config: config.clone(),
+            repo_factory: Box::new(move || -> Box<dyn AuthRepository + Send + Sync> {
+                Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
+            }),
         }))
         .build()
 }

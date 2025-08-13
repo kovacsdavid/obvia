@@ -22,8 +22,6 @@ use super::{
     service::{try_login, try_register},
 };
 use crate::auth::dto::register::RegisterRequestHelper;
-use crate::auth::repository::AuthRepository;
-use crate::common::repository::PoolWrapper;
 use crate::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
     common::error::FriendlyError,
@@ -35,45 +33,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
-
-/// Handles the inner login logic for an authentication flow.
-///
-/// This function is responsible for managing the login process, using the provided `auth_module`,
-/// `payload`, and a repository factory to interact with the underlying authentication repository.
-/// It attempts to authenticate the user based on the given login payload and returns an appropriate
-/// HTTP response.
-///
-/// # Type Parameters
-/// - `F`: A factory function that produces a future resolving to a boxed `AuthRepository` implementation.
-/// - `Fut`: The future type returned by the factory function, resolving to `Box<dyn AuthRepository>`.
-///
-/// # Parameters
-/// - `auth_module`: A shared reference-counted pointer (`Arc`) to the `AuthModule`, responsible for authentication logic.
-/// - `payload`: The `LoginRequest` payload containing the login credentials and related information.
-/// - `repo_factory`: A factory function producing a future that resolves to an instance of `AuthRepository`. This allows the function to dynamically access the repository when needed and makes testing easier.
-///
-/// # Returns
-/// - A `Response` representing the result of the login process. On success, it returns a `200 OK` response
-///   containing the authentication response as JSON. On failure, it returns the relevant error response.
-///
-/// # Errors
-/// - If the login process fails (e.g., invalid credentials, user not found, repository issues),
-///   an appropriate error response is returned.
-pub async fn login_inner<F, Fut>(
-    auth_module: Arc<AuthModule>,
-    payload: LoginRequest,
-    repo_factory: F,
-) -> Response
-where
-    F: Fn() -> Fut + Send + Sync,
-    Fut: Future<Output = Box<dyn AuthRepository + Send + Sync>>,
-{
-    let repo = repo_factory().await;
-    match try_login(&*repo, auth_module.clone(), payload).await {
-        Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
-        Err(e) => e.into_response(),
-    }
-}
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -100,73 +59,10 @@ pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
     Json(payload): Json<LoginRequest>,
 ) -> Response {
-    login_inner(auth_module.clone(), payload, || async {
-        Box::new(PoolWrapper::new(auth_module.pool_manager.get_main_pool()))
-            as Box<dyn AuthRepository + Send + Sync>
-    })
-    .await
-}
-
-/// Asynchronous function to handle user registration logic.
-///
-/// This function is an inner implementation that processes incoming registration requests,
-/// validates user input, and interacts with the authentication repository to complete
-/// the registration process.
-///
-/// # Parameters
-///
-/// - `auth_module`: An `Arc` reference to the `AuthModule` that provides authentication-related utilities,
-///   such as the password hasher.
-/// - `payload`: A `Result` containing either a deserialized `Json` request of type `RegisterRequestHelper`
-///   or a `JsonRejection` indicating invalid input structure.
-/// - `repo_factory`: A closure that asynchronously returns an implementation of the `AuthRepository`
-///   trait. This is used to interact with the underlying user data store.
-///
-/// # Return
-///
-/// Returns a `Response` that represents the HTTP response for the registration operation:
-/// - On success, responds with `201 Created` and the registered user information in JSON format.
-/// - On failure, responds with detailed error messages, such as:
-///   - `400 Bad Request` for invalid input structure.
-///   - `422 Unprocessable Entry` Relevant error response from the internal `try_register` function for other failure cases.
-///
-/// # Error Handling
-///
-/// - If the input `payload` cannot be parsed into a `RegisterRequest`, the function returns a
-///   `400 Bad Request` error with a user-friendly error message.
-/// - `422 Unprocessable Entry` If the `try_register` function encounters an error during the registration process, the specific error details are returned in the response.
-///
-/// # Notes
-///
-/// - This function abstracts the core registration logic and can be reused or extended
-///   with additional middleware for logging, security validation, etc.
-pub async fn register_inner<F, Fut>(
-    auth_module: Arc<AuthModule>,
-    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
-    repo_factory: F,
-) -> Response
-where
-    F: Fn() -> Fut + Send + Sync,
-    Fut: Future<Output = Box<dyn AuthRepository + Send + Sync>>,
-{
-    match payload {
-        Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
-            Ok(user_input) => {
-                let repo = repo_factory().await;
-                match try_register(&*repo, auth_module.password_hasher.clone(), user_input).await {
-                    Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
-                    Err(e) => e.into_response(),
-                }
-            }
-            Err(e) => e.into_response(),
-        },
-        Err(_) => FriendlyError::UserFacing(
-            StatusCode::BAD_REQUEST,
-            "AUTH/HANDLER/REGISTER".to_string(),
-            "Hibás adatszerkezet".to_string(),
-        )
-        .trace(tracing::Level::DEBUG)
-        .into_response(),
+    let repo = (auth_module.repo_factory)();
+    match try_login(&*repo, auth_module.clone(), payload).await {
+        Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -203,9 +99,290 @@ pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
     payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
 ) -> Response {
-    register_inner(auth_module.clone(), payload, || async {
-        Box::new(PoolWrapper::new(auth_module.pool_manager.get_main_pool()))
-            as Box<dyn AuthRepository + Send + Sync>
-    })
-    .await
+    match payload {
+        Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
+            Ok(user_input) => {
+                let repo = (auth_module.repo_factory)();
+                match try_register(&*repo, user_input).await {
+                    Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
+                    Err(e) => e.into_response(),
+                }
+            }
+            Err(e) => e.into_response(),
+        },
+        Err(_) => FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
+            "AUTH/HANDLER/REGISTER".to_string(),
+            "Hibás adatszerkezet".to_string(),
+        )
+        .trace(tracing::Level::DEBUG)
+        .into_response(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    use axum::body::Body;
+    use axum::http::Request;
+    use axum::http::StatusCode;
+    use chrono::Utc;
+    use mockall::predicate::*;
+    use std::sync::Arc;
+    use tower::ServiceExt;
+    use uuid::Uuid;
+
+    use crate::app::app_state::AppStateBuilder;
+    use crate::app::database::MockPgPoolManagerTrait;
+    use crate::app::init::app;
+    use crate::auth::dto::claims::Claims;
+    use crate::auth::dto::register::RegisterRequestHelper;
+    use crate::auth::repository::AuthRepository;
+    use crate::common::error::DatabaseError;
+    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::{Email, FirstName, LastName, Password};
+    use crate::{
+        app::config::AppConfig,
+        auth::{
+            AuthModule,
+            dto::{login::LoginRequest, register::RegisterRequest},
+            repository::MockAuthRepository,
+        },
+        users::model::User,
+    };
+
+    #[tokio::test]
+    async fn test_login_success() {
+        let repo_factory = Box::new(|| {
+            let mut repo = MockAuthRepository::new();
+            repo.expect_get_user_by_email()
+                .with(eq("testuser@example.com"))
+                .returning(|_| Ok(User {
+                    id: Uuid::new_v4(),
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                }));
+            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        });
+        let auth_module = AuthModule {
+            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+            config: Arc::new(AppConfig::default()),
+            repo_factory,
+        };
+        let payload = serde_json::to_string(&LoginRequest {
+            email: "testuser@example.com".to_string(),
+            password: "correctpassword".to_string(),
+        })
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/auth/login")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let config = Arc::new(AppConfig::default());
+        let app_state = AppStateBuilder::default()
+            .config_module(config.clone())
+            .auth_module(Arc::new(auth_module))
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+        let data = body.get("data").unwrap();
+
+        assert!(
+            Claims::from_token(
+                data["token"].as_str().unwrap(),
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience(),
+            )
+            .is_ok()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_login_failure() {
+        let repo_factory = Box::new(|| {
+            let mut repo = MockAuthRepository::new();
+            repo.expect_get_user_by_email()
+                .with(eq("testuser@example.com"))
+                .returning(|_| Ok(User {
+                    id: Uuid::new_v4(),
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                }));
+            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        });
+        let auth_module = AuthModule {
+            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+            config: Arc::new(AppConfig::default()),
+            repo_factory,
+        };
+        let payload = serde_json::to_string(&LoginRequest {
+            email: "testuser@example.com".to_string(),
+            password: "invalidpassword".to_string(),
+        })
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/auth/login")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let config = Arc::new(AppConfig::default());
+        let app_state = AppStateBuilder::default()
+            .config_module(config.clone())
+            .auth_module(Arc::new(auth_module))
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    // ===== REGISTER =====
+
+    #[tokio::test]
+    async fn test_register_success() {
+        let payload = serde_json::to_string(&RegisterRequestHelper {
+            email: "testuser@example.com".to_string(),
+            first_name: "Test".to_string(),
+            last_name: "User".to_string(),
+            password: "Password1!".to_string(),
+            password_confirm: "Password1!".to_string(),
+        })
+        .unwrap();
+
+        let repo_factory = Box::new(|| {
+            let mut repo = MockAuthRepository::new();
+            repo.expect_insert_user()
+                .withf(move |payload_param, hashed_password| {
+                    *payload_param
+                        == RegisterRequest {
+                            email: ValueObject::new(Email("testuser@example.com".to_string()))
+                                .unwrap(),
+                            first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
+                            last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
+                            password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
+                            password_confirm: "Password1!".to_string(),
+                        }
+                        && Argon2::default()
+                            .verify_password(
+                                b"Password1!",
+                                &PasswordHash::new(&hashed_password).unwrap(),
+                            )
+                            .is_ok()
+                })
+                .returning(|_, _| Ok(()));
+            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        });
+        let auth_module = Arc::new(AuthModule {
+            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+            config: Arc::new(AppConfig::default()),
+            repo_factory,
+        });
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/auth/register")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app_state = AppStateBuilder::default()
+            .auth_module(auth_module.clone())
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+    }
+    #[tokio::test]
+    async fn test_register_user_already_exists() {
+        let payload = serde_json::to_string(&RegisterRequestHelper {
+            email: "testuser@example.com".to_string(),
+            first_name: "Test".to_string(),
+            last_name: "User".to_string(),
+            password: "Password1!".to_string(),
+            password_confirm: "Password1!".to_string(),
+        })
+        .unwrap();
+
+        let repo_factory = Box::new(|| {
+            let mut repo = MockAuthRepository::new();
+            repo.expect_insert_user().returning(|_, _| {
+                Err(DatabaseError::DatabaseError(
+                    "duplicate key value violates unique constraint".to_string(),
+                ))
+            });
+            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        });
+        let auth_module = Arc::new(AuthModule {
+            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+            config: Arc::new(AppConfig::default()),
+            repo_factory,
+        });
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/auth/register")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app_state = AppStateBuilder::default()
+            .auth_module(auth_module.clone())
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
 }

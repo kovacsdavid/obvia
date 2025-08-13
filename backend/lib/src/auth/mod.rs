@@ -19,10 +19,9 @@
 
 use std::sync::Arc;
 
-use service::AuthPasswordHasher;
-
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
+use crate::auth::repository::AuthRepository;
 
 pub(crate) mod dto;
 mod handler;
@@ -30,8 +29,6 @@ pub(crate) mod middleware;
 pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
-#[cfg(test)]
-pub mod tests;
 
 /// `AuthModule` is a structure that represents the authentication module in the application.
 /// It encapsulates the required components for managing authentication operations.
@@ -52,6 +49,23 @@ pub mod tests;
 /// Using `Arc` for the fields allows safe sharing of these components across multiple threads.
 pub struct AuthModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
-    pub password_hasher: Arc<dyn AuthPasswordHasher>,
     pub config: Arc<AppConfig>,
+    pub repo_factory: Box<dyn Fn() -> Box<dyn AuthRepository + Send + Sync> + Send + Sync>,
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+    use crate::app::database::MockPgPoolManagerTrait;
+    use crate::auth::repository::MockAuthRepository;
+
+    impl Default for AuthModule {
+        fn default() -> Self {
+            AuthModule {
+                pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+                config: Arc::new(AppConfig::default()),
+                repo_factory: Box::new(|| Box::new(MockAuthRepository::new())),
+            }
+        }
+    }
 }

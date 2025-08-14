@@ -119,6 +119,7 @@ impl Claims {
     /// Returns an error with the message `"Invalid token"` if decoding fails or the token is invalid.
     pub fn from_token(s: &str, decoding_key: &[u8], iss: &str, aud: &str) -> Result<Self, String> {
         let mut validator = Validation::new(Algorithm::HS256);
+        validator.validate_nbf = true;
         validator.set_issuer(&[iss]);
         validator.set_audience(&[aud]);
         validator.set_required_spec_claims(&["sub", "exp", "iat", "nbf", "iss", "aud", "jti"]);
@@ -193,5 +194,187 @@ impl Claims {
     #[allow(dead_code)]
     pub fn jti(&self) -> &String {
         &self.jti
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::app::config::AppConfig;
+    use chrono::Local;
+    use std::ops::{Add, Sub};
+    use std::time::Duration;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_valid_claims() {
+        let config = AppConfig::default();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        );
+        let token1 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        let token2 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(token1, token2);
+        assert_eq!(
+            Claims::from_token(
+                &token1,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience()
+            )
+            .unwrap(),
+            claims
+        );
+    }
+    #[test]
+    fn test_expired_claims() {
+        let config = AppConfig::default();
+
+        let exp = Local::now().sub(Duration::from_secs(61)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        );
+        let token1 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        let token2 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(token1, token2);
+        assert!(
+            Claims::from_token(
+                &token1,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience()
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn test_invalid_not_before_claims() {
+        let config = AppConfig::default();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().add(Duration::from_secs(61)).timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        );
+        let token1 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        let token2 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(token1, token2);
+        assert!(
+            Claims::from_token(
+                &token1,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience()
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn test_invalid_issuer_claims() {
+        let config = AppConfig::default();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        );
+        let token1 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        let token2 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(token1, token2);
+        assert!(
+            Claims::from_token(
+                &token1,
+                config.auth().jwt_secret().as_bytes(),
+                "invalid_issuer",
+                config.auth().jwt_audience()
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn test_invalid_audience_claims() {
+        let config = AppConfig::default();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        );
+        let token1 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        let token2 = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(token1, token2);
+        assert!(
+            Claims::from_token(
+                &token1,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                "invalid_audience"
+            )
+            .is_err()
+        );
     }
 }

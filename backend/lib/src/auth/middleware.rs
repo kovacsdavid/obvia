@@ -25,66 +25,64 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use headers::{Authorization, authorization::Bearer};
-use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode};
 use std::sync::Arc;
 
 use crate::app::app_state::AppState;
 
 use super::dto::claims::Claims;
 
-/// Middleware function to handle authentication using JWT (JSON Web Tokens).
+/// Middleware function to enforce authentication for incoming HTTP requests.
+///
+/// This function checks for the presence and validity of a JWT (JSON Web Token) in the incoming
+/// request headers. If the token is missing, invalid, or fails verification, the request will
+/// be rejected with a `401 Unauthorized` status code.
 ///
 /// # Arguments
 ///
-/// * `State(state)` - Extracts application state wrapped in an `Arc<AppState>` from the request context.
-///   This contains configuration and shared resources for the application.
-/// * `TypedHeader(Authorization(bearer))` - Extracts the Bearer token from the `Authorization` request header.
-/// * `req` - The incoming request object that can be inspected or modified during processing.
-/// * `next` - Represents the next middleware or handler in the processing pipeline.
+/// * `State(state)` - The shared application state, wrapped in an `Arc`. This provides access
+///   to the application's configuration, including authentication settings.
+/// * `TypedHeader(Authorization(bearer))` - Extracts the `Authorization` header from the request
+///   and parses it as a `Bearer` token.
+/// * `mut req` - The incoming HTTP request that will be passed to the next middleware or handler
+///   after authentication is verified.
+/// * `next` - Represents the next middleware or handler in the processing chain.
 ///
 /// # Returns
 ///
-/// This function returns:
-/// - `Ok(Response)` if authentication succeeds and the request proceeds to the next handler or middleware.
-/// - `Err(StatusCode::UNAUTHORIZED)` if authentication fails due to an invalid token or decoding errors.
+/// Returns an `Ok(Response)` if authentication succeeds and the request is passed to the next
+/// stage of processing. If authentication fails, it returns an `Err(StatusCode::UNAUTHORIZED)`.
 ///
-/// # Behavior
+/// # Authentication Process
 ///
-/// 1. Creates a JWT `Validation` object configured with the algorithm, expected issuer, and audience extracted
-///    from the application's configuration.
-/// 2. Sets required claims to ensure the token includes mandatory information like `sub`, `exp`, `iat`,
-///    `nbf`, `iss`, `aud`, and `jti`.
-/// 3. Decodes and validates the provided Bearer token using the decoding key extracted from the configuration.
-/// 4. If validation succeeds, inserts the claims from the decoded token into the request extensions for downstream usage.
-/// 5. If validation fails, responds with a 401 Unauthorized status.
-///
-/// This middleware ensures that only requests with valid JWT tokens are allowed to continue through the processing pipeline.
+/// 1. Extracts the bearer token from the `Authorization` header.
+/// 2. Decodes and verifies the token using the application's JWT configuration:
+///     - `jwt_secret`: The secret key used to validate the token's signature.
+///     - `jwt_issuer`: The expected issuer of the token.
+///     - `jwt_audience`: The expected audience of the token.
+/// 3. If the token is valid, its claims are inserted into the request's extensions for use
+///    by subsequent middleware or handlers.
+/// 4. If the token is invalid or verification fails, a `401 Unauthorized` status code is returned.
 ///
 /// # Errors
 ///
-/// This middleware will terminate processing and return an HTTP 401 Unauthorized status if:
-/// - The token is missing, expired, or malformed.
-/// - The token fails validation against the configured requirements or secret key.
+/// Returns `StatusCode::UNAUTHORIZED` if:
+/// - The `Authorization` header is missing or malformed.
+/// - The token is invalid or fails verification (e.g., incorrect signature, expired, invalid issuer or audience).
 pub async fn require_auth(
     State(state): State<Arc<AppState>>,
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let mut validator = Validation::new(Algorithm::HS256);
-    validator.set_issuer(&[state.config_module.auth().jwt_issuer()]);
-    validator.set_audience(&[state.config_module.auth().jwt_audience()]);
-    validator.set_required_spec_claims(&["sub", "exp", "iat", "nbf", "iss", "aud", "jti"]);
-
-    let token_data = decode::<Claims>(
-        bearer.token(),
-        &DecodingKey::from_secret(state.config_module.auth().jwt_secret().as_bytes()),
-        &validator,
-    )
-    .map_err(|_| StatusCode::UNAUTHORIZED)?;
-
-    req.extensions_mut().insert(token_data.claims);
-
+    req.extensions_mut().insert(
+        Claims::from_token(
+            bearer.token(),
+            state.config_module.auth().jwt_secret().as_bytes(),
+            state.config_module.auth().jwt_issuer(),
+            state.config_module.auth().jwt_audience(),
+        )
+        .map_err(|_| StatusCode::UNAUTHORIZED)?,
+    );
     Ok(next.run(req).await)
 }
 

@@ -154,7 +154,7 @@ mod tests {
     use axum::http::Request;
     use chrono::Local;
     use sqlx::postgres::PgPoolOptions;
-    use std::ops::Add;
+    use std::ops::{Add, Sub};
     use std::time::Duration;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -275,5 +275,112 @@ mod tests {
         .unwrap();
 
         assert_eq!(&body[..], expected_response.as_bytes());
+    }
+
+    #[tokio::test]
+    async fn test_call_endpoint_with_invalid_bearer() {
+        let mut pool_manager_mock = MockPgPoolManagerTrait::new();
+        pool_manager_mock
+            .expect_add_tenant_pool()
+            .times(0)
+            .returning(|tenant_id, _| Ok(tenant_id));
+        pool_manager_mock
+            .expect_get_tenant_pool()
+            .times(0)
+            .returning(|_| {
+                let database_config = BasicDatabaseConfig::default();
+                Ok(Some(
+                    PgPoolOptions::new()
+                        .connect_lazy(&database_config.url())
+                        .unwrap(),
+                ))
+            });
+        let pool_manager_mock = Arc::new(pool_manager_mock);
+
+        let repo_factory = Box::new(|| {
+            let mut repo = MockTenantsRepository::new();
+            repo.expect_setup_managed()
+                .times(0)
+                .withf(|_, name, _, _, _| name == "test")
+                .returning(|uuid: Uuid, _, _, _, _| {
+                    Ok(Tenant {
+                        id: uuid,
+                        name: "test".to_string(),
+                        db_host: "localhost".to_string(),
+                        db_port: 5432,
+                        db_name: "database".to_string(),
+                        db_user: "user".to_string(),
+                        db_password: "password".to_string(),
+                        db_max_pool_size: 5,
+                        db_ssl_mode: "disable".to_string(),
+                        created_at: Local::now(),
+                        updated_at: Local::now(),
+                        deleted_at: None,
+                    })
+                });
+            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
+        });
+
+        let migrator_factory = Box::new(|| {
+            let mut migrator = MockDatabaseMigrator::new();
+            migrator
+                .expect_migrate_tenant_db()
+                .times(0)
+                .returning(|_| Ok(()));
+            Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
+        });
+
+        let config = Arc::new(AppConfig::default());
+
+        let payload = serde_json::to_string(&TenantCreateRequestHelper {
+            name: String::from("test"),
+            is_self_hosted: false,
+            db_host: None,
+            db_port: None,
+            db_name: None,
+            db_user: None,
+            db_password: None,
+        })
+        .unwrap();
+
+        let exp = Local::now().sub(Duration::from_secs(61)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let bearer = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        )
+        .to_token(config.auth().jwt_secret().as_bytes())
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Authorization", format!("Bearer {}", bearer))
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/tenants/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app_state = AppStateBuilder::default()
+            .tenants_module(Arc::new(TenantsModule {
+                pool_manager: pool_manager_mock.clone(),
+                config: config.clone(),
+                repo_factory,
+                migrator_factory,
+            }))
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

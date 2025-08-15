@@ -133,6 +133,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::app::app_state::AppStateBuilder;
+    use crate::app::config::AppConfigBuilder;
     use crate::app::database::MockPgPoolManagerTrait;
     use crate::app::init::app;
     use crate::auth::dto::claims::Claims;
@@ -142,7 +143,6 @@ mod tests {
     use crate::common::types::value_object::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::{
-        app::config::AppConfig,
         auth::{
             AuthModule,
             dto::{login::LoginRequest, register::RegisterRequest},
@@ -178,7 +178,7 @@ mod tests {
         });
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
-            config: Arc::new(AppConfig::default()),
+            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
         };
         let payload = serde_json::to_string(&LoginRequest {
@@ -194,7 +194,7 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let config = Arc::new(AppConfig::default());
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
         let app_state = AppStateBuilder::default()
             .config_module(config.clone())
             .auth_module(Arc::new(auth_module))
@@ -252,7 +252,7 @@ mod tests {
         });
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
-            config: Arc::new(AppConfig::default()),
+            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
         };
         let payload = serde_json::to_string(&LoginRequest {
@@ -268,7 +268,7 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let config = Arc::new(AppConfig::default());
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
         let app_state = AppStateBuilder::default()
             .config_module(config.clone())
             .auth_module(Arc::new(auth_module))
@@ -319,7 +319,7 @@ mod tests {
         });
         let auth_module = Arc::new(AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
-            config: Arc::new(AppConfig::default()),
+            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
         });
 
@@ -363,7 +363,7 @@ mod tests {
         });
         let auth_module = Arc::new(AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
-            config: Arc::new(AppConfig::default()),
+            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
         });
 

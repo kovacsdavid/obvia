@@ -26,13 +26,31 @@ mod service;
 
 pub struct UsersModule {}
 
+pub struct UsersModuleBuilder {}
+
+impl UsersModuleBuilder {
+    pub fn new() -> Self {
+        Self {}
+    }
+    pub fn build(self) -> Result<UsersModule, String> {
+        Ok(UsersModule {})
+    }
+}
+
+#[cfg(not(test))]
+impl Default for UsersModuleBuilder {
+    fn default() -> Self {
+        UsersModuleBuilder::new()
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
 
-    impl Default for UsersModule {
+    impl Default for UsersModuleBuilder {
         fn default() -> Self {
-            UsersModule {}
+            UsersModuleBuilder {}
         }
     }
 }

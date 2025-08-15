@@ -18,7 +18,7 @@
  */
 
 use crate::app::config::{BasicDatabaseConfig, TenantDatabaseConfig};
-use crate::app::database::{DatabaseMigrator, PgConnectionTester};
+use crate::app::database::DatabaseMigrator;
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
@@ -77,9 +77,13 @@ async fn self_hosted(
         .clone()
         .try_into()
         .map_err(|e: String| FriendlyError::Internal(e).trace(Level::ERROR))?;
-    match &mut PgConnectionTester::test_connect(&config, PgSslMode::VerifyFull).await {
-        Ok(conn) => {
-            match PgConnectionTester::is_empty_database(conn).await {
+    let connection_tester = (tenants_module.connection_tester_factory)();
+    match connection_tester
+        .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
+        .await
+    {
+        Ok(pool) => {
+            match connection_tester.is_empty_database(&pool).await {
                 Ok(_) => match repo
                     .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
                     .await

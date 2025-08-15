@@ -200,7 +200,7 @@ impl Claims {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::config::AppConfig;
+    use crate::app::config::AppConfigBuilder;
     use chrono::Local;
     use std::ops::{Add, Sub};
     use std::time::Duration;
@@ -208,7 +208,7 @@ mod tests {
 
     #[test]
     fn test_valid_claims() {
-        let config = AppConfig::default();
+        let config = AppConfigBuilder::default().build().unwrap();
 
         let exp = Local::now().add(Duration::from_secs(100)).timestamp();
         let iat = Local::now().timestamp();
@@ -243,7 +243,7 @@ mod tests {
     }
     #[test]
     fn test_expired_claims() {
-        let config = AppConfig::default();
+        let config = AppConfigBuilder::default().build().unwrap();
 
         let exp = Local::now().sub(Duration::from_secs(61)).timestamp();
         let iat = Local::now().timestamp();
@@ -277,7 +277,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_not_before_claims() {
-        let config = AppConfig::default();
+        let config = AppConfigBuilder::default().build().unwrap();
 
         let exp = Local::now().add(Duration::from_secs(100)).timestamp();
         let iat = Local::now().timestamp();
@@ -311,7 +311,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_issuer_claims() {
-        let config = AppConfig::default();
+        let config = AppConfigBuilder::default().build().unwrap();
 
         let exp = Local::now().add(Duration::from_secs(100)).timestamp();
         let iat = Local::now().timestamp();
@@ -345,7 +345,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_audience_claims() {
-        let config = AppConfig::default();
+        let config = AppConfigBuilder::default().build().unwrap();
 
         let exp = Local::now().add(Duration::from_secs(100)).timestamp();
         let iat = Local::now().timestamp();

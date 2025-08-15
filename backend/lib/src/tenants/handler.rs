@@ -143,18 +143,25 @@ pub async fn list(
 mod tests {
     use super::*;
     use crate::app::app_state::AppStateBuilder;
-    use crate::app::config::{AppConfig, BasicDatabaseConfig, DatabaseUrlProvider};
-    use crate::app::database::{DatabaseMigrator, MockDatabaseMigrator, MockPgPoolManagerTrait};
+    use crate::app::config::{
+        AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
+    };
+    use crate::app::database::{
+        ConnectionTester, DatabaseMigrator, MockConnectionTester, MockDatabaseMigrator,
+        MockPgPoolManagerTrait,
+    };
     use crate::app::init::app;
     use crate::auth::dto::claims::Claims;
     use crate::common::dto::{OkResponse, SimpleMessageResponse};
+    use crate::tenants::TenantsModuleBuilder;
     use crate::tenants::model::Tenant;
     use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Local;
-    use sqlx::postgres::PgPoolOptions;
+    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use std::ops::{Add, Sub};
+    use std::str::FromStr;
     use std::time::Duration;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -170,7 +177,7 @@ mod tests {
             .expect_get_tenant_pool()
             .times(1)
             .returning(|_| {
-                let database_config = BasicDatabaseConfig::default();
+                let database_config = DatabaseConfigBuilder::default().build().unwrap();
                 Ok(Some(
                     PgPoolOptions::new()
                         .connect_lazy(&database_config.url())
@@ -212,7 +219,11 @@ mod tests {
             Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
         });
 
-        let config = Arc::new(AppConfig::default());
+        let connection_tester_factory = Box::new(|| {
+            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
+        });
+
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&TenantCreateRequestHelper {
             name: String::from("test"),
@@ -250,12 +261,16 @@ mod tests {
             .unwrap();
 
         let app_state = AppStateBuilder::default()
-            .tenants_module(Arc::new(TenantsModule {
-                pool_manager: pool_manager_mock.clone(),
-                config: config.clone(),
-                repo_factory,
-                migrator_factory,
-            }))
+            .tenants_module(Arc::new(
+                TenantsModuleBuilder::default()
+                    .pool_manager(pool_manager_mock.clone())
+                    .config(config.clone())
+                    .repo_factory(repo_factory)
+                    .migrator_factory(migrator_factory)
+                    .connection_tester_factory(connection_tester_factory)
+                    .build()
+                    .unwrap(),
+            ))
             .build()
             .unwrap();
 
@@ -288,7 +303,7 @@ mod tests {
             .expect_get_tenant_pool()
             .times(0)
             .returning(|_| {
-                let database_config = BasicDatabaseConfig::default();
+                let database_config = DatabaseConfigBuilder::default().build().unwrap();
                 Ok(Some(
                     PgPoolOptions::new()
                         .connect_lazy(&database_config.url())
@@ -330,7 +345,11 @@ mod tests {
             Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
         });
 
-        let config = Arc::new(AppConfig::default());
+        let connection_tester_factory = Box::new(|| {
+            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
+        });
+
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&TenantCreateRequestHelper {
             name: String::from("test"),
@@ -368,12 +387,16 @@ mod tests {
             .unwrap();
 
         let app_state = AppStateBuilder::default()
-            .tenants_module(Arc::new(TenantsModule {
-                pool_manager: pool_manager_mock.clone(),
-                config: config.clone(),
-                repo_factory,
-                migrator_factory,
-            }))
+            .tenants_module(Arc::new(
+                TenantsModuleBuilder::default()
+                    .pool_manager(pool_manager_mock.clone())
+                    .config(config.clone())
+                    .repo_factory(repo_factory)
+                    .migrator_factory(migrator_factory)
+                    .connection_tester_factory(connection_tester_factory)
+                    .build()
+                    .unwrap(),
+            ))
             .build()
             .unwrap();
 
@@ -382,5 +405,147 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    #[tokio::test]
+    async fn test_create_self_hosted_success() {
+        let mut pool_manager_mock = MockPgPoolManagerTrait::new();
+        pool_manager_mock
+            .expect_add_tenant_pool()
+            .times(1)
+            .returning(|tenant_id, _| Ok(tenant_id));
+        pool_manager_mock
+            .expect_get_tenant_pool()
+            .times(1)
+            .returning(|_| {
+                let database_config = DatabaseConfigBuilder::default().build().unwrap();
+                Ok(Some(
+                    PgPoolOptions::new()
+                        .connect_lazy(&database_config.url())
+                        .unwrap(),
+                ))
+            });
+        let pool_manager_mock = Arc::new(pool_manager_mock);
+
+        let repo_factory = Box::new(|| {
+            let mut repo = MockTenantsRepository::new();
+            repo.expect_setup_self_hosted()
+                .times(1)
+                .withf(|name, _, _| name == "test")
+                .returning(|_, _, _| {
+                    Ok(Tenant {
+                        id: Uuid::new_v4(),
+                        name: "test".to_string(),
+                        db_host: "example.com".to_string(),
+                        db_port: 5432,
+                        db_name: "tenant_1234567890".to_string(),
+                        db_user: "tenant_1234567890".to_string(),
+                        db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
+                        db_max_pool_size: 5,
+                        db_ssl_mode: "verify-full".to_string(),
+                        created_at: Local::now(),
+                        updated_at: Local::now(),
+                        deleted_at: None,
+                    })
+                });
+            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
+        });
+
+        let migrator_factory = Box::new(|| {
+            let mut migrator = MockDatabaseMigrator::new();
+            migrator
+                .expect_migrate_tenant_db()
+                .times(1)
+                .returning(|_| Ok(()));
+            Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
+        });
+
+        let connection_tester_factory = Box::new(|| {
+            let mut connection_tester = MockConnectionTester::new();
+            connection_tester
+                .expect_test_connect()
+                .times(1)
+                .returning(|config, ssl_mode| {
+                    let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
+                    let pool = PgPoolOptions::new()
+                        .max_connections(config.max_pool_size())
+                        .acquire_timeout(Duration::from_secs(3))
+                        .connect_lazy_with(conn);
+                    Ok(pool)
+                });
+            connection_tester
+                .expect_is_empty_database()
+                .times(1)
+                .returning(|_| Ok(()));
+
+            Box::new(connection_tester) as Box<dyn ConnectionTester + Send + Sync>
+        });
+
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
+
+        let payload = serde_json::to_string(&TenantCreateRequestHelper {
+            name: String::from("test"),
+            is_self_hosted: true,
+            db_host: Some(String::from("example.com")),
+            db_port: Some(5432),
+            db_name: Some(String::from("tenant_1234567890")),
+            db_user: Some(String::from("tenant_1234567890")),
+            db_password: Some(String::from("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")),
+        })
+        .unwrap();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let bearer = Claims::new(
+            Uuid::new_v4().to_string(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4().to_string(),
+        )
+        .to_token(config.auth().jwt_secret().as_bytes())
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Authorization", format!("Bearer {}", bearer))
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/tenants/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app_state = AppStateBuilder::default()
+            .tenants_module(Arc::new(
+                TenantsModuleBuilder::default()
+                    .pool_manager(pool_manager_mock.clone())
+                    .config(config.clone())
+                    .repo_factory(repo_factory)
+                    .migrator_factory(migrator_factory)
+                    .connection_tester_factory(connection_tester_factory)
+                    .build()
+                    .unwrap(),
+            ))
+            .build()
+            .unwrap();
+
+        let app = app(Arc::new(app_state)).await;
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+
+        let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
+            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
+        }))
+        .unwrap();
+
+        assert_eq!(&body[..], expected_response.as_bytes());
     }
 }

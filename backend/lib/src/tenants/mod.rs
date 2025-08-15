@@ -18,7 +18,7 @@
  */
 
 use crate::app::config::AppConfig;
-use crate::app::database::{DatabaseMigrator, PgPoolManagerTrait};
+use crate::app::database::{ConnectionTester, DatabaseMigrator, PgPoolManagerTrait};
 use crate::tenants::repository::TenantsRepository;
 use std::sync::Arc;
 
@@ -35,22 +35,194 @@ pub struct TenantsModule {
     pub config: Arc<AppConfig>,
     pub repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
     pub migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
+    pub connection_tester_factory:
+        Box<dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync>,
+}
+
+/// A builder struct for initializing a `TenantsModule`. This struct provides a configurable way to set up the
+/// dependencies required by the `TenantsModule`, including database connection management, configuration,
+/// repositories, and database migration utilities. It utilizes an optional pattern to allow customization.
+pub struct TenantsModuleBuilder {
+    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
+    pub config: Option<Arc<AppConfig>>,
+    pub repo_factory:
+        Option<Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>>,
+    pub migrator_factory:
+        Option<Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>>,
+    pub connection_tester_factory:
+        Option<Box<dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync>>,
+}
+
+impl TenantsModuleBuilder {
+    /// Creates a new instance of the struct with default values.
+    ///
+    /// Initializes all fields of the struct to `None`.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of `Self` with all optional fields uninitialized.
+    pub fn new() -> Self {
+        Self {
+            pool_manager: None,
+            config: None,
+            repo_factory: None,
+            migrator_factory: None,
+            connection_tester_factory: None,
+        }
+    }
+    /// Sets the database pool manager for the current instance.
+    ///
+    /// This function allows you to specify a custom implementation of `PgPoolManagerTrait`
+    /// to manage the database connection pool. The provided pool manager will be stored
+    /// in the current instance for later use.
+    ///
+    /// # Arguments
+    ///
+    /// * `pool_manager` - An `Arc` pointer to a type implementing the `PgPoolManagerTrait`. This is used to manage database connections.
+    ///
+    /// # Returns
+    ///
+    /// Returns the modified instance of `Self` with the provided pool manager set.
+    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
+        self.pool_manager = Some(pool_manager);
+        self
+    }
+    /// Sets the configuration for the application.
+    ///
+    /// This method allows you to provide a shared application configuration
+    /// (`AppConfig`) wrapped in an `Arc`. It sets the configuration for the
+    /// current instance and returns the updated instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - A shared reference-counted pointer to an `AppConfig` structure.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - The updated instance of the object with the configuration applied.
+    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
+        self.config = Some(config);
+        self
+    }
+    /// Sets the repository factory for the current instance.
+    ///
+    /// This function allows the user to provide a factory function that produces
+    /// a boxed instance implementing the `TenantsRepository` trait. The factory
+    /// is expected to be thread-safe (`Send + Sync`). The provided factory will
+    /// be stored internally and used to create new repository instances when needed.
+    ///
+    /// # Parameters
+    /// - `repo_factory`: A boxed closure that returns a boxed instance of
+    ///   `TenantsRepository`, which must be thread-safe (`Send + Sync`).
+    ///
+    /// # Returns
+    /// - `Self`: Returns the modified instance of `Self` with the provided repository
+    ///   factory stored.
+    pub fn repo_factory(
+        mut self,
+        repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
+    ) -> Self {
+        self.repo_factory = Some(repo_factory);
+        self
+    }
+    /// Sets a custom migrator factory for the database migration process.
+    ///
+    /// This method allows you to provide a factory function that creates an instance of a type
+    /// implementing the `DatabaseMigrator` trait. The factory is stored internally and will
+    /// be used when migrations are executed. The provided factory function needs to be thread-safe
+    /// (`Send + Sync`) as it might be used in a multithreaded context.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self`, allowing for method chaining.
+    pub fn migrator_factory(
+        mut self,
+        migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
+    ) -> Self {
+        self.migrator_factory = Some(migrator_factory);
+        self
+    }
+    /// Sets a custom connection tester for the object.
+    ///
+    /// This method allows the caller to provide a custom implementation of a connection tester
+    /// function. The provided function should return a boxed object implementing the `ConnectionTester`
+    /// trait. The function itself must be thread-safe (`Send + Sync`), as well as the returned
+    /// connection tester instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `connection_tester_factory` - A boxed function that returns a boxed object implementing the
+    ///   `ConnectionTester` trait. The function and returned object must both be safe to use across threads.
+    ///
+    /// # Returns
+    ///
+    /// Returns the instance of `Self` with the `connection_tester` field updated to the provided
+    /// function, allowing for method chaining.
+    pub fn connection_tester_factory(
+        mut self,
+        connection_tester_factory: Box<
+            dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync,
+        >,
+    ) -> Self {
+        self.connection_tester_factory = Some(connection_tester_factory);
+        self
+    }
+    /// Builds and returns an instance of `TenantsModule`.
+    ///
+    /// This method constructs a `TenantsModule` by consuming the builder.
+    /// It ensures that all required fields are present and properly initialized.
+    /// If any of the mandatory fields are missing (`pool_manager`, `config`, `repo_factory`,
+    /// `migrator_factory`, or `connection_tester`), it will return an error containing a descriptive
+    /// message indicating the missing field.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(TenantsModule)` if all required fields are present.
+    /// - `Err(String)` if any required field is missing, with a message specifying the missing field(s).
+    pub fn build(self) -> Result<TenantsModule, String> {
+        Ok(TenantsModule {
+            pool_manager: self
+                .pool_manager
+                .ok_or("pool_manager is required".to_string())?,
+            config: self.config.ok_or("config is required".to_string())?,
+            repo_factory: self
+                .repo_factory
+                .ok_or("repo_factory is required".to_string())?,
+            migrator_factory: self
+                .migrator_factory
+                .ok_or("migrator_factory is required".to_string())?,
+            connection_tester_factory: self
+                .connection_tester_factory
+                .ok_or("connection_tester is required".to_string())?,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for TenantsModuleBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::app::config::AppConfigBuilder;
 
-    use crate::app::database::{MockDatabaseMigrator, MockPgPoolManagerTrait};
+    use crate::app::database::{
+        MockConnectionTester, MockDatabaseMigrator, MockPgPoolManagerTrait,
+    };
     use crate::tenants::repository::MockTenantsRepository;
 
-    impl Default for TenantsModule {
+    impl Default for TenantsModuleBuilder {
         fn default() -> Self {
-            TenantsModule {
-                pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
-                config: Arc::new(AppConfig::default()),
-                repo_factory: Box::new(|| Box::new(MockTenantsRepository::new())),
-                migrator_factory: Box::new(|| Box::new(MockDatabaseMigrator::new())),
+            TenantsModuleBuilder {
+                pool_manager: Some(Arc::new(MockPgPoolManagerTrait::new())),
+                config: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
+                repo_factory: Some(Box::new(|| Box::new(MockTenantsRepository::new()))),
+                migrator_factory: Some(Box::new(|| Box::new(MockDatabaseMigrator::new()))),
+                connection_tester_factory: Some(Box::new(|| Box::new(MockConnectionTester::new()))),
             }
         }
     }

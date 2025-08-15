@@ -20,11 +20,12 @@
 use crate::app::app_state::{AppState, AppStateBuilder};
 use crate::app::config::AppConfig;
 use crate::app::database::{
-    DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
+    ConnectionTester, DatabaseMigrator, PgConnectionTester, PgDatabaseMigrator, PgPoolManager,
+    PgPoolManagerTrait,
 };
 use crate::auth;
-use crate::tenants::{self, TenantsModule};
-use crate::users::UsersModule;
+use crate::tenants::{self, TenantsModuleBuilder};
+use crate::users::UsersModuleBuilder;
 use anyhow::Result;
 use axum::Router;
 use std::sync::Arc;
@@ -34,6 +35,7 @@ use tracing_subscriber::FmtSubscriber;
 
 pub use crate::app::services::init_tenant_pools;
 pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
+use crate::auth::AuthModuleBuilder;
 use crate::auth::repository::AuthRepository;
 use crate::common::repository::PoolWrapper;
 use crate::tenants::repository::TenantsRepository;
@@ -146,27 +148,38 @@ pub fn app_state(
     let tenant_pool_manager = pool_manager.clone();
     let auth_pool_manager = pool_manager.clone();
     AppStateBuilder::new()
-        .users_module(Arc::new(UsersModule {}))
+        .users_module(Arc::new(UsersModuleBuilder::default().build()?))
         .config_module(config.clone())
-        .tenants_module(Arc::new(TenantsModule {
-            pool_manager: pool_manager.clone(),
-            config: config.clone(),
-            repo_factory: Box::new(move || -> Box<dyn TenantsRepository + Send + Sync> {
-                Box::new(PoolWrapper::new(
-                    tenant_pool_manager.get_default_tenant_pool(),
+        .tenants_module(Arc::new(
+            TenantsModuleBuilder::default()
+                .pool_manager(pool_manager.clone())
+                .config(config.clone())
+                .repo_factory(Box::new(
+                    move || -> Box<dyn TenantsRepository + Send + Sync> {
+                        Box::new(PoolWrapper::new(
+                            tenant_pool_manager.get_default_tenant_pool(),
+                        ))
+                    },
                 ))
-            }),
-            migrator_factory: Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
-                Box::new(PgDatabaseMigrator)
-            }),
-        }))
-        .auth_module(Arc::new(auth::AuthModule {
-            pool_manager: pool_manager.clone(),
-            config: config.clone(),
-            repo_factory: Box::new(move || -> Box<dyn AuthRepository + Send + Sync> {
-                Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
-            }),
-        }))
+                .migrator_factory(Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
+                    Box::new(PgDatabaseMigrator)
+                }))
+                .connection_tester_factory(Box::new(
+                    || -> Box<dyn ConnectionTester + Send + Sync> { Box::new(PgConnectionTester) },
+                ))
+                .build()?,
+        ))
+        .auth_module(Arc::new(
+            AuthModuleBuilder::default()
+                .pool_manager(pool_manager.clone())
+                .config(config.clone())
+                .repo_factory(Box::new(
+                    move || -> Box<dyn AuthRepository + Send + Sync> {
+                        Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
+                    },
+                ))
+                .build()?,
+        ))
         .build()
 }
 
@@ -177,7 +190,7 @@ pub fn app_state(
 ///
 /// # Arguments
 ///
-/// * `app_state` - An [`Arc<AppState>`](std::sync::Arc), which is the shared application
+/// * `app_state` - An [`Arc<AppState>`](Arc), which is the shared application
 ///   state passed to the routes. It ensures the state can be safely shared and accessed
 ///   across multiple asynchronous tasks.
 ///

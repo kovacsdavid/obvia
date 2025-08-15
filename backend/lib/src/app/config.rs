@@ -456,14 +456,609 @@ impl AuthConfig {
     }
 }
 
+/// `AppConfigBuilder` is a builder struct used to configure and construct
+/// an application configuration with various components such as server,
+/// databases, and authentication.
+///
+/// # Fields
+/// - `server`:
+///   Contains an optional `ServerConfig` that holds the server configuration
+///   details, such as host and port settings for the application.
+///
+/// - `main_database`:
+///   Holds an optional `BasicDatabaseConfig` representing the configuration
+///   for the primary database required by the application, such as connection
+///   details or database credentials.
+///
+/// - `default_tenant_database`:
+///   Contains an optional `BasicDatabaseConfig` that provides the configuration
+///   for the default tenant database, helpful in multi-tenancy setups.
+///
+/// - `auth`:
+///   Includes an optional `AuthConfig` to provide authentication settings,
+///   such as token keys, protocols, or third-party integration.
+///
+/// This struct provides a flexible way to gradually assemble and configure
+/// an `AppConfig` by setting only the required components and leaving others
+/// as `None`.
+pub struct AppConfigBuilder {
+    server: Option<ServerConfig>,
+    main_database: Option<BasicDatabaseConfig>,
+    default_tenant_database: Option<BasicDatabaseConfig>,
+    auth: Option<AuthConfig>,
+}
+
+impl AppConfigBuilder {
+    /// Creates a new instance of the struct with default values.
+    ///
+    /// # Returns
+    ///
+    /// Returns an instance of `Self` where all fields are initialized to `None`.
+    pub fn new() -> Self {
+        Self {
+            server: None,
+            main_database: None,
+            default_tenant_database: None,
+            auth: None,
+        }
+    }
+    ///
+    /// Sets the server configuration for the current instance.
+    ///
+    /// This method accepts a `ServerConfig` object and assigns it to the instance's `server` field.
+    /// It uses a builder pattern, allowing method chaining after setting the server configuration.
+    ///
+    /// # Arguments
+    ///
+    /// * `server` - A `ServerConfig` object containing the configuration details for the server.
+    ///
+    /// # Returns
+    ///
+    /// Returns the modified instance of the struct with the server configuration updated.
+    pub fn server(mut self, server: ServerConfig) -> Self {
+        self.server = Some(server);
+        self
+    }
+    /// Sets the main database configuration for the current instance.
+    ///
+    /// This method takes in a `BasicDatabaseConfig` object, representing
+    /// the configuration details for the main database, and assigns it
+    /// to the instance. It modifies the current instance by setting the
+    /// `main_database` field to the provided configuration.
+    ///
+    /// # Parameters
+    /// - `main_database`: A `BasicDatabaseConfig` object containing the configuration
+    ///   for the main database.
+    ///
+    /// # Returns
+    /// Returns `Self`, allowing for method chaining.
+    pub fn main_database(mut self, main_database: BasicDatabaseConfig) -> Self {
+        self.main_database = Some(main_database);
+        self
+    }
+    /// Sets the default tenant database configuration for the instance.
+    ///
+    /// This method takes a `BasicDatabaseConfig` and assigns it to the `default_tenant_database` field,
+    /// wrapping it in a `Some`. It allows for chaining by returning `self`.
+    ///
+    /// # Parameters
+    /// - `default_tenant_database`: A `BasicDatabaseConfig` instance representing the default database configuration associated with a tenant.
+    ///
+    /// # Returns
+    /// - `Self`: Returns an updated instance of the struct with the specified default tenant database set.
+    pub fn default_tenant_database(mut self, default_tenant_database: BasicDatabaseConfig) -> Self {
+        self.default_tenant_database = Some(default_tenant_database);
+        self
+    }
+    /// Sets the authentication configuration for the current object.
+    ///
+    /// This method takes an `AuthConfig` structure as input and assigns it
+    /// to the `auth` field of the current object. It returns the updated
+    /// object, allowing for method chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `auth` - An instance of `AuthConfig` containing the authentication configuration to be applied.
+    ///
+    /// # Returns
+    ///
+    /// Returns the updated object with the specified authentication configuration applied,
+    /// allowing for further chained method calls.
+    pub fn auth(mut self, auth: AuthConfig) -> Self {
+        self.auth = Some(auth);
+        self
+    }
+    /// Builds the `AppConfig` instance using the provided values in the builder object.
+    ///
+    /// This method finalizes the configuration setup and ensures all required fields are present.
+    /// If any required configuration field is missing, it returns an error with a descriptive message.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(AppConfig)` - If all required fields (`server`, `main_database`, `default_tenant_database`, `auth`)
+    ///   are properly set, it returns an instance of `AppConfig`.
+    /// * `Err(String)` - If any required field is missing, it returns an error string indicating
+    ///   which field is missing.
+    ///
+    /// # Errors
+    ///
+    /// This method checks for the presence of the following required configurations:
+    /// - `server`: Should be set before calling `build`.
+    /// - `main_database`: Should be set before calling `build`.
+    /// - `default_tenant_database`: Should be set before calling `build`.
+    /// - `auth`: Should be set before calling `build`.
+    pub fn build(self) -> Result<AppConfig, String> {
+        Ok(AppConfig {
+            server: self.server.ok_or("server is required")?,
+            main_database: self.main_database.ok_or("main_database is required")?,
+            default_tenant_database: self
+                .default_tenant_database
+                .ok_or("default_tenant_database")?,
+            auth: self.auth.ok_or("auth is required")?,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for AppConfigBuilder {
+    fn default() -> Self {
+        AppConfigBuilder::new()
+    }
+}
+
+/// `ServerConfigBuilder` is a builder struct for configuring and creating
+/// a server's configuration. It provides an easy way to set optional properties
+/// for the server such as `host` and `port`.
+///
+/// # Fields
+/// - `host`: An `Option<String>` that represents the hostname or IP address
+///   the server will bind to. It is optional and defaults to `None`.
+/// - `port`: An `Option<u16>` that represents the port number the server will
+///   listen on. It is optional and defaults to `None`.
+pub struct ServerConfigBuilder {
+    host: Option<String>,
+    port: Option<u16>,
+}
+
+impl ServerConfigBuilder {
+    /// Creates and returns a new instance of the struct with its fields initialized to default values.
+    ///
+    /// # Returns
+    /// * `Self` - A new instance of the struct with `host` and `port` fields set to `None`.
+    pub fn new() -> Self {
+        Self {
+            host: None,
+            port: None,
+        }
+    }
+    /// Sets the host for the configuration.
+    ///
+    /// This function allows you to specify the hostname or IP address
+    /// that will be used in the configuration. The provided `host`
+    /// will overwrite any previously set value.
+    ///
+    /// # Arguments
+    ///
+    /// * `host` - A `String` representing the hostname or IP address to be set.
+    ///
+    /// # Returns
+    ///
+    /// Returns an updated instance of `Self` with the `host` value set.
+    pub fn host(mut self, host: String) -> Self {
+        self.host = Some(host);
+        self
+    }
+    /// Sets the port for the current configuration.
+    ///
+    /// This method allows you to specify a specific port for the instance. It takes
+    /// a `u16` value representing the desired port and assigns it to the instance's
+    /// `port` field. Returns the modified instance to allow method chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `port` - A `u16` value representing the port number to be set.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self` (the modified instance) to enable the chaining of further
+    /// configuration methods.
+    pub fn port(mut self, port: u16) -> Self {
+        self.port = Some(port);
+        self
+    }
+    /// Builds a `ServerConfig` instance from the current configuration in the builder.
+    ///
+    /// This method attempts to create a `ServerConfig` object using the values
+    /// provided during the configuration process. It verifies that all required
+    /// fields (`host` and `port`) are present. If any required fields are missing,
+    /// it returns an error with a descriptive message.
+    ///
+    /// # Returns
+    /// - `Ok(ServerConfig)`: If all required fields are set, returns a successfully
+    ///   built `ServerConfig` instance.
+    /// - `Err(String)`: If a required field (e.g., `host` or `port`) is missing,
+    ///   returns an error with a relevant message.
+    ///
+    /// # Errors
+    /// - Returns an error with the message `"host is required"` if the `host` field
+    ///   is not set.
+    /// - Returns an error with the message `"port is required"` if the `port` field
+    ///   is not set.
+    pub fn build(self) -> Result<ServerConfig, String> {
+        Ok(ServerConfig {
+            host: self.host.ok_or("host is required".to_string())?,
+            port: self.port.ok_or("port is required".to_string())?,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for ServerConfigBuilder {
+    fn default() -> Self {
+        ServerConfigBuilder::new()
+    }
+}
+
+/// A builder struct for configuring database connection parameters. It allows for setting
+/// various database connection attributes such as host, port, username, password, database
+/// name, maximum connection pool size, and SSL mode.
+///
+/// Each generic type parameter corresponds to a configuration field, allowing flexible typing
+/// for the builder's components.
+pub struct DatabaseConfigBuilder<
+    HostType,
+    PortType,
+    UserType,
+    PasswordType,
+    DatabaseType,
+    MaxPoolSizeType,
+> {
+    pub host: Option<HostType>,
+    pub port: Option<PortType>,
+    pub username: Option<UserType>,
+    pub password: Option<PasswordType>,
+    pub database: Option<DatabaseType>,
+    pub max_pool_size: Option<MaxPoolSizeType>,
+    pub ssl_mode: Option<String>,
+}
+
+impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+    DatabaseConfigBuilder<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+{
+    /// Creates a new instance of `DatabaseConfigBuilder` with all fields set to `None`.
+    ///
+    /// # Returns
+    ///
+    /// A `DatabaseConfigBuilder` struct with the following fields initialized to `None`:
+    /// - `host`: Represents the database host (e.g., IP address or hostname).
+    /// - `port`: Represents the database port.
+    /// - `username`: Represents the username for database authentication.
+    /// - `password`: Represents the password for database authentication.
+    /// - `database`: Represents the name of the database to connect to.
+    /// - `max_pool_size`: Represents the maximum size of the connection pool.
+    /// - `ssl_mode`: Represents the SSL (Secure Sockets Layer) mode for the database connection.
+    pub fn new() -> Self {
+        DatabaseConfigBuilder {
+            host: None,
+            port: None,
+            username: None,
+            password: None,
+            database: None,
+            max_pool_size: None,
+            ssl_mode: None,
+        }
+    }
+    /// Sets the host for the current configuration, applying the specified `HostType`.
+    ///
+    /// # Parameters
+    /// - `host`: The `HostType` to set for the current instance. This value represents
+    ///   the desired host configuration.
+    ///
+    /// # Returns
+    /// - `Self`: Returns the updated instance of the struct with the specified host set.
+    pub fn host(mut self, host: HostType) -> Self {
+        self.host = Some(host);
+        self
+    }
+    /// Sets the port for the current instance.
+    ///
+    /// This method allows you to specify a `PortType` for the instance.
+    /// It modifies the `self` object by setting the `port` field to the provided value
+    /// and then returns the updated instance.
+    ///
+    /// # Parameters
+    /// - `port`: The port of type `PortType` to be assigned to the instance.
+    ///
+    /// # Returns
+    /// Returns the updated instance of the type implementing this method.
+    pub fn port(mut self, port: PortType) -> Self {
+        self.port = Some(port);
+        self
+    }
+    /// Sets the username for the current instance.
+    ///
+    /// This method allows you to assign a username of type `UserType` to the current instance.
+    /// It takes ownership of `self`, sets the provided username, and then returns the modified instance,
+    /// enabling a chained method call approach.
+    ///
+    /// # Parameters
+    /// - `username`: The username to be assigned, of type `UserType`.
+    ///
+    /// # Returns
+    /// The updated instance of the struct with the `username` field set to the provided value.
+    pub fn username(mut self, username: UserType) -> Self {
+        self.username = Some(username);
+        self
+    }
+    /// Sets the password field for the current instance.
+    ///
+    /// This method takes a `PasswordType` as its parameter and assigns it
+    /// to the `password` field of the instance. The method returns the
+    /// modified instance to support method chaining.
+    ///
+    /// # Parameters
+    /// - `password`: The password value of type `PasswordType` to be set.
+    ///
+    /// # Returns
+    /// Returns the updated instance of `Self` with the `password` field set.
+    pub fn password(mut self, password: PasswordType) -> Self {
+        self.password = Some(password);
+        self
+    }
+    /// Sets the `DatabaseType` for the current configuration.
+    ///
+    /// This method allows you to specify the type of database to be used in the configuration.
+    /// It takes a `DatabaseType` enum value as an argument and updates the `database` field
+    /// of the configuration object. The method consumes `self`, modifies the `database` field,
+    /// and returns the updated `Self` to allow method chaining.
+    ///
+    /// # Arguments
+    ///
+    /// * `database` - A `DatabaseType` value representing the type of database to be configured.
+    ///
+    /// # Returns
+    ///
+    /// Returns the updated instance of `Self` with the new `database` value set.
+    pub fn database(mut self, database: DatabaseType) -> Self {
+        self.database = Some(database);
+        self
+    }
+    /// Sets the maximum pool size for the resource pool.
+    ///
+    /// This method allows you to configure the maximum number of resources
+    /// that can exist in the pool. It takes a parameter of type `MaxPoolSizeType`
+    /// and assigns it to the `max_pool_size` field. The method then returns
+    /// the modified instance of the struct to allow for method chaining.
+    ///
+    /// # Parameters
+    ///
+    /// * `max_pool_size` - The maximum number of resources allowed in the pool.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Self`, allowing for method chaining to configure the instance further.
+    pub fn max_pool_size(mut self, max_pool_size: MaxPoolSizeType) -> Self {
+        self.max_pool_size = Some(max_pool_size);
+        self
+    }
+    /// Sets the SSL mode for the current configuration.
+    ///
+    /// This method allows you to specify the SSL mode for the connection by passing
+    /// a string representing the desired mode (e.g., "require", "prefer", "disable").
+    ///
+    /// # Parameters
+    /// - `ssl_mode`: A `String` that represents the SSL mode to be applied.
+    ///
+    /// # Returns
+    /// - `Self`: The updated instance of the builder or configuration struct, enabling method chaining.
+    pub fn ssl_mode(mut self, ssl_mode: String) -> Self {
+        self.ssl_mode = Some(ssl_mode);
+        self
+    }
+    /// Builds and returns a `DatabaseConfig` instance if all required fields are set.
+    ///
+    /// This function constructs an instance of `DatabaseConfig` using the builder pattern.
+    /// It ensures that all mandatory fields (`host`, `port`, `username`, `password`,
+    /// and `database`) are properly set, returning an error message if any of them are missing.
+    ///
+    /// # Type Parameters
+    /// - `HostType`: The type of the `host` field.
+    /// - `PortType`: The type of the `port` field.
+    /// - `UserType`: The type of the `username` field.
+    /// - `PasswordType`: The type of the `password` field.
+    /// - `DatabaseType`: The type of the `database` field.
+    /// - `MaxPoolSizeType`: The type of the `max_pool_size` field.
+    ///
+    /// # Returns
+    /// - `Ok(DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>)`:
+    ///   If all required fields are properly set.
+    /// - `Err(String)`: An error message indicating which required field is missing, if any.
+    ///
+    /// # Errors
+    /// Returns an error if any of the following fields are not set:
+    /// - `host`
+    /// - `port`
+    /// - `username`
+    /// - `password`
+    /// - `database`
+    pub fn build(
+        self,
+    ) -> Result<
+        DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>,
+        String,
+    > {
+        Ok(DatabaseConfig {
+            host: self.host.ok_or("host is required")?,
+            port: self.port.ok_or("port is required")?,
+            username: self.username.ok_or("username is required")?,
+            password: self.password.ok_or("password is required")?,
+            database: self.database.ok_or("database is required")?,
+            max_pool_size: self.max_pool_size,
+            ssl_mode: self.ssl_mode,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType> Default
+    for DatabaseConfigBuilder<
+        HostType,
+        PortType,
+        UserType,
+        PasswordType,
+        DatabaseType,
+        MaxPoolSizeType,
+    >
+{
+    fn default() -> Self {
+        DatabaseConfigBuilder::new()
+    }
+}
+
+/// A builder for constructing an `AuthConfig` with customizable properties.
+///
+/// The `AuthConfigBuilder` struct allows users to set various authentication-related
+/// configuration options, such as JWT secret, issuer, audience, and expiration time.
+///
+/// # Fields
+///
+/// * `jwt_secret` - An optional `String` that represents the secret key used for signing JWTs. This is a critical component in ensuring the security of the authentication process.
+///
+/// * `jwt_issuer` - An optional `String` that represents the issuer of the JWT. This field is often used to identify the entity responsible for generating the token.
+///
+/// * `jwt_audience` - An optional `String` that specifies the intended audience of the JWT. The audience is typically used to restrict the scope of the token to specific consumers.
+///
+/// * `jwt_expiration_mins` - An optional `u64` that determines the expiration time of the token in minutes. This helps ensure that tokens have a limited validity period and adds an additional security layer.
+///
+/// This builder follows a step-by-step configuration approach, allowing users to customize only the fields they need, leaving the rest as default (if a default implementation exists).
+pub struct AuthConfigBuilder {
+    jwt_secret: Option<String>,
+    jwt_issuer: Option<String>,
+    jwt_audience: Option<String>,
+    jwt_expiration_mins: Option<u64>,
+}
+
+impl AuthConfigBuilder {
+    /// Creates a new instance of the `AuthConfigBuilder`.
+    ///
+    /// The `new` function initializes an `AuthConfigBuilder` with all its fields set to `None`.
+    /// This allows the builder pattern to be used to configure the necessary fields before
+    /// constructing an `AuthConfig` object.
+    ///
+    /// # Returns
+    ///
+    /// * A new `AuthConfigBuilder` instance with the following fields:
+    ///   * `jwt_secret`: `None`
+    ///   * `jwt_issuer`: `None`
+    ///   * `jwt_audience`: `None`
+    ///   * `jwt_expiration_mins`: `None`
+    pub fn new() -> Self {
+        AuthConfigBuilder {
+            jwt_secret: None,
+            jwt_issuer: None,
+            jwt_audience: None,
+            jwt_expiration_mins: None,
+        }
+    }
+    /// Sets the JWT secret for the configuration.
+    ///
+    /// This method takes a `String` representing the secret key used for signing and verifying JWTs
+    /// (JSON Web Tokens) and assigns it to the internal `jwt_secret` field of the struct.
+    ///
+    /// # Parameters
+    /// - `jwt_secret`: A `String` containing the secret key for JWT operations.
+    ///
+    /// # Returns
+    /// The updated instance of the struct, allowing method chaining.
+    pub fn jwt_secret(mut self, jwt_secret: String) -> Self {
+        self.jwt_secret = Some(jwt_secret);
+        self
+    }
+    /// Sets the JWT (JSON Web Token) issuer for the current instance.
+    ///
+    /// This method allows specifying a custom issuer value, which will be used
+    /// in the JWT payload to identify the principal that issued the token.
+    ///
+    /// # Arguments
+    ///
+    /// * `jwt_issuer` - A `String` representing the issuer of the JWT. It typically
+    ///   identifies the service or entity generating the token.
+    ///
+    /// # Returns
+    ///
+    /// Returns the modified instance of `Self` after setting the `jwt_issuer` value.
+    pub fn jwt_issuer(mut self, jwt_issuer: String) -> Self {
+        self.jwt_issuer = Some(jwt_issuer);
+        self
+    }
+    /// Sets the JWT audience value for the current instance.
+    ///
+    /// This method sets the `jwt_audience` field of the instance to the given value.
+    /// It allows method chaining by returning the modified instance.
+    ///
+    /// # Parameters
+    /// - `jwt_audience`: A `String` containing the JWT audience value to be set.
+    ///
+    /// # Returns
+    /// Returns the modified instance of the struct implementing this method,
+    /// allowing for method chaining.
+    pub fn jwt_audience(mut self, jwt_audience: String) -> Self {
+        self.jwt_audience = Some(jwt_audience);
+        self
+    }
+    /// Sets the expiration time for JSON Web Tokens (JWT) in minutes.
+    ///
+    /// # Parameters
+    /// - `jwt_expiration_mins`: The expiration time in minutes for the JWT.
+    ///
+    /// # Returns
+    /// - `Self`: Returns the modified instance of the struct, allowing for method chaining.
+    pub fn jwt_expiration_mins(mut self, jwt_expiration_mins: u64) -> Self {
+        self.jwt_expiration_mins = Some(jwt_expiration_mins);
+        self
+    }
+    /// Builds an `AuthConfig` instance from the current state of the builder.
+    ///
+    /// This method validates that all required fields have been set and constructs an `AuthConfig`
+    /// struct from the provided configuration data. If any required field is missing, the method
+    /// will return an error indicating which field is missing.
+    ///
+    /// # Returns
+    /// An `AuthConfig` instance populated with the values provided to the builder.
+    ///
+    /// # Errors
+    /// Returns an error for each of the following missing fields:
+    /// - `"jwt_secret is required"`: If the `jwt_secret` field was not set.
+    /// - `"jwt_issuer is required"`: If the `jwt_issuer` field was not set.
+    /// - `"jwt_audience is required"`: If the `jwt_audience` field was not set.
+    /// - `"jwt_expiration_mins is required"`: If the `jwt_expiration_mins` field was not set.
+    pub fn build(self) -> Result<AuthConfig, String> {
+        Ok(AuthConfig {
+            jwt_secret: self.jwt_secret.ok_or("jwt_secret is required")?,
+            jwt_issuer: self.jwt_issuer.ok_or("jwt_issuer is required")?,
+            jwt_audience: self.jwt_audience.ok_or("jwt_audience is required")?,
+            jwt_expiration_mins: self
+                .jwt_expiration_mins
+                .ok_or("jwt_expiration_mins is required")?,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for AuthConfigBuilder {
+    fn default() -> Self {
+        AuthConfigBuilder::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    impl Default for AuthConfig {
-        /// Provides a default implementation for the `AuthConfig` struct.
+    impl Default for AuthConfigBuilder {
+        /// Provides a default implementation for the `AuthConfigBuilder` struct.
         ///
-        /// This implementation initializes the `AuthConfig` structure with
+        /// This implementation initializes the `AuthConfigBuilder` structure with
         /// the following default values:
         ///
         /// - `jwt_secret`: A default JWT secret string set to `"test_jwt_secret"`.
@@ -473,16 +1068,16 @@ mod tests {
         ///
         /// These default values are used for local development or testing scenarios.
         fn default() -> Self {
-            AuthConfig {
-                jwt_secret: "test_jwt_secret".to_string(),
-                jwt_issuer: "http://localhost".to_string(),
-                jwt_audience: "http://localhost".to_string(),
-                jwt_expiration_mins: 60,
+            AuthConfigBuilder {
+                jwt_secret: Some("test_jwt_secret".to_string()),
+                jwt_issuer: Some("http://localhost".to_string()),
+                jwt_audience: Some("http://localhost".to_string()),
+                jwt_expiration_mins: Some(60),
             }
         }
     }
 
-    impl Default for BasicDatabaseConfig {
+    impl Default for DatabaseConfigBuilder<String, u16, String, String, String, u32> {
         /// Provides a default implementation for the `default` method, which initializes
         /// a new instance of the struct with predefined default configuration values.
         ///
@@ -501,71 +1096,42 @@ mod tests {
         /// - `ssl_mode`: "prefer"
         fn default() -> Self {
             Self {
-                host: String::from("localhost"),
-                port: 5432,
-                username: String::from("user"),
-                password: String::from("password"),
-                database: String::from("database"),
+                host: Some(String::from("localhost")),
+                port: Some(5432),
+                username: Some(String::from("user")),
+                password: Some(String::from("password")),
+                database: Some(String::from("database")),
                 max_pool_size: Some(5),
                 ssl_mode: Some("prefer".to_string()),
             }
         }
     }
 
-    impl Default for ServerConfig {
-        /// Provides a default implementation for the `ServerConfig` struct.
+    impl Default for ServerConfigBuilder {
+        /// Provides a default implementation for the `ServerConfigBuilder` struct.
         ///
         /// # Returns
         ///
-        /// A new instance of `ServerConfig` with the following default values:
+        /// A new instance of `ServerConfigBuilder` with the following default values:
         /// - `host`: `"127.0.0.1"`
         /// - `port`: `3000`
         ///
         /// These default values are used for local development or testing scenarios.
         fn default() -> Self {
-            ServerConfig {
-                host: "127.0.0.1".to_string(),
-                port: 3000,
+            ServerConfigBuilder {
+                host: Some("127.0.0.1".to_string()),
+                port: Some(3000),
             }
         }
     }
 
-    impl Default for TenantDatabaseConfig {
-        /// Provides a default implementation for the database configuration settings.
-        ///
-        /// # Returns
-        /// A `Self` instance populated with default values for the following fields:
-        ///
-        /// - `host`: Defaults to "localhost".
-        /// - `port`: Defaults to 5432.
-        /// - `username`: Defaults to "user".
-        /// - `password`: Defaults to "password".
-        /// - `database`: Defaults to "database".
-        /// - `pool_size`: Defaults to `Some(5)`.
-        /// - `ssl_mode`: "prefer"
-        ///
-        /// Each field is wrapped in a `ValueObject` for validation and ensures safe initialization.
-        /// Uses `unwrap()` to assume successful creation of `ValueObject` instances for valid inputs.
+    impl Default for AppConfigBuilder {
         fn default() -> Self {
-            Self {
-                host: ValueObject::new(DbHost("localhost".to_string())).unwrap(),
-                port: ValueObject::new(DbPort(5432)).unwrap(),
-                username: ValueObject::new(DbUser("user".to_string())).unwrap(),
-                password: ValueObject::new(DbPassword("password".to_string())).unwrap(),
-                database: ValueObject::new(DbName("database".to_string())).unwrap(),
-                max_pool_size: Some(5),
-                ssl_mode: Some("prefer".to_string()),
-            }
-        }
-    }
-
-    impl Default for AppConfig {
-        fn default() -> Self {
-            AppConfig {
-                server: ServerConfig::default(),
-                main_database: BasicDatabaseConfig::default(),
-                default_tenant_database: BasicDatabaseConfig::default(),
-                auth: AuthConfig::default(),
+            AppConfigBuilder {
+                server: Some(ServerConfigBuilder::default().build().unwrap()),
+                main_database: Some(DatabaseConfigBuilder::default().build().unwrap()),
+                default_tenant_database: Some(DatabaseConfigBuilder::default().build().unwrap()),
+                auth: Some(AuthConfigBuilder::default().build().unwrap()),
             }
         }
     }

@@ -179,14 +179,18 @@ impl Default for AppStateBuilder {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use crate::app::config::AppConfigBuilder;
+    use crate::auth::AuthModuleBuilder;
+    use crate::tenants::TenantsModuleBuilder;
+    use crate::users::UsersModuleBuilder;
 
     impl Default for AppStateBuilder {
         fn default() -> Self {
             AppStateBuilder {
-                auth_module: Some(Arc::new(AuthModule::default())),
-                config_module: Some(Arc::new(AppConfig::default())),
-                users_module: Some(Arc::new(UsersModule::default())),
-                tenants_module: Some(Arc::new(TenantsModule::default())),
+                auth_module: Some(Arc::new(AuthModuleBuilder::default().build().unwrap())),
+                config_module: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
+                users_module: Some(Arc::new(UsersModuleBuilder::default().build().unwrap())),
+                tenants_module: Some(Arc::new(TenantsModuleBuilder::default().build().unwrap())),
             }
         }
     }

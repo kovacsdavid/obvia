@@ -123,6 +123,7 @@ pub async fn register(
 #[cfg(test)]
 mod tests {
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
+    use axum::Router;
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
@@ -132,10 +133,8 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
-    use crate::app::app_state::AppStateBuilder;
     use crate::app::config::AppConfigBuilder;
     use crate::app::database::MockPgPoolManagerTrait;
-    use crate::app::init::app;
     use crate::auth::dto::claims::Claims;
     use crate::auth::dto::register::RegisterRequestHelper;
     use crate::auth::repository::AuthRepository;
@@ -143,6 +142,7 @@ mod tests {
     use crate::common::types::value_object::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::{
+        auth,
         auth::{
             AuthModule,
             dto::{login::LoginRequest, register::RegisterRequest},
@@ -190,18 +190,16 @@ mod tests {
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/auth/login")
+            .uri("/api/auth/login")
             .body(Body::from(payload))
             .unwrap();
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
-        let app_state = AppStateBuilder::default()
-            .config_module(config.clone())
-            .auth_module(Arc::new(auth_module))
-            .build()
-            .unwrap();
 
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 
@@ -264,18 +262,14 @@ mod tests {
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/auth/login")
+            .uri("/api/auth/login")
             .body(Body::from(payload))
             .unwrap();
 
-        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
-        let app_state = AppStateBuilder::default()
-            .config_module(config.clone())
-            .auth_module(Arc::new(auth_module))
-            .build()
-            .unwrap();
-
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 
@@ -317,25 +311,23 @@ mod tests {
                 .returning(|_, _| Ok(()));
             Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
         });
-        let auth_module = Arc::new(AuthModule {
+        let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
-        });
+        };
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/auth/register")
+            .uri("/api/auth/register")
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = AppStateBuilder::default()
-            .auth_module(auth_module.clone())
-            .build()
-            .unwrap();
-
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 
@@ -361,25 +353,23 @@ mod tests {
             });
             Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
         });
-        let auth_module = Arc::new(AuthModule {
+        let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             repo_factory,
-        });
+        };
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/auth/register")
+            .uri("/api/auth/register")
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = AppStateBuilder::default()
-            .auth_module(auth_module.clone())
-            .build()
-            .unwrap();
-
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 

@@ -17,16 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::app_state::{AppState, AppStateBuilder};
 use crate::app::config::AppConfig;
-use crate::app::database::{
-    ConnectionTester, DatabaseMigrator, PgConnectionTester, PgDatabaseMigrator, PgPoolManager,
-    PgPoolManagerTrait,
-};
-use crate::auth;
-use crate::tenants::{self, TenantsModuleBuilder};
-use crate::users::UsersModuleBuilder;
-use anyhow::Result;
+use crate::app::database::PgPoolManager;
+use crate::tenants::{self, init_default_tenants_module};
+use anyhow::{Result, anyhow};
 use axum::Router;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -35,10 +29,7 @@ use tracing_subscriber::FmtSubscriber;
 
 pub use crate::app::services::init_tenant_pools;
 pub use crate::app::services::{migrate_all_tenant_dbs, migrate_main_db};
-use crate::auth::AuthModuleBuilder;
-use crate::auth::repository::AuthRepository;
-use crate::common::repository::PoolWrapper;
-use crate::tenants::repository::TenantsRepository;
+use crate::auth::{self, init_default_auth_module};
 
 /// Sets up a global tracing subscriber for the application with a specified logging level.
 ///
@@ -85,8 +76,8 @@ pub fn subscriber() {
 ///
 /// * `Ok(Arc<AppConfig>)` - If the configuration is successfully loaded.
 /// * `Err` - If there is an error while initializing the configuration (e.g., missing or invalid configuration file).
-pub fn config() -> Result<Arc<AppConfig>> {
-    Ok(Arc::new(AppConfig::from_env()?))
+pub fn config() -> Result<AppConfig> {
+    Ok(AppConfig::from_env()?)
 }
 
 /// Asynchronously initializes and returns a new `PgPoolManager` instance wrapped in an `Arc`.
@@ -109,102 +100,48 @@ pub fn config() -> Result<Arc<AppConfig>> {
 ///
 /// This function will return an error if the `PgPoolManager::new` method fails to initialize
 /// due to invalid configuration or database connection issues.
-pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<Arc<PgPoolManager>> {
-    Ok(Arc::new(
-        PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?,
-    ))
+pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<PgPoolManager> {
+    PgPoolManager::new(config.main_database(), config.default_tenant_database()).await
 }
 
-/// Constructs an instance of `AppState`, which acts as the central state and dependency manager for the application.
+/// Initializes the default application with required modules and configurations.
 ///
-/// This function is primarily responsible for setting up the various modules and dependencies required by the application,
-/// such as authentication, tenants, and user management modules. It uses the provided database pool manager
-/// and application configuration to configure each module.
-///
-/// # Arguments
-///
-/// * `pool_manager` - An `Arc` reference to an object implementing the `PgPoolManagerTrait` trait. This is used to manage
-///   database connection pools for the application.
-/// * `config` - An `Arc` reference to an `AppConfig` object, which provides configuration values for the application.
+/// This asynchronous function sets up the application by performing the following steps:
+/// 1. Loads the application configuration and wraps it in an `Arc` for shared ownership.
+/// 2. Creates and initializes the PostgreSQL connection pool manager using the loaded configuration.
+/// 3. Initializes and builds default modules for authentication and tenant management
+///    using dependencies such as the connection pool manager and configuration.
+/// 4. Constructs an `axum::Router` to handle API routes, wiring up the routes for the
+///    authentication and tenant modules under the `/api` path, and applies an HTTP trace layer.
 ///
 /// # Returns
+/// * `Ok(Router)` - Returns the fully initialized `Router` instance to handle API requests.
+/// * `Err(anyhow::Error)` - Returns an error if any step in the initialization process fails,
+///   such as configuration loading, connection pool setup, or module initialization.
 ///
-/// Returns a `Result<AppState, String>`:
-/// - `Ok(AppState)` on successful initialization, containing the built application state with all modules set up.
-/// - `Err(String)` if an error occurs during the initialization process, returning a descriptive error message.
 /// # Errors
+/// - Returns an error if the application configuration cannot be loaded.
+/// - Returns an error if the PostgreSQL connection pool manager cannot be initialized.
+/// - Returns an error if the authentication or tenant modules fail to initialize.
 ///
-/// If any error occurs during the setup process, such as failing to initialize a module or resolve dependencies, the function
-/// will return an error message wrapped in a `String`.
-///
-/// # Note
-///
-/// The function makes heavy use of closures to define factories for repositories and migrators, ensuring that the necessary
-/// instances are created dynamically at runtime.
-pub fn app_state(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> Result<AppState, String> {
-    let tenant_pool_manager = pool_manager.clone();
-    let auth_pool_manager = pool_manager.clone();
-    AppStateBuilder::new()
-        .users_module(Arc::new(UsersModuleBuilder::default().build()?))
-        .config_module(config.clone())
-        .tenants_module(Arc::new(
-            TenantsModuleBuilder::default()
-                .pool_manager(pool_manager.clone())
-                .config(config.clone())
-                .repo_factory(Box::new(
-                    move || -> Box<dyn TenantsRepository + Send + Sync> {
-                        Box::new(PoolWrapper::new(
-                            tenant_pool_manager.get_default_tenant_pool(),
-                        ))
-                    },
-                ))
-                .migrator_factory(Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
-                    Box::new(PgDatabaseMigrator)
-                }))
-                .connection_tester_factory(Box::new(
-                    || -> Box<dyn ConnectionTester + Send + Sync> { Box::new(PgConnectionTester) },
-                ))
-                .build()?,
-        ))
-        .auth_module(Arc::new(
-            AuthModuleBuilder::default()
-                .pool_manager(pool_manager.clone())
-                .config(config.clone())
-                .repo_factory(Box::new(
-                    move || -> Box<dyn AuthRepository + Send + Sync> {
-                        Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
-                    },
-                ))
-                .build()?,
-        ))
+/// # Dependencies
+/// - The function depends on the external crates `axum` for the router, `tower-http` for the trace
+///   layer, and `anyhow` for error handling.
+pub async fn init_default_app() -> Result<Router> {
+    let config = Arc::new(config()?);
+    let pool_manager = pg_pool_manager(config.clone()).await?;
+    let pool_manager = Arc::new(pool_manager);
+    let auth_module = init_default_auth_module(pool_manager.clone(), config.clone())
         .build()
-}
-
-/// Sets up and returns the main application router.
-///
-/// This function creates a new `Router` instance, merges route definitions from
-/// multiple modules, and adds middleware layers (e.g., tracing) to handle HTTP requests.
-///
-/// # Arguments
-///
-/// * `app_state` - An [`Arc<AppState>`](Arc), which is the shared application
-///   state passed to the routes. It ensures the state can be safely shared and accessed
-///   across multiple asynchronous tasks.
-///
-/// # Returns
-///
-/// A configured `Router` instance that routes incoming HTTP requests to the appropriate
-/// handlers based on the defined routes.
-///
-/// # Middleware
-///
-/// - `TraceLayer`: Adds tracing for incoming HTTP requests and outgoing responses.
-pub async fn app(app_state: Arc<AppState>) -> Router {
-    Router::new()
-        .merge(auth::routes::routes(app_state.clone()))
-        .merge(tenants::routes::routes(app_state.clone()))
-        .layer(TraceLayer::new_for_http())
+        .map_err(|e| anyhow!("{}", e))?;
+    let tenants_module = init_default_tenants_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{}", e))?;
+    Ok(Router::new().nest(
+        "/api",
+        Router::new()
+            .merge(auth::routes::routes(Arc::new(auth_module)))
+            .merge(tenants::routes::routes(Arc::new(tenants_module)))
+            .layer(TraceLayer::new_for_http()),
+    ))
 }

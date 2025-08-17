@@ -18,11 +18,10 @@
  */
 #![forbid(unsafe_code)]
 
-use anyhow::anyhow;
 use axum::Router;
 use backend_lib::app::config::AppConfig;
 use backend_lib::app::init::{
-    app, app_state, config, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
+    config, init_default_app, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
     pg_pool_manager, subscriber,
 };
 use std::sync::Arc;
@@ -52,11 +51,9 @@ use tokio::signal;
 /// - The database migrations fail.
 async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     subscriber();
-    let config = config()?;
-    let pool_manager = pg_pool_manager(config.clone()).await?;
-    let app_state =
-        Arc::new(app_state(pool_manager.clone(), config.clone()).map_err(|e| anyhow!("{}", e))?);
-    let app = app(app_state).await;
+    let config = Arc::new(config()?);
+    let pool_manager = Arc::new(pg_pool_manager(config.clone()).await?);
+    let app = init_default_app().await?;
     migrate_main_db(pool_manager.clone()).await?;
     init_tenant_pools(pool_manager.clone()).await?;
     migrate_all_tenant_dbs(pool_manager.clone()).await?;
@@ -124,7 +121,7 @@ async fn serve() -> anyhow::Result<()> {
     let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
-    axum::serve(listener, Router::new().nest("/api", app))
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())

@@ -22,6 +22,7 @@ use std::sync::Arc;
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
 use crate::auth::repository::AuthRepository;
+use crate::common::repository::PoolWrapper;
 
 pub(crate) mod dto;
 mod handler;
@@ -29,6 +30,35 @@ pub(crate) mod middleware;
 pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
+
+/// Initializes the default authentication module by setting up the necessary configurations,
+/// database connection pool, and repository factory for handling authentication functionality.
+///
+/// # Arguments
+///
+/// * `pool_manager` - An `Arc` of a type that implements the `PgPoolManagerTrait`. This is used
+///   to manage database connection pools for the authentication module.
+/// * `config` - An `Arc` containing the shared application configuration (`AppConfig`) to be used
+///   within the authentication module.
+///
+/// # Returns
+///
+/// Returns an `AuthModuleBuilder` configured with the provided database connection pool,
+/// application configuration, and a repository factory to handle authentication repository operations.
+pub fn init_default_auth_module(
+    pool_manager: Arc<dyn PgPoolManagerTrait>,
+    config: Arc<AppConfig>,
+) -> AuthModuleBuilder {
+    let auth_pool_manager = pool_manager.clone();
+    AuthModuleBuilder::default()
+        .pool_manager(pool_manager.clone())
+        .config(config.clone())
+        .repo_factory(Box::new(
+            move || -> Box<dyn AuthRepository + Send + Sync> {
+                Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
+            },
+        ))
+}
 
 /// `AuthModule` is a structure that represents the authentication module in the application.
 /// It encapsulates the required components for managing authentication operations.

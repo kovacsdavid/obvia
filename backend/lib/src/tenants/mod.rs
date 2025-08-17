@@ -18,7 +18,10 @@
  */
 
 use crate::app::config::AppConfig;
-use crate::app::database::{ConnectionTester, DatabaseMigrator, PgPoolManagerTrait};
+use crate::app::database::{
+    ConnectionTester, DatabaseMigrator, PgConnectionTester, PgDatabaseMigrator, PgPoolManagerTrait,
+};
+use crate::common::repository::PoolWrapper;
 use crate::tenants::repository::TenantsRepository;
 use std::sync::Arc;
 
@@ -29,6 +32,47 @@ pub(crate) mod repository;
 pub(crate) mod routes;
 mod service;
 pub(crate) mod types;
+
+/// Initializes the default tenants module with the given database pool manager and application configuration.
+///
+/// This function sets up a `TenantsModuleBuilder` with the necessary components to manage the default tenants in the system,
+/// including repository, database migrator, and connection tester factories.
+///
+/// # Arguments
+///
+/// * `pool_manager` - An `Arc` of a trait object implementing `PgPoolManagerTrait`, responsible for managing database connection pools.
+/// * `config` - An `Arc` of `AppConfig` containing the application configuration.
+///
+/// # Returns
+///
+/// A `TenantsModuleBuilder` pre-configured with:
+/// - The provided `pool_manager` for managing database connections.
+/// - The provided `config` for application-specific settings.
+/// - A repository factory that creates instances of `PoolWrapper` for interacting with the default tenant pool.
+/// - A migrator factory that generates instances of `PgDatabaseMigrator` for database migrations.
+/// - A connection tester factory that generates instances of `PgConnectionTester` for testing database connections.
+pub fn init_default_tenants_module(
+    pool_manager: Arc<dyn PgPoolManagerTrait>,
+    config: Arc<AppConfig>,
+) -> TenantsModuleBuilder {
+    let tenant_pool_manager = pool_manager.clone();
+    TenantsModuleBuilder::default()
+        .pool_manager(pool_manager.clone())
+        .config(config.clone())
+        .repo_factory(Box::new(
+            move || -> Box<dyn TenantsRepository + Send + Sync> {
+                Box::new(PoolWrapper::new(
+                    tenant_pool_manager.get_default_tenant_pool(),
+                ))
+            },
+        ))
+        .migrator_factory(Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
+            Box::new(PgDatabaseMigrator)
+        }))
+        .connection_tester_factory(Box::new(|| -> Box<dyn ConnectionTester + Send + Sync> {
+            Box::new(PgConnectionTester)
+        }))
+}
 
 pub struct TenantsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,

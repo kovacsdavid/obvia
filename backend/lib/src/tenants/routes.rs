@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::app::app_state::AppState;
 use crate::auth::middleware::require_auth;
+use crate::tenants::TenantsModule;
 use crate::tenants::handler::{
     create as managed_companies_create, get as managed_companies_get,
     list as managed_companies_list,
@@ -28,52 +28,45 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use std::sync::Arc;
 
-/// Sets up application routes for the `/tenants` endpoint.
-///
-/// This function creates a router and nests routes specific to
-/// managing tenants. It ensures that proper middleware
-/// (e.g., authentication) is applied and associates the necessary
-/// application state to the nested routes.
+/// Configures and returns a `Router` instance with routes and middleware for handling tenant-related API endpoints.
 ///
 /// # Arguments
 ///
-/// * `state` - An `Arc<AppState>` that holds the application state.
-///   This includes shared state modules such as `tenants_module`.
+/// * `tenants_module` - An `Arc` wrapping the `TenantsModule` instance, which contains the configuration and state required for handling tenant operations.
 ///
 /// # Routes
 ///
-/// The following routes are available under the `/tenants` path:
+/// The router has a nested route under the `/tenants` path. Inside this path, the following routes are available:
 ///
-/// - `/create`: Handles HTTP POST requests to create a new tenant.
-///   This route is handled by the `managed_companies_create` function.
-/// - `/get`: Handles HTTP GET requests to retrieve a specific tenant.
-///   This route is handled by the `managed_companies_get` function.
-/// - `/list`: Handles HTTP GET requests to list all available tenants.
-///   This route is handled by the `managed_companies_list` function.
+/// 1. **POST /tenants/create** - Handled by the `managed_companies_create` function. Used to create a new tenant or company.
+///
+/// 2. **GET /tenants/get** - Handled by the `managed_companies_get` function. Retrieves the details for a specific tenant or company.
+///
+/// 3. **GET /tenants/list** - Handled by the `managed_companies_list` function. Fetches a list of all tenants or companies.
 ///
 /// # Middleware
 ///
-/// The routes are wrapped with the `require_auth` middleware, which is applied
-/// via `from_fn_with_state` to ensure proper authentication is required for each
-/// request. The middleware function is provided with the cloned application state
-/// for its execution.
+/// Applies the following middleware to all `/tenants` routes:
+/// * `require_auth`: Ensures that requests are authenticated. This middleware is configured using the state cloned from the `tenants_module` configuration via `from_fn_with_state`.
 ///
-/// # State Association
+/// # State
 ///
-/// - The `tenants_module` section of the application state is associated
-///   with the nested router using `.with_state()`.
+/// Sets the `tenants_module` as the state of the `/tenants` route, allowing handler functions to access shared state.
 ///
 /// # Returns
 ///
-/// A `Router` instance configured with the nested routes for managing tenants.
-pub fn routes(state: Arc<AppState>) -> Router {
+/// * A `Router` instance configured with the defined routes and middleware.
+pub fn routes(tenants_module: Arc<TenantsModule>) -> Router {
     Router::new().nest(
         "/tenants",
         Router::new()
             .route("/create", post(managed_companies_create))
             .route("/get", get(managed_companies_get))
             .route("/list", get(managed_companies_list))
-            .layer(from_fn_with_state(state.clone(), require_auth))
-            .with_state(state.tenants_module.clone()),
+            .layer(from_fn_with_state(
+                tenants_module.config.clone(),
+                require_auth,
+            ))
+            .with_state(tenants_module),
     )
 }

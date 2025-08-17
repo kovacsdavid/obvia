@@ -27,9 +27,8 @@ use axum_extra::TypedHeader;
 use headers::{Authorization, authorization::Bearer};
 use std::sync::Arc;
 
-use crate::app::app_state::AppState;
-
 use super::dto::claims::Claims;
+use crate::app::config::AppConfig;
 
 /// Middleware function to enforce authentication for incoming HTTP requests.
 ///
@@ -39,8 +38,7 @@ use super::dto::claims::Claims;
 ///
 /// # Arguments
 ///
-/// * `State(state)` - The shared application state, wrapped in an `Arc`. This provides access
-///   to the application's configuration, including authentication settings.
+/// * `State(config)` - The shared config, wrapped in an `Arc`. This provides access to the application's configuration, including authentication settings.
 /// * `TypedHeader(Authorization(bearer))` - Extracts the `Authorization` header from the request
 ///   and parses it as a `Bearer` token.
 /// * `mut req` - The incoming HTTP request that will be passed to the next middleware or handler
@@ -69,7 +67,7 @@ use super::dto::claims::Claims;
 /// - The `Authorization` header is missing or malformed.
 /// - The token is invalid or fails verification (e.g., incorrect signature, expired, invalid issuer or audience).
 pub async fn require_auth(
-    State(state): State<Arc<AppState>>,
+    State(config): State<Arc<AppConfig>>,
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
     mut req: Request,
     next: Next,
@@ -77,9 +75,9 @@ pub async fn require_auth(
     req.extensions_mut().insert(
         Claims::from_token(
             bearer.token(),
-            state.config_module.auth().jwt_secret().as_bytes(),
-            state.config_module.auth().jwt_issuer(),
-            state.config_module.auth().jwt_audience(),
+            config.auth().jwt_secret().as_bytes(),
+            config.auth().jwt_issuer(),
+            config.auth().jwt_audience(),
         )
         .map_err(|_| StatusCode::UNAUTHORIZED)?,
     );

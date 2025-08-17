@@ -142,7 +142,6 @@ pub async fn list(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::app::app_state::AppStateBuilder;
     use crate::app::config::{
         AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
@@ -150,12 +149,13 @@ mod tests {
         ConnectionTester, DatabaseMigrator, MockConnectionTester, MockDatabaseMigrator,
         MockPgPoolManagerTrait,
     };
-    use crate::app::init::app;
     use crate::auth::dto::claims::Claims;
     use crate::common::dto::{OkResponse, SimpleMessageResponse};
+    use crate::tenants;
     use crate::tenants::TenantsModuleBuilder;
     use crate::tenants::model::Tenant;
     use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
+    use axum::Router;
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Local;
@@ -256,25 +256,23 @@ mod tests {
             .header("Authorization", format!("Bearer {}", bearer))
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/tenants/create")
+            .uri("/api/tenants/create")
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = AppStateBuilder::default()
-            .tenants_module(Arc::new(
-                TenantsModuleBuilder::default()
-                    .pool_manager(pool_manager_mock.clone())
-                    .config(config.clone())
-                    .repo_factory(repo_factory)
-                    .migrator_factory(migrator_factory)
-                    .connection_tester_factory(connection_tester_factory)
-                    .build()
-                    .unwrap(),
-            ))
+        let tenants_module = TenantsModuleBuilder::default()
+            .pool_manager(pool_manager_mock.clone())
+            .config(config.clone())
+            .repo_factory(repo_factory)
+            .migrator_factory(migrator_factory)
+            .connection_tester_factory(connection_tester_factory)
             .build()
             .unwrap();
 
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 
@@ -382,25 +380,23 @@ mod tests {
             .header("Authorization", format!("Bearer {}", bearer))
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/tenants/create")
+            .uri("/api/tenants/create")
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = AppStateBuilder::default()
-            .tenants_module(Arc::new(
-                TenantsModuleBuilder::default()
-                    .pool_manager(pool_manager_mock.clone())
-                    .config(config.clone())
-                    .repo_factory(repo_factory)
-                    .migrator_factory(migrator_factory)
-                    .connection_tester_factory(connection_tester_factory)
-                    .build()
-                    .unwrap(),
-            ))
+        let tenants_module = TenantsModuleBuilder::default()
+            .pool_manager(pool_manager_mock.clone())
+            .config(config.clone())
+            .repo_factory(repo_factory)
+            .migrator_factory(migrator_factory)
+            .connection_tester_factory(connection_tester_factory)
             .build()
             .unwrap();
 
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 
@@ -513,25 +509,23 @@ mod tests {
             .header("Authorization", format!("Bearer {}", bearer))
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri("/tenants/create")
+            .uri("/api/tenants/create")
             .body(Body::from(payload))
             .unwrap();
 
-        let app_state = AppStateBuilder::default()
-            .tenants_module(Arc::new(
-                TenantsModuleBuilder::default()
-                    .pool_manager(pool_manager_mock.clone())
-                    .config(config.clone())
-                    .repo_factory(repo_factory)
-                    .migrator_factory(migrator_factory)
-                    .connection_tester_factory(connection_tester_factory)
-                    .build()
-                    .unwrap(),
-            ))
+        let tenants_module = TenantsModuleBuilder::default()
+            .pool_manager(pool_manager_mock.clone())
+            .config(config.clone())
+            .repo_factory(repo_factory)
+            .migrator_factory(migrator_factory)
+            .connection_tester_factory(connection_tester_factory)
             .build()
             .unwrap();
 
-        let app = app(Arc::new(app_state)).await;
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
 
         let response = app.oneshot(request).await.unwrap();
 

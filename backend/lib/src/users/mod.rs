@@ -24,6 +24,10 @@ mod repository;
 mod routes;
 mod service;
 
+pub fn init_users_module() -> UsersModuleBuilder {
+    UsersModuleBuilder::default()
+}
+
 pub struct UsersModule {}
 
 pub struct UsersModuleBuilder {}
@@ -40,7 +44,7 @@ impl UsersModuleBuilder {
 #[cfg(not(test))]
 impl Default for UsersModuleBuilder {
     fn default() -> Self {
-        UsersModuleBuilder::new()
+        Self::new()
     }
 }
 

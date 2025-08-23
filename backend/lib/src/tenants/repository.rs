@@ -327,11 +327,10 @@ impl TenantsRepository for PoolWrapper {
                     AND tenants.deleted_at IS NULL
                     AND user_tenants.deleted_at IS NULL
                     AND $2::TEXT IS NULL OR tenants.name ILIKE $2
-                {}
+                {order_by_clause}
                 LIMIT $3
                 OFFSET $4
-                "#,
-            order_by_clause
+                "#
         );
 
         let tenants = sqlx::query_as::<_, Tenant>(&sql)

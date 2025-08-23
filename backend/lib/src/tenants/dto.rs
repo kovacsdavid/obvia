@@ -367,7 +367,7 @@ impl From<&QueryParam> for FilteringParams {
                     None => None,
                     Some(name) => {
                         if !name.trim().is_empty() {
-                            Some(format!("%{}%", name))
+                            Some(format!("%{name}%"))
                         } else {
                             None
                         }

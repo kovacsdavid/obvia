@@ -18,6 +18,7 @@
  */
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 /// Represents the structure of the claims contained in a JSON Web Token (JWT).
 /// These claims provide metadata and security information for the token.
@@ -52,13 +53,13 @@ use serde::{Deserialize, Serialize};
 /// and enforce time-based constraints.
 #[derive(Serialize, Deserialize, Clone, PartialEq, Debug)]
 pub struct Claims {
-    sub: String,
+    sub: Uuid,
     exp: usize,
     iat: usize,
     nbf: usize,
     iss: String,
     aud: String,
-    jti: String,
+    jti: Uuid,
 }
 
 impl Claims {
@@ -78,13 +79,13 @@ impl Claims {
     ///
     /// Returns a new instance populated with the provided values.
     pub fn new(
-        sub: String,
+        sub: Uuid,
         exp: usize,
         iat: usize,
         nbf: usize,
         iss: String,
         aud: String,
-        jti: String,
+        jti: Uuid,
     ) -> Self {
         Self {
             sub,
@@ -156,8 +157,8 @@ impl Claims {
 
     /// Returns a reference to the `sub` field of the object.
     /// `sub` The subject of the token, which represents the user's unique identifier (e.g., a UUID as a string).
-    pub fn sub(&self) -> &String {
-        &self.sub
+    pub fn sub(&self) -> Uuid {
+        self.sub
     }
     /// Returns a reference to the `exp` field of the object.
     /// `exp` The expiration timestamp of the token in UNIX time. Indicates the time after which the token is no longer valid.
@@ -192,8 +193,8 @@ impl Claims {
     /// Returns a reference to the `jti` field of the object.
     /// `jti`A unique identifier for the token, typically a UUID, which ensures that each token is unique. This can help prevent token reuse or replay attacks.
     #[allow(dead_code)]
-    pub fn jti(&self) -> &String {
-        &self.jti
+    pub fn jti(&self) -> Uuid {
+        self.jti
     }
 }
 
@@ -215,13 +216,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -250,13 +251,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -284,13 +285,13 @@ mod tests {
         let nbf = Local::now().add(Duration::from_secs(61)).timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -318,13 +319,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -352,13 +353,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())

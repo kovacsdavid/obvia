@@ -17,9 +17,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import {type ClassValue, clsx} from "clsx"
+import {twMerge} from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function query_parser(encodedStr: unknown): Record<string, string | number> {
+  const result: Record<string, string | number> = {};
+  if (typeof encodedStr === "string") {
+    const decodedStr = decodeURIComponent(encodedStr);
+    const pairs = decodedStr.split('|');
+
+    pairs.forEach(pair => {
+      const keyValue = pair.split(':');
+      if (keyValue.length === 2) {
+        const key = keyValue[0].trim();
+        const value = keyValue[1].trim();
+
+        if (key.length > 0 && value.length > 0) {
+          result[key] = !isNaN(Number(value)) ? Number(value) : value;
+        }
+      }
+    });
+  }
+  return result
+}
+
+export function query_encoder(params: Record<string, string | number>): string {
+  const pairs = Object.entries(params).map(([key, valueRaw]) => {
+    const value = valueRaw.toString().trim()
+    return `${key}:${value}`;
+  });
+  const concatenated = pairs.join('|');
+  return encodeURIComponent(concatenated);
 }

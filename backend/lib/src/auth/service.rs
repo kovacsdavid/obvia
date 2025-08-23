@@ -113,13 +113,13 @@ pub async fn try_login(
     let nbf = now;
 
     let claims = Claims::new(
-        user.id.to_string(),
+        user.id,
         exp,
         now,
         nbf,
         auth_module.config.auth().jwt_issuer().to_string(),
         auth_module.config.auth().jwt_audience().to_string(),
-        Uuid::new_v4().to_string(),
+        Uuid::new_v4(),
     );
 
     let token = encode(

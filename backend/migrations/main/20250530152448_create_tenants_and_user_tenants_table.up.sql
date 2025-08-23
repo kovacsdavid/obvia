@@ -23,6 +23,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE tenants (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    is_self_hosted BOOLEAN NOT NULL,
     db_host VARCHAR(255) NOT NULL,
     db_port INTEGER NOT NULL DEFAULT 5432,
     db_name VARCHAR(255) NOT NULL,
@@ -41,6 +42,7 @@ CREATE TABLE user_tenants (
     tenant_id UUID NOT NULL,
     role VARCHAR(64) NOT NULL DEFAULT 'member',
     invited_by UUID,
+    last_activated TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at TIMESTAMPTZ,

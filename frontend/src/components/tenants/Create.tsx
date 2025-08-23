@@ -57,9 +57,8 @@ export default function Create() {
       dbUser,
       dbPassword
     })).then((response) => {
-      console.log(response)
       if (response?.meta?.requestStatus === "fulfilled") {
-        window.location.href = "/szervezeti_egysegek/lista";
+        window.location.href = "/szervezeti_egyseg/lista";
       }
     });
   };

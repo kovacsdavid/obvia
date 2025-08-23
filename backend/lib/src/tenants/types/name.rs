@@ -18,7 +18,6 @@
  */
 
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
-use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
 
@@ -51,12 +50,11 @@ impl ValueObjectable for Name {
     /// # Errors
     /// - If the `Regex::new` function fails to compile the regular expression, the method returns `Err(String)` with the message `"Hibás név!"`.
     fn validate(&self) -> Result<(), String> {
-        match Regex::new(r##"^[A-Za-z0-9]{1,255}$"##) {
-            Ok(re) => match re.is_match(&self.0) {
-                true => Ok(()),
-                false => Err("Hibás név!".to_string()),
-            },
-            Err(_) => Err("Hibás név!".to_string()),
+        let trimmed = self.0.trim();
+        if !trimmed.is_empty() && trimmed.len() < 255 {
+            Ok(())
+        } else {
+            Err("Hibás név!".to_string())
         }
     }
 
@@ -129,18 +127,17 @@ mod tests {
             name.extract().get_value(),
             "bc5690796fc8414e93e32fcdaae3156d"
         );
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test tenant""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test tenant");
     }
 
     #[test]
     fn test_invalid_name() {
-        let name: Result<ValueObject<Name>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d'DROP""#);
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
         assert!(name.is_err());
-        let name: Result<ValueObject<Name>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d;DROP""#);
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#"" "#);
         assert!(name.is_err());
-        let name: Result<ValueObject<Name>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d"DROP""#);
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""    ""#);
         assert!(name.is_err());
     }
 }

@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::app::config::TenantDatabaseConfig;
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::dto::{ErrorBody, ErrorResponse, QueryParam};
 use crate::common::types::value_object::ValueObject;
+use crate::tenants::model::Tenant;
 use crate::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
 use axum::Json;
 use axum::http::StatusCode;
@@ -314,4 +315,66 @@ pub struct UserTenantConnect {
     pub tenant_id: Uuid,
     pub role: String,
     pub invited_by: Option<Uuid>,
+}
+
+#[derive(Serialize, Debug, Clone, Default)]
+pub struct PublicTenant {
+    pub id: Uuid,
+    pub name: String,
+    pub is_self_hosted: bool,
+    pub db_host: String,
+    pub db_port: i32,
+    pub db_name: String,
+    pub db_user: String,
+    pub db_password: String,
+    pub db_max_pool_size: i32,
+    pub db_ssl_mode: String,
+    pub created_at: chrono::DateTime<chrono::Local>,
+    pub updated_at: chrono::DateTime<chrono::Local>,
+    pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
+}
+
+impl From<Tenant> for PublicTenant {
+    fn from(value: Tenant) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            is_self_hosted: value.is_self_hosted,
+            db_host: value.db_host,
+            db_port: value.db_port,
+            db_name: value.db_name,
+            db_user: value.db_user,
+            db_password: "[REDACTED]".to_string(),
+            db_max_pool_size: value.db_max_pool_size,
+            db_ssl_mode: value.db_ssl_mode,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            deleted_at: value.deleted_at,
+        }
+    }
+}
+
+pub struct FilteringParams {
+    pub name: Option<String>,
+}
+
+impl From<&QueryParam> for FilteringParams {
+    fn from(value: &QueryParam) -> Self {
+        match value.as_hash_map() {
+            None => Self { name: None },
+            Some(hmap) => {
+                let name = match hmap.get("name").cloned() {
+                    None => None,
+                    Some(name) => {
+                        if !name.trim().is_empty() {
+                            Some(format!("%{}%", name))
+                        } else {
+                            None
+                        }
+                    }
+                };
+                Self { name }
+            }
+        }
+    }
 }

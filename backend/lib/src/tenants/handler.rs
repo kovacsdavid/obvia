@@ -18,12 +18,15 @@
  */
 
 use crate::auth::middleware::AuthenticatedUser;
+use crate::common::dto::{OkResponse, OrderingParams, PagedResult, PaginatorParams, QueryParam};
 use crate::common::error::FriendlyError;
 use crate::tenants::TenantsModule;
-use crate::tenants::dto::{TenantCreateRequest, TenantCreateRequestHelper};
+use crate::tenants::dto::{
+    FilteringParams, PublicTenant, TenantCreateRequest, TenantCreateRequestHelper,
+};
 use crate::tenants::service::try_create;
-use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
@@ -133,10 +136,40 @@ pub async fn get(
 /// # Returns
 /// - `Response`: An HTTP response that will eventually return the results of listing tenants or an appropriate error response if issues occur.
 pub async fn list(
-    AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_tenants_module): State<Arc<TenantsModule>>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tenants_module): State<Arc<TenantsModule>>,
+    Query(payload): Query<QueryParam>,
 ) -> Response {
-    todo!();
+    let repo = (tenants_module.repo_factory)();
+
+    let paginator = PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default());
+    let orderding = OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+        order_by: "name".to_string(),
+        order: "asc".to_string(),
+    });
+    let filtering = FilteringParams::from(&payload);
+
+    match repo
+        .get_all_by_user_id(claims.sub(), paginator, orderding, filtering)
+        .await
+    {
+        Ok(result) => {
+            let mut public_tenants = vec![];
+            for tenant in result.data {
+                public_tenants.push(PublicTenant::from(tenant))
+            }
+            let result = PagedResult {
+                page: result.page,
+                limit: result.limit,
+                total: result.total,
+                data: public_tenants,
+            };
+            (StatusCode::OK, Json(OkResponse::new(result))).into_response()
+        }
+        Err(_e) => {
+            todo!()
+        }
+    }
 }
 
 #[cfg(test)]
@@ -195,6 +228,7 @@ mod tests {
                     Ok(Tenant {
                         id: uuid,
                         name: "test".to_string(),
+                        is_self_hosted: false,
                         db_host: "localhost".to_string(),
                         db_port: 5432,
                         db_name: "database".to_string(),
@@ -241,13 +275,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let bearer = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();
@@ -319,6 +353,7 @@ mod tests {
                     Ok(Tenant {
                         id: uuid,
                         name: "test".to_string(),
+                        is_self_hosted: false,
                         db_host: "localhost".to_string(),
                         db_port: 5432,
                         db_name: "database".to_string(),
@@ -365,13 +400,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let bearer = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();
@@ -431,6 +466,7 @@ mod tests {
                     Ok(Tenant {
                         id: Uuid::new_v4(),
                         name: "test".to_string(),
+                        is_self_hosted: true,
                         db_host: "example.com".to_string(),
                         db_port: 5432,
                         db_name: "tenant_1234567890".to_string(),
@@ -494,13 +530,13 @@ mod tests {
         let nbf = Local::now().timestamp();
 
         let bearer = Claims::new(
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4().to_string(),
+            Uuid::new_v4(),
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();

@@ -44,6 +44,7 @@ use uuid::Uuid;
 pub struct Tenant {
     pub id: Uuid,
     pub name: String,
+    pub is_self_hosted: bool,
     pub db_host: String,
     pub db_port: i32,
     pub db_name: String,
@@ -86,6 +87,7 @@ pub struct UserTenant {
     pub tenant_id: Uuid,
     pub role: String,
     pub invited_by: Option<Uuid>,
+    pub last_activated: chrono::DateTime<chrono::Local>,
     pub created_at: chrono::DateTime<chrono::Local>,
     pub updated_at: chrono::DateTime<chrono::Local>,
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,

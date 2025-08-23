@@ -25,7 +25,8 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
-import Create from "@/components/tenants/Create.tsx";
+import {default as TenantsCreate} from "@/components/tenants/Create.tsx";
+import {default as TenantsList}  from "@/components/tenants/List.tsx";
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);
@@ -50,7 +51,15 @@ export default function App() {
           path="/szervezeti_egyseg/letrehozas"
           element={
             <PrivateRoute>
-              <Create/>
+              <TenantsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/szervezeti_egyseg/lista"
+          element={
+            <PrivateRoute>
+              <TenantsList/>
             </PrivateRoute>
           }
         />

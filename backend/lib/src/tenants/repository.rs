@@ -18,10 +18,12 @@
  */
 use crate::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::auth::dto::claims::Claims;
+use crate::common::dto::{OrderingParams, PagedResult, PaginatorParams};
 use crate::common::error::DatabaseError;
 use crate::common::repository::PoolWrapper;
 use crate::common::types::DdlParameter;
 use crate::common::types::value_object::ValueObject;
+use crate::tenants::dto::FilteringParams;
 use crate::tenants::model::{Tenant, UserTenant};
 use async_trait::async_trait;
 #[cfg(test)]
@@ -181,7 +183,13 @@ pub trait TenantsRepository: Send + Sync + 'static {
     /// # Errors
     /// - Returns a `DatabaseError` if the query fails or if an issue occurs during retrieval.
     #[allow(dead_code)]
-    async fn get_all_by_user_uuid(&self, user_uuid: Uuid) -> Result<Vec<Tenant>, DatabaseError>;
+    async fn get_all_by_user_id(
+        &self,
+        user_uuid: Uuid,
+        paginator_params: PaginatorParams,
+        ordering_params: OrderingParams,
+        filtering_params: FilteringParams,
+    ) -> Result<PagedResult<Vec<Tenant>>, DatabaseError>;
     /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
@@ -230,7 +238,7 @@ impl TenantsRepository for PoolWrapper {
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
-        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
+        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, true, db_config, claims)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
@@ -253,7 +261,7 @@ impl TenantsRepository for PoolWrapper {
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims)
+        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         create_database_user_for_managed(&mut tx, &tenant, app_config)
@@ -281,14 +289,66 @@ impl TenantsRepository for PoolWrapper {
         Ok(tenant)
     }
 
-    async fn get_all_by_user_uuid(&self, user_uuid: Uuid) -> Result<Vec<Tenant>, DatabaseError> {
-        sqlx::query_as::<_, Tenant>(
-            "SELECT * FROM tenants WHERE user_uuid = $1 AND deleted_at IS NULL",
+    async fn get_all_by_user_id(
+        &self,
+        user_uuid: Uuid,
+        paginator_params: PaginatorParams,
+        ordering_params: OrderingParams,
+        filtering_params: FilteringParams,
+    ) -> Result<PagedResult<Vec<Tenant>>, DatabaseError> {
+        let total: (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM tenants
+                LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
+                WHERE user_tenants.user_id = $1
+                    AND tenants.deleted_at IS NULL
+                    AND user_tenants.deleted_at IS NULL
+                    AND $2::TEXT IS NULL OR tenants.name ILIKE $2",
         )
         .bind(user_uuid)
-        .fetch_all(&self.pool)
+        .bind(filtering_params.name.clone())
+        .fetch_one(&self.pool)
         .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+        let order_by_clause = match ordering_params.order_by.as_str() {
+            "name" => format!("ORDER BY tenants.name {}", ordering_params.order),
+            "created_at" => format!("ORDER BY tenants.created_at {}", ordering_params.order),
+            "updated_at" => format!("ORDER BY tenants.updated_at {}", ordering_params.order),
+            _ => "".to_string(),
+        };
+
+        let sql = format!(
+            r#"
+            SELECT tenants.*
+                FROM tenants
+                LEFT JOIN user_tenants
+                    ON tenants.id = user_tenants.tenant_id
+                WHERE user_tenants.user_id = $1
+                    AND tenants.deleted_at IS NULL
+                    AND user_tenants.deleted_at IS NULL
+                    AND $2::TEXT IS NULL OR tenants.name ILIKE $2
+                {}
+                LIMIT $3
+                OFFSET $4
+                "#,
+            order_by_clause
+        );
+
+        let tenants = sqlx::query_as::<_, Tenant>(&sql)
+            .bind(user_uuid)
+            .bind(filtering_params.name)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+
+        Ok(PagedResult {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: tenants,
+        })
     }
 
     async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError> {
@@ -303,16 +363,18 @@ async fn insert_and_connect_with_user(
     conn: &mut PgConnection,
     uuid: Uuid,
     name: &str,
+    is_self_hosted: bool,
     db_config: &BasicDatabaseConfig,
     claims: &Claims,
 ) -> Result<Tenant, BoxDynError> {
     let tenant = sqlx::query_as::<_, Tenant>(
         "INSERT INTO tenants (
-            id, name, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+            id, name, is_self_hosted, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
     )
     .bind(uuid)
     .bind(name)
+    .bind(is_self_hosted)
     .bind(&db_config.host)
     .bind(i32::from(db_config.port))
     .bind(&db_config.database)
@@ -332,7 +394,7 @@ async fn insert_and_connect_with_user(
             user_id, tenant_id, role
             ) VALUES ($1, $2, $3) RETURNING *",
     )
-    .bind(Uuid::parse_str(claims.sub()).map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
+    .bind(claims.sub())
     .bind(uuid)
     .bind("owner")
     .fetch_one(&mut *conn)

@@ -23,68 +23,106 @@ import {isTenantsResponse} from "@/services/tenants.ts";
 import type {RootState} from "@/store";
 
 interface TenantsState {
-    status: "idle" | "loading" | "succeeded" | "failed",
-    error: {
-        global: string | null,
-        fields: Record<string, string | null>
-    }
+  status: "idle" | "loading" | "succeeded" | "failed",
+  error: {
+    global: string | null,
+    fields: Record<string, string | null>
+  }
 }
 
 const initialState: TenantsState = {
-    status: "idle",
-    error: {
-        global: null,
-        fields: {}
-    }
+  status: "idle",
+  error: {
+    global: null,
+    fields: {}
+  }
 }
 
 export const create = createAsyncThunk(
-    "tenants/create",
-    async (requestData: tenantsApi.TenantsRequest, { rejectWithValue, getState }) => {
-        try {
-            const rootState = getState() as RootState;
-            const token =  rootState.auth.login.token;
-            const response = await tenantsApi.create(requestData, token);
-            if (response.success) {
-                return response;
-            } else {
-                return rejectWithValue(response);
-            }
-        } catch (error: unknown) {
-            return rejectWithValue(error);
-        }
+  "tenants/create",
+  async (requestData: tenantsApi.TenantsRequest, {rejectWithValue, getState}) => {
+    try {
+      const rootState = getState() as RootState;
+      const token = rootState.auth.login.token;
+      const response = await tenantsApi.create(requestData, token);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response);
+      }
+    } catch (error: unknown) {
+      return rejectWithValue(error);
     }
+  }
+)
+
+export const list = createAsyncThunk(
+  "tenants/list",
+  async (query: string | null, {rejectWithValue, getState}) => {
+    try {
+      const rootState = getState() as RootState;
+      const token = rootState.auth.login.token;
+      const response = await tenantsApi.list(query, token);
+      console.log("response", response);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response);
+      }
+    } catch (error: unknown) {
+      return rejectWithValue(error);
+    }
+  }
 )
 
 const tenantsSlice = createSlice({
-    name: "tenants",
-    initialState,
-    reducers: {},
-    extraReducers: (builder) => {
-        builder
-            .addCase(create.pending, (state) => {
-                state.status = "loading";
-                state.error = { global: null, fields: {}};
-            })
-            .addCase(
-                create.fulfilled,
-                (
-                    state,
-                    action: PayloadAction<tenantsApi.TenantsResponse>
-                ) => {
-                state.status = "succeeded";
-                console.log(action);
-                state.error = { global: null, fields: {}};
-            })
-            .addCase(create.rejected, (state, action) => {
-                state.status = "failed";
-                if (isTenantsResponse(action.payload) && typeof action.payload?.error !== "undefined") {
-                    state.error = action.payload.error;
-                } else {
-                    state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
-                }
-            })
-    }
+  name: "tenants",
+  initialState,
+  reducers: {},
+  extraReducers: (builder) => {
+    builder
+      .addCase(create.pending, (state) => {
+        state.status = "loading";
+        state.error = {global: null, fields: {}};
+      })
+      .addCase(
+        create.fulfilled,
+        (
+          state,
+          action: PayloadAction<tenantsApi.TenantsResponse>
+        ) => {
+          state.status = "succeeded";
+          console.log(action);
+          state.error = {global: null, fields: {}};
+        })
+      .addCase(create.rejected, (state, action) => {
+        state.status = "failed";
+        if (isTenantsResponse(action.payload) && typeof action.payload?.error !== "undefined") {
+          state.error = action.payload.error;
+        } else {
+          state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
+        }
+      })
+    builder
+      .addCase(list.pending, (state) => {
+        state.status = "loading";
+        state.error = {
+          global: null,
+          fields: {}
+        };
+      })
+      .addCase(list.fulfilled, (state) => {
+        state.status = "succeeded";
+        state.error = {
+          global: null,
+          fields: {}
+        };
+      })
+      .addCase(list.rejected, (state) => {
+        state.status = "failed";
+        state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
+      });
+  }
 });
 
 export default tenantsSlice.reducer;

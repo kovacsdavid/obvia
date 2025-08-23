@@ -43,6 +43,7 @@ export function Layout( { children }: { children: ReactNode }) {
         "/regisztracio": "Regisztráció",
         "/vezerlopult": "Vezérlőpult",
         "/szervezeti_egyseg/letrehozas": "Szervezeti egység létrehozása",
+        "/szervezeti_egyseg/lista": "Szervezeti egység lista"
     };
     const { pathname } = useLocation();
     const currentTitle = breadcrumbMap[pathname] || "Ismeretlen oldal";

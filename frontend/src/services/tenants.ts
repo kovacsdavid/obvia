@@ -104,3 +104,93 @@ export async function create({
   }
   return responseJson;
 }
+
+export interface TenantData {
+  id: string;
+  name: string;
+  db_host: string;
+  db_port: number;
+  db_name: string;
+  db_user: string;
+  db_password: string;
+  db_max_pool_size: number;
+  db_ssl_mode: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+// Interface for the response
+export interface TenantsListResponse {
+  success: boolean,
+  data: {
+    page: number,
+    limit: number,
+    total: number,
+    data: TenantData[]
+  };
+}
+
+
+export function isTenantsList(data: unknown): data is TenantsListResponse {
+  if (typeof data !== 'object' || data === null) return false;
+
+  const response = data as Record<string, any>;
+
+  // Validate top-level properties
+  if (!('success' in response) || typeof response.success !== 'boolean') return false;
+  if (!('data' in response) || typeof response.data !== 'object' || response.data === null) return false;
+
+  // Validate the pagination info inside data
+  const dataObj = response.data;
+
+  if (
+    !('page' in dataObj) || typeof dataObj.page !== 'number' ||
+    !('limit' in dataObj) || typeof dataObj.limit !== 'number' ||
+    !('total' in dataObj) || typeof dataObj.total !== 'number' ||
+    !('data' in dataObj) || !Array.isArray(dataObj.data)
+  ) {
+    return false;
+  }
+
+  // Validate each TenantData object inside the data array
+  return dataObj.data.every((item: any) => {
+    if (typeof item !== 'object' || item === null) return false;
+    return (
+      typeof item.id === 'string' &&
+      typeof item.name === 'string' &&
+      typeof item.db_host === 'string' &&
+      typeof item.db_port === 'number' &&
+      typeof item.db_name === 'string' &&
+      typeof item.db_user === 'string' &&
+      typeof item.db_password === 'string' &&
+      typeof item.db_max_pool_size === 'number' &&
+      typeof item.db_ssl_mode === 'string' &&
+      typeof item.created_at === 'string' &&
+      typeof item.updated_at === 'string' &&
+      ('deleted_at' in item ? (item.deleted_at === null || typeof item.deleted_at === 'string') : true)
+    );
+  });
+}
+
+export async function list(query: string | null, token: string | null) {
+  const uri = query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`
+  const response = await fetch(uri, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    }
+  });
+  let responseJson;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error("Server responded with invalid JSON format");
+  }
+
+  if (!isTenantsList(responseJson)) {
+    throw new Error("Server responded with invalid data");
+  }
+  return responseJson;
+}

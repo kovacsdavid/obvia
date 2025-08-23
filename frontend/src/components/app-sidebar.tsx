@@ -37,7 +37,7 @@ import {logoutUser} from "@/store/slices/auth.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";
-import {KeyRound, LogOut, NotebookPen, Boxes} from "lucide-react";
+import {KeyRound, LogOut, NotebookPen, Boxes, ScrollText} from "lucide-react";
 
 interface NavigationItem {
   title: string;
@@ -83,14 +83,14 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/bejelentkezes",
             publicOnly: true,
             icon: <KeyRound />,
-            isActive: location.pathname === "/bejelentkezes",
+            isActive: location.pathname.includes("/bejelentkezes"),
           },
           {
             title: "Regisztráció",
             url: "/regisztracio",
             icon: <NotebookPen />,
             publicOnly: true,
-            isActive: location.pathname === "/regisztracio",
+            isActive: location.pathname.includes("/regisztracio"),
           },
           {
             title: "Kijelentkezés",
@@ -110,8 +110,15 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/szervezeti_egyseg/letrehozas",
             private: true,
             icon: <Boxes />,
-            isActive: location.pathname === "/bejelentkezes",
+            isActive: location.pathname.includes("/szervezeti_egyseg/letrehozas"),
           },
+          {
+            title: "Lista",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <ScrollText />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          }
         ]
       }
     ],

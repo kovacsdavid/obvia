@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fmt::{Display, Formatter};
+use thiserror::Error;
 
 /// A generic response struct used to represent a successful response, containing a success flag
 /// and some associated data. The data field is generic and must implement the `Serialize` trait.
@@ -120,4 +122,233 @@ pub struct ErrorBody<T: Serialize> {
 #[derive(Serialize)]
 pub struct SimpleMessageResponse {
     pub message: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct QueryParam {
+    pub q: Option<String>,
+}
+
+impl QueryParam {
+    pub fn as_hash_map(&self) -> Option<HashMap<String, String>> {
+        match &self.q {
+            Some(q) => {
+                let mut hmap: HashMap<String, String> = HashMap::new();
+                for s1 in q.split("|").collect::<Vec<&str>>() {
+                    let param_value = s1.split(":").collect::<Vec<&str>>();
+                    if let Some(param) = param_value.first()
+                        && let Some(value) = param_value.get(1)
+                    {
+                        hmap.insert(param.trim().to_string(), value.trim().to_string());
+                    }
+                }
+                if !hmap.is_empty() { Some(hmap) } else { None }
+            }
+            None => None,
+        }
+    }
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum PaginatorError {
+    #[allow(dead_code)]
+    InvalidPage,
+    #[allow(dead_code)]
+    InvalidLimit,
+    #[allow(dead_code)]
+    MissingParams,
+}
+
+impl Display for PaginatorError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PaginatorError::InvalidPage => write!(f, "Invalid page!"),
+            PaginatorError::InvalidLimit => write!(f, "Invalid limit!"),
+            PaginatorError::MissingParams => write!(f, "Missing paginator params!"),
+        }
+    }
+}
+
+#[derive(Serialize)]
+pub struct PagedResult<T> {
+    pub page: i32,
+    pub limit: i32,
+    pub total: i64,
+    pub data: T,
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Serialize, PartialEq)]
+pub struct PaginatorParams {
+    pub page: i32,
+    pub limit: i32,
+}
+
+impl PaginatorParams {
+    pub fn offset(&self) -> i32 {
+        (self.page - 1) * self.limit
+    }
+}
+
+impl Default for PaginatorParams {
+    fn default() -> Self {
+        Self { page: 1, limit: 25 }
+    }
+}
+
+impl TryFrom<&QueryParam> for PaginatorParams {
+    type Error = PaginatorError;
+    fn try_from(value: &QueryParam) -> Result<Self, Self::Error> {
+        match value.as_hash_map() {
+            Some(hmap) => Ok(PaginatorParams {
+                page: hmap
+                    .get("page")
+                    .ok_or(PaginatorError::MissingParams)?
+                    .parse()
+                    .map_err(|_| PaginatorError::InvalidPage)?,
+                limit: hmap
+                    .get("limit")
+                    .ok_or(PaginatorError::MissingParams)?
+                    .parse()
+                    .map_err(|_| PaginatorError::InvalidLimit)?,
+            }),
+            None => Err(PaginatorError::MissingParams),
+        }
+    }
+}
+
+#[derive(Error, Debug, PartialEq)]
+pub enum OrderingError {
+    InvalidOrder,
+    MissingParams,
+}
+
+impl Display for OrderingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OrderingError::InvalidOrder => write!(f, "Invalid order!"),
+            OrderingError::MissingParams => write!(f, "Missing ordering params!"),
+        }
+    }
+}
+
+pub struct OrderingParams {
+    pub order_by: String,
+    pub order: String,
+}
+
+impl TryFrom<&QueryParam> for OrderingParams {
+    type Error = OrderingError;
+    fn try_from(value: &QueryParam) -> Result<Self, Self::Error> {
+        match value.as_hash_map() {
+            Some(hmap) => {
+                let order_by = hmap
+                    .get("order_by")
+                    .ok_or(OrderingError::MissingParams)?
+                    .to_owned();
+                let order = hmap
+                    .get("order")
+                    .ok_or(OrderingError::MissingParams)?
+                    .to_owned();
+                if order == "asc" || order == "desc" {
+                    Ok(OrderingParams { order_by, order })
+                } else {
+                    Err(OrderingError::InvalidOrder)
+                }
+            }
+            None => Err(OrderingError::MissingParams),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_query_param() {
+        let query_param = QueryParam {
+            q: Some(String::from("")),
+        };
+        let expected = None;
+        assert_eq!(query_param.as_hash_map(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("page:1|limit:25|name:éáűú")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("page"), String::from("1"));
+        expected.insert(String::from("limit"), String::from("25"));
+        expected.insert(String::from("name"), String::from("éáűú"));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("limit:25|name:éáűú|page:1")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("page"), String::from("1"));
+        expected.insert(String::from("limit"), String::from("25"));
+        expected.insert(String::from("name"), String::from("éáűú"));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("limit:25|page:1")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("page"), String::from("1"));
+        expected.insert(String::from("limit"), String::from("25"));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("page:1")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("page"), String::from("1"));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("limit:")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("limit"), String::from(""));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+
+        let query_param = QueryParam {
+            q: Some(String::from("   limit   :   ")),
+        };
+        let mut expected = HashMap::new();
+        expected.insert(String::from("limit"), String::from(""));
+        assert_eq!(query_param.as_hash_map().unwrap(), expected);
+    }
+
+    #[test]
+    fn test_paginator() {
+        let paginator = PaginatorParams::try_from(&QueryParam {
+            q: Some(String::from("page:1|limit:25")),
+        })
+        .unwrap();
+        let expected = PaginatorParams { page: 1, limit: 25 };
+        assert_eq!(paginator, expected);
+
+        let paginator = PaginatorParams::try_from(&QueryParam {
+            q: Some(String::from("name:éáűú")),
+        })
+        .unwrap_err();
+        let expected = PaginatorError::MissingParams;
+        assert_eq!(paginator, expected);
+
+        let paginator = PaginatorParams::try_from(&QueryParam {
+            q: Some(String::from("page:1")),
+        })
+        .unwrap_err();
+        let expected = PaginatorError::MissingParams;
+        assert_eq!(paginator, expected);
+
+        let paginator = PaginatorParams::try_from(&QueryParam {
+            q: Some(String::from("limit:25")),
+        })
+        .unwrap_err();
+        let expected = PaginatorError::MissingParams;
+        assert_eq!(paginator, expected);
+    }
 }

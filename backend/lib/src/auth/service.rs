@@ -91,6 +91,10 @@ pub async fn try_login(
         )
         .trace(tracing::Level::DEBUG)
     })?;
+    let active_user_tenant = repo
+        .get_user_active_tenant(user.id)
+        .await
+        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
 
     let parsed_hash = PasswordHash::new(&user.password_hash)
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
@@ -111,6 +115,10 @@ pub async fn try_login(
         + Duration::minutes(auth_module.config.auth().jwt_expiration_mins() as i64))
     .timestamp() as usize;
     let nbf = now;
+    let active_tenant_id = match active_user_tenant {
+        None => None,
+        Some(user_tenant) => Some(user_tenant.tenant_id),
+    };
 
     let claims = Claims::new(
         user.id,
@@ -120,6 +128,7 @@ pub async fn try_login(
         auth_module.config.auth().jwt_issuer().to_string(),
         auth_module.config.auth().jwt_audience().to_string(),
         Uuid::new_v4(),
+        active_tenant_id,
     );
 
     let token = encode(

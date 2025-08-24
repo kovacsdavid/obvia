@@ -282,6 +282,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();
@@ -407,6 +408,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();
@@ -537,6 +539,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap();

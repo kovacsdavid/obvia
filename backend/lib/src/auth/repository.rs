@@ -19,10 +19,15 @@
 
 use crate::auth::dto::register::RegisterRequest;
 use crate::common::error::DatabaseError;
+use crate::common::repository::PoolWrapper;
+use crate::common::types::value_object::ValueObjectable;
+use crate::tenants::model::UserTenant;
 use crate::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::Error;
+use uuid::Uuid;
 
 /// `AuthRepository` is an asynchronous trait that defines the operations for interacting with
 /// user authentication-related data in a data store. It is meant to be implemented by any
@@ -98,4 +103,73 @@ pub trait AuthRepository: Send + Sync + 'static {
     /// - The query encounters an error.
     /// - No user is found with the specified email address.
     async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError>;
+
+    async fn get_user_active_tenant(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<UserTenant>, DatabaseError>;
+}
+
+#[async_trait]
+impl AuthRepository for PoolWrapper {
+    async fn insert_user(
+        &self,
+        payload: &RegisterRequest,
+        password_hash: &str,
+    ) -> Result<(), DatabaseError> {
+        sqlx::query(
+            "INSERT INTO users (
+                    id, email, password_hash, first_name, last_name
+            ) VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(Uuid::new_v4())
+        .bind(payload.email.extract().get_value())
+        .bind(password_hash)
+        .bind(payload.first_name.extract().get_value())
+        .bind(payload.last_name.extract().get_value())
+        .execute(&self.pool)
+        .await
+        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        Ok(())
+    }
+
+    async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError> {
+        Ok(
+            sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
+                .bind(email)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+        )
+    }
+
+    async fn get_user_active_tenant(
+        &self,
+        user_id: Uuid,
+    ) -> Result<Option<UserTenant>, DatabaseError> {
+        let user_tenant_result = sqlx::query_as::<_, UserTenant>(
+            "SELECT * FROM user_tenants WHERE user_id = $1 AND deleted_at IS NULL ORDER BY last_activated DESC LIMIT 1",
+        )
+        .bind(user_id)
+        .fetch_one(&self.pool)
+        .await;
+        let user_tenant_result = match user_tenant_result {
+            Ok(user_tenant) => Ok(Some(user_tenant)),
+            Err(e) => match e {
+                Error::RowNotFound => Ok(None),
+                _ => Err(DatabaseError::DatabaseError(e.to_string())),
+            },
+        };
+        if let Ok(user_tenant_option) = &user_tenant_result
+            && let Some(user_tenant) = user_tenant_option
+        {
+            let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
+                .bind(user_tenant.id)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        }
+
+        user_tenant_result
+    }
 }

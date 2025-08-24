@@ -127,7 +127,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
-    use chrono::Utc;
+    use chrono::Local;
     use mockall::predicate::*;
     use std::sync::Arc;
     use tower::ServiceExt;
@@ -141,6 +141,7 @@ mod tests {
     use crate::common::error::DatabaseError;
     use crate::common::types::value_object::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
+    use crate::tenants::model::UserTenant;
     use crate::{
         auth,
         auth::{
@@ -155,25 +156,30 @@ mod tests {
     async fn test_login_success() {
         let repo_factory = Box::new(|| {
             let mut repo = MockAuthRepository::new();
+            let user_id1 = Uuid::new_v4();
+            let user_id2 = user_id1;
             repo.expect_get_user_by_email()
                 .with(eq("testuser@example.com"))
-                .returning(|_| Ok(User {
-                    id: Uuid::new_v4(),
+                .returning(move |_| Ok(User {
+                    id: user_id1,
                     email: "testuser@example.com".to_string(),
                     password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
                     first_name: Some("Test".to_string()),
                     last_name: Some("User".to_string()),
                     phone: Some("+123456789".to_string()),
                     status: "active".to_string(),
-                    last_login_at: Some(Utc::now()),
+                    last_login_at: Some(Local::now()),
                     profile_picture_url: None,
                     locale: Some("hu-HU".to_string()),
                     invited_by: None,
-                    email_verified_at: Some(Utc::now()),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
                     deleted_at: None,
                 }));
+            repo.expect_get_user_active_tenant()
+                .with(eq(user_id2))
+                .returning(|_| Ok(None));
             Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
         });
         let auth_module = AuthModule {
@@ -227,25 +233,30 @@ mod tests {
     async fn test_login_failure() {
         let repo_factory = Box::new(|| {
             let mut repo = MockAuthRepository::new();
+            let user_id1 = Uuid::new_v4();
+            let user_id2 = user_id1;
             repo.expect_get_user_by_email()
                 .with(eq("testuser@example.com"))
-                .returning(|_| Ok(User {
-                    id: Uuid::new_v4(),
+                .returning(move |_| Ok(User {
+                    id: user_id1,
                     email: "testuser@example.com".to_string(),
                     password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
                     first_name: Some("Test".to_string()),
                     last_name: Some("User".to_string()),
                     phone: Some("+123456789".to_string()),
                     status: "active".to_string(),
-                    last_login_at: Some(Utc::now()),
+                    last_login_at: Some(Local::now()),
                     profile_picture_url: None,
                     locale: Some("hu-HU".to_string()),
                     invited_by: None,
-                    email_verified_at: Some(Utc::now()),
-                    created_at: Utc::now(),
-                    updated_at: Utc::now(),
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
                     deleted_at: None,
                 }));
+            repo.expect_get_user_active_tenant()
+                .with(eq(user_id2))
+                .returning(|_| Ok(None));
             Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
         });
         let auth_module = AuthModule {
@@ -374,5 +385,97 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CONFLICT);
+    }
+
+    #[tokio::test]
+    async fn test_active_user_tenant() {
+        let active_tenant_id1 = Uuid::new_v4();
+        let active_tenant_id2 = active_tenant_id1;
+        let repo_factory = Box::new(move || {
+            let mut repo = MockAuthRepository::new();
+            let user_id1 = Uuid::new_v4();
+            let user_id2 = user_id1;
+            repo.expect_get_user_by_email()
+                .with(eq("testuser@example.com"))
+                .returning(move |_| Ok(User {
+                    id: user_id1,
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Local::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                }));
+            repo.expect_get_user_active_tenant()
+                .with(eq(user_id2))
+                .returning(move |user_id| {
+                    Ok(Some(UserTenant {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        tenant_id: active_tenant_id1,
+                        role: "owner".to_string(),
+                        invited_by: None,
+                        last_activated: Local::now(),
+                        created_at: Local::now(),
+                        updated_at: Local::now(),
+                        deleted_at: None,
+                    }))
+                });
+            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        });
+        let auth_module = AuthModule {
+            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
+            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
+            repo_factory,
+        };
+        let payload = serde_json::to_string(&LoginRequest {
+            email: "testuser@example.com".to_string(),
+            password: "correctpassword".to_string(),
+        })
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/login")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+
+        let data = body.get("data").unwrap();
+
+        let claims = Claims::from_token(
+            data["token"].as_str().unwrap(),
+            config.auth().jwt_secret().as_bytes(),
+            config.auth().jwt_issuer(),
+            config.auth().jwt_audience(),
+        );
+
+        assert!(claims.is_ok());
+
+        assert_eq!(claims.unwrap().active_tenant().unwrap(), active_tenant_id2)
     }
 }

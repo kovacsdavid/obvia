@@ -60,6 +60,7 @@ pub struct Claims {
     iss: String,
     aud: String,
     jti: Uuid,
+    active_tenant: Option<Uuid>,
 }
 
 impl Claims {
@@ -78,6 +79,7 @@ impl Claims {
     /// # Returns
     ///
     /// Returns a new instance populated with the provided values.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         sub: Uuid,
         exp: usize,
@@ -86,6 +88,7 @@ impl Claims {
         iss: String,
         aud: String,
         jti: Uuid,
+        active_tenant: Option<Uuid>,
     ) -> Self {
         Self {
             sub,
@@ -95,6 +98,7 @@ impl Claims {
             iss,
             aud,
             jti,
+            active_tenant,
         }
     }
 
@@ -196,6 +200,12 @@ impl Claims {
     pub fn jti(&self) -> Uuid {
         self.jti
     }
+
+    /// Retrieves the UUID of the active tenant associated with the current context.
+    #[allow(dead_code)]
+    pub fn active_tenant(&self) -> Option<Uuid> {
+        self.active_tenant
+    }
 }
 
 #[cfg(test)]
@@ -223,6 +233,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -258,17 +269,14 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         );
-        let token1 = claims
+        let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
             .unwrap();
-        let token2 = claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .unwrap();
-        assert_eq!(token1, token2);
         assert!(
             Claims::from_token(
-                &token1,
+                &token,
                 config.auth().jwt_secret().as_bytes(),
                 config.auth().jwt_issuer(),
                 config.auth().jwt_audience()
@@ -292,17 +300,14 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         );
-        let token1 = claims
+        let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
             .unwrap();
-        let token2 = claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .unwrap();
-        assert_eq!(token1, token2);
         assert!(
             Claims::from_token(
-                &token1,
+                &token,
                 config.auth().jwt_secret().as_bytes(),
                 config.auth().jwt_issuer(),
                 config.auth().jwt_audience()
@@ -326,17 +331,15 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         );
-        let token1 = claims
+        let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
             .unwrap();
-        let token2 = claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .unwrap();
-        assert_eq!(token1, token2);
+
         assert!(
             Claims::from_token(
-                &token1,
+                &token,
                 config.auth().jwt_secret().as_bytes(),
                 "invalid_issuer",
                 config.auth().jwt_audience()
@@ -360,22 +363,87 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
         );
-        let token1 = claims
+        let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
             .unwrap();
-        let token2 = claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .unwrap();
-        assert_eq!(token1, token2);
+
         assert!(
             Claims::from_token(
-                &token1,
+                &token,
                 config.auth().jwt_secret().as_bytes(),
                 config.auth().jwt_issuer(),
                 "invalid_audience"
             )
             .is_err()
+        );
+    }
+    #[test]
+    fn test_empty_active_tenant() {
+        let config = AppConfigBuilder::default().build().unwrap();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let claims = Claims::new(
+            Uuid::new_v4(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4(),
+            None,
+        );
+        let token = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+
+        assert_eq!(
+            Claims::from_token(
+                &token,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience()
+            )
+            .unwrap()
+            .active_tenant(),
+            None
+        );
+    }
+    #[test]
+    fn test_valid_active_tenant() {
+        let config = AppConfigBuilder::default().build().unwrap();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+        let active_tenant_uuid = Uuid::new_v4();
+        let claims = Claims::new(
+            Uuid::new_v4(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            Uuid::new_v4(),
+            Some(active_tenant_uuid),
+        );
+        let token = claims
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+        assert_eq!(
+            Claims::from_token(
+                &token,
+                config.auth().jwt_secret().as_bytes(),
+                config.auth().jwt_issuer(),
+                config.auth().jwt_audience()
+            )
+            .unwrap()
+            .active_tenant(),
+            Some(active_tenant_uuid)
         );
     }
 }

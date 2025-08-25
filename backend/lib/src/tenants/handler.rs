@@ -225,20 +225,17 @@ pub async fn activate(
                         "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
                         "Hozzáférés megtagadva!".to_string(),
                     )
-                        .into_response(),
+                    .into_response(),
                     Some(user_tenant) => {
                         match claims
                             .clone()
                             .set_active_tenant(Some(user_tenant.tenant_id))
-                            .to_token(
-                                tenants_module.config.auth().jwt_secret().as_bytes()
-                            ) {
-                            Ok(new_claims) => (
-                                StatusCode::OK,
-                                Json(OkResponse::new(new_claims)),
-                            )
-                                .into_response(),
-                            Err(e) => FriendlyError::Internal(e.to_string()).into_response()
+                            .to_token(tenants_module.config.auth().jwt_secret().as_bytes())
+                        {
+                            Ok(new_claims) => {
+                                (StatusCode::OK, Json(OkResponse::new(new_claims))).into_response()
+                            }
+                            Err(e) => FriendlyError::Internal(e.to_string()).into_response(),
                         }
                     }
                 },
@@ -763,7 +760,9 @@ mod tests {
             .set_active_tenant(Some(active_tenant_id2));
 
         let expected_response = serde_json::to_string(&OkResponse::new(
-            claims_new.to_token(config.auth().jwt_secret().as_bytes()),
+            claims_new
+                .to_token(config.auth().jwt_secret().as_bytes())
+                .unwrap(),
         ))
         .unwrap();
 

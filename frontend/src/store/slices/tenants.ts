@@ -63,7 +63,6 @@ export const list = createAsyncThunk(
       const rootState = getState() as RootState;
       const token = rootState.auth.login.token;
       const response = await tenantsApi.list(query, token);
-      console.log("response", response);
       if (response.success) {
         return response;
       } else {
@@ -71,6 +70,24 @@ export const list = createAsyncThunk(
       }
     } catch (error: unknown) {
       return rejectWithValue(error);
+    }
+  }
+)
+
+export const activate = createAsyncThunk(
+  "tenants/activate",
+  async (new_tenant_id: string, {rejectWithValue, getState}) => {
+    try {
+      const rootState = getState() as RootState;
+      const token = rootState.auth.login.token;
+      const response = await tenantsApi.activate(new_tenant_id, token);
+      if (response.success) {
+        return response;
+      } else {
+        return rejectWithValue(response)
+      }
+    } catch (error: unknown) {
+      return rejectWithValue(error)
     }
   }
 )
@@ -122,6 +139,25 @@ const tenantsSlice = createSlice({
         state.status = "failed";
         state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
       });
+    builder
+      .addCase(activate.pending, (state) => {
+        state.status = "loading";
+        state.error = {
+          global: null,
+          fields: {}
+        };
+      })
+      .addCase(activate.fulfilled, (state) => {
+        state.status = "succeeded";
+        state.error = {
+          global: null,
+          fields: {}
+        };
+      })
+      .addCase(activate.rejected, (state) => {
+        state.status = "failed";
+        state.error = {global: "Váratlan hiba történt a kommunikáció során", fields: {}};
+      })
   }
 });
 

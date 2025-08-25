@@ -112,6 +112,9 @@ const authSlice = createSlice({
       state.login.error = { global: null, fields: {} };
       state.login.isLoggedIn = false;
     },
+    updateToken(state, action) {
+      state.login.token = action.payload;
+    }
   },
   extraReducers: (builder) => {
     builder
@@ -157,5 +160,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logoutUser } = authSlice.actions;
+export const { logoutUser, updateToken } = authSlice.actions;
 export default authSlice.reducer;

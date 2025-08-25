@@ -216,7 +216,7 @@ pub async fn activate(
         Ok(payload) => {
             let repo = (tenants_module.repo_factory)();
             match repo
-                .get_user_active_tenant_by_id(claims.sub(), payload.tenant_id)
+                .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
                 .await
             {
                 Ok(user_tenant) => match user_tenant {
@@ -225,18 +225,21 @@ pub async fn activate(
                         "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
                         "Hozzáférés megtagadva!".to_string(),
                     )
-                    .into_response(),
+                        .into_response(),
                     Some(user_tenant) => {
-                        let new_claims = claims
+                        match claims
                             .clone()
-                            .set_active_tenant(Some(user_tenant.tenant_id));
-                        (
-                            StatusCode::OK,
-                            Json(OkResponse::new(new_claims.to_token(
-                                tenants_module.config.auth().jwt_secret().as_bytes(),
-                            ))),
-                        )
-                            .into_response()
+                            .set_active_tenant(Some(user_tenant.tenant_id))
+                            .to_token(
+                                tenants_module.config.auth().jwt_secret().as_bytes()
+                            ) {
+                            Ok(new_claims) => (
+                                StatusCode::OK,
+                                Json(OkResponse::new(new_claims)),
+                            )
+                                .into_response(),
+                            Err(e) => FriendlyError::Internal(e.to_string()).into_response()
+                        }
                     }
                 },
                 Err(e) => FriendlyError::Internal(e.to_string()).into_response(),
@@ -700,7 +703,7 @@ mod tests {
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&TenantActivateRequest {
-            tenant_id: active_tenant_id2,
+            new_tenant_id: active_tenant_id2,
         })
         .unwrap();
 

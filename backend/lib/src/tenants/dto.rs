@@ -381,5 +381,5 @@ impl From<&QueryParam> for FilteringParams {
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct TenantActivateRequest {
-    pub tenant_id: Uuid,
+    pub new_tenant_id: Uuid,
 }

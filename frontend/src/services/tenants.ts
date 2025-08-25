@@ -194,3 +194,43 @@ export async function list(query: string | null, token: string | null) {
   }
   return responseJson;
 }
+
+export interface ActivateResponse {
+  success: boolean,
+  data: string | null
+}
+
+export function isActivateResponse(data: unknown): data is ActivateResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    typeof (data as any).success === "boolean" &&
+    "data" in data &&
+    (typeof (data as any).data === "string" || (data as any).data === null)
+  );
+}
+
+export async function activate(new_tenant_id: string | null, token: string | null) {
+  const response = await fetch(`/api/tenants/activate`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    body: JSON.stringify({
+      new_tenant_id
+    })
+  });
+  let responseJson;
+  try {
+    responseJson = await response.json();
+  } catch {
+    throw new Error("Server responded with invalid JSON format");
+  }
+
+  if (!isActivateResponse(responseJson)) {
+    throw new Error("Server responded with invalid data");
+  }
+  return responseJson;
+}

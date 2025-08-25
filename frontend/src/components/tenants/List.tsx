@@ -20,7 +20,7 @@
 import {useSearchParams} from "react-router-dom";
 import {query_encoder, query_parser} from "@/lib/utils.ts";
 import React, {useEffect} from "react";
-import {list} from "@/store/slices/tenants.ts";
+import {activate, list} from "@/store/slices/tenants.ts";
 import { useAppDispatch } from "@/store/hooks";
 import {
   Table,
@@ -30,9 +30,9 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx";
-import {isTenantsList, type TenantData} from "@/services/tenants.ts";
+import {isActivateResponse, isTenantsList, type TenantData} from "@/services/tenants.ts";
 import Paginator from "@/components/ui/Paginator.tsx";
-import {ArrowDownAZ, ArrowUpAZ, Funnel} from "lucide-react";
+import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap} from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,6 +41,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
+import {updateToken} from "@/store/slices/auth.ts";
 
 export default function List() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -115,6 +117,16 @@ export default function List() {
     })
   }, [searchParams, dispatch]);
 
+  const handleActivate = async (new_tenant_id: string) => {
+    dispatch(activate(new_tenant_id)).then((response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        if (isActivateResponse(response.payload)) {
+          dispatch(updateToken(response.payload.data))
+        }
+      }
+    })
+  }
+
   return (
     <>
       <Popover>
@@ -178,6 +190,9 @@ export default function List() {
                 : <ArrowUpAZ style={{display: "inline"}}/>
               : null}
             </TableHead>
+            <TableHead>
+              Műveletek
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -187,6 +202,18 @@ export default function List() {
               <TableCell>{item.db_host}:{item.db_port}</TableCell>
               <TableCell>{item.created_at}</TableCell>
               <TableCell>{item.updated_at}</TableCell>
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button style={{cursor: "pointer"}} onClick={() => handleActivate(item.id)} variant={"outline"}>
+                      <PlugZap color={"green"}/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side={"left"}>
+                    <p>Aktiválás</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

@@ -16,21 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::app::database::PgPoolManagerTrait;
+use std::sync::Arc;
 
-use sqlx::PgPool;
-
-/// A wrapper around a `PgPool` instance, primarily used to manage the PostgreSQL connection pool.
+/// A wrapper around a `PoolManager` instance, primarily used to manage the PostgreSQL connection pool.
 ///
-/// The `PoolWrapper` struct provides a convenient way to encapsulate a `PgPool`
+/// The `PoolManagerWrapper` struct provides a convenient way to encapsulate a `PoolWrapper`
 /// instance, allowing it to be passed around more easily throughout an application.
-///
-/// # Fields
-/// * `pool` - The PostgreSQL connection pool represented by `PgPool` from the `sqlx` crate.
-pub struct PoolWrapper {
-    pub pool: PgPool,
+pub struct PoolManagerWrapper {
+    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
 }
 
-impl PoolWrapper {
+impl PoolManagerWrapper {
     /// Creates a new instance of the struct with the provided PostgreSQL connection pool.
     ///
     /// # Arguments
@@ -40,7 +37,7 @@ impl PoolWrapper {
     /// # Returns
     ///
     /// Returns an instance of the struct initialized with the provided PostgreSQL connection pool.
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
+        Self { pool_manager }
     }
 }

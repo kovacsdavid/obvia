@@ -21,7 +21,7 @@ use crate::app::config::AppConfig;
 use crate::app::database::{
     ConnectionTester, DatabaseMigrator, PgConnectionTester, PgDatabaseMigrator, PgPoolManagerTrait,
 };
-use crate::common::repository::PoolWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::tenants::repository::TenantsRepository;
 use std::sync::Arc;
 
@@ -55,15 +55,12 @@ pub fn init_default_tenants_module(
     pool_manager: Arc<dyn PgPoolManagerTrait>,
     config: Arc<AppConfig>,
 ) -> TenantsModuleBuilder {
-    let tenant_pool_manager = pool_manager.clone();
     TenantsModuleBuilder::default()
         .pool_manager(pool_manager.clone())
         .config(config.clone())
         .repo_factory(Box::new(
             move || -> Box<dyn TenantsRepository + Send + Sync> {
-                Box::new(PoolWrapper::new(
-                    tenant_pool_manager.get_default_tenant_pool(),
-                ))
+                Box::new(PoolManagerWrapper::new(pool_manager.clone()))
             },
         ))
         .migrator_factory(Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {

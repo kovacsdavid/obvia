@@ -19,7 +19,7 @@
 
 use crate::auth::dto::register::RegisterRequest;
 use crate::common::error::DatabaseError;
-use crate::common::repository::PoolWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::tenants::model::UserTenant;
 use crate::users::model::User;
@@ -111,7 +111,7 @@ pub trait AuthRepository: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl AuthRepository for PoolWrapper {
+impl AuthRepository for PoolManagerWrapper {
     async fn insert_user(
         &self,
         payload: &RegisterRequest,
@@ -127,7 +127,7 @@ impl AuthRepository for PoolWrapper {
         .bind(password_hash)
         .bind(payload.first_name.extract().get_value())
         .bind(payload.last_name.extract().get_value())
-        .execute(&self.pool)
+        .execute(&self.pool_manager.get_main_pool())
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         Ok(())
@@ -137,7 +137,7 @@ impl AuthRepository for PoolWrapper {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
                 .bind(email)
-                .fetch_one(&self.pool)
+                .fetch_one(&self.pool_manager.get_main_pool())
                 .await
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
         )
@@ -151,7 +151,7 @@ impl AuthRepository for PoolWrapper {
             "SELECT * FROM user_tenants WHERE user_id = $1 AND deleted_at IS NULL ORDER BY last_activated DESC LIMIT 1",
         )
         .bind(user_id)
-        .fetch_one(&self.pool)
+        .fetch_one(&self.pool_manager.get_main_pool())
         .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -165,7 +165,7 @@ impl AuthRepository for PoolWrapper {
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(&self.pool)
+                .execute(&self.pool_manager.get_main_pool())
                 .await
                 .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         }

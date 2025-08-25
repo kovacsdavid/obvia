@@ -22,7 +22,7 @@ use std::sync::Arc;
 use crate::app::config::AppConfig;
 use crate::app::database::PgPoolManagerTrait;
 use crate::auth::repository::AuthRepository;
-use crate::common::repository::PoolWrapper;
+use crate::common::repository::PoolManagerWrapper;
 
 pub(crate) mod dto;
 mod handler;
@@ -49,13 +49,12 @@ pub fn init_default_auth_module(
     pool_manager: Arc<dyn PgPoolManagerTrait>,
     config: Arc<AppConfig>,
 ) -> AuthModuleBuilder {
-    let auth_pool_manager = pool_manager.clone();
     AuthModuleBuilder::default()
         .pool_manager(pool_manager.clone())
         .config(config.clone())
         .repo_factory(Box::new(
             move || -> Box<dyn AuthRepository + Send + Sync> {
-                Box::new(PoolWrapper::new(auth_pool_manager.get_main_pool()))
+                Box::new(PoolManagerWrapper::new(pool_manager.clone()))
             },
         ))
 }

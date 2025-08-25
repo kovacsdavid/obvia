@@ -20,7 +20,7 @@ use crate::app::config::BasicDatabaseConfig;
 use crate::app::database::{
     DatabaseMigrator, PgDatabaseMigrator, PgPoolManager, PgPoolManagerTrait,
 };
-use crate::common::repository::PoolWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::tenants::repository::TenantsRepository;
 use sqlx::PgPool;
 use std::sync::Arc;
@@ -84,8 +84,8 @@ pub async fn migrate_main_db(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Res
 /// - Logs an informational message for each successful tenant database migration.
 /// - Logs an error message for any tenant database migration failure.
 pub async fn migrate_all_tenant_dbs(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Result<()> {
-    let repo = PoolWrapper::new(pg_pool_manager.get_main_pool());
-    let tenants = <PoolWrapper as TenantsRepository>::get_all(&repo).await?;
+    let repo = PoolManagerWrapper::new(pg_pool_manager.clone());
+    let tenants = <PoolManagerWrapper as TenantsRepository>::get_all(&repo).await?;
     for tenant in tenants {
         //TODO: This function should continue execution if there's an error retrieving the tenant pool
         if let Some(tenant_pool) = pg_pool_manager.get_tenant_pool(tenant.id)? {
@@ -150,8 +150,8 @@ pub async fn migrate_tenant_db(tenant_pool: &PgPool) -> anyhow::Result<()> {
 /// - There's an issue fetching the tenants.
 /// - Creating tenant-specific pools fails for any of the tenants (logged individually).
 pub async fn init_tenant_pools(pg_pool_manager: Arc<PgPoolManager>) -> anyhow::Result<()> {
-    let repo = PoolWrapper::new(pg_pool_manager.get_main_pool());
-    let tenants = <PoolWrapper as TenantsRepository>::get_all(&repo).await?;
+    let repo = PoolManagerWrapper::new(pg_pool_manager.clone());
+    let tenants = <PoolManagerWrapper as TenantsRepository>::get_all(&repo).await?;
     for tenant in tenants {
         match BasicDatabaseConfig::try_from(&tenant) {
             Ok(db_config) => {

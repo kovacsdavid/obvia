@@ -20,7 +20,7 @@ use crate::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvide
 use crate::auth::dto::claims::Claims;
 use crate::common::dto::{OrderingParams, PagedResult, PaginatorParams};
 use crate::common::error::DatabaseError;
-use crate::common::repository::PoolWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::DdlParameter;
 use crate::common::types::value_object::ValueObject;
 use crate::tenants::dto::FilteringParams;
@@ -215,13 +215,13 @@ pub trait TenantsRepository: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl TenantsRepository for PoolWrapper {
+impl TenantsRepository for PoolManagerWrapper {
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, DatabaseError> {
         Ok(sqlx::query_as::<_, Tenant>(
             "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
-        .fetch_one(&self.pool)
+        .fetch_one(&self.pool_manager.get_main_pool())
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
     }
@@ -233,7 +233,8 @@ impl TenantsRepository for PoolWrapper {
     ) -> Result<Tenant, DatabaseError> {
         let uuid = Uuid::new_v4();
         let mut tx = self
-            .pool
+            .pool_manager
+            .get_main_pool()
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
@@ -257,14 +258,22 @@ impl TenantsRepository for PoolWrapper {
         app_config: Arc<AppConfig>,
     ) -> Result<Tenant, DatabaseError> {
         let mut tx = self
-            .pool
+            .pool_manager
+            .get_main_pool()
             .begin()
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         let tenant = insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        create_database_user_for_managed(&mut tx, &tenant, app_config)
+
+        let mut default_tenant_pool = self
+            .pool_manager
+            .get_default_tenant_pool()
+            .acquire()
+            .await
+            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config)
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         tx.commit()
@@ -283,7 +292,7 @@ impl TenantsRepository for PoolWrapper {
         let _create_db = sqlx::query(&create_db_sql)
             .bind(tenant.id)
             .bind(tenant.id.to_string())
-            .execute(&self.pool)
+            .execute(&self.pool_manager.get_default_tenant_pool())
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
         Ok(tenant)
@@ -306,7 +315,7 @@ impl TenantsRepository for PoolWrapper {
         )
         .bind(user_uuid)
         .bind(filtering_params.name.clone())
-        .fetch_one(&self.pool)
+        .fetch_one(&self.pool_manager.get_main_pool())
         .await
         .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
@@ -338,7 +347,7 @@ impl TenantsRepository for PoolWrapper {
             .bind(filtering_params.name)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool)
+            .fetch_all(&self.pool_manager.get_main_pool())
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
 
@@ -352,7 +361,7 @@ impl TenantsRepository for PoolWrapper {
 
     async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError> {
         sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
-            .fetch_all(&self.pool)
+            .fetch_all(&self.pool_manager.get_main_pool())
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
     }

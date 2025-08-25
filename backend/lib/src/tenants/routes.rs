@@ -19,7 +19,10 @@
 
 use crate::auth::middleware::require_auth;
 use crate::tenants::TenantsModule;
-use crate::tenants::handler::{create as tenants_create, get as tenants_get, list as tenants_list};
+use crate::tenants::handler::{
+    activate as tenants_activate, create as tenants_create, get as tenants_get,
+    list as tenants_list,
+};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
@@ -60,6 +63,7 @@ pub fn routes(tenants_module: Arc<TenantsModule>) -> Router {
             .route("/create", post(tenants_create))
             .route("/get", get(tenants_get))
             .route("/list", get(tenants_list))
+            .route("/activate", post(tenants_activate))
             .layer(from_fn_with_state(
                 tenants_module.config.clone(),
                 require_auth,

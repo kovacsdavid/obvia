@@ -206,6 +206,16 @@ impl Claims {
     pub fn active_tenant(&self) -> Option<Uuid> {
         self.active_tenant
     }
+
+    /// Sets the active tenant for the current instance.
+    ///
+    /// This method allows you to set the `active_tenant` property of the instance
+    /// by providing an `Option<Uuid>`. The `active_tenant` can either be `Some(Uuid)`
+    /// to specify the active tenant or `None` to indicate no active tenant.
+    pub fn set_active_tenant(mut self, active_tenant: Option<Uuid>) -> Self {
+        self.active_tenant = active_tenant;
+        self
+    }
 }
 
 #[cfg(test)]

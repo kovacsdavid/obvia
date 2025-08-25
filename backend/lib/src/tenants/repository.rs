@@ -28,6 +28,7 @@ use crate::tenants::model::{Tenant, UserTenant};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::Error;
 use sqlx::PgConnection;
 use sqlx::error::BoxDynError;
 use std::sync::Arc;
@@ -212,6 +213,28 @@ pub trait TenantsRepository: Send + Sync + 'static {
     /// This function should not be used in any user facing scenario as it will not check if
     /// the user is associated to the tenant or not.
     async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError>;
+
+    /// Retrieves the active tenant associated with a specific user by their user ID and tenant ID.
+    ///
+    /// # Arguments
+    ///
+    /// * `user_id` - A `Uuid` representing the unique identifier of the user.
+    /// * `tenant_id` - A `Uuid` representing the unique identifier of the tenant.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Some(UserTenant))` - If an active tenant is found for the specified user and tenant ID.
+    /// * `Ok(None)` - If no active tenant is found for the specified user and tenant ID.
+    /// * `Err(DatabaseError)` - If an error occurs while accessing the database.
+    ///
+    /// # Errors
+    ///
+    /// This function returns a `DatabaseError` if there is a failure during the database query operation.
+    async fn get_user_active_tenant_by_id(
+        &self,
+        user_id: Uuid,
+        tenant_id: Uuid,
+    ) -> Result<Option<UserTenant>, DatabaseError>;
 }
 
 #[async_trait]
@@ -364,6 +387,38 @@ impl TenantsRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_main_pool())
             .await
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
+    }
+
+    async fn get_user_active_tenant_by_id(
+        &self,
+        user_id: Uuid,
+        tenant_id: Uuid,
+    ) -> Result<Option<UserTenant>, DatabaseError> {
+        let user_tenant_result = sqlx::query_as::<_, UserTenant>(
+            "SELECT * FROM user_tenants WHERE user_id = $1 AND tenant_id = $2 AND deleted_at IS NULL LIMIT 1",
+        )
+            .bind(user_id)
+            .bind(tenant_id)
+            .fetch_one(&self.pool_manager.get_main_pool())
+            .await;
+        let user_tenant_result = match user_tenant_result {
+            Ok(user_tenant) => Ok(Some(user_tenant)),
+            Err(e) => match e {
+                Error::RowNotFound => Ok(None),
+                _ => Err(DatabaseError::DatabaseError(e.to_string())),
+            },
+        };
+        if let Ok(user_tenant_option) = &user_tenant_result
+            && let Some(user_tenant) = user_tenant_option
+        {
+            let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
+                .bind(user_tenant.id)
+                .execute(&self.pool_manager.get_main_pool())
+                .await
+                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        }
+
+        user_tenant_result
     }
 }
 

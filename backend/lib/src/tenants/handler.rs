@@ -22,7 +22,8 @@ use crate::common::dto::{OkResponse, OrderingParams, PagedResult, PaginatorParam
 use crate::common::error::FriendlyError;
 use crate::tenants::TenantsModule;
 use crate::tenants::dto::{
-    FilteringParams, PublicTenant, TenantCreateRequest, TenantCreateRequestHelper,
+    FilteringParams, PublicTenant, TenantActivateRequest, TenantCreateRequest,
+    TenantCreateRequestHelper,
 };
 use crate::tenants::service::try_create;
 use axum::extract::rejection::JsonRejection;
@@ -172,6 +173,84 @@ pub async fn list(
     }
 }
 
+/// Activates a tenant for the authenticated user.
+///
+/// This endpoint is responsible for setting a specific tenant as the active tenant
+/// for the currently authenticated user. The resulting JWT will be updated to include
+/// the active tenant information.
+///
+/// # Arguments
+///
+/// * `AuthenticatedUser(claims)` - Represents the authenticated user's claims containing user details.
+/// * `State(tenants_module)` - Shared state containing the `TenantsModule`, which provides tenant-related functionality.
+/// * `payload` - Result containing either the JSON payload (`TenantActivateRequest`) or a JSON parsing error.
+///
+/// # Returns
+///
+/// A `Response` indicating the result of the activation operation:
+///
+/// - **`200 OK`**: If the tenant is successfully activated, returns a new JWT token with the updated active tenant.
+/// - **`400 BAD REQUEST`**: If the JSON payload is invalid, an error message is returned to the client.
+/// - **`401 UNAUTHORIZED`**: If the user is not authorized to activate the given tenant, an error message is returned.
+/// - **`500 INTERNAL SERVER ERROR`**: If an unexpected error occurs during the process, an internal error message is returned.
+///
+/// # Behavior
+///
+/// 1. The function first attempts to parse the JSON payload into a `TenantActivateRequest` structure. - If parsing fails, it responds with `400 BAD REQUEST`.
+/// 2. On successful parsing, it uses the tenant repository to fetch the user's association with the specified tenant ID. - If no association is found, it responds with `401 UNAUTHORIZED`.
+/// 3. If the user is associated with the tenant, the function updates the user's claims to set the new active tenant. - A new JWT token is then generated and returned in the response.
+/// 4. Any internal errors during repository access will result in a `500 INTERNAL SERVER ERROR`.
+///
+/// # Errors
+///
+/// This function generates the following errors:
+/// - `Unauthorized`: If the user doesn't have access to the specified tenant ID.
+/// - `Bad Request`: If the incoming JSON payload is malformed.
+/// - `Internal Error`: If an unexpected error occurs, such as database or repository failures.
+pub async fn activate(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tenants_module): State<Arc<TenantsModule>>,
+    payload: Result<Json<TenantActivateRequest>, JsonRejection>,
+) -> Response {
+    match payload {
+        Ok(payload) => {
+            let repo = (tenants_module.repo_factory)();
+            match repo
+                .get_user_active_tenant_by_id(claims.sub(), payload.tenant_id)
+                .await
+            {
+                Ok(user_tenant) => match user_tenant {
+                    None => FriendlyError::UserFacing(
+                        StatusCode::UNAUTHORIZED,
+                        "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
+                        "Hozzáférés megtagadva!".to_string(),
+                    )
+                    .into_response(),
+                    Some(user_tenant) => {
+                        let new_claims = claims
+                            .clone()
+                            .set_active_tenant(Some(user_tenant.tenant_id));
+                        (
+                            StatusCode::OK,
+                            Json(OkResponse::new(new_claims.to_token(
+                                tenants_module.config.auth().jwt_secret().as_bytes(),
+                            ))),
+                        )
+                            .into_response()
+                    }
+                },
+                Err(e) => FriendlyError::Internal(e.to_string()).into_response(),
+            }
+        }
+        Err(_) => FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
+            "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
+            "Invalid JSON".to_string(),
+        )
+        .into_response(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,7 +265,7 @@ mod tests {
     use crate::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::tenants;
     use crate::tenants::TenantsModuleBuilder;
-    use crate::tenants::model::Tenant;
+    use crate::tenants::model::{Tenant, UserTenant};
     use crate::tenants::repository::{MockTenantsRepository, TenantsRepository};
     use axum::Router;
     use axum::body::Body;
@@ -577,6 +656,112 @@ mod tests {
         let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
             message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
         }))
+        .unwrap();
+
+        assert_eq!(&body[..], expected_response.as_bytes());
+    }
+    #[tokio::test]
+    async fn test_activate_success() {
+        let active_tenant_id1 = Uuid::new_v4();
+        let active_tenant_id2 = active_tenant_id1;
+        let user_id1 = Uuid::new_v4();
+        let user_id2 = user_id1;
+        let repo_factory = Box::new(move || {
+            let mut repo = MockTenantsRepository::new();
+            repo.expect_get_user_active_tenant_by_id()
+                .times(1)
+                .withf(move |user_id, tenant_id| {
+                    *user_id == user_id1 && *tenant_id == active_tenant_id1
+                })
+                .returning(|user_id, tenant_id| {
+                    Ok(Some(UserTenant {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        tenant_id,
+                        role: "owner".to_string(),
+                        invited_by: None,
+                        last_activated: Local::now(),
+                        created_at: Local::now(),
+                        updated_at: Local::now(),
+                        deleted_at: None,
+                    }))
+                });
+            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
+        });
+
+        let migrator_factory = Box::new(|| {
+            Box::new(MockDatabaseMigrator::new()) as Box<dyn DatabaseMigrator + Send + Sync>
+        });
+
+        let connection_tester_factory = Box::new(|| {
+            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
+        });
+
+        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
+
+        let payload = serde_json::to_string(&TenantActivateRequest {
+            tenant_id: active_tenant_id2,
+        })
+        .unwrap();
+
+        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Local::now().timestamp();
+        let nbf = Local::now().timestamp();
+
+        let jti = Uuid::new_v4();
+
+        let claims_original = Claims::new(
+            user_id2,
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            config.auth().jwt_audience().to_string(),
+            jti,
+            None,
+        );
+
+        let bearer = claims_original
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .unwrap();
+
+        let request = Request::builder()
+            .header("Authorization", format!("Bearer {}", bearer))
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/tenants/activate")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let tenants_module = TenantsModuleBuilder::default()
+            .pool_manager(Arc::new(MockPgPoolManagerTrait::new()))
+            .config(config.clone())
+            .repo_factory(repo_factory)
+            .migrator_factory(migrator_factory)
+            .connection_tester_factory(connection_tester_factory)
+            .build()
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+
+        let claims_new = claims_original
+            .clone()
+            .set_active_tenant(Some(active_tenant_id2));
+
+        let expected_response = serde_json::to_string(&OkResponse::new(
+            claims_new.to_token(config.auth().jwt_secret().as_bytes()),
+        ))
         .unwrap();
 
         assert_eq!(&body[..], expected_response.as_bytes());

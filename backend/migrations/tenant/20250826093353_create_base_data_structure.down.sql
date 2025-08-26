@@ -16,5 +16,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
--- Add down migration script here
-DROP TABLE test;
+
+
+DROP TABLE IF EXISTS project_assignments;
+DROP TABLE IF EXISTS task_assignments;
+DROP TABLE IF EXISTS inventory;
+DROP TABLE IF EXISTS warehouses;
+DROP TABLE IF EXISTS product_category_connect;
+DROP TABLE IF EXISTS product_category;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS units_of_measure;
+DROP TABLE IF EXISTS currencies;
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS worksheets;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS tag_connect;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS customer_address_connect;
+DROP TABLE IF EXISTS address;
+DROP TABLE IF EXISTS cities;
+DROP TABLE IF EXISTS postal_codes;
+DROP TABLE IF EXISTS states;
+DROP TABLE IF EXISTS countries;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS users;

@@ -17,6 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
--- Add down migration script here
 DROP TABLE IF EXISTS user_tenants;
 DROP TABLE IF EXISTS tenants;
+DROP TABLE IF EXISTS users;

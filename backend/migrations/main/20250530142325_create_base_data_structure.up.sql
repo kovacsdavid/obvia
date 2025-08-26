@@ -17,8 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
--- Add up migration script here
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE OR REPLACE FUNCTION update_updated_at()
+    RETURNS TRIGGER AS
+$$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
 
 create table users (
     id uuid primary key default uuid_generate_v4(),
@@ -45,6 +53,12 @@ CREATE INDEX idx_users_created_at ON users (created_at);
 CREATE INDEX idx_users_updated_at ON users (updated_at);
 CREATE INDEX idx_users_deleted_at ON users (deleted_at);
 
+CREATE TRIGGER update_updated_at_on_users_table
+    BEFORE UPDATE
+    ON users
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
 create table tenants
 (
     id               uuid primary key      default uuid_generate_v4(),
@@ -68,6 +82,12 @@ CREATE INDEX idx_tenants_created_by ON tenants (created_by);
 CREATE INDEX idx_tenants_created_at ON tenants (created_at);
 CREATE INDEX idx_tenants_updated_at ON tenants (updated_at);
 CREATE INDEX idx_tenants_deleted_at ON tenants (deleted_at);
+
+CREATE TRIGGER update_updated_at_on_tenants_table
+    BEFORE UPDATE
+    ON tenants
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
 
 create table user_tenants
 (
@@ -93,3 +113,9 @@ CREATE INDEX idx_user_tenants_tenant_idy ON user_tenants (tenant_id);
 CREATE INDEX idx_user_tenants_created_at ON user_tenants (created_at);
 CREATE INDEX idx_user_tenants_updated_at ON user_tenants (updated_at);
 CREATE INDEX idx_user_tenants_deleted_at ON user_tenants (deleted_at);
+
+CREATE TRIGGER update_updated_at_on_user_tenants_table
+    BEFORE UPDATE
+    ON user_tenants
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();

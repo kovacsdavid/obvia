@@ -43,7 +43,6 @@ use uuid::Uuid;
 /// - `Serialize`: Allows serialization of the struct into formats such as JSON.
 /// - `Deserialize`: Allows deserialization into the struct from formats such as JSON.
 /// - `FromRow`: Allows mapping database rows directly into the struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Project {
     pub id: Uuid,
@@ -78,7 +77,6 @@ pub struct Project {
 /// - `Clone`: Enables creating a duplicate of the struct.
 /// - `Serialize` and `Deserialize`: For serializing and deserializing the struct, e.g., to/from JSON.
 /// - `FromRow`: Allows mapping the struct from a database row.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProjectAssignment {
     pub id: Uuid,
@@ -88,4 +86,3 @@ pub struct ProjectAssignment {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-

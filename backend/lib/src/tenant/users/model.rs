@@ -51,7 +51,6 @@ use uuid::Uuid;
 /// - `Serialize` and `Deserialize`: Provides support for serializing and deserializing instances
 ///   of `User` (e.g., converting to/from JSON).
 /// - `FromRow`: Facilitates mapping database rows to instances of `User`.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,

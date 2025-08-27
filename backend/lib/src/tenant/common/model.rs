@@ -44,7 +44,6 @@ use uuid::Uuid;
 /// * `FromRow`: Allows mapping database rows into an instance of the `Comment` struct, typically used with database query results.
 ///
 /// This struct is primarily suited for use in scenarios involving comments associated with various types of resources in an application.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Comment {
     pub id: Uuid,

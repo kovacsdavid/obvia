@@ -19,10 +19,9 @@
 
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
-use sqlx::types::BigDecimal;
 use sqlx::FromRow;
+use sqlx::types::BigDecimal;
 use uuid::Uuid;
-
 
 /// Represents a product entity in the system.
 ///
@@ -55,7 +54,6 @@ use uuid::Uuid;
 ///
 /// ## Notes:
 /// - Ensure the `Uuid`, `BigDecimal`, and `DateTime<Local>` types are compatible with external libraries such as `uuid` and `chrono`.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Product {
     pub id: Uuid,
@@ -87,7 +85,6 @@ pub struct Product {
 /// - `id` (`Uuid`): A unique identifier for the currency. It is represented as a UUID.
 /// - `currency` (`String`): The name or code of the currency (e.g., "USD", "EUR").
 /// - `created_at` (`DateTime<Local>`): The timestamp indicating when the currency entry was created.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Currency {
     pub id: Uuid,
@@ -113,11 +110,9 @@ pub struct Currency {
 ///   to this struct.
 ///
 /// # Attributes
-/// - `#[allow(dead_code)]`: Suppresses compiler warnings if the struct or its fields are unused.
 ///
 /// This struct is designed for extensibility and integration with database systems and
 /// serialization mechanisms.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct UnitOfMeasure {
     pub id: Uuid,
@@ -143,12 +138,6 @@ pub struct UnitOfMeasure {
 /// * `Serialize`: Enables serialization of the struct to formats like JSON.
 /// * `Deserialize`: Enables deserialization of the struct from formats like JSON.
 /// * `FromRow`: Allows database rows to be mapped directly into this struct (e.g., with SQL queries).
-///
-/// # Attributes
-///
-/// * `#[allow(dead_code)]`:
-///     - Suppresses compiler warnings for unused code related to this struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProductCategory {
     pub id: Uuid,
@@ -180,7 +169,6 @@ pub struct ProductCategory {
 /// * `Serialize` - Enables serialization of the struct into formats such as JSON.
 /// * `Deserialize` - Enables deserialization of the struct from formats such as JSON.
 /// * `FromRow` - Facilitates mapping database rows to instances of this struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProductCategoryConnect {
     pub id: Uuid,
@@ -189,6 +177,3 @@ pub struct ProductCategoryConnect {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-
-
-

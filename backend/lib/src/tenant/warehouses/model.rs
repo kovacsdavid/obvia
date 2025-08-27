@@ -50,7 +50,6 @@ use uuid::Uuid;
 ///
 /// This struct is typically used in scenarios where warehouses are being managed, such as inventory systems,
 /// logistics platforms, or other business applications that require the modeling of warehouse data.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Warehouse {
     pub id: Uuid,

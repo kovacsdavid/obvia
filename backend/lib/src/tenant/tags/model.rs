@@ -31,8 +31,7 @@ use uuid::Uuid;
 /// # Fields
 /// - `id` (`Uuid`): The unique identifier for the tag.
 /// - `name` (`String`): The name of the tag.
-/// - `created_at` (`DateTime<Local>`): The timestamp representing when the
-///    tag was created.
+/// - `created_at` (`DateTime<Local>`): The timestamp representing when the tag was created.
 ///
 /// # Traits
 /// - `Debug`: Enables formatting of the struct for debugging purposes.
@@ -40,7 +39,6 @@ use uuid::Uuid;
 /// - `Serialize`: Allows the struct to be serialized into formats like JSON.
 /// - `Deserialize`: Allows the struct to be deserialized from formats like JSON.
 /// - `FromRow`: Enables extraction of the struct from a database query row.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Tag {
     pub id: Uuid,
@@ -71,7 +69,6 @@ pub struct Tag {
 ///
 /// This struct is typically used in contexts where tags need to be associated
 /// with entities for categorization, filtering, or other tagging-related operations.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TagConnect {
     pub id: Uuid,

@@ -49,12 +49,10 @@ use uuid::Uuid;
 ///
 /// # Notes
 ///
-/// - The `#[allow(dead_code)]` attribute suppresses warnings if the struct is unused.
 /// - The `#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]` attribute automatically implements
 ///   several useful traits for the struct.
 ///
 /// This struct is intended to integrate seamlessly with common database libraries and serialization frameworks.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Address {
     pub id: Uuid,
@@ -85,7 +83,6 @@ pub struct Address {
 /// * `Serialize` and `Deserialize`: Enables the struct to be serialized and deserialized,
 ///   for example when working with JSON or other data formats.
 /// * `FromRow`: Supports seamless mapping from database query results to the struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Country {
     pub id: Uuid,
@@ -110,17 +107,15 @@ pub struct Country {
 ///   stored in the local timezone.
 ///
 /// ## Attributes
-/// - `#[allow(dead_code)]`: Suppresses compiler warnings for unused code.
+///
 /// - `#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]`: Automatically implements the
 ///   specified traits for the `State` struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct State {
     pub id: Uuid,
     pub name: String,
     pub created_at: DateTime<Local>,
 }
-
 
 /// Represents a PostalCode entity in the system.
 ///
@@ -139,14 +134,12 @@ pub struct State {
 /// * `Serialize` - Provides the ability to serialize the `PostalCode` struct into a format such as JSON.
 /// * `Deserialize` - Provides the ability to deserialize external data (like JSON) into a `PostalCode` struct.
 /// * `FromRow` - Enables the struct to be constructed automatically from database query rows (commonly used with ORMs like SQLx).
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct PostalCode {
     pub id: Uuid,
     pub postal_code: String,
     pub created_at: DateTime<Local>,
 }
-
 
 /// Represents a City entity in the application.
 ///
@@ -167,7 +160,6 @@ pub struct PostalCode {
 /// - `Serialize`: Makes the struct serializable, enabling conversion to formats like JSON.
 /// - `Deserialize`: Allows deserialization of data (e.g., JSON) into a `City` struct.
 /// - `FromRow`: Used for mapping database query results into an instance of `City`.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct City {
     pub id: Uuid,
@@ -175,7 +167,6 @@ pub struct City {
     pub name: String,
     pub created_at: DateTime<Local>,
 }
-
 
 /// Represents a connection between an entity and an address in the system.
 ///
@@ -204,7 +195,6 @@ pub struct City {
 /// - `Serialize` and `Deserialize`: Enables serialization and deserialization of the struct,
 ///   particularly for use with formats like JSON.
 /// - `FromRow`: Allows the struct to be created directly from a database row.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct AddressConnect {
     pub id: Uuid,
@@ -215,7 +205,3 @@ pub struct AddressConnect {
     pub updated_at: Option<DateTime<Local>>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-
-
-
-

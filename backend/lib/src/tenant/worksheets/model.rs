@@ -52,7 +52,6 @@ use uuid::Uuid;
 ///
 /// This struct is commonly used in backend services to represent and manage worksheet-related
 /// data within the context of a given project.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Worksheet {
     pub id: Uuid,

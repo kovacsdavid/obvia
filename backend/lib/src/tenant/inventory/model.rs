@@ -50,7 +50,6 @@ use uuid::Uuid;
 /// This struct is typically used to track and manage inventory records in an application
 /// that deals with warehouse and product management. It supports serialization and
 /// deserialization to facilitate data storage and retrieval in various formats.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Inventory {
     pub id: Uuid,

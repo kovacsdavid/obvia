@@ -65,7 +65,6 @@ create table customers
     contact_name  varchar(255),
     email         varchar(255) not null unique,
     phone_number  varchar(50),
-    customer_type varchar(50),
     status        varchar(50),
     created_at    timestamptz  not null default now(),
     updated_at    timestamptz  not null default now(),

@@ -45,7 +45,6 @@ use uuid::Uuid;
 /// - `Clone`: Allows the struct to be cloned.
 /// - `Serialize` and `Deserialize`: Enables JSON serialization and deserialization of the struct.
 /// - `FromRow`: Allows mapping query rows from a database into this struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Customer {
     pub id: Uuid,
@@ -53,7 +52,6 @@ pub struct Customer {
     pub contact_name: Option<String>,
     pub email: String,
     pub phone_number: Option<String>,
-    pub customer_type: Option<String>,
     pub status: Option<String>,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,

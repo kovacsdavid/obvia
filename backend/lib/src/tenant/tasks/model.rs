@@ -45,7 +45,6 @@ use uuid::Uuid;
 /// - `Clone`: To allow cloning the `Task` struct.
 /// - `Serialize`/`Deserialize`: For converting the struct to and from formats such as JSON.
 /// - `FromRow`: To map database rows to a `Task` struct using SQLx.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Task {
     pub id: Uuid,
@@ -78,7 +77,6 @@ pub struct Task {
 /// - `#[derive(Clone)]`: Provides the ability to clone instances of the struct.
 /// - `#[derive(Serialize, Deserialize)]`: Enables serialization and deserialization for interaction with external systems or formats.
 /// - `#[derive(FromRow)]`: Allows mapping of database query results to this struct.
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TaskAssignment {
     pub id: Uuid,
@@ -88,4 +86,3 @@ pub struct TaskAssignment {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-

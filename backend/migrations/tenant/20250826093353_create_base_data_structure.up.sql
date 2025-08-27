@@ -181,7 +181,7 @@ CREATE TRIGGER update_updated_at_on_address_table
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
-create table customer_address_connect
+create table address_connect
 (
     id               uuid primary key default uuid_generate_v4(),
     address_id       uuid         not null,
@@ -193,15 +193,15 @@ create table customer_address_connect
     foreign key (address_id) references address (id)
 );
 
-CREATE INDEX idx_customer_address_connect_address_id ON customer_address_connect (address_id);
-CREATE INDEX idx_customer_address_connect_addressable_type_id ON customer_address_connect (addressable_type, addressable_id);
-CREATE INDEX idx_customer_address_connect_created_at ON customer_address_connect (created_at);
-CREATE INDEX idx_customer_address_connect_updated_at ON customer_address_connect (updated_at);
-CREATE INDEX idx_customer_address_connect_deleted_at ON customer_address_connect (deleted_at);
+CREATE INDEX idx_address_connect_address_id ON address_connect (address_id);
+CREATE INDEX idx_address_connect_addressable_type_id ON address_connect (addressable_type, addressable_id);
+CREATE INDEX idx_address_connect_created_at ON address_connect (created_at);
+CREATE INDEX idx_address_connect_updated_at ON address_connect (updated_at);
+CREATE INDEX idx_address_connect_deleted_at ON address_connect (deleted_at);
 
-CREATE TRIGGER update_updated_at_on_customer_address_connect_table
+CREATE TRIGGER update_updated_at_on_address_connect_table
     BEFORE UPDATE
-    ON customer_address_connect
+    ON address_connect
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
@@ -209,18 +209,18 @@ create table tags -- Entry can only be deleted if no data relies on it!
 (
     id         uuid         not null primary key,
     name       varchar(255) not null,
-    created_at timestamptz default now()
+    created_at timestamptz  not null default now()
 );
 
 CREATE INDEX idx_tags_created_at ON tags (created_at);
 
 create table tag_connect
 (
-    id            uuid                      not null primary key,
-    taggable_id   uuid                      not null,
-    taggable_type varchar(255)              not null,
+    id            uuid         not null primary key,
+    taggable_id   uuid         not null,
+    taggable_type varchar(255) not null,
     tag_id        uuid,
-    created_at    timestamptz default now() not null,
+    created_at    timestamptz  not null default now(),
     deleted_at    timestamptz,
     foreign key (tag_id) references tags (id)
 );
@@ -232,15 +232,15 @@ CREATE INDEX idx_tag_connect_deleted_at ON tag_connect (deleted_at);
 
 create table projects
 (
-    id          uuid                           not null primary key,
-    name        varchar(255)                   not null,
+    id          uuid         not null primary key,
+    name        varchar(255) not null,
     description text,
-    created_by  uuid                           not null,
-    status      varchar(50) default 'planning' not null,
+    created_by  uuid         not null,
+    status      varchar(50)  not null default 'planning',
     start_date  timestamptz,
     end_date    timestamptz,
-    created_at  timestamptz default now(),
-    updated_at  timestamptz default now(),
+    created_at  timestamptz  not null default now(),
+    updated_at  timestamptz  not null default now(),
     deleted_at  timestamptz,
     foreign key (created_by) references users (id)
 );

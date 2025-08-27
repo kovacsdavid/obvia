@@ -19,8 +19,8 @@
 #![forbid(unsafe_code)]
 
 use axum::Router;
-use backend_lib::app::config::AppConfig;
-use backend_lib::app::init::{
+use backend_lib::manager::app::config::AppConfig;
+use backend_lib::manager::app::init::{
     config, init_default_app, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
     pg_pool_manager, subscriber,
 };

@@ -16,12 +16,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::projects::types::project::{ProjectName, ProjectStatus};
+use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateProjectHelper {
+    // TODO: fields
+}
+
+pub struct CreateProjectError {
+    // TODO: fields
+}
+
+impl CreateProjectError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateProjectError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateProject {
@@ -33,6 +53,33 @@ pub struct CreateProject {
     pub end_date: Option<DateTime<Local>>,
 }
 
+impl TryFrom<CreateProjectHelper> for CreateProject {
+    type Error = CreateProjectError;
+    fn try_from(value: CreateProjectHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateProjectHelper {
+    // TODO: fields
+}
+
+pub struct UpdateProjectError {
+    // TODO: fields
+}
+
+impl UpdateProjectError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateProjectError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateProject {
     pub name: ValueObject<ProjectName>,
@@ -40,6 +87,13 @@ pub struct UpdateProject {
     pub status: ValueObject<ProjectStatus>,
     pub start_date: Option<DateTime<Local>>,
     pub end_date: Option<DateTime<Local>>,
+}
+
+impl TryFrom<UpdateProjectHelper> for UpdateProject {
+    type Error = UpdateProjectError;
+    fn try_from(value: UpdateProjectHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

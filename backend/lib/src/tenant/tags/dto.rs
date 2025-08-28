@@ -18,17 +18,72 @@
  */
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::tags::types::tag::TagName;
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateTagHelper {
+    // TODO: fields
+}
+
+pub struct CreateTagError {
+    // TODO: fields
+}
+
+impl CreateTagError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateTagError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTag {
     pub name: ValueObject<TagName>,
 }
 
+impl TryFrom<CreateTagHelper> for CreateTag {
+    type Error = CreateTagError;
+    fn try_from(value: CreateTagHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateTagHelper {
+    // TODO: fields
+}
+
+pub struct UpdateTagError {
+    // TODO: fields
+}
+
+impl UpdateTagError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateTagError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateTag {
     pub name: ValueObject<TagName>,
+}
+
+impl TryFrom<UpdateTagHelper> for UpdateTag {
+    type Error = UpdateTagError;
+    fn try_from(value: UpdateTagHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -16,11 +16,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::inventory::types::inventory::quantity::Quantity;
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateInventoryHelper {
+    // TODO: fields
+}
+
+pub struct CreateInventoryError {
+    // TODO: fields
+}
+
+impl CreateInventoryError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateInventoryError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateInventory {
@@ -30,9 +50,43 @@ pub struct CreateInventory {
     pub created_by: Uuid,
 }
 
+impl TryFrom<CreateInventoryHelper> for CreateInventory {
+    type Error = CreateInventoryError;
+    fn try_from(value: CreateInventoryHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateInventoryHelper {
+    // TODO: fields
+}
+
+pub struct UpdateInventoryError {
+    // TODO: fields
+}
+
+impl UpdateInventoryError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateInventoryError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateInventory {
     pub product_id: Option<Uuid>,
     pub warehouse_id: Option<Uuid>,
     pub quantity: ValueObject<Quantity>,
+}
+
+impl TryFrom<UpdateInventoryHelper> for UpdateInventory {
+    type Error = UpdateInventoryError;
+    fn try_from(value: UpdateInventoryHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }

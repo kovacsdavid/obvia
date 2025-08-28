@@ -16,11 +16,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::worksheets::types::worksheet::{WorksheetName, WorksheetStatus};
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateWorksheetHelper {
+    // TODO: fields
+}
+
+pub struct CreateWorksheetError {
+    // TODO: fields
+}
+
+impl CreateWorksheetError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateWorksheetError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateWorksheet {
@@ -31,10 +51,44 @@ pub struct CreateWorksheet {
     pub status: Option<ValueObject<WorksheetStatus>>,
 }
 
+impl TryFrom<CreateWorksheetHelper> for CreateWorksheet {
+    type Error = CreateWorksheetError;
+    fn try_from(value: CreateWorksheetHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateWorksheetHelper {
+    // TODO: fields
+}
+
+pub struct UpdateWorksheetError {
+    // TODO: fields
+}
+
+impl UpdateWorksheetError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateWorksheetError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateWorksheet {
     pub name: ValueObject<WorksheetName>,
     pub description: Option<String>,
     pub project_id: Option<Uuid>,
     pub status: Option<ValueObject<WorksheetStatus>>,
+}
+
+impl TryFrom<UpdateWorksheetHelper> for UpdateWorksheet {
+    type Error = UpdateWorksheetError;
+    fn try_from(value: UpdateWorksheetHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }

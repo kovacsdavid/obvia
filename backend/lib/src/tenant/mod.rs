@@ -18,6 +18,7 @@
  */
 #![allow(clippy::module_inception)]
 #![allow(dead_code)] // TODO: Remove this when you are ready!
+#![allow(unused_variables)] // TODO: Remove this when you are ready!
 
 pub(crate) mod address;
 pub(crate) mod common;

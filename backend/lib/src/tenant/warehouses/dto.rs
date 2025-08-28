@@ -16,13 +16,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::warehouses::types::warehouse::{
     WarehouseContactName, WarehouseContactPhone, WarehouseName,
 };
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateWarehouseHelper {
+    // TODO: fields
+}
+
+pub struct CreateWarehouseError {
+    // TODO: fields
+}
+
+impl CreateWarehouseError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateWarehouseError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateWarehouse {
@@ -33,10 +53,44 @@ pub struct CreateWarehouse {
     pub created_by: Uuid,
 }
 
+impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
+    type Error = CreateWarehouseError;
+    fn try_from(value: CreateWarehouseHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateWarehouseHelper {
+    // TODO: fields
+}
+
+pub struct UpdateWarehouseError {
+    // TODO: fields
+}
+
+impl UpdateWarehouseError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateWarehouseError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateWarehouse {
     pub name: ValueObject<WarehouseName>,
     pub contact_name: ValueObject<WarehouseContactName>,
     pub contact_phone: ValueObject<WarehouseContactPhone>,
     pub is_active: bool,
+}
+
+impl TryFrom<UpdateWarehouseHelper> for UpdateWarehouse {
+    type Error = UpdateWarehouseError;
+    fn try_from(value: UpdateWarehouseHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }

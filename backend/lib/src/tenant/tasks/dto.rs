@@ -16,12 +16,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::tasks::types::task::{TaskPriority, TaskStatus, TaskTitle};
+use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+
+pub struct CreateTaskHelper {
+    // TODO: fields
+}
+
+pub struct CreateTaskError {
+    // TODO: fields
+}
+
+impl CreateTaskError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for CreateTaskError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTask {
@@ -35,6 +55,33 @@ pub struct CreateTask {
     pub due_date: Option<DateTime<Local>>,
 }
 
+impl TryFrom<CreateTaskHelper> for CreateTask {
+    type Error = CreateTaskError;
+    fn try_from(value: CreateTaskHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
+}
+
+pub struct UpdateTaskHelper {
+    // TODO: fields
+}
+
+pub struct UpdateTaskError {
+    // TODO: fields
+}
+
+impl UpdateTaskError {
+    pub fn is_empty(&self) -> bool {
+        todo!()
+    }
+}
+
+impl IntoResponse for UpdateTaskError {
+    fn into_response(self) -> Response {
+        todo!()
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateTask {
     pub worksheet_id: Uuid,
@@ -43,6 +90,13 @@ pub struct UpdateTask {
     pub status: ValueObject<TaskStatus>,
     pub priority: ValueObject<TaskPriority>,
     pub due_date: Option<DateTime<Local>>,
+}
+
+impl TryFrom<UpdateTaskHelper> for UpdateTask {
+    type Error = UpdateTaskError;
+    fn try_from(value: UpdateTaskHelper) -> Result<Self, Self::Error> {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

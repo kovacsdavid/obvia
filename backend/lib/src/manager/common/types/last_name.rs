@@ -18,14 +18,14 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// A struct representing a last name as a simple wrapper around a `String`.
 ///
 /// The `LastName` struct encapsulates a single `String` value representing a last name,
 /// providing additional type safety and semantic clarity in code.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct LastName(pub String);
 
 impl ValueObjectable for LastName {

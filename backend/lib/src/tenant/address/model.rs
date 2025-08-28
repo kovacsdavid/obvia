@@ -199,7 +199,7 @@ pub struct City {
 pub struct AddressConnect {
     pub id: Uuid,
     pub address_id: Uuid,
-    pub addressable_id: Option<i32>,
+    pub addressable_id: Uuid,
     pub addressable_type: String,
     pub created_at: Option<DateTime<Local>>,
     pub updated_at: Option<DateTime<Local>>,

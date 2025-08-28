@@ -19,14 +19,14 @@
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// A struct representing an email address as a simple wrapper around a `String`.
 ///
 /// The `Email` struct encapsulates a single `String` value representing an email address,
 /// providing additional type safety and semantic clarity in code.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Email(pub String);
 
 impl ValueObjectable for Email {

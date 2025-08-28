@@ -21,3 +21,7 @@ pub(crate) mod due_date;
 pub(crate) mod priority;
 pub(crate) mod status;
 pub(crate) mod title;
+
+pub(crate) use priority::Priority as TaskPriority;
+pub(crate) use status::Status as TaskStatus;
+pub(crate) use title::Title as TaskTitle;

@@ -17,4 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod comment;
+use crate::manager::common::types::value_object::ValueObject;
+use crate::tenant::inventory::types::inventory::quantity::Quantity;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateInventory {
+    pub product_id: Uuid,
+    pub warehouse_id: Uuid,
+    pub quantity: ValueObject<Quantity>,
+    pub created_by: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateInventory {
+    pub product_id: Option<Uuid>,
+    pub warehouse_id: Option<Uuid>,
+    pub quantity: ValueObject<Quantity>,
+}

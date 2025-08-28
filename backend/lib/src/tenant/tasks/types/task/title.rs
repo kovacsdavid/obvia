@@ -18,10 +18,10 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Title(pub String);
 
 impl ValueObjectable for Title {

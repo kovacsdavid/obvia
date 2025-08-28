@@ -17,12 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod contact_name;
-pub(crate) mod email;
-pub(crate) mod name;
-pub(crate) mod phone_number;
-pub(crate) mod status;
+use crate::manager::common::types::value_object::ValueObject;
+use crate::tenant::worksheets::types::worksheet::{WorksheetName, WorksheetStatus};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-pub(crate) use email::Email as CustomerEmail;
-pub(crate) use name::Name as CustomerName;
-pub(crate) use status::Status as CustomerStatus;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateWorksheet {
+    pub name: ValueObject<WorksheetName>,
+    pub description: Option<String>,
+    pub project_id: Uuid,
+    pub created_by: Uuid,
+    pub status: Option<ValueObject<WorksheetStatus>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateWorksheet {
+    pub name: ValueObject<WorksheetName>,
+    pub description: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub status: Option<ValueObject<WorksheetStatus>>,
+}

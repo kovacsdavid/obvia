@@ -16,5 +16,31 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::common::types::value_object::ValueObject;
+use crate::tenant::tags::types::tag::TagName;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-pub(crate) mod comment;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTag {
+    pub name: ValueObject<TagName>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTag {
+    pub name: ValueObject<TagName>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTagConnect {
+    pub taggable_id: Uuid,
+    pub taggable_type: String,
+    pub tag_id: Option<Uuid>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTagConnect {
+    pub taggable_id: Option<Uuid>,
+    pub taggable_type: Option<String>,
+    pub tag_id: Option<Uuid>,
+}

@@ -19,7 +19,7 @@
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use uuid::Uuid;
 
@@ -33,7 +33,7 @@ use uuid::Uuid;
 /// # Fields
 ///
 /// * `0`: The inner `String` containing the hostname or address of the database.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DbName(pub String);
 
 impl ValueObjectable for DbName {

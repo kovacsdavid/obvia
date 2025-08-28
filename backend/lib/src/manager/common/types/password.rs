@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// A struct representing a password as a simple wrapper around a `String`.
 ///
 /// The `Password` struct encapsulates a single `String` value representing a password,
 /// providing additional type safety and semantic clarity in code.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Password(pub String);
 
 impl ValueObjectable for Password {

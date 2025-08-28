@@ -19,7 +19,7 @@
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// Represents a Data Definition Language (DDL) parameter.
@@ -30,7 +30,7 @@ use std::fmt::Display;
 /// # Security
 ///
 /// Always use this struct if parameter bindig is not possible to prevent SQL injection attacks!
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DdlParameter(pub String);
 
 impl ValueObjectable for DdlParameter {

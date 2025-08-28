@@ -65,7 +65,7 @@ create table customers
     contact_name  varchar(255),
     email         varchar(255) not null unique,
     phone_number  varchar(50),
-    status        varchar(50),
+    status        varchar(50) not null,
     created_at    timestamptz  not null default now(),
     updated_at    timestamptz  not null default now(),
     deleted_at    timestamptz
@@ -184,7 +184,7 @@ create table address_connect
 (
     id               uuid primary key default uuid_generate_v4(),
     address_id       uuid         not null,
-    addressable_id   integer,
+    addressable_id   uuid         not null,
     addressable_type varchar(100) not null,
     created_at       timestamptz      default now(),
     updated_at       timestamptz      default now(),
@@ -338,7 +338,7 @@ create table products
     price           numeric(15, 2),
     cost            numeric(15, 2),
     currency_id     uuid         not null,
-    is_active       boolean          default true,
+    is_active       boolean      not null    default true,
     created_by      uuid         not null,
     created_at      timestamptz      default now(),
     updated_at      timestamptz      default now(),
@@ -392,14 +392,14 @@ CREATE INDEX idx_product_category_connect_deleted_at ON product_category_connect
 
 create table warehouses
 (
-    id            uuid primary key default uuid_generate_v4(),
-    name          varchar(255)                   not null,
+    id            uuid primary key      default uuid_generate_v4(),
+    name          varchar(255) not null,
     contact_name  varchar(255),
     contact_phone varchar(50),
-    is_active     boolean          default true,
-    created_by    uuid                           not null,
-    created_at    timestamptz      default now() not null,
-    updated_at    timestamptz      default now() not null,
+    is_active     boolean      not null default true,
+    created_by    uuid         not null,
+    created_at    timestamptz  not null default now(),
+    updated_at    timestamptz  not null default now(),
     deleted_at    timestamptz,
     foreign key (created_by) references users (id)
 );

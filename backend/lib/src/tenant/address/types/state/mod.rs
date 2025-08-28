@@ -18,3 +18,5 @@
  */
 
 pub(crate) mod name;
+
+pub(crate) use name::Name as StateName;

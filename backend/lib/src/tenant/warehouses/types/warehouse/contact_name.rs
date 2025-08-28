@@ -18,13 +18,13 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct Name(pub String);
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct ContactName(pub String);
 
-impl ValueObjectable for Name {
+impl ValueObjectable for ContactName {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
@@ -40,7 +40,7 @@ impl ValueObjectable for Name {
     }
 }
 
-impl Display for Name {
+impl Display for ContactName {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -56,7 +56,7 @@ impl Display for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
+impl<'de> Deserialize<'de> for ValueObject<ContactName> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -83,7 +83,7 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Name(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(ContactName(s)).map_err(serde::de::Error::custom)
     }
 }
 

@@ -18,8 +18,8 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
 use serde::de::{self, Visitor};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// Represents the port of a database.
@@ -32,7 +32,7 @@ use std::fmt::Display;
 /// # Fields
 ///
 /// * `0`: The inner `String` containing the port of the database.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DbPort(pub i64);
 
 impl ValueObjectable for DbPort {

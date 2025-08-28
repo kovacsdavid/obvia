@@ -52,7 +52,7 @@ pub struct Customer {
     pub contact_name: Option<String>,
     pub email: String,
     pub phone_number: Option<String>,
-    pub status: Option<String>,
+    pub status: String,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,

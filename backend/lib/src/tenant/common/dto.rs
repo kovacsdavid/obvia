@@ -17,12 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod contact_name;
-pub(crate) mod email;
-pub(crate) mod name;
-pub(crate) mod phone_number;
-pub(crate) mod status;
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-pub(crate) use email::Email as CustomerEmail;
-pub(crate) use name::Name as CustomerName;
-pub(crate) use status::Status as CustomerStatus;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateComment {
+    pub id: Uuid,
+    pub commentable_type: String,
+    pub commentable_id: Uuid,
+    pub comment: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateComment {
+    pub commentable_type: Option<String>,
+    pub commentable_id: Option<Uuid>,
+    pub comment: Option<String>,
+}

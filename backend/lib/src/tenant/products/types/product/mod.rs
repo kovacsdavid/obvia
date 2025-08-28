@@ -20,3 +20,5 @@
 pub(crate) mod cost;
 pub(crate) mod name;
 pub(crate) mod price;
+
+pub(crate) use name::Name as ProductName;

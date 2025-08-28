@@ -19,3 +19,6 @@
 
 pub(crate) mod name;
 pub(crate) mod status;
+
+pub(crate) use name::Name as WorksheetName;
+pub(crate) use status::Status as WorksheetStatus;

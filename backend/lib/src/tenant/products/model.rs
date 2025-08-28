@@ -63,7 +63,7 @@ pub struct Product {
     pub price: Option<BigDecimal>,
     pub cost: Option<BigDecimal>,
     pub currency_id: Uuid,
-    pub is_active: Option<bool>,
+    pub is_active: bool,
     pub created_by: Uuid,
     pub created_at: Option<DateTime<Local>>,
     pub updated_at: Option<DateTime<Local>>,

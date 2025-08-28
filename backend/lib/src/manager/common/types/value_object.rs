@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// A trait representing a container for value object data. This trait combines functionality
@@ -79,7 +79,7 @@ pub trait ValueObjectable: Display {
 ///   any additional behavior or logic beyond encapsulation.
 /// - It is often used to enforce type safety for specific domain concepts where primitive
 ///   types alone might not provide adequate clarity or constraint.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ValueObject<DataType>(DataType);
 
 impl<DataType> ValueObject<DataType>

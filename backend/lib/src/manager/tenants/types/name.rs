@@ -18,7 +18,7 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 /// Represents a tenant name.
@@ -27,7 +27,7 @@ use std::fmt::Display;
 /// to encapsulate the tenant name. This can
 /// help ensure type safety and improve code readability by explicitly
 /// conveying the purpose of the contained value.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Name(pub String);
 
 impl ValueObjectable for Name {

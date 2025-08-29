@@ -16,6 +16,48 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::app::config::AppConfig;
+use crate::manager::app::database::PgPoolManagerTrait;
+use std::sync::Arc;
 
 mod dto;
 pub(crate) mod model;
+
+pub fn init_default_users_module(
+    pool_manager_config: Arc<dyn PgPoolManagerTrait>,
+    config: Arc<AppConfig>,
+) {
+    todo!()
+}
+
+pub struct UsersModule {}
+
+pub struct UsersModuleBuilder {}
+
+impl UsersModuleBuilder {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn build(self) -> Result<UsersModule, String> {
+        Ok(UsersModule {})
+    }
+}
+
+#[cfg(not(test))]
+impl Default for UsersModuleBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
+
+    impl Default for UsersModuleBuilder {
+        fn default() -> Self {
+            todo!()
+        }
+    }
+}

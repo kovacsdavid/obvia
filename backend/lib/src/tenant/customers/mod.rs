@@ -23,6 +23,7 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
+mod routes;
 pub(crate) mod types;
 
 pub fn init_default_customers_module(
@@ -32,17 +33,23 @@ pub fn init_default_customers_module(
     todo!()
 }
 
-pub struct CustomersModule {}
+pub struct CustomersModule {
+    pub config: Arc<AppConfig>,
+}
 
-pub struct CustomersModuleBuilder {}
+pub struct CustomersModuleBuilder {
+    pub config: Option<Arc<AppConfig>>,
+}
 
 impl CustomersModuleBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { config: None }
     }
 
     pub fn build(self) -> Result<CustomersModule, String> {
-        Ok(CustomersModule {})
+        Ok(CustomersModule {
+            config: self.config.ok_or("config is required".to_string())?,
+        })
     }
 }
 

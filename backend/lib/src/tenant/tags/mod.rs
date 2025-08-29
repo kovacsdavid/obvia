@@ -23,6 +23,7 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
+mod routes;
 pub(crate) mod types;
 
 pub fn init_default_tags_module(
@@ -32,17 +33,23 @@ pub fn init_default_tags_module(
     todo!()
 }
 
-pub struct TagsModule {}
+pub struct TagsModule {
+    pub config: Arc<AppConfig>,
+}
 
-pub struct TagsModuleBuilder {}
+pub struct TagsModuleBuilder {
+    pub config: Option<Arc<AppConfig>>,
+}
 
 impl TagsModuleBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { config: None }
     }
 
     pub fn build(self) -> Result<TagsModule, String> {
-        Ok(TagsModule {})
+        Ok(TagsModule {
+            config: self.config.ok_or("config is required".to_string())?,
+        })
     }
 }
 

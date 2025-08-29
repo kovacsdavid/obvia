@@ -23,6 +23,7 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
+mod routes;
 pub(crate) mod types;
 
 pub fn init_default_inventory_module(
@@ -32,17 +33,23 @@ pub fn init_default_inventory_module(
     todo!()
 }
 
-pub struct InventoryModule {}
+pub struct InventoryModule {
+    pub config: Arc<AppConfig>,
+}
 
-pub struct InventoryModuleBuilder {}
+pub struct InventoryModuleBuilder {
+    pub config: Option<Arc<AppConfig>>,
+}
 
 impl InventoryModuleBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { config: None }
     }
 
     pub fn build(self) -> Result<InventoryModule, String> {
-        Ok(InventoryModule {})
+        Ok(InventoryModule {
+            config: self.config.ok_or("config is required".to_string())?,
+        })
     }
 }
 

@@ -23,6 +23,7 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
+mod routes;
 pub(crate) mod types;
 
 pub fn init_default_worksheets_module(
@@ -32,17 +33,23 @@ pub fn init_default_worksheets_module(
     todo!()
 }
 
-pub struct WorksheetsModule {}
+pub struct WorksheetsModule {
+    pub config: Arc<AppConfig>,
+}
 
-pub struct WorksheetsModuleBuilder {}
+pub struct WorksheetsModuleBuilder {
+    pub config: Option<Arc<AppConfig>>,
+}
 
 impl WorksheetsModuleBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { config: None }
     }
 
     pub fn build(self) -> Result<WorksheetsModule, String> {
-        Ok(WorksheetsModule {})
+        Ok(WorksheetsModule {
+            config: self.config.ok_or("config is required".to_string())?,
+        })
     }
 }
 

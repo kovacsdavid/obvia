@@ -21,8 +21,9 @@ use crate::manager::app::database::PgPoolManagerTrait;
 use std::sync::Arc;
 
 mod dto;
-mod handler;
+pub(super) mod handler;
 pub(crate) mod model;
+mod routes;
 pub(crate) mod types;
 
 pub fn init_default_address_module(
@@ -32,16 +33,22 @@ pub fn init_default_address_module(
     // TODO: Addbuilder default here
 }
 
-pub struct AddressModule {}
+pub struct AddressModule {
+    pub config: Arc<AppConfig>,
+}
 
-pub struct AddressModuleBuilder {}
+pub struct AddressModuleBuilder {
+    pub config: Option<Arc<AppConfig>>,
+}
 
 impl AddressModuleBuilder {
     pub fn new() -> Self {
-        Self {}
+        Self { config: None }
     }
     pub fn build(self) -> Result<AddressModule, String> {
-        Ok(AddressModule {})
+        Ok(AddressModule {
+            config: self.config.ok_or("config is required".to_string())?,
+        })
     }
 }
 

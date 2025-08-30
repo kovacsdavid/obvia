@@ -23,31 +23,48 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
-mod routes;
+pub(crate) mod routes;
 pub(crate) mod types;
 
 pub fn init_default_customers_module(
-    pool_manager_config: Arc<dyn PgPoolManagerTrait>,
+    pool_manager: Arc<dyn PgPoolManagerTrait>,
     config: Arc<AppConfig>,
-) {
-    todo!()
+) -> CustomersModuleBuilder {
+    CustomersModuleBuilder::default()
+        .pool_manager(pool_manager)
+        .config(config)
 }
 
 pub struct CustomersModule {
+    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
 }
 
 pub struct CustomersModuleBuilder {
+    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
 }
 
 impl CustomersModuleBuilder {
     pub fn new() -> Self {
-        Self { config: None }
+        Self {
+            pool_manager: None,
+            config: None,
+        }
     }
-
+    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
+        self.pool_manager = Some(pool_manager);
+        self
+    }
+    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
+        self.config = Some(config);
+        self
+    }
     pub fn build(self) -> Result<CustomersModule, String> {
         Ok(CustomersModule {
+            pool_manager: self
+                .pool_manager
+                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
         })
     }

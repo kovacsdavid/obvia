@@ -57,7 +57,7 @@ pub fn init_default_tenants_module(
 ) -> TenantsModuleBuilder {
     TenantsModuleBuilder::default()
         .pool_manager(pool_manager.clone())
-        .config(config.clone())
+        .config(config)
         .repo_factory(Box::new(
             move || -> Box<dyn TenantsRepository + Send + Sync> {
                 Box::new(PoolManagerWrapper::new(pool_manager.clone()))

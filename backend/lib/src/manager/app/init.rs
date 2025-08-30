@@ -30,6 +30,16 @@ use tracing_subscriber::FmtSubscriber;
 pub use crate::manager::app::services::init_tenant_pools;
 pub use crate::manager::app::services::{migrate_all_tenant_dbs, migrate_main_db};
 use crate::manager::auth::{self, init_default_auth_module};
+use crate::tenant;
+use crate::tenant::address::init_default_address_module;
+use crate::tenant::customers::init_default_customers_module;
+use crate::tenant::inventory::init_default_inventory_module;
+use crate::tenant::products::init_default_products_module;
+use crate::tenant::projects::init_default_projects_module;
+use crate::tenant::tags::init_default_tags_module;
+use crate::tenant::tasks::init_default_tasks_module;
+use crate::tenant::warehouses::init_default_warehouses_module;
+use crate::tenant::worksheets::init_default_worksheets_module;
 
 /// Sets up a global tracing subscriber for the application with a specified logging level.
 ///
@@ -133,15 +143,59 @@ pub async fn init_default_app() -> Result<Router> {
     let pool_manager = Arc::new(pool_manager);
     let auth_module = init_default_auth_module(pool_manager.clone(), config.clone())
         .build()
-        .map_err(|e| anyhow!("{}", e))?;
+        .map_err(|e| anyhow!("{e}"))?;
     let tenants_module = init_default_tenants_module(pool_manager.clone(), config.clone())
         .build()
-        .map_err(|e| anyhow!("{}", e))?;
+        .map_err(|e| anyhow!("{e}"))?;
+    let address_module = init_default_address_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let customers_module = init_default_customers_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let inventory_module = init_default_inventory_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let products_module = init_default_products_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let projects_module = init_default_projects_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let tags_module = init_default_tags_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let tasks_module = init_default_tasks_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let warehouses_module = init_default_warehouses_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let worksheets_module = init_default_worksheets_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
     Ok(Router::new().nest(
         "/api",
         Router::new()
             .merge(auth::routes::routes(Arc::new(auth_module)))
             .merge(tenants::routes::routes(Arc::new(tenants_module)))
+            .merge(tenant::address::routes::routes(Arc::new(address_module)))
+            .merge(tenant::customers::routes::routes(Arc::new(
+                customers_module,
+            )))
+            .merge(tenant::inventory::routes::routes(Arc::new(
+                inventory_module,
+            )))
+            .merge(tenant::products::routes::routes(Arc::new(products_module)))
+            .merge(tenant::projects::routes::routes(Arc::new(projects_module)))
+            .merge(tenant::tags::routes::routes(Arc::new(tags_module)))
+            .merge(tenant::tasks::routes::routes(Arc::new(tasks_module)))
+            .merge(tenant::warehouses::routes::routes(Arc::new(
+                warehouses_module,
+            )))
+            .merge(tenant::worksheets::routes::routes(Arc::new(
+                worksheets_module,
+            )))
             .layer(TraceLayer::new_for_http()),
     ))
 }

@@ -51,7 +51,7 @@ pub fn init_default_auth_module(
 ) -> AuthModuleBuilder {
     AuthModuleBuilder::default()
         .pool_manager(pool_manager.clone())
-        .config(config.clone())
+        .config(config)
         .repo_factory(Box::new(
             move || -> Box<dyn AuthRepository + Send + Sync> {
                 Box::new(PoolManagerWrapper::new(pool_manager.clone()))

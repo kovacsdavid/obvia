@@ -225,14 +225,6 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route
-          path="/szervezeti_egyseg/lista"
-          element={
-            <PrivateRoute>
-              <TenantsList/>
-            </PrivateRoute>
-          }
-        />
         <Route path="*" element={<Navigate to="/vezerlopult"/>}/>
       </Routes>
     </Layout>

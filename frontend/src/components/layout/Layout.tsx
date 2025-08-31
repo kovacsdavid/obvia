@@ -43,7 +43,25 @@ export function Layout( { children }: { children: ReactNode }) {
         "/regisztracio": "Regisztráció",
         "/vezerlopult": "Vezérlőpult",
         "/szervezeti_egyseg/letrehozas": "Szervezeti egység létrehozása",
-        "/szervezeti_egyseg/lista": "Szervezeti egység lista"
+        "/szervezeti_egyseg/lista": "Szervezeti egység lista",
+        "/vevo/letrehozas": "Vevő létrehozása",
+        "/vevo/lista": "Vevő lista",
+        "/leltar/letrehozas": "Leltár létrehozása",
+        "/leltar/lista": "Leltár lista",
+        "/termek/letrehozas": "Termék létrehozása",
+        "/termek/lista": "Termék lista",
+        "/projekt/letrehozas": "Projekt létrehozása",
+        "/projekt/lista": "Projekt lista",
+        "/cimke/letrehozas": "Címke létrehozása",
+        "/cimke/lista": "Címke lista",
+        "/feladat/letrehozas": "Feladat létrehozása",
+        "/feladat/lista": "Feladat lista",
+        "/felhasznalo/letrehozas": "Felhasználó létrehozása",
+        "/felhasznalo/lista": "Felhasználó lista",
+        "/raktar/letrehozas": "Raktár létrehozása",
+        "/raktar/lista": "Raktár lista",
+        "/munkalap/letrehozas": "Munkalap létrehozása",
+        "/munkalap/lista": "Munkalap lista",
     };
     const { pathname } = useLocation();
     const currentTitle = breadcrumbMap[pathname] || "Ismeretlen oldal";

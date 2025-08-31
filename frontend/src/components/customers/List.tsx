@@ -17,10 +17,83 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
+import {Button, Input, Label} from "@/components/ui";
+import {Funnel, SquarePen} from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table.tsx";
+
 export default function List() {
   return (
-    <div>
-      customers/list
-    </div>
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <h4 className="leading-none font-medium">Szűrő</h4>
+              <p className="text-muted-foreground text-sm">
+                Szűkítsd a találatok listáját szűrőfeltételekkel!
+              </p>
+            </div>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-3 items-center gap-4">
+                <Label htmlFor="name">Szűrő</Label>
+                <Input
+                  id="name"
+                  defaultValue=""
+                  className="col-span-2 h-8"
+                />
+              </div>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>
+              Név
+            </TableHead>
+            <TableHead>
+              Létrehozva
+            </TableHead>
+            <TableHead>
+              Frissítve
+            </TableHead>
+            <TableHead>
+              Műveletek
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>
+              Placeholder
+            </TableCell>
+            <TableCell>
+              2025-08-31T13:52:49.213086+02:00
+            </TableCell>
+            <TableCell>
+              2025-08-31T13:52:49.213086+02:00
+            </TableCell>
+            <TableCell>
+              <Button style={{cursor: "pointer"}} variant={"outline"}>
+                <SquarePen color={"green"}/>
+              </Button>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </>
   )
 }

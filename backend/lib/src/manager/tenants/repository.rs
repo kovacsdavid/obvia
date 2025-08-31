@@ -432,8 +432,8 @@ async fn insert_and_connect_with_user(
 ) -> Result<Tenant, BoxDynError> {
     let tenant = sqlx::query_as::<_, Tenant>(
         "INSERT INTO tenants (
-            id, name, is_self_hosted, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
+            id, name, is_self_hosted, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode, created_by
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
     )
     .bind(uuid)
     .bind(name)
@@ -448,6 +448,7 @@ async fn insert_and_connect_with_user(
             .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
     )
     .bind(&db_config.ssl_mode)
+    .bind(claims.sub())
     .fetch_one(&mut *conn)
     .await
     .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;

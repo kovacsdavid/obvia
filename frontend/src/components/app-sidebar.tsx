@@ -37,7 +37,18 @@ import {logoutUser} from "@/store/slices/auth.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";
-import {KeyRound, LogOut, NotebookPen, Boxes, ScrollText} from "lucide-react";
+import {
+  KeyRound,
+  LogOut,
+  NotebookPen,
+  Boxes,
+  ScrollText,
+  UsersRound,
+  UserCog,
+  Tag,
+  FolderOpen,
+  NotebookText, ListTodo, Package, Warehouse, Group
+} from "lucide-react";
 
 interface NavigationItem {
   title: string;
@@ -75,7 +86,96 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const data: NavigationData = {
     navMain: [
       {
-        title: "Fiók",
+        title: "Törzsadatok",
+        url: "#",
+        items: [
+          {
+            title: "Szerzvezeti egységek",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <Group />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Felhasználók",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <UserCog />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Vevők",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <UsersRound />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Címkék",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <Tag />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Raktárak",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <Warehouse />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Termékek",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <Package />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+        ]
+      },
+      {
+        title: "Készlet",
+        url: "#",
+        items: [
+          {
+            title: "Leltár",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <Boxes />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+        ]
+      },
+      {
+        title: "Munkafolyamat",
+        url: "#",
+        items: [
+
+          {
+            title: "Projektek",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <FolderOpen />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Munkalapok",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <NotebookText />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+          {
+            title: "Feladatok",
+            url: "/szervezeti_egyseg/lista",
+            private: true,
+            icon: <ListTodo />,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
+        ]
+      },
+      {
+        title: "Fiókom",
         url: "#",
         items: [
           {
@@ -101,26 +201,6 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
           },
         ],
       },
-      {
-        title: "Szervezeti egység",
-        url: "#",
-        items: [
-          {
-            title: "Létrehozás",
-            url: "/szervezeti_egyseg/letrehozas",
-            private: true,
-            icon: <Boxes />,
-            isActive: location.pathname.includes("/szervezeti_egyseg/letrehozas"),
-          },
-          {
-            title: "Lista",
-            url: "/szervezeti_egyseg/lista",
-            private: true,
-            icon: <ScrollText />,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
-          }
-        ]
-      }
     ],
   }
   return (
@@ -145,8 +225,8 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
                                 {
                                   item.url
                                       ? <Link onClick={mobileCloseOnClick} to={item.url} key={item.title}>
-                                        {item.title}
                                         { item.icon ? item.icon : "" }
+                                        {item.title}
                                       </Link>
                                       : typeof item.click === "function"
                                         ? <Button

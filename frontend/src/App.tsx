@@ -25,6 +25,24 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
+import {default as CustomerCreate} from "@/components/customers/Create.tsx";
+import {default as CustomerList} from "@/components/customers/List.tsx";
+import {default as InventoryCreate} from "@/components/inventory/Create.tsx";
+import {default as InventoryList} from "@/components/inventory/List.tsx";
+import {default as ProductsCreate} from "@/components/products/Create.tsx";
+import {default as ProductsList} from "@/components/products/List.tsx";
+import {default as ProjectsCreate} from "@/components/projects/Create.tsx";
+import {default as ProjectsList} from "@/components/projects/List.tsx";
+import {default as TagsCreate} from "@/components/tags/Create.tsx";
+import {default as TagsList} from "@/components/tags/List.tsx";
+import {default as TasksCreate} from "@/components/tasks/Create.tsx";
+import {default as TasksList} from "@/components/tasks/List.tsx";
+import {default as UsersCreate} from "@/components/users/Create.tsx";
+import {default as UsersList} from "@/components/users/List.tsx";
+import {default as WarehousesCreate} from "@/components/warehouses/Create.tsx";
+import {default as WarehousesList} from "@/components/warehouses/List.tsx";
+import {default as WorksheetsCreate} from "@/components/worksheets/Create.tsx";
+import {default as WorksheetsList} from "@/components/worksheets/List.tsx";
 import {default as TenantsCreate} from "@/components/tenants/Create.tsx";
 import {default as TenantsList}  from "@/components/tenants/List.tsx";
 
@@ -52,6 +70,158 @@ export default function App() {
           element={
             <PrivateRoute>
               <TenantsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/szervezeti_egyseg/lista"
+          element={
+            <PrivateRoute>
+              <TenantsList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vevo/letrehozas"
+          element={
+            <PrivateRoute>
+              <CustomerCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vevo/lista"
+          element={
+            <PrivateRoute>
+              <CustomerList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/leltar/letrehozas"
+          element={
+            <PrivateRoute>
+              <InventoryCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/leltar/lista"
+          element={
+            <PrivateRoute>
+              <InventoryList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/termek/letrehozas"
+          element={
+            <PrivateRoute>
+              <ProductsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/termek/lista"
+          element={
+            <PrivateRoute>
+              <ProductsList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/projekt/letrehozas"
+          element={
+            <PrivateRoute>
+              <ProjectsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/projekt/lista"
+          element={
+            <PrivateRoute>
+              <ProjectsList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/cimke/letrehozas"
+          element={
+            <PrivateRoute>
+              <TagsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/cimke/lista"
+          element={
+            <PrivateRoute>
+              <TagsList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/feladat/letrehozas"
+          element={
+            <PrivateRoute>
+              <TasksCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/feladat/lista"
+          element={
+            <PrivateRoute>
+              <TasksList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/felhasznalo/letrehozas"
+          element={
+            <PrivateRoute>
+              <UsersCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/felhasznalo/lista"
+          element={
+            <PrivateRoute>
+              <UsersList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/raktar/letrehozas"
+          element={
+            <PrivateRoute>
+              <WarehousesCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/raktar/lista"
+          element={
+            <PrivateRoute>
+              <WarehousesList/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/munkalap/letrehozas"
+          element={
+            <PrivateRoute>
+              <WorksheetsCreate/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/munkalap/lista"
+          element={
+            <PrivateRoute>
+              <WorksheetsList/>
             </PrivateRoute>
           }
         />

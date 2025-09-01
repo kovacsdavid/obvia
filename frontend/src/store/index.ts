@@ -21,12 +21,30 @@ import { configureStore } from "@reduxjs/toolkit";
 import { combineReducers } from "redux";
 import authReducer from "@/store/slices/auth";
 import tenantsReducer from "@/store/slices/tenants.ts";
+import customersReducer from "@/store/slices/customers.ts";
+import inventoryReducer from "@/store/slices/inventory.ts";
+import productsReducer from "@/store/slices/products.ts";
+import projectsReducer from "@/store/slices/projects.ts";
+import tagsReducer from "@/store/slices/tags.ts";
+import tasksReducer from "@/store/slices/tasks.ts";
+import usersReducer from "@/store/slices/users.ts";
+import warehousesReducer from "@/store/slices/warehouses.ts";
+import worksheetsReducer from "@/store/slices/worksheets.ts";
 import storage from "redux-persist/lib/storage";
 import { persistStore, persistReducer } from "redux-persist";
 
 const rootReducer = combineReducers ({
   auth: authReducer,
   tenants: tenantsReducer,
+  customers: customersReducer,
+  inventory: inventoryReducer,
+  products: productsReducer,
+  projects: projectsReducer,
+  tags: tagsReducer,
+  tasks: tasksReducer,
+  users: usersReducer,
+  warehouses: warehousesReducer,
+  worksheets: worksheetsReducer,
 })
 
 const persistConfig = {

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface TenantsRequest {
+export interface CreateTenant {
   name: string;
   dbIsSelfHosted: boolean;
   dbHost: string;
@@ -27,7 +27,7 @@ export interface TenantsRequest {
   dbPassword: string;
 }
 
-export interface TenantsResponse {
+export interface CreateTenantResponse {
   success: boolean,
   data?: {
     message: string,
@@ -39,7 +39,7 @@ export interface TenantsResponse {
   }
 }
 
-export function isTenantsResponse(data: unknown): data is TenantsResponse {
+export function isTenantsResponse(data: unknown): data is CreateTenantResponse {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -75,7 +75,7 @@ export async function create({
                                dbUser,
                                dbPassword
 
-                             }: TenantsRequest, token: string | null): Promise<TenantsResponse> {
+                             }: CreateTenant, token: string | null): Promise<CreateTenantResponse> {
   const response = await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {

@@ -40,7 +40,7 @@ const initialState: TenantsState = {
 
 export const create = createAsyncThunk(
   "tenants/create",
-  async (requestData: tenantsApi.TenantsRequest, {rejectWithValue, getState}) => {
+  async (requestData: tenantsApi.CreateTenant, {rejectWithValue, getState}) => {
     try {
       const rootState = getState() as RootState;
       const token = rootState.auth.login.token;
@@ -106,7 +106,7 @@ const tenantsSlice = createSlice({
         create.fulfilled,
         (
           state,
-          action: PayloadAction<tenantsApi.TenantsResponse>
+          action: PayloadAction<tenantsApi.CreateTenantResponse>
         ) => {
           state.status = "succeeded";
           console.log(action);

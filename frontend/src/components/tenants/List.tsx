@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useSearchParams} from "react-router-dom";
+import {Link, useSearchParams} from "react-router-dom";
 import {query_encoder, query_parser} from "@/lib/utils.ts";
 import React, {useEffect} from "react";
 import {activate, list} from "@/store/slices/tenants.ts";
@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table.tsx";
 import {isActivateResponse, isTenantsList, type TenantData} from "@/services/tenants.ts";
 import Paginator from "@/components/ui/Paginator.tsx";
-import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap} from "lucide-react";
+import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -129,34 +129,48 @@ export default function List() {
 
   return (
     <>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <h4 className="leading-none font-medium">Szűrő</h4>
-              <p className="text-muted-foreground text-sm">
-                Szűkítsd a találatok listáját szűrőfeltételekkel!
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label htmlFor="name">Név</Label>
-                <Input
-                  id="name"
-                  onBlur={e => filterSelect("name", e.target.value)}
-                  value={nameFilter}
-                  onChange={e => setNameFilter(e.target.value)}
-                  defaultValue=""
-                  className="col-span-2 h-8"
-                />
+
+      <div className={"flex justify-between items-center mb-6"}>
+        <div className="flex gap-2">
+          <Link to={"/szervezeti_egyseg/uj"}>
+            <Button style={{color: "green"}} variant="outline">
+              <Plus color="green"/> Új
+            </Button>
+          </Link>
+        </div>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="leading-none font-medium">Szűrő</h4>
+                  <p className="text-muted-foreground text-sm">
+                    Szűkítsd a találatok listáját szűrőfeltételekkel!
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="name">Név</Label>
+                    <Input
+                      id="name"
+                      onBlur={e => filterSelect("name", e.target.value)}
+                      value={nameFilter}
+                      onChange={e => setNameFilter(e.target.value)}
+                      defaultValue=""
+                      className="col-span-2 h-8"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+
       <Table>
         <TableHeader>
           <TableRow>

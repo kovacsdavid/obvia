@@ -19,7 +19,7 @@
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
 import {Button, Input, Label} from "@/components/ui";
-import {Funnel, SquarePen} from "lucide-react";
+import {Funnel, Plus, SquarePen} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -28,35 +28,48 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx";
+import {Link} from "react-router-dom";
 
 export default function List() {
   return (
     <>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <h4 className="leading-none font-medium">Szűrő</h4>
-              <p className="text-muted-foreground text-sm">
-                Szűkítsd a találatok listáját szűrőfeltételekkel!
-              </p>
-            </div>
-            <div className="grid gap-2">
-              <div className="grid grid-cols-3 items-center gap-4">
-                <Label htmlFor="name">Szűrő</Label>
-                <Input
-                  id="name"
-                  defaultValue=""
-                  className="col-span-2 h-8"
-                />
+      <div className={"flex justify-between items-center mb-6"}>
+        <div className="flex gap-2">
+          <Link to={"/felhasznalo/uj"}>
+            <Button style={{color: "green"}} variant="outline">
+              <Plus color="green"/> Új
+            </Button>
+          </Link>
+        </div>
+        <div className="flex gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button className={"justify-self-end"} variant="outline"
+                      style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="grid gap-4">
+                <div className="space-y-2">
+                  <h4 className="leading-none font-medium">Szűrő</h4>
+                  <p className="text-muted-foreground text-sm">
+                    Szűkítsd a találatok listáját szűrőfeltételekkel!
+                  </p>
+                </div>
+                <div className="grid gap-2">
+                  <div className="grid grid-cols-3 items-center gap-4">
+                    <Label htmlFor="name">Szűrő</Label>
+                    <Input
+                      id="name"
+                      defaultValue=""
+                      className="col-span-2 h-8"
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
 
       <Table>
         <TableHeader>

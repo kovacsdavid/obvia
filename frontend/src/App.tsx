@@ -66,7 +66,7 @@ export default function App() {
           }
         />
         <Route
-          path="/szervezeti_egyseg/letrehozas"
+          path="/szervezeti_egyseg/uj"
           element={
             <PrivateRoute>
               <TenantsCreate/>
@@ -82,7 +82,7 @@ export default function App() {
           }
         />
         <Route
-          path="/vevo/letrehozas"
+          path="/vevo/uj"
           element={
             <PrivateRoute>
               <CustomerCreate/>
@@ -98,7 +98,7 @@ export default function App() {
           }
         />
         <Route
-          path="/leltar/letrehozas"
+          path="/leltar/uj"
           element={
             <PrivateRoute>
               <InventoryCreate/>
@@ -114,7 +114,7 @@ export default function App() {
           }
         />
         <Route
-          path="/termek/letrehozas"
+          path="/termek/uj"
           element={
             <PrivateRoute>
               <ProductsCreate/>
@@ -130,7 +130,7 @@ export default function App() {
           }
         />
         <Route
-          path="/projekt/letrehozas"
+          path="/projekt/uj"
           element={
             <PrivateRoute>
               <ProjectsCreate/>
@@ -146,7 +146,7 @@ export default function App() {
           }
         />
         <Route
-          path="/cimke/letrehozas"
+          path="/cimke/uj"
           element={
             <PrivateRoute>
               <TagsCreate/>
@@ -162,7 +162,7 @@ export default function App() {
           }
         />
         <Route
-          path="/feladat/letrehozas"
+          path="/feladat/uj"
           element={
             <PrivateRoute>
               <TasksCreate/>
@@ -178,7 +178,7 @@ export default function App() {
           }
         />
         <Route
-          path="/felhasznalo/letrehozas"
+          path="/felhasznalo/uj"
           element={
             <PrivateRoute>
               <UsersCreate/>
@@ -194,7 +194,7 @@ export default function App() {
           }
         />
         <Route
-          path="/raktar/letrehozas"
+          path="/raktar/uj"
           element={
             <PrivateRoute>
               <WarehousesCreate/>
@@ -210,7 +210,7 @@ export default function App() {
           }
         />
         <Route
-          path="/munkalap/letrehozas"
+          path="/munkalap/uj"
           element={
             <PrivateRoute>
               <WorksheetsCreate/>

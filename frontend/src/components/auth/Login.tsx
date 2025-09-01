@@ -43,7 +43,7 @@ export default function Login() {
     login( email, password ).then((response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
         // TODO: redirect here only if the user doesn't have any tenants yet!
-        navigate('/szervezeti_egyseg/letrehozas');
+        navigate('/szervezeti_egyseg/uj');
       }
     });
   };

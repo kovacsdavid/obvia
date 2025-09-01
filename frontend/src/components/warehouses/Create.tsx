@@ -21,6 +21,11 @@ import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
 export default function List() {
+  const [name, setName] = React.useState("");
+  const [contactName, setContactName] = React.useState("");
+  const [contactPhone, setContactPhone] = React.useState("");
+  const [isActive, setIsActive] = React.useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,21 +37,29 @@ export default function List() {
       <Input
         id="name"
         type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
       />
       <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
       <Input
         id="contact_name"
         type="text"
+        value={contactName}
+        onChange={e => setContactName(e.target.value)}
       />
       <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
       <Input
         id="contact_phone"
         type="text"
+        value={contactPhone}
+        onChange={e => setContactPhone(e.target.value)}
       />
       <Label htmlFor="is_active">Aktív</Label>
       <Input
         id="is_active"
         type="text"
+        value={isActive}
+        onChange={e => setIsActive(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

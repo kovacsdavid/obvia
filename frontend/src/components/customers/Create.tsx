@@ -20,7 +20,13 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [type, setType] = React.useState("");
+  const [name, setName] = React.useState("");
+  const [contactName, setContactName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [phoneNumber, setPhoneNumber] = React.useState("");
+  const [status, setStatus] = React.useState("");
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -28,35 +34,47 @@ export default function List() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <Label htmlFor="type">Típus</Label>
+      <Input
+        id="type"
+        type="text"
+        value={type}
+        onChange={e => setType(e.target.value)}
+      />
       <Label htmlFor="name">Név</Label>
       <Input
         id="name"
         type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
       />
       <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
       <Input
         id="contact_name"
         type="text"
+        value={contactName}
+        onChange={e => setContactName(e.target.value)}
       />
       <Label htmlFor="email">E-mail cím</Label>
       <Input
         id="email"
         type="text"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
       />
       <Label htmlFor="phone_number">Telefonszám</Label>
       <Input
         id="phone_number"
         type="text"
+        value={phoneNumber}
+        onChange={e => setPhoneNumber(e.target.value)}
       />
       <Label htmlFor="status">Státusz</Label>
       <Input
         id="status"
         type="text"
-      />
-      <Label htmlFor="type">Típus</Label>
-      <Input
-        id="type"
-        type="text"
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

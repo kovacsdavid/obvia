@@ -20,7 +20,10 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,11 +35,15 @@ export default function List() {
       <Input
         id="name"
         type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
       />
       <Label htmlFor="description">Leírás</Label>
       <Input
         id="description"
         type="text"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

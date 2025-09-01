@@ -20,7 +20,10 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [productId, setProductId] = React.useState("");
+  const [warehouseId, setWarehouseId] = React.useState("");
+  const [quantity, setQuantity] = React.useState("");
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,16 +35,22 @@ export default function List() {
       <Input
         id="product_id"
         type="text"
+        value={productId}
+        onChange={e => setProductId(e.target.value)}
       />
       <Label htmlFor="warehouse_id">Raktár ID</Label>
       <Input
         id="warehouse_id"
         type="text"
+        value={warehouseId}
+        onChange={e => setWarehouseId(e.target.value)}
       />
       <Label htmlFor="quantity">Mennyiség</Label>
       <Input
         id="quantity"
         type="text"
+        value={quantity}
+        onChange={e => setQuantity(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

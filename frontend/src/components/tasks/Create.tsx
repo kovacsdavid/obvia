@@ -20,7 +20,14 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [worksheetId, setWorksheetId] = React.useState("");
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [status, setStatus] = React.useState("");
+  const [priority, setPriority] = React.useState("");
+  const [dueDate, setDueDate] = React.useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,31 +39,43 @@ export default function List() {
       <Input
         id="worksheet_id"
         type="text"
+        value={worksheetId}
+        onChange={e => setWorksheetId(e.target.value)}
       />
       <Label htmlFor="title">Megnevezés</Label>
       <Input
         id="title"
         type="text"
+        value={title}
+        onChange={e => setTitle(e.target.value)}
       />
       <Label htmlFor="description">Leírás</Label>
       <Input
         id="description"
         type="text"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
       />
       <Label htmlFor="status">Státusz</Label>
       <Input
         id="status"
         type="text"
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Label htmlFor="priority">Prioritás</Label>
       <Input
         id="priority"
         type="text"
+        value={priority}
+        onChange={e => setPriority(e.target.value)}
       />
       <Label htmlFor="due_date">Határidő</Label>
       <Input
         id="due_date"
         type="text"
+        value={dueDate}
+        onChange={e => setDueDate(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

@@ -20,7 +20,15 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [name, setName] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [unitOfMeasure, setUnitOfMeasure] = React.useState("");
+  const [cost, setCost] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [currency_id, setCurrencyId] = React.useState("");
+  const [isActive, setIsActive] = React.useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,36 +40,50 @@ export default function List() {
       <Input
         id="name"
         type="text"
+        value={name}
+        onChange={e => setName(e.target.value)}
       />
       <Label htmlFor="description">Leírás</Label>
       <Input
         id="description"
         type="text"
+        value={description}
+        onChange={e => setDescription(e.target.value)}
       />
       <Label htmlFor="unit_of_measure">Mértékegység</Label>
       <Input
         id="unit_of_measure"
         type="text"
+        value={unitOfMeasure}
+        onChange={e => setUnitOfMeasure(e.target.value)}
       />
       <Label htmlFor="cost">Bekerülési költség</Label>
       <Input
         id="cost"
         type="text"
+        value={cost}
+        onChange={e => setCost(e.target.value)}
       />
       <Label htmlFor="price">Fogyasztói ár</Label>
       <Input
         id="price"
         type="text"
+        value={price}
+        onChange={e => setPrice(e.target.value)}
       />
       <Label htmlFor="currency_id">Pénznem</Label>
       <Input
         id="currency_id"
         type="text"
+        value={currency_id}
+        onChange={e => setCurrencyId(e.target.value)}
       />
       <Label htmlFor="is_active">Aktív</Label>
       <Input
         id="is_active"
         type="text"
+        value={isActive}
+        onChange={e => setIsActive(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

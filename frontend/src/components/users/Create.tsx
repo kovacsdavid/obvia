@@ -20,7 +20,13 @@
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
 
-export default function List() {
+export default function Create() {
+  const [email, setEmail] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [fistName, setFirstName] = React.useState("");
+  const [phone, setPhone] = React.useState("");
+  const [status, setStatus] = React.useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     console.log(e);
     throw Error("not implemented yet!");
@@ -32,26 +38,36 @@ export default function List() {
       <Input
         id="email"
         type="text"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
       />
       <Label htmlFor="last_name">Vezetéknév</Label>
       <Input
         id="last_name"
         type="text"
+        value={lastName}
+        onChange={e => setLastName(e.target.value)}
       />
       <Label htmlFor="fist_name">Keresztnév</Label>
       <Input
         id="fist_name"
         type="text"
+        value={fistName}
+        onChange={e => setFirstName(e.target.value)}
       />
       <Label htmlFor="phone">Telefonszám</Label>
       <Input
         id="phone"
         type="text"
+        value={phone}
+        onChange={e => setPhone(e.target.value)}
       />
       <Label htmlFor="status">Státusz</Label>
       <Input
         id="status"
         type="text"
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

@@ -17,10 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import React from "react";
+import {Button, Input, Label} from "@/components/ui";
+
 export default function List() {
+  const handleSubmit = async (e: React.FormEvent) => {
+    console.log(e);
+    throw Error("not implemented yet!");
+  };
+
   return (
-    <div>
-      tags/create
-    </div>
-  )
+    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <Label htmlFor="name">Név</Label>
+      <Input
+        id="name"
+        type="text"
+      />
+      <Label htmlFor="description">Leírás</Label>
+      <Input
+        id="description"
+        type="text"
+      />
+      <Button type="submit">Létrehozás</Button>
+    </form>
+  );
 }

@@ -17,10 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import React from "react";
+import {Button, Input, Label} from "@/components/ui";
+
 export default function List() {
+  const handleSubmit = async (e: React.FormEvent) => {
+    console.log(e);
+    throw Error("not implemented yet!");
+  };
+
   return (
-    <div>
-      inventory/create
-    </div>
-  )
+    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <Label htmlFor="product_id">Termék ID</Label>
+      <Input
+        id="product_id"
+        type="text"
+      />
+      <Label htmlFor="warehouse_id">Raktár ID</Label>
+      <Input
+        id="warehouse_id"
+        type="text"
+      />
+      <Label htmlFor="quantity">Mennyiség</Label>
+      <Input
+        id="quantity"
+        type="text"
+      />
+      <Button type="submit">Létrehozás</Button>
+    </form>
+  );
 }

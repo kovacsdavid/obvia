@@ -66,6 +66,7 @@ create table customers
     email         varchar(255) not null unique,
     phone_number  varchar(50),
     status        varchar(50) not null,
+    type          varchar(50) not null,
     created_at    timestamptz  not null default now(),
     updated_at    timestamptz  not null default now(),
     deleted_at    timestamptz
@@ -206,9 +207,10 @@ EXECUTE FUNCTION update_updated_at();
 
 create table tags -- Entry can only be deleted if no data relies on it!
 (
-    id         uuid         not null primary key,
-    name       varchar(255) not null,
-    created_at timestamptz  not null default now()
+    id          uuid         not null primary key,
+    name        varchar(255) not null,
+    description text,
+    created_at  timestamptz  not null default now()
 );
 
 CREATE INDEX idx_tags_created_at ON tags (created_at);

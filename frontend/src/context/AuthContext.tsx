@@ -22,19 +22,12 @@ import { createContext, useContext } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
-import { loginUser, logoutUser } from "@/store/slices/auth";
-
-
-interface AuthResponse {
-  meta?: {
-    requestStatus?: "fulfilled" | "rejected";
-  };
-}
-
+import { loginUserRequest, logoutUser } from "@/store/slices/auth";
+import type {PayloadAction} from "@reduxjs/toolkit";
 
 type AuthContextType = {
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<AuthResponse>;
+  login: (email: string, password: string) => Promise<PayloadAction<any, any, any>>;
   logout: () => void;
 };
 
@@ -45,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoggedIn = useSelector((state: RootState) => state.auth.login.isLoggedIn);
 
   const login = (email: string, password: string) => {
-    return dispach(loginUser({ email, password }));
+    return dispach(loginUserRequest({ email, password }));
   };
   const logout = () => {
     dispach(logoutUser());

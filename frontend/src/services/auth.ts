@@ -74,8 +74,8 @@ export function isLoginResponse(data: unknown): data is LoginResponse {
   );
 }
 
-export async function login({ email, password }: LoginRequest): Promise<LoginResponse> {
-  const response = await fetch(`/api/auth/login`, {
+export async function login({ email, password }: LoginRequest): Promise<Response> {
+  return await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -83,16 +83,6 @@ export async function login({ email, password }: LoginRequest): Promise<LoginRes
     body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(10000),
   });
-  let responseJson;
-  try {
-    responseJson = await response.json();
-  } catch {
-    throw new Error("Server responded with invalid JSON format");
-  }
-  if (!isLoginResponse(responseJson)) {
-    throw new Error("Server responded with invalid data");
-  }
-  return responseJson;
 }
 
 export interface RegisterRequest {
@@ -148,8 +138,8 @@ export async function register({
                                  email,
                                  password,
                                  passwordConfirm
-                               }: RegisterRequest): Promise<RegisterResponse> {
-  const response = await fetch(`/api/auth/register`, {
+                               }: RegisterRequest): Promise<Response> {
+  return await fetch(`/api/auth/register`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify({
@@ -161,14 +151,4 @@ export async function register({
     }),
     signal: AbortSignal.timeout(10000)
   });
-  let responseJson;
-  try {
-    responseJson = await response.json();
-  } catch {
-    throw new Error("Server responded with invalid JSON format");
-  }
-  if (!isRegisterResponse(responseJson)) {
-    throw new Error("Server responded with invalid data");
-  }
-  return responseJson;
 }

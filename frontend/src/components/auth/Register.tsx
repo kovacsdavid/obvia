@@ -23,11 +23,14 @@ import {
   Input,
   Label,
 } from "@/components/ui";
-import { registerUser } from "@/store/slices/auth";
+import { registerUserRequest } from "@/store/slices/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/store/hooks";
-import type { RootState } from "@/store";
+
+interface Errors {
+  global: string | null
+  fields: Record<string, string | null>
+}
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -37,14 +40,36 @@ export default function Register() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const error = useAppSelector((state: RootState) => state.auth.register.error);
+  const [errors, setErrors] = useState<Errors | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    dispatch(registerUser({ firstName, lastName, email, password, passwordConfirm })).then((response) => {
+    dispatch(registerUserRequest({ firstName, lastName, email, password, passwordConfirm })).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        navigate("/login");
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 201: {
+              navigate("/login");
+              break;
+            }
+            case 422:
+              setErrors(responseData.error);
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
       }
     });
   };
@@ -58,7 +83,7 @@ export default function Register() {
         value={lastName}
         onChange={e => setLastName(e.target.value)}
       />
-      {error?.fields?.last_name && <div className="text-red-600">{error.fields.last_name}</div>}
+      {errors?.fields?.last_name && <div className="text-red-600">{errors.fields.last_name}</div>}
       <Label htmlFor="first_name">Keresztnév</Label>
       <Input
         id="first_name"
@@ -66,7 +91,7 @@ export default function Register() {
         value={firstName}
         onChange={e => setFirstName(e.target.value)}
       />
-      {error?.fields?.first_name && <div className="text-red-600">{error.fields.first_name}</div>}
+      {errors?.fields?.first_name && <div className="text-red-600">{errors.fields.first_name}</div>}
       <Label htmlFor="email">Email</Label>
       <Input
         id="email"
@@ -75,7 +100,7 @@ export default function Register() {
         value={email}
         onChange={e => setEmail(e.target.value)}
       />
-      {error?.fields?.email && <div className="text-red-600">{error.fields.email}</div>}
+      {errors?.fields?.email && <div className="text-red-600">{errors.fields.email}</div>}
       <Label htmlFor="password">Jelszó</Label>
       <Input
         id="password"
@@ -84,7 +109,7 @@ export default function Register() {
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
-      {error?.fields?.password && <div className="text-red-600">{error.fields.password}</div>}
+      {errors?.fields?.password && <div className="text-red-600">{errors.fields.password}</div>}
       <Label htmlFor="password_confirm">Jelszó megerősítése</Label>
       <Input
         id="password_confirm"
@@ -93,9 +118,9 @@ export default function Register() {
         value={passwordConfirm}
         onChange={e => setPasswordConfirm(e.target.value)}
       />
-      {error?.fields?.password_confirm && <div className="text-red-600">{error.fields.password_confirm}</div>}
+      {errors?.fields?.password_confirm && <div className="text-red-600">{errors.fields.password_confirm}</div>}
       <Button type="submit">Regisztráció</Button>
-      {error?.global && <div className="text-red-600">{error.global}</div>}
+      {errors?.global && <div className="text-red-600">{errors.global}</div>}
     </form>
   );
 }

@@ -17,20 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface CreateUser {
-  email: string;
-  lastName: string;
-  firstName: string;
-  phone: string;
-  status: string;
-}
+import {type Middleware, type MiddlewareAPI} from '@reduxjs/toolkit';
+import { logoutUser } from '@/store/slices/auth';
 
-export async function create({
-                               email,
-                               lastName,
-                               firstName,
-                               phone,
-                               status
-                             }: CreateUser) {
-  console.log(email, lastName, firstName, phone, status);
-}
+
+
+const authMiddleware: Middleware = (store: MiddlewareAPI) => (next: (action: unknown) => unknown) => (action: unknown) => {
+  if (
+    typeof action === "object"
+    && action !== null
+    && "payload" in action
+    && typeof action.payload === "object"
+    && action.payload !== null
+    && "status" in action.payload
+    && action.payload.status === 401
+    && window.location.pathname !== '/bejelentkezes'
+  ) {
+    store.dispatch(logoutUser());
+    window.location.href = '/bejelentkezes';
+  } else {
+    return next(action);
+  }
+};
+
+export default authMiddleware;

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useState } from "react";
-import { useAppSelector } from "@/store/hooks";
+import React, { useState } from "react";
+import {useAppDispatch, useAppSelector} from "@/store/hooks";
 import type  { RootState } from "@/store";
 import {
   Button,
@@ -27,23 +27,77 @@ import {
 } from "@/components/ui";
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from "@/context/AuthContext";
+import {isLoginResponse} from "@/services/auth.ts";
+import {loginUser} from "@/store/slices/auth.ts";
+
+interface Errors {
+  global: string | null
+  fields: Record<string, string | null>
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const status = useAppSelector((state: RootState) => state.auth.login.status);
-  const error = useAppSelector((state: RootState) => state.auth.login.error);
+  const [errors, setErrors] = useState<Errors | null>(null);
   const navigate = useNavigate();
   const { login } = useAuth();
-
+  const dispatch = useAppDispatch();
   const loading = status === "loading";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login( email, password ).then((response) => {
+    login( email, password ).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
         // TODO: redirect here only if the user doesn't have any tenants yet!
-        navigate('/szervezeti_egyseg/uj');
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200: {
+              if (isLoginResponse(responseData)) {
+                const user = responseData?.data?.user;
+                const token = responseData?.data?.token;
+                if (
+                  typeof user !== "undefined"
+                  && typeof token !== "undefined"
+                ) {
+                  dispatch(loginUser({token, user}))
+                  navigate('/szervezeti_egyseg/uj');
+                } else {
+                  setErrors({
+                    global: "Váratlan hiba történt a feldolgozás során!",
+                    fields: {}
+                  });
+                }
+              }
+              break;
+            }
+            case 401: {
+              if (isLoginResponse(responseData)) {
+                setEmail("");
+                setPassword("");
+                const global = responseData?.error?.global;
+                if (typeof global !== "undefined") {
+                  setErrors({
+                    global,
+                    fields: {}
+                  });
+                } else {
+                  setErrors({
+                    global: "Váratlan hiba történt a feldolgozás során!",
+                    fields: {}
+                  });
+                }
+              }
+            }
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
       }
     });
   };
@@ -55,16 +109,18 @@ export default function Login() {
         type="text"
         autoComplete="email"
         value={email}
+        onFocus={() => setErrors(null)}
         onChange={e => setEmail(e.target.value)}
       />
       <Label htmlFor="password">Jelszó</Label>
       <Input
         type="password"
         autoComplete="current-password"
+        onFocus={() => setErrors(null)}
         value={password}
         onChange={e => setPassword(e.target.value)}
       />
-      {error?.global && <div className="text-red-600">{error.global}</div>}
+      {errors?.global && <div className="text-red-600">{errors.global}</div>}
       <Button type="submit" disabled={loading}>
         {loading ? "Bejelentkezés..." : "Bejelentkezés"}
       </Button>

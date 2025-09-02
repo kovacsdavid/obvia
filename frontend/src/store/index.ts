@@ -32,6 +32,7 @@ import warehousesReducer from "@/store/slices/warehouses.ts";
 import worksheetsReducer from "@/store/slices/worksheets.ts";
 import storage from "redux-persist/lib/storage";
 import { persistStore, persistReducer } from "redux-persist";
+import authMiddleware from "@/store/middleware/authMiddleware.ts";
 
 const rootReducer = combineReducers ({
   auth: authReducer,
@@ -60,7 +61,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false
-    })
+    }).concat(authMiddleware)
 });
 
 export const persistor = persistStore(store);

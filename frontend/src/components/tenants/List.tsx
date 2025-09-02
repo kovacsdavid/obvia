@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table.tsx";
 import {isActivateResponse, isTenantsList, type TenantData} from "@/services/tenants.ts";
 import Paginator from "@/components/ui/Paginator.tsx";
-import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
+import {AlertCircle, ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,8 +41,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import {Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
+import {Alert, AlertDescription, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
 import {updateToken} from "@/store/slices/auth.ts";
+
+interface Errors {
+  global: string | null
+}
 
 export default function List() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -54,6 +58,7 @@ export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<TenantData[]>([]);
+  const [errors, setErrors] = React.useState<Errors | null>(null);
 
   const totalPages = React.useMemo(() => {
     return limit > 0 ? Math.ceil(total / limit) : 0;
@@ -105,13 +110,34 @@ export default function List() {
     if ("name" in parsed_query) {
       setNameFilter(parsed_query["name"] as string);
     }
-    dispatch(list(searchParams.get("q"))).then((response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        if (isTenantsList(response.payload)) {
-          setPage(response.payload.data.page);
-          setLimit(response.payload.data.limit);
-          setTotal(response.payload.data.total);
-          setData(response.payload.data.data);
+    dispatch(list(searchParams.get("q"))).then(async (response) => {
+      if (response.meta.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200: {
+              if (isTenantsList(responseData)) {
+                setPage(responseData.data.page);
+                setLimit(responseData.data.limit);
+                setTotal(responseData.data.total);
+                setData(responseData.data.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                });
+              }
+              break;
+            }
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+          });
         }
       }
     })
@@ -129,7 +155,14 @@ export default function List() {
 
   return (
     <>
-
+    { errors !== null && errors.global !== null ? (
+        <Alert className={"mb-5"} variant="destructive">
+          <AlertCircle/>
+          <AlertDescription>
+            {errors.global}
+          </AlertDescription>
+        </Alert>
+      ) : null }
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/szervezeti_egyseg/uj"}>
@@ -141,7 +174,7 @@ export default function List() {
         <div className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+              <Button variant="outline">Szűrő <Funnel/></Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="grid gap-4">
@@ -187,7 +220,7 @@ export default function List() {
             <TableHead
               style={{cursor: "pointer"}}
               onClick={() => orderSelect("created_at")
-            }>
+              }>
               Létrehozva {orderBy === "created_at"
               ? order === "asc"
                 ? (<ArrowDownAZ style={{display: "inline"}}/>)

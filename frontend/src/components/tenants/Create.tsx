@@ -18,11 +18,15 @@
  */
 
 import React from "react";
-import {useAppDispatch, useAppSelector} from "@/store/hooks.ts";
+import {useAppDispatch} from "@/store/hooks.ts";
 import {Button, Input, Label, Checkbox, Alert, AlertTitle, AlertDescription} from "@/components/ui";
-import type {RootState} from "@/store";
 import {create} from "@/store/slices/tenants.ts";
 import {AlertCircle, Terminal} from "lucide-react";
+
+interface Errors {
+  global: string | null
+  fields: Record<string, string | null>
+}
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -33,9 +37,7 @@ export default function Create() {
   const [dbUser, setDbUser] = React.useState("");
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
-  const error = useAppSelector(
-    (state: RootState) => state.tenants.error
-  );
+  const [errors, setErrors] = React.useState<Errors | null>(null);
 
   React.useEffect(() => {
     setDbHost("");
@@ -56,9 +58,30 @@ export default function Create() {
       dbName,
       dbUser,
       dbPassword
-    })).then((response) => {
+    })).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        window.location.href = "/szervezeti_egyseg/lista";
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 201:
+              window.location.href = "/szervezeti_egyseg/lista";
+              break;
+            case 422:
+              setErrors(responseData.error);
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
       }
     });
   };
@@ -72,7 +95,7 @@ export default function Create() {
         value={name}
         onChange={e => setName(e.target.value)}
       />
-      {error?.fields?.name && <div className="text-red-600">{error.fields.name}</div>}
+      {errors?.fields?.name && <div className="text-red-600">{errors.fields.name}</div>}
       <div className="flex items-start gap-3 mt-7 mb-5">
         <Checkbox id="self_hosted_db" checked={dbIsSelfHosted} onCheckedChange={setDbIsSelfHosted}/>
         <Label htmlFor="self_hosted_db">Saját adatbázist használok (haladó)</Label>
@@ -123,7 +146,7 @@ export default function Create() {
             value={dbHost}
             onChange={e => setDbHost(e.target.value)}
           />
-          {error?.fields?.db_host && <div className="text-red-600">{error.fields.db_host}</div>}
+          {errors?.fields?.db_host && <div className="text-red-600">{errors.fields.db_host}</div>}
           <Label htmlFor="db_port">Adatbázis port</Label>
           <Input
             id="db_port"
@@ -131,7 +154,7 @@ export default function Create() {
             value={dbPort}
             onChange={e => setDbPort(e.target.value)}
           />
-          {error?.fields?.db_port && <div className="text-red-600">{error.fields.db_port}</div>}
+          {errors?.fields?.db_port && <div className="text-red-600">{errors.fields.db_port}</div>}
           <Label htmlFor="db_name">Adatbázis név</Label>
           <Alert variant="default">
             <Terminal/>
@@ -154,7 +177,7 @@ export default function Create() {
             />
           </div>
 
-          {error?.fields?.db_name && <div className="text-red-600">{error.fields.db_name}</div>}
+          {errors?.fields?.db_name && <div className="text-red-600">{errors.fields.db_name}</div>}
           <Label htmlFor="db_user">Adatbázis felhasználó</Label>
           <Alert variant="default">
             <Terminal/>
@@ -176,7 +199,7 @@ export default function Create() {
             />
           </div>
 
-          {error?.fields?.db_user && <div className="text-red-600">{error.fields.db_user}</div>}
+          {errors?.fields?.db_user && <div className="text-red-600">{errors.fields.db_user}</div>}
           <Label htmlFor="db_password">Adatbázis jelszó</Label>
           <Alert variant="default">
             <Terminal/>
@@ -195,9 +218,9 @@ export default function Create() {
           />
         </>
       )}
-      {error?.fields?.db_password && <div className="text-red-600">{error.fields.db_password}</div>}
+      {errors?.fields?.db_password && <div className="text-red-600">{errors.fields.db_password}</div>}
       <Button type="submit">Létrehozás</Button>
-      {error?.global && <div className="text-red-600">{error.global}</div>}
+      {errors?.global && <div className="text-red-600">{errors.global}</div>}
     </form>
   );
 }

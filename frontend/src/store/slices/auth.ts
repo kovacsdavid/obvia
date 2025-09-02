@@ -17,35 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import type { PayloadAction } from "@reduxjs/toolkit";
+import {createSlice, createAsyncThunk, type PayloadAction} from "@reduxjs/toolkit";
 import * as authApi from "@/services/auth";
-import {isLoginResponse, isRegisterResponse} from "@/services/auth";
+
+interface User {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  status: string;
+  profile_picture_url: string | null;
+}
 
 interface AuthState {
   login: {
-    user: {
-      id: string;
-      email: string;
-      first_name: string | null;
-      last_name: string | null;
-      status: string;
-      profile_picture_url: string | null;
-    } | null;
+    user: User | null;
     token: string | null;
     status: "idle" | "loading" | "succeeded" | "failed",
-    error: {
-      global: string | null,
-      fields: Record<string, string | null>
-    }
     isLoggedIn: boolean;
   },
   register: {
     status: "idle" | "loading" | "succeeded" | "failed",
-    error: {
-      global: string | null,
-      fields: Record<string, string | null>
-    }
   },
 }
 
@@ -54,62 +46,53 @@ const initialState: AuthState = {
     user: null,
     token: null,
     status: "idle",
-    error: {
-      global: null,
-      fields: {},
-    },
     isLoggedIn: false,
   },
   register: {
     status: "idle",
-    error: {
-      global: null,
-      fields: {},
-    }
   }
 };
 
-export const registerUser = createAsyncThunk(
-  "auth/registerUser",
+export const registerUserRequest = createAsyncThunk(
+  "auth/registerUserRequest",
   async (userData: authApi.RegisterRequest, { rejectWithValue }) => {
     try {
-      const response = await authApi.register(userData);
-      if (response.success) {
-        return response;
-      } else {
-        return rejectWithValue(response);
-      }
+      return await authApi.register(userData);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
   }
 );
 
-export const loginUser = createAsyncThunk(
-  "auth/loginUser",
+export const loginUserRequest = createAsyncThunk(
+  "auth/loginUserRequest",
   async (credentials: authApi.LoginRequest, { rejectWithValue }) => {
     try {
-      const response = await authApi.login(credentials);
-      if (response.success) {
-        return response;
-      } else {
-        return rejectWithValue(response);
-      }
+      return await authApi.login(credentials);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
   }
 );
+
+interface LoginUser {
+  token: string,
+  user: User
+}
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    loginUser(state, action: PayloadAction<LoginUser>) {
+      state.login.user = action.payload.user;
+      state.login.token = action.payload.token;
+      state.login.isLoggedIn = true;
+    },
     logoutUser(state) {
       state.login.user = null;
       state.login.token = null;
       state.login.status = "idle";
-      state.login.error = { global: null, fields: {} };
       state.login.isLoggedIn = false;
     },
     updateToken(state, action) {
@@ -118,47 +101,27 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loginUser.pending, (state) => {
+      .addCase(loginUserRequest.pending, (state) => {
         state.login.status = "loading";
-        state.login.error = { global: null, fields: {}};
       })
-      .addCase(loginUser.fulfilled, (state, action: PayloadAction<authApi.LoginResponse>) => {
+      .addCase(loginUserRequest.fulfilled, (state) => {
         state.login.status = "succeeded";
-        if (typeof action.payload.data !== "undefined") {
-          state.login.user = action.payload.data.user;
-          state.login.token = action.payload.data.token;
-        }
-        state.login.error = { global: null, fields: {}};
-        state.login.isLoggedIn = true;
       })
-      .addCase(loginUser.rejected, (state, action) => {
+      .addCase(loginUserRequest.rejected, (state) => {
         state.login.status = "failed";
-        if (isLoginResponse(action.payload) && typeof action.payload?.error !== "undefined") {
-          state.login.error = action.payload.error;
-        } else {
-          state.login.error = { global: "Váratlan hiba történt a kommunikáció során", fields: {}};
-        }
-        state.login.isLoggedIn = false;
       });
     builder
-      .addCase(registerUser.pending, (state) => {
+      .addCase(registerUserRequest.pending, (state) => {
         state.register.status = "loading";
-        state.register.error = { global: null, fields: {}};
       })
-      .addCase(registerUser.fulfilled, (state) => {
+      .addCase(registerUserRequest.fulfilled, (state) => {
         state.register.status = "succeeded";
-        state.register.error = { global: null, fields: {}};
       })
-      .addCase(registerUser.rejected, (state, action) => {
+      .addCase(registerUserRequest.rejected, (state) => {
         state.register.status = "failed";
-        if (isRegisterResponse(action.payload) && typeof action.payload?.error !== "undefined") {
-          state.register.error = action.payload.error;
-        } else {
-          state.register.error = { global: "Váratlan hiba történt a kommunikáció során", fields: {}};
-        }
       });
   },
 });
 
-export const { logoutUser, updateToken } = authSlice.actions;
+export const { logoutUser, updateToken, loginUser } = authSlice.actions;
 export default authSlice.reducer;

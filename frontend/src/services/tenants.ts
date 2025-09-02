@@ -75,8 +75,8 @@ export async function create({
                                dbUser,
                                dbPassword
 
-                             }: CreateTenant, token: string | null): Promise<CreateTenantResponse> {
-  const response = await fetch(`/api/tenants/create`, {
+                             }: CreateTenant, token: string | null): Promise<Response> {
+  return await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -93,16 +93,6 @@ export async function create({
       db_password: dbPassword
     })
   });
-  let responseJson;
-  try {
-    responseJson = await response.json();
-  } catch {
-    throw new Error("Server responded with invalid JSON format");
-  }
-  if (!isTenantsResponse(responseJson)) {
-    throw new Error("Server responded with invalid data");
-  }
-  return responseJson;
 }
 
 export interface TenantData {
@@ -173,26 +163,15 @@ export function isTenantsList(data: unknown): data is TenantsListResponse {
   });
 }
 
-export async function list(query: string | null, token: string | null) {
+export async function list(query: string | null, token: string | null): Promise<Response> {
   const uri = query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`
-  const response = await fetch(uri, {
+  return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     }
   });
-  let responseJson;
-  try {
-    responseJson = await response.json();
-  } catch {
-    throw new Error("Server responded with invalid JSON format");
-  }
-
-  if (!isTenantsList(responseJson)) {
-    throw new Error("Server responded with invalid data");
-  }
-  return responseJson;
 }
 
 export interface ActivateResponse {

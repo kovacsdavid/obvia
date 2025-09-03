@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Link, useSearchParams} from "react-router-dom";
-import {query_encoder, query_parser} from "@/lib/utils.ts";
+import {Link} from "react-router-dom";
+import {query_parser} from "@/lib/utils.ts";
 import React, {useEffect} from "react";
 import {activate, list} from "@/store/slices/tenants.ts";
 import { useAppDispatch } from "@/store/hooks";
@@ -43,55 +43,33 @@ import {
 } from "@/components/ui/popover"
 import {Alert, AlertDescription, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
 import {updateToken} from "@/store/slices/auth.ts";
+import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 
 interface Errors {
   global: string | null
 }
 
 export default function List() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [page, setPage] = React.useState<number>(1);
-  const [limit, setLimit] = React.useState<number>(25);
-  const [total, setTotal] = React.useState<number>(0);
-  const [orderBy, setOrderBy] = React.useState("created_at");
-  const [order, setOrder] = React.useState("asc");
+
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<TenantData[]>([]);
   const [errors, setErrors] = React.useState<Errors | null>(null);
-
-  const totalPages = React.useMemo(() => {
-    return limit > 0 ? Math.ceil(total / limit) : 0;
-  }, [total, limit]);
-
-  const paginatorSelect = (pageNumber: number) => {
-    const current_query = query_parser(searchParams.get("q"));
-    current_query.page = pageNumber;
-    searchParams.set("q", query_encoder(current_query))
-    setSearchParams(searchParams)
-  };
-
-  const orderSelect = (orderBy: string) => {
-    const current_query = query_parser(searchParams.get("q"));
-    current_query.order_by = orderBy;
-    current_query.order = order === "asc" ? "desc" : "asc";
-    searchParams.set("q", query_encoder(current_query))
-    setSearchParams(searchParams)
-  }
-
-  const filterSelect = (filterBy: string, value: string) => {
-    if (value.trim().length > 0) {
-      const current_query = query_parser(searchParams.get("q"));
-      current_query[filterBy] = value;
-      searchParams.set("q", query_encoder(current_query))
-      setSearchParams(searchParams)
-    } else {
-      const current_query = query_parser(searchParams.get("q"));
-      delete current_query[filterBy]
-      searchParams.set("q", query_encoder(current_query))
-      setSearchParams(searchParams)
-    }
-  }
+  const {
+    searchParams,
+    page,
+    setPage,
+    setLimit,
+    setTotal,
+    orderBy,
+    setOrderBy,
+    order,
+    setOrder,
+    paginatorSelect,
+    orderSelect,
+    filterSelect,
+    totalPages
+  } = useDataDisplayCommon();
 
   useEffect(() => {
     const parsed_query = query_parser(searchParams.get("q"));
@@ -141,7 +119,7 @@ export default function List() {
         }
       }
     })
-  }, [searchParams, dispatch]);
+  }, [searchParams, dispatch, setOrder, setOrderBy]);
 
   const handleActivate = async (new_tenant_id: string) => {
     dispatch(activate(new_tenant_id)).then((response) => {

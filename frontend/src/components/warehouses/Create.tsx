@@ -19,16 +19,26 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/warehouses.ts";
 
 export default function List() {
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
-  const [isActive, setIsActive] = React.useState("");
+  const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      name,
+      contactName,
+      contactPhone,
+      status,
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (
@@ -58,8 +68,8 @@ export default function List() {
       <Input
         id="is_active"
         type="text"
-        value={isActive}
-        onChange={e => setIsActive(e.target.value)}
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

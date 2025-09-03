@@ -19,17 +19,28 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/projects.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
-  const [isActive, setIsActive] = React.useState("");
+  const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      name,
+      description,
+      startDate,
+      endDate,
+      status,
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (
@@ -66,8 +77,15 @@ export default function Create() {
       <Input
         id="end_date"
         type="text"
-        value={isActive}
-        onChange={e => setIsActive(e.target.value)}
+        value={endDate}
+        onChange={e => setEndDate(e.target.value)}
+      />
+      <Label htmlFor="status">Státusz</Label>
+      <Input
+        id="status"
+        type="text"
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

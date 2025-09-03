@@ -20,6 +20,7 @@
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
 
 export interface CreateCustomer {
+  type: string,
   name: string
   contactName: string
   email: string
@@ -28,6 +29,7 @@ export interface CreateCustomer {
 }
 
 export async function create({
+                               type,
                                name,
                                contactName,
                                email,
@@ -42,6 +44,7 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
+      type,
       name,
       contact_name: contactName,
       email,

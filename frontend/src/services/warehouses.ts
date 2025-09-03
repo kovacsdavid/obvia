@@ -23,14 +23,14 @@ export interface CreateWarehouse {
   name: string
   contactName: string
   contactPhone: string
-  isActive: boolean
+  status: string
 }
 
 export async function create({
                                name,
                                contactName,
                                contactPhone,
-                               isActive
+                               status
                              }: CreateWarehouse, token: string | null): Promise<Response> {
   return await fetch(`/api/warehouses/create`, {
     method: "POST",
@@ -43,7 +43,7 @@ export async function create({
       name,
       contact_name: contactName,
       contact_phone: contactPhone,
-      is_active: isActive
+      status
     })
   })
 }

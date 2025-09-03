@@ -22,7 +22,7 @@ import {globalRequestTimeout} from "@/services/utils/consts.ts";
 export interface CreateInventory {
   productId: string
   warehouseId: string
-  quantity: number
+  quantity: string
 }
 
 export async function create({

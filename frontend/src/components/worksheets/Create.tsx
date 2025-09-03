@@ -19,16 +19,26 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/worksheets.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      name,
+      description,
+      projectId,
+      status,
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (

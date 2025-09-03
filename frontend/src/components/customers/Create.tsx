@@ -19,6 +19,8 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/customers.ts";
 
 export default function Create() {
   const [type, setType] = React.useState("");
@@ -27,9 +29,20 @@ export default function Create() {
   const [email, setEmail] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
+
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      type,
+      name,
+      contactName,
+      email,
+      phoneNumber,
+      status
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (

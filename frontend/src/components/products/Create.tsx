@@ -19,6 +19,8 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/products.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -26,12 +28,23 @@ export default function Create() {
   const [unitOfMeasure, setUnitOfMeasure] = React.useState("");
   const [cost, setCost] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [currency_id, setCurrencyId] = React.useState("");
-  const [isActive, setIsActive] = React.useState("");
+  const [currencyId, setCurrencyId] = React.useState("");
+  const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      name,
+      description,
+      unitOfMeasure,
+      cost,
+      price,
+      currencyId,
+      status,
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (
@@ -75,15 +88,15 @@ export default function Create() {
       <Input
         id="currency_id"
         type="text"
-        value={currency_id}
+        value={currencyId}
         onChange={e => setCurrencyId(e.target.value)}
       />
-      <Label htmlFor="is_active">Aktív</Label>
+      <Label htmlFor="status">Státusz</Label>
       <Input
-        id="is_active"
+        id="status"
         type="text"
-        value={isActive}
-        onChange={e => setIsActive(e.target.value)}
+        value={status}
+        onChange={e => setStatus(e.target.value)}
       />
       <Button type="submit">Létrehozás</Button>
     </form>

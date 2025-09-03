@@ -19,17 +19,28 @@
 
 import React from "react";
 import {Button, Input, Label} from "@/components/ui";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {create} from "@/store/slices/users.ts";
 
 export default function Create() {
   const [email, setEmail] = React.useState("");
   const [lastName, setLastName] = React.useState("");
-  const [fistName, setFirstName] = React.useState("");
+  const [firstName, setFirstName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log(e);
-    throw Error("not implemented yet!");
+    e.preventDefault();
+    dispatch(create({
+      email,
+      lastName,
+      firstName,
+      phone,
+      status,
+    })).then((response) => {
+      console.log(response)
+    });
   };
 
   return (
@@ -52,7 +63,7 @@ export default function Create() {
       <Input
         id="fist_name"
         type="text"
-        value={fistName}
+        value={firstName}
         onChange={e => setFirstName(e.target.value)}
       />
       <Label htmlFor="phone">Telefonszám</Label>

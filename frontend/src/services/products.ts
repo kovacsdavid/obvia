@@ -23,10 +23,10 @@ export interface CreateProduct {
   name: string
   description: string
   unitOfMeasure: string
-  price: number
-  cost: number
+  price: string
+  cost: string
   currencyId: string
-  isActive: boolean
+  status: string
 }
 
 export async function create({
@@ -36,7 +36,7 @@ export async function create({
                                price,
                                cost,
                                currencyId,
-                               isActive
+                               status
                              }: CreateProduct, token: string | null): Promise<Response> {
   return await fetch(`/api/products/create`, {
     method: "POST",
@@ -52,7 +52,7 @@ export async function create({
       price,
       cost,
       currency_id: currencyId,
-      is_active: isActive
+      status
     })
   })
 }

@@ -19,36 +19,39 @@
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as projectsApi from "@/services/projects.ts";
+import type {RootState} from "@/store";
 
 interface ProjectsState {
   status: "idle" | "loading" | "succeeded" | "failed",
-  error: {
-    global: string | null,
-    fields: Record<string, string | null>
-  }
 }
 
 const initialState: ProjectsState = {
   status: "idle",
-  error: {
-    global: null,
-    fields: {}
-  }
 }
 
 export const create = createAsyncThunk(
   "projects/create",
   async (requestData: projectsApi.CreateProject, {rejectWithValue, getState}) => {
-    console.log(requestData, rejectWithValue, getState);
-    // TODO
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return projectsApi.create(requestData, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
   }
 )
 
 export const list = createAsyncThunk(
   "projects/list",
   async (query: string | null, {rejectWithValue, getState}) => {
-    console.log(query, rejectWithValue, getState);
-    // TODO
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return projectsApi.list(query, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
   }
 )
 
@@ -56,8 +59,31 @@ const projectsSlice = createSlice({
   name: "projects",
   initialState,
   reducers: {},
-  extraReducers: () => {
-    // TODO: extraReducers
+  extraReducers: (builder) => {
+    builder
+      .addCase(create.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(
+        create.fulfilled,
+        (
+          state,
+        ) => {
+          state.status = "succeeded";
+        })
+      .addCase(create.rejected, (state) => {
+        state.status = "failed";
+      })
+    builder
+      .addCase(list.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(list.fulfilled, (state) => {
+        state.status = "succeeded";
+      })
+      .addCase(list.rejected, (state) => {
+        state.status = "failed";
+      });
   }
 });
 

@@ -47,3 +47,15 @@ export async function create({
     })
   });
 }
+
+export async function list(query: string | null, token: string | null): Promise<Response> {
+  const uri = query === null ? `/api/worksheets/list` : `/api/worksheets/list?q=${query}`;
+  return await fetch(uri, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}

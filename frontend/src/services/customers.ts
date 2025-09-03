@@ -17,6 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateCustomer {
-  template: string;
+  name: string
+  contactName: string
+  email: string
+  phoneNumber: string
+  status: string
+}
+
+export async function create({
+                               name,
+                               contactName,
+                               email,
+                               phoneNumber,
+                               status,
+                             }: CreateCustomer, token: string | null): Promise<Response> {
+  return await fetch(`/api/customers/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      name,
+      contact_name: contactName,
+      email,
+      phone_number: phoneNumber,
+      status
+    }),
+  });
 }

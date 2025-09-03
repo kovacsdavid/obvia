@@ -17,6 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateInventory {
-  template: string;
+  productId: string
+  warehouseId: string
+  quantity: number
+}
+
+export async function create({
+  productId,
+  warehouseId,
+  quantity
+                             }: CreateInventory, token: string | null) {
+  return await fetch(`/api/inventory/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      product_id: productId,
+      warehouse_id: warehouseId,
+      quantity
+    })
+  })
 }

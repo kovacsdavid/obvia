@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface LoginRequest {
   email: string,
   password: string,
@@ -81,7 +83,7 @@ export async function login({ email, password }: LoginRequest): Promise<Response
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ email, password }),
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }
 
@@ -149,6 +151,6 @@ export async function register({
       password,
       password_confirm: passwordConfirm
     }),
-    signal: AbortSignal.timeout(10000)
+    signal: AbortSignal.timeout(globalRequestTimeout)
   });
 }

@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateUser {
   email: string;
   lastName: string;
@@ -31,6 +33,20 @@ export async function create({
                                firstName,
                                phone,
                                status
-                             }: CreateUser) {
-  console.log(email, lastName, firstName, phone, status);
+                             }: CreateUser, token: string | null): Promise<Response> {
+  return await fetch(`/api/users/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      email,
+      last_name: lastName,
+      first_name: firstName,
+      phone,
+      status
+    })
+  });
 }

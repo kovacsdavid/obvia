@@ -17,29 +17,4 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {type Middleware, type MiddlewareAPI} from '@reduxjs/toolkit';
-import { logoutUser } from '@/store/slices/auth';
-
-const isSessionExpiredAction = (action: unknown) => (
-  typeof action === "object"
-  && action !== null
-  && "payload" in action
-  && typeof action.payload === "object"
-  && action.payload !== null
-  && "status" in action.payload
-  && action.payload.status === 401
-  && window.location.pathname !== '/bejelentkezes'
-);
-
-const authMiddleware: Middleware = (store: MiddlewareAPI) => (next: (action: unknown) => unknown) => (action: unknown) => {
-  if (
-    isSessionExpiredAction(action)
-  ) {
-    store.dispatch(logoutUser());
-    window.location.href = '/bejelentkezes';
-  } else {
-    return next(action);
-  }
-};
-
-export default authMiddleware;
+export const globalRequestTimeout = 3000;

@@ -17,6 +17,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateTask {
-  template: string;
+  worksheetId: string
+  title: string
+  description: string
+  status: string
+  priority: string
+  dueDate: string
+}
+
+export async function create({
+                               worksheetId,
+                               title,
+                               description,
+                               status,
+                               priority,
+                               dueDate
+                             }: CreateTask, token: string | null): Promise<Response>
+{
+  return await fetch(`/api/tasks/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      worksheet_id: worksheetId,
+      title,
+      description,
+      status,
+      priority,
+      due_date: dueDate
+    })
+  });
 }

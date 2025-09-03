@@ -17,6 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateProject {
-  template: string;
+  name: string
+  description: string
+  status: string
+  startDate: string
+  endDate: string
+}
+
+export async function create({
+                               name,
+                               description,
+                               status,
+                               startDate,
+                               endDate
+                             }: CreateProject, token: string | null): Promise<Response> {
+  return await fetch(`/api/projects/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      name,
+      description,
+      status,
+      startDate,
+      endDate
+    }),
+  })
 }

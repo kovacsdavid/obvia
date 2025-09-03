@@ -17,6 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateWorksheet {
-  template: string;
+  name: string
+  description: string
+  projectId: string
+  status: string
+}
+
+export async function create({
+                         name,
+                         description,
+                         projectId,
+                         status
+                       }: CreateWorksheet, token: string | null): Promise<Response> {
+  return await fetch(`/api/worksheets/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      name,
+      description,
+      project_id: projectId,
+      status
+    })
+  });
 }

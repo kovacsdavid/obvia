@@ -17,6 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateWarehouse {
-  template: string;
+  name: string
+  contactName: string
+  contactPhone: string
+  isActive: boolean
+}
+
+export async function create({
+                               name,
+                               contactName,
+                               contactPhone,
+                               isActive
+                             }: CreateWarehouse, token: string | null): Promise<Response> {
+  return await fetch(`/api/warehouses/create`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      name,
+      contact_name: contactName,
+      contact_phone: contactPhone,
+      is_active: isActive
+    })
+  })
 }

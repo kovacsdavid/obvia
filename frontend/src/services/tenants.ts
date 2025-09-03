@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {globalRequestTimeout} from "@/services/utils/consts.ts";
+
 export interface CreateTenant {
   name: string;
   dbIsSelfHosted: boolean;
@@ -91,7 +93,8 @@ export async function create({
       db_name: dbName,
       db_user: dbUser,
       db_password: dbPassword
-    })
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),  
   });
 }
 
@@ -170,7 +173,8 @@ export async function list(query: string | null, token: string | null): Promise<
     headers: {
       "Content-Type": "application/json",
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
-    }
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }
 
@@ -199,7 +203,8 @@ export async function activate(new_tenant_id: string | null, token: string | nul
     },
     body: JSON.stringify({
       new_tenant_id
-    })
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
   });
   let responseJson;
   try {

@@ -19,7 +19,7 @@
 
 import {useSearchParams} from "react-router-dom";
 import {query_encoder, query_parser} from "@/lib/utils.ts";
-import React from "react";
+import React, {useEffect, useMemo} from "react";
 
 export function useDataDisplayCommon() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -28,6 +28,27 @@ export function useDataDisplayCommon() {
   const [total, setTotal] = React.useState<number>(1);
   const [orderBy, setOrderBy] = React.useState("created_at");
   const [order, setOrder] = React.useState("asc");
+
+  const parsedQuery = useMemo(() => query_parser(searchParams.get('q')), [searchParams]);
+
+  useEffect(() => {
+    updateCommonQueryParams(parsedQuery);
+  }, [parsedQuery]);
+
+  const updateCommonQueryParams = (parsedQuery: Record<string, string | number>) => {
+    if ("page" in parsedQuery) {
+      setPage(parsedQuery["page"] as number);
+    }
+    if ("limit" in parsedQuery) {
+      setLimit(parsedQuery["limit"] as number);
+    }
+    if ("order_by" in parsedQuery) {
+      setOrderBy(parsedQuery["order_by"] as string);
+    }
+    if ("order" in parsedQuery) {
+      setOrder(parsedQuery["order"] as string);
+    }
+  }
 
   const paginatorSelect = (pageNumber: number) => {
     const current_query = query_parser(searchParams.get("q"));
@@ -38,7 +59,7 @@ export function useDataDisplayCommon() {
   const orderSelect = (orderBy: string) => {
     const current_query = query_parser(searchParams.get("q"));
     current_query.order_by = orderBy;
-    current_query.order = order === "asc" ? "desc" : "asc";
+    current_query.order = current_query.order === "asc" ? "desc" : "asc";
     searchParams.set("q", query_encoder(current_query))
     setSearchParams(searchParams)
   }
@@ -77,5 +98,6 @@ export function useDataDisplayCommon() {
     orderSelect,
     filterSelect,
     totalPages,
+    parsedQuery
   }
 }

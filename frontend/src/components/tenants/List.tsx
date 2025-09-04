@@ -68,26 +68,21 @@ export default function List() {
     paginatorSelect,
     orderSelect,
     filterSelect,
-    totalPages
+    totalPages,
+    parsedQuery
   } = useDataDisplayCommon();
 
+  const updateSpecialQueryParams = (parsedQuery: Record<string, string | number>) => {
+    if ("name" in parsedQuery) {
+      setNameFilter(parsedQuery["name"] as string);
+    }
+  };
+
   useEffect(() => {
-    const parsed_query = query_parser(searchParams.get("q"));
-    if ("page" in parsed_query) {
-      setPage(parsed_query["page"] as number);
-    }
-    if ("limit" in parsed_query) {
-      setLimit(parsed_query["limit"] as number);
-    }
-    if ("order_by" in parsed_query) {
-      setOrderBy(parsed_query["order_by"] as string);
-    }
-    if ("order" in parsed_query) {
-      setOrder(parsed_query["order"] as string);
-    }
-    if ("name" in parsed_query) {
-      setNameFilter(parsed_query["name"] as string);
-    }
+    updateSpecialQueryParams(parsedQuery);
+  }, [parsedQuery]);
+
+  useEffect(() => {
     dispatch(list(searchParams.get("q"))).then(async (response) => {
       if (response.meta.requestStatus === "fulfilled") {
         const payload = response.payload as Response;
@@ -171,7 +166,6 @@ export default function List() {
                       onBlur={e => filterSelect("name", e.target.value)}
                       value={nameFilter}
                       onChange={e => setNameFilter(e.target.value)}
-                      defaultValue=""
                       className="col-span-2 h-8"
                     />
                   </div>
@@ -181,8 +175,6 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
-
       <Table>
         <TableHeader>
           <TableRow>

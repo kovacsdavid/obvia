@@ -17,15 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import {Button, Input, Label} from "@/components/ui";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/inventory.ts";
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Create() {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
+  const [errors, setErrors] = useState<Errors | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -35,34 +37,41 @@ export default function Create() {
       warehouseId,
       quantity,
     })).then((response) => {
+      setErrors({global: "Not implemented yet!"});
       console.log(response)
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-      <Label htmlFor="product_id">Termék ID</Label>
-      <Input
-        id="product_id"
-        type="text"
-        value={productId}
-        onChange={e => setProductId(e.target.value)}
-      />
-      <Label htmlFor="warehouse_id">Raktár ID</Label>
-      <Input
-        id="warehouse_id"
-        type="text"
-        value={warehouseId}
-        onChange={e => setWarehouseId(e.target.value)}
-      />
-      <Label htmlFor="quantity">Mennyiség</Label>
-      <Input
-        id="quantity"
-        type="text"
-        value={quantity}
-        onChange={e => setQuantity(e.target.value)}
-      />
-      <Button type="submit">Létrehozás</Button>
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+        <Label htmlFor="product_id">Termék ID</Label>
+        <Input
+          id="product_id"
+          type="text"
+          value={productId}
+          onChange={e => setProductId(e.target.value)}
+        />
+        <FieldError error={errors} field={"product_id"}/>
+        <Label htmlFor="warehouse_id">Raktár ID</Label>
+        <Input
+          id="warehouse_id"
+          type="text"
+          value={warehouseId}
+          onChange={e => setWarehouseId(e.target.value)}
+        />
+        <FieldError error={errors} field={"warehouse_id"}/>
+        <Label htmlFor="quantity">Mennyiség</Label>
+        <Input
+          id="quantity"
+          type="text"
+          value={quantity}
+          onChange={e => setQuantity(e.target.value)}
+        />
+        <FieldError error={errors} field={"quantity"}/>
+        <Button type="submit">Létrehozás</Button>
+      </form>
+    </>
   );
 }

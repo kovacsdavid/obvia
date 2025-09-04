@@ -19,18 +19,14 @@
 
 import React, { useState } from "react";
 import {
-  Button,
+  Button, FieldError, GlobalError,
   Input,
   Label,
 } from "@/components/ui";
 import { registerUserRequest } from "@/store/slices/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { useNavigate } from "react-router-dom";
-
-interface Errors {
-  global: string | null
-  fields: Record<string, string | null>
-}
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -75,52 +71,54 @@ export default function Register() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
-      <Label htmlFor="last_name">Vezetéknév</Label>
-      <Input
-        id="last_name"
-        type="text"
-        value={lastName}
-        onChange={e => setLastName(e.target.value)}
-      />
-      {errors?.fields?.last_name && <div className="text-red-600">{errors.fields.last_name}</div>}
-      <Label htmlFor="first_name">Keresztnév</Label>
-      <Input
-        id="first_name"
-        type="text"
-        value={firstName}
-        onChange={e => setFirstName(e.target.value)}
-      />
-      {errors?.fields?.first_name && <div className="text-red-600">{errors.fields.first_name}</div>}
-      <Label htmlFor="email">Email</Label>
-      <Input
-        id="email"
-        type="text"
-        autoComplete="email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-      />
-      {errors?.fields?.email && <div className="text-red-600">{errors.fields.email}</div>}
-      <Label htmlFor="password">Jelszó</Label>
-      <Input
-        id="password"
-        type="password"
-        autoComplete="new-password"
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-      />
-      {errors?.fields?.password && <div className="text-red-600">{errors.fields.password}</div>}
-      <Label htmlFor="password_confirm">Jelszó megerősítése</Label>
-      <Input
-        id="password_confirm"
-        type="password"
-        autoComplete="new-password"
-        value={passwordConfirm}
-        onChange={e => setPasswordConfirm(e.target.value)}
-      />
-      {errors?.fields?.password_confirm && <div className="text-red-600">{errors.fields.password_confirm}</div>}
-      <Button type="submit">Regisztráció</Button>
-      {errors?.global && <div className="text-red-600">{errors.global}</div>}
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
+        <Label htmlFor="last_name">Vezetéknév</Label>
+        <Input
+          id="last_name"
+          type="text"
+          value={lastName}
+          onChange={e => setLastName(e.target.value)}
+        />
+        <FieldError error={errors} field={"last_name"}/>
+        <Label htmlFor="first_name">Keresztnév</Label>
+        <Input
+          id="first_name"
+          type="text"
+          value={firstName}
+          onChange={e => setFirstName(e.target.value)}
+        />
+        <FieldError error={errors} field={"first_name"}/>
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
+          type="text"
+          autoComplete="email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
+        <FieldError error={errors} field={"email"}/>
+        <Label htmlFor="password">Jelszó</Label>
+        <Input
+          id="password"
+          type="password"
+          autoComplete="new-password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+        <FieldError error={errors} field={"password"}/>
+        <Label htmlFor="password_confirm">Jelszó megerősítése</Label>
+        <Input
+          id="password_confirm"
+          type="password"
+          autoComplete="new-password"
+          value={passwordConfirm}
+          onChange={e => setPasswordConfirm(e.target.value)}
+        />
+        <FieldError error={errors} field={"password_confirm"}/>
+        <Button type="submit">Regisztráció</Button>
+      </form>
+    </>
   );
 }

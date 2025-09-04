@@ -17,10 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import {Button, Input, Label} from "@/components/ui";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/projects.ts";
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -28,6 +29,7 @@ export default function Create() {
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const [errors, setErrors] = useState<Errors | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,55 +41,65 @@ export default function Create() {
       endDate,
       status,
     })).then((response) => {
+      setErrors({global: "Not implemented yet!"});
       console.log(response)
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-      <Label htmlFor="name">Név</Label>
-      <Input
-        id="name"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <Label htmlFor="description">Leírás</Label>
-      <Input
-        id="description"
-        type="text"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
-      <Label htmlFor="status">Státusz</Label>
-      <Input
-        id="status"
-        type="text"
-        value={startDate}
-        onChange={e => setStartDate(e.target.value)}
-      />
-      <Label htmlFor="start_date">Kezdő dátum</Label>
-      <Input
-        id="start_date"
-        type="text"
-        value={endDate}
-        onChange={e => setEndDate(e.target.value)}
-      />
-      <Label htmlFor="end_date">Határidő</Label>
-      <Input
-        id="end_date"
-        type="text"
-        value={endDate}
-        onChange={e => setEndDate(e.target.value)}
-      />
-      <Label htmlFor="status">Státusz</Label>
-      <Input
-        id="status"
-        type="text"
-        value={status}
-        onChange={e => setStatus(e.target.value)}
-      />
-      <Button type="submit">Létrehozás</Button>
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+        <Label htmlFor="name">Név</Label>
+        <Input
+          id="name"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+        <FieldError error={errors} field={"name"}/>
+        <Label htmlFor="description">Leírás</Label>
+        <Input
+          id="description"
+          type="text"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+        />
+        <FieldError error={errors} field={"description"}/>
+        <Label htmlFor="status">Státusz</Label>
+        <Input
+          id="status"
+          type="text"
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
+        />
+        <FieldError error={errors} field={"status"}/>
+        <Label htmlFor="start_date">Kezdő dátum</Label>
+        <Input
+          id="start_date"
+          type="text"
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+        />
+        <FieldError error={errors} field={"start_date"}/>
+        <Label htmlFor="end_date">Határidő</Label>
+        <Input
+          id="end_date"
+          type="text"
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+        />
+        <FieldError error={errors} field={"end_date"}/>
+        <Label htmlFor="status">Státusz</Label>
+        <Input
+          id="status"
+          type="text"
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+        />
+        <FieldError error={errors} field={"status"}/>
+        <Button type="submit">Létrehozás</Button>
+      </form>
+    </>
   );
 }

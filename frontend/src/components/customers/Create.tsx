@@ -17,10 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import {Button, Input, Label} from "@/components/ui";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/customers.ts";
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Create() {
   const [type, setType] = React.useState("");
@@ -30,6 +31,7 @@ export default function Create() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [status, setStatus] = React.useState("");
   const dispatch = useAppDispatch();
+  const [errors, setErrors] = useState<Errors | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,55 +43,65 @@ export default function Create() {
       phoneNumber,
       status
     })).then((response) => {
+      setErrors({global: "Not implemented yet!"});
       console.log(response)
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-      <Label htmlFor="type">Típus</Label>
-      <Input
-        id="type"
-        type="text"
-        value={type}
-        onChange={e => setType(e.target.value)}
-      />
-      <Label htmlFor="name">Név</Label>
-      <Input
-        id="name"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-      <Input
-        id="contact_name"
-        type="text"
-        value={contactName}
-        onChange={e => setContactName(e.target.value)}
-      />
-      <Label htmlFor="email">E-mail cím</Label>
-      <Input
-        id="email"
-        type="text"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-      />
-      <Label htmlFor="phone_number">Telefonszám</Label>
-      <Input
-        id="phone_number"
-        type="text"
-        value={phoneNumber}
-        onChange={e => setPhoneNumber(e.target.value)}
-      />
-      <Label htmlFor="status">Státusz</Label>
-      <Input
-        id="status"
-        type="text"
-        value={status}
-        onChange={e => setStatus(e.target.value)}
-      />
-      <Button type="submit">Létrehozás</Button>
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+        <Label htmlFor="type">Típus</Label>
+        <Input
+          id="type"
+          type="text"
+          value={type}
+          onChange={e => setType(e.target.value)}
+        />
+        <FieldError error={errors} field={"type"}/>
+        <Label htmlFor="name">Név</Label>
+        <Input
+          id="name"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+        <FieldError error={errors} field={"name"}/>
+        <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+        <Input
+          id="contact_name"
+          type="text"
+          value={contactName}
+          onChange={e => setContactName(e.target.value)}
+        />
+        <FieldError error={errors} field={"contact_name"}/>
+        <Label htmlFor="email">E-mail cím</Label>
+        <Input
+          id="email"
+          type="text"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+        />
+        <FieldError error={errors} field={"email"}/>
+        <Label htmlFor="phone_number">Telefonszám</Label>
+        <Input
+          id="phone_number"
+          type="text"
+          value={phoneNumber}
+          onChange={e => setPhoneNumber(e.target.value)}
+        />
+        <FieldError error={errors} field={"phone_number"}/>
+        <Label htmlFor="status">Státusz</Label>
+        <Input
+          id="status"
+          type="text"
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+        />
+        <FieldError error={errors} field={"status"}/>
+        <Button type="submit">Létrehozás</Button>
+      </form>
+    </>
   );
 }

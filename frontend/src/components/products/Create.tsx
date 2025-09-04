@@ -17,10 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import {Button, Input, Label} from "@/components/ui";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/products.ts";
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -30,6 +31,7 @@ export default function Create() {
   const [price, setPrice] = React.useState("");
   const [currencyId, setCurrencyId] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const [errors, setErrors] = useState<Errors | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,62 +45,72 @@ export default function Create() {
       currencyId,
       status,
     })).then((response) => {
+      setErrors({global: "Not implemented yet!"});
       console.log(response)
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-      <Label htmlFor="name">Név</Label>
-      <Input
-        id="name"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <Label htmlFor="description">Leírás</Label>
-      <Input
-        id="description"
-        type="text"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
-      <Label htmlFor="unit_of_measure">Mértékegység</Label>
-      <Input
-        id="unit_of_measure"
-        type="text"
-        value={unitOfMeasure}
-        onChange={e => setUnitOfMeasure(e.target.value)}
-      />
-      <Label htmlFor="cost">Bekerülési költség</Label>
-      <Input
-        id="cost"
-        type="text"
-        value={cost}
-        onChange={e => setCost(e.target.value)}
-      />
-      <Label htmlFor="price">Fogyasztói ár</Label>
-      <Input
-        id="price"
-        type="text"
-        value={price}
-        onChange={e => setPrice(e.target.value)}
-      />
-      <Label htmlFor="currency_id">Pénznem</Label>
-      <Input
-        id="currency_id"
-        type="text"
-        value={currencyId}
-        onChange={e => setCurrencyId(e.target.value)}
-      />
-      <Label htmlFor="status">Státusz</Label>
-      <Input
-        id="status"
-        type="text"
-        value={status}
-        onChange={e => setStatus(e.target.value)}
-      />
-      <Button type="submit">Létrehozás</Button>
-    </form>
+    <>
+      <GlobalError error={errors} />
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+        <Label htmlFor="name">Név</Label>
+        <Input
+          id="name"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+        <Label htmlFor="description">Leírás</Label>
+        <Input
+          id="description"
+          type="text"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+        />
+        <FieldError error={errors} field={"description"}/>
+        <Label htmlFor="unit_of_measure">Mértékegység</Label>
+        <Input
+          id="unit_of_measure"
+          type="text"
+          value={unitOfMeasure}
+          onChange={e => setUnitOfMeasure(e.target.value)}
+        />
+        <FieldError error={errors} field={"unit_of_measure"}/>
+        <Label htmlFor="cost">Bekerülési költség</Label>
+        <Input
+          id="cost"
+          type="text"
+          value={cost}
+          onChange={e => setCost(e.target.value)}
+        />
+        <FieldError error={errors} field={"cost"}/>
+        <Label htmlFor="price">Fogyasztói ár</Label>
+        <Input
+          id="price"
+          type="text"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+        />
+        <FieldError error={errors} field={"price"}/>
+        <Label htmlFor="currency_id">Pénznem</Label>
+        <Input
+          id="currency_id"
+          type="text"
+          value={currencyId}
+          onChange={e => setCurrencyId(e.target.value)}
+        />
+        <FieldError error={errors} field={"currency_id"}/>
+        <Label htmlFor="status">Státusz</Label>
+        <Input
+          id="status"
+          type="text"
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+        />
+        <FieldError error={errors} field={"status"}/>
+        <Button type="submit">Létrehozás</Button>
+      </form>
+    </>
   );
 }

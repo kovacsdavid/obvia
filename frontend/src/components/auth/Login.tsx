@@ -21,7 +21,7 @@ import React, { useState } from "react";
 import {useAppDispatch, useAppSelector} from "@/store/hooks";
 import type  { RootState } from "@/store";
 import {
-  Button,
+  Button, GlobalError,
   Input,
   Label
 } from "@/components/ui";
@@ -29,11 +29,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from "@/context/AuthContext";
 import {isLoginResponse} from "@/services/auth.ts";
 import {loginUser} from "@/store/slices/auth.ts";
-
-interface Errors {
-  global: string | null
-  fields: Record<string, string | null>
-}
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -103,27 +99,29 @@ export default function Login() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
-      <Label htmlFor="email">Email</Label>
-      <Input
-        type="text"
-        autoComplete="email"
-        value={email}
-        onFocus={() => setErrors(null)}
-        onChange={e => setEmail(e.target.value)}
-      />
-      <Label htmlFor="password">Jelszó</Label>
-      <Input
-        type="password"
-        autoComplete="current-password"
-        onFocus={() => setErrors(null)}
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-      />
-      {errors?.global && <div className="text-red-600">{errors.global}</div>}
-      <Button type="submit" disabled={loading}>
-        {loading ? "Bejelentkezés..." : "Bejelentkezés"}
-      </Button>
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          type="text"
+          autoComplete="email"
+          value={email}
+          onFocus={() => setErrors(null)}
+          onChange={e => setEmail(e.target.value)}
+        />
+        <Label htmlFor="password">Jelszó</Label>
+        <Input
+          type="password"
+          autoComplete="current-password"
+          onFocus={() => setErrors(null)}
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+        />
+        <Button type="submit" disabled={loading}>
+          {loading ? "Bejelentkezés..." : "Bejelentkezés"}
+        </Button>
+      </form>
+    </>
   );
 }

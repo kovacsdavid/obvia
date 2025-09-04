@@ -17,16 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
-import {Button, Input, Label} from "@/components/ui";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/warehouses.ts";
+import { type Errors } from "@/lib/interfaces.ts";
 
 export default function List() {
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const [errors, setErrors] = useState<Errors | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,41 +39,49 @@ export default function List() {
       contactPhone,
       status,
     })).then((response) => {
+      setErrors({global: "Not implemented yet!"});
       console.log(response)
     });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-      <Label htmlFor="name">Név</Label>
-      <Input
-        id="name"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-      <Input
-        id="contact_name"
-        type="text"
-        value={contactName}
-        onChange={e => setContactName(e.target.value)}
-      />
-      <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
-      <Input
-        id="contact_phone"
-        type="text"
-        value={contactPhone}
-        onChange={e => setContactPhone(e.target.value)}
-      />
-      <Label htmlFor="is_active">Aktív</Label>
-      <Input
-        id="is_active"
-        type="text"
-        value={status}
-        onChange={e => setStatus(e.target.value)}
-      />
-      <Button type="submit">Létrehozás</Button>
-    </form>
+    <>
+      <GlobalError error={errors}/>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+        <Label htmlFor="name">Név</Label>
+        <Input
+          id="name"
+          type="text"
+          value={name}
+          onChange={e => setName(e.target.value)}
+        />
+        <FieldError error={errors} field={"name"}/>
+        <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+        <Input
+          id="contact_name"
+          type="text"
+          value={contactName}
+          onChange={e => setContactName(e.target.value)}
+        />
+        <FieldError error={errors} field={"contact_name"}/>
+        <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
+        <Input
+          id="contact_phone"
+          type="text"
+          value={contactPhone}
+          onChange={e => setContactPhone(e.target.value)}
+        />
+        <FieldError error={errors} field={"contact_phone"}/>
+        <Label htmlFor="status">Státusz</Label>
+        <Input
+          id="status"
+          type="text"
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+        />
+        <FieldError error={errors} field={"status"}/>
+        <Button type="submit">Létrehozás</Button>
+      </form>
+    </>
   );
 }

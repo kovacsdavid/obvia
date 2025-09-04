@@ -65,13 +65,13 @@ function AlertDescription({
 }
 
 interface GlobalErrorProps {
-  error: { global: string | null } | null
+  error: { global: string | null | undefined } | null
 }
 
 function GlobalError({error}: GlobalErrorProps) {
   return (
     <>
-      {error !== null && error.global !== null ? (
+      {typeof error?.global === "string" ? (
         <Alert className={"mb-5"} variant="destructive">
           <AlertCircle/>
           <AlertDescription>
@@ -83,4 +83,33 @@ function GlobalError({error}: GlobalErrorProps) {
   )
 }
 
-export { Alert, AlertTitle, AlertDescription, GlobalError }
+interface FieldErrorProps {
+  field: string
+  error: { fields: Record<string, string> | null | undefined } | null
+}
+
+function FieldError({error, field}: FieldErrorProps) {
+  return (
+    <>
+      {typeof error?.fields === "object"
+      && error.fields !== null
+      && field in error.fields
+      && error.fields[field] !== null ? (
+        <Alert className={"mb-7"} variant="destructive">
+          <AlertCircle/>
+          <AlertDescription>
+            {error.fields[field]}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+    </>
+  )
+}
+
+export {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+  GlobalError,
+  FieldError
+}

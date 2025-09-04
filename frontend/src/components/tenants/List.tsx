@@ -31,8 +31,8 @@ import {
   TableRow
 } from "@/components/ui/table.tsx";
 import {isActivateResponse, isTenantsList, type TenantData} from "@/services/tenants.ts";
-import Paginator from "@/components/ui/Paginator.tsx";
-import {AlertCircle, ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -41,7 +41,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import {Alert, AlertDescription, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
+import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
 import {updateToken} from "@/store/slices/auth.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 
@@ -119,7 +119,15 @@ export default function List() {
         }
       }
     })
-  }, [searchParams, dispatch, setOrder, setOrderBy]);
+  }, [
+    searchParams,
+    dispatch,
+    setOrder,
+    setOrderBy,
+    setLimit,
+    setPage,
+    setTotal
+  ]);
 
   const handleActivate = async (new_tenant_id: string) => {
     dispatch(activate(new_tenant_id)).then((response) => {
@@ -133,14 +141,7 @@ export default function List() {
 
   return (
     <>
-    { errors !== null && errors.global !== null ? (
-        <Alert className={"mb-5"} variant="destructive">
-          <AlertCircle/>
-          <AlertDescription>
-            {errors.global}
-          </AlertDescription>
-        </Alert>
-      ) : null }
+      <GlobalError error={errors} />
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/szervezeti_egyseg/uj"}>

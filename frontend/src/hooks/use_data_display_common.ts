@@ -25,7 +25,7 @@ export function useDataDisplayCommon() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
   const [limit, setLimit] = React.useState<number>(25);
-  const [total, setTotal] = React.useState<number>(0);
+  const [total, setTotal] = React.useState<number>(1);
   const [orderBy, setOrderBy] = React.useState("created_at");
   const [order, setOrder] = React.useState("asc");
 

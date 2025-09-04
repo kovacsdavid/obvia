@@ -18,7 +18,7 @@
  */
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, Input, Label} from "@/components/ui";
+import {Button, GlobalError, Input, Label} from "@/components/ui";
 import {Funnel, Plus, SquarePen} from "lucide-react";
 import {
   Table,
@@ -29,10 +29,64 @@ import {
   TableRow
 } from "@/components/ui/table.tsx";
 import {Link} from "react-router-dom";
+import {useAppDispatch} from "@/store/hooks.ts";
+import React, {useEffect} from "react";
+import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import {query_parser} from "@/lib/utils.ts";
+
+interface Errors {
+  global: string | null
+}
 
 export default function List() {
+  const dispatch = useAppDispatch();
+  const [errors, setErrors] = React.useState<Errors | null>(null);
+  const {
+    searchParams,
+    page,
+    setPage,
+    setLimit,
+    setTotal,
+    // orderBy,
+    setOrderBy,
+    // order,
+    setOrder,
+    paginatorSelect,
+    // orderSelect,
+    // filterSelect,
+    totalPages
+  } = useDataDisplayCommon();
+
+
+  useEffect(() => {
+    setErrors({global: "Not implemented yet!"});
+    const parsed_query = query_parser(searchParams.get("q"));
+    if ("page" in parsed_query) {
+      setPage(parsed_query["page"] as number);
+    }
+    if ("limit" in parsed_query) {
+      setLimit(parsed_query["limit"] as number);
+    }
+    if ("order_by" in parsed_query) {
+      setOrderBy(parsed_query["order_by"] as string);
+    }
+    if ("order" in parsed_query) {
+      setOrder(parsed_query["order"] as string);
+    }
+  }, [
+    searchParams,
+    dispatch,
+    setOrder,
+    setOrderBy,
+    setLimit,
+    setPage,
+    setTotal
+  ]);
+
   return (
     <>
+      <GlobalError error={errors} />
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/vevo/uj"}>
@@ -110,6 +164,11 @@ export default function List() {
           </TableRow>
         </TableBody>
       </Table>
+      <Paginator
+        page={page}
+        totalPages={totalPages}
+        onPageChange={paginatorSelect}
+      />
     </>
   )
 }

@@ -172,6 +172,84 @@ function PaginationEllipsis({
   )
 }
 
+
+interface PaginatorProps {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}
+
+function Paginator ({ page, totalPages, onPageChange }: PaginatorProps) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  return (
+    <Pagination style={{marginTop: "50px"}}>
+      <PaginationContent>
+        {page > 1 && (
+          <>
+            <PaginationItem>
+              <PaginationItem>
+                <PaginationFirst
+                  style={{cursor: 'pointer'}}
+                  onClick={() => onPageChange(1)}
+                />
+              </PaginationItem>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationPrevious
+                style={{ cursor: 'pointer' }}
+                onClick={() => onPageChange(page - 1)}
+              />
+            </PaginationItem>
+          </>
+        )}
+        {page - 3 > 0 ? (
+            <PaginationItem>
+              <PaginationEllipsis/>
+            </PaginationItem>)
+          : null}
+        {pages.map((pageNumber) => {
+          if (pageNumber < page + 3 && pageNumber > page -3) {
+            return (<PaginationItem key={pageNumber}>
+                <PaginationLink
+                  style={{cursor: 'pointer', ...(page === pageNumber ? {cursor: 'default', fontWeight: "bolder", backgroundColor: "lightgray"} : {})}}
+                  onClick={() => onPageChange(pageNumber)}
+                >
+                  {pageNumber}
+                </PaginationLink>
+              </PaginationItem>
+            )
+          } else {
+            return null
+          }
+        })}
+        {page + 3 <= totalPages ? (
+            <PaginationItem>
+              <PaginationEllipsis/>
+            </PaginationItem>)
+          : null}
+        {page < totalPages && (
+          <>
+            <PaginationItem>
+              <PaginationNext
+                style={{cursor: 'pointer'}}
+                onClick={() => onPageChange(page + 1)}
+              />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLast
+                style={{cursor: 'pointer'}}
+                onClick={() => onPageChange(totalPages)}
+              />
+            </PaginationItem>
+          </>
+        )}
+
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 export {
   Pagination,
   PaginationContent,
@@ -182,4 +260,5 @@ export {
   PaginationNext,
   PaginationLast,
   PaginationEllipsis,
+  Paginator
 }

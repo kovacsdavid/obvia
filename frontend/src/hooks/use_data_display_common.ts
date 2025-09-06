@@ -21,19 +21,20 @@ import {useSearchParams} from "react-router-dom";
 import {query_encoder, query_parser} from "@/lib/utils.ts";
 import React, {useEffect, useMemo} from "react";
 
-export function useDataDisplayCommon() {
+export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Record<string, string | number>) => null) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
   const [limit, setLimit] = React.useState<number>(25);
   const [total, setTotal] = React.useState<number>(1);
   const [orderBy, setOrderBy] = React.useState("created_at");
   const [order, setOrder] = React.useState("asc");
-
-  const parsedQuery = useMemo(() => query_parser(searchParams.get('q')), [searchParams]);
+  const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
+  const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
 
   useEffect(() => {
     updateCommonQueryParams(parsedQuery);
-  }, [parsedQuery]);
+    updateSpecialQueryParams(parsedQuery);
+  }, [parsedQuery, updateSpecialQueryParams]);
 
   const updateCommonQueryParams = (parsedQuery: Record<string, string | number>) => {
     if ("page" in parsedQuery) {
@@ -84,6 +85,7 @@ export function useDataDisplayCommon() {
 
   return {
     searchParams,
+    rawQuery,
     page,
     setPage,
     limit,

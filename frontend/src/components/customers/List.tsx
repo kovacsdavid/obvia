@@ -30,52 +30,45 @@ import {
 } from "@/components/ui/table.tsx";
 import {Link} from "react-router-dom";
 import {useAppDispatch} from "@/store/hooks.ts";
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
-import {query_parser} from "@/lib/utils.ts";
-
-interface Errors {
-  global: string | null
-}
+import {list} from "@/store/slices/customers.ts";
+import {type ErrorContainer} from "@/lib/interfaces.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<Errors | null>(null);
+  const [errors, setErrors] = React.useState<ErrorContainer | null>(null);
+  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
+    console.log(parsedQuery);
+  }, []);
+
   const {
     searchParams,
+    rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    // orderBy,
+    //orderBy,
     setOrderBy,
-    // order,
+    //order,
     setOrder,
     paginatorSelect,
-    // orderSelect,
-    // filterSelect,
-    totalPages
-  } = useDataDisplayCommon();
+    //orderSelect,
+    //filterSelect,
+    totalPages,
+  } = useDataDisplayCommon(updateSpecialQueryParams);
 
 
   useEffect(() => {
-    setErrors({global: "Not implemented yet!"});
-    const parsed_query = query_parser(searchParams.get("q"));
-    if ("page" in parsed_query) {
-      setPage(parsed_query["page"] as number);
-    }
-    if ("limit" in parsed_query) {
-      setLimit(parsed_query["limit"] as number);
-    }
-    if ("order_by" in parsed_query) {
-      setOrderBy(parsed_query["order_by"] as string);
-    }
-    if ("order" in parsed_query) {
-      setOrder(parsed_query["order"] as string);
-    }
+    dispatch(list(rawQuery)).then(async (response) => {
+      console.log(response)
+      setErrors({global: "Not implemented yet!"})
+    });
   }, [
     searchParams,
+    rawQuery,
     dispatch,
     setOrder,
     setOrderBy,

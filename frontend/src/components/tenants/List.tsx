@@ -18,8 +18,7 @@
  */
 
 import {Link} from "react-router-dom";
-import {query_parser} from "@/lib/utils.ts";
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {activate, list} from "@/store/slices/tenants.ts";
 import { useAppDispatch } from "@/store/hooks";
 import {
@@ -44,19 +43,23 @@ import {
 import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
 import {updateToken} from "@/store/slices/auth.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-
-interface Errors {
-  global: string | null
-}
+import {type ErrorContainer} from "@/lib/interfaces.ts";
 
 export default function List() {
-
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<TenantData[]>([]);
-  const [errors, setErrors] = React.useState<Errors | null>(null);
+  const [errors, setErrors] = React.useState<ErrorContainer | null>(null);
+
+  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
+    if ("name" in parsedQuery) {
+      setNameFilter(parsedQuery["name"] as string);
+    }
+  }, []);
+
   const {
     searchParams,
+    rawQuery,
     page,
     setPage,
     setLimit,
@@ -69,21 +72,10 @@ export default function List() {
     orderSelect,
     filterSelect,
     totalPages,
-    parsedQuery
-  } = useDataDisplayCommon();
-
-  const updateSpecialQueryParams = (parsedQuery: Record<string, string | number>) => {
-    if ("name" in parsedQuery) {
-      setNameFilter(parsedQuery["name"] as string);
-    }
-  };
+  } = useDataDisplayCommon(updateSpecialQueryParams, []);
 
   useEffect(() => {
-    updateSpecialQueryParams(parsedQuery);
-  }, [parsedQuery]);
-
-  useEffect(() => {
-    dispatch(list(searchParams.get("q"))).then(async (response) => {
+    dispatch(list(rawQuery)).then(async (response) => {
       if (response.meta.requestStatus === "fulfilled") {
         const payload = response.payload as Response;
         try {
@@ -116,6 +108,7 @@ export default function List() {
     })
   }, [
     searchParams,
+    rawQuery,
     dispatch,
     setOrder,
     setOrderBy,

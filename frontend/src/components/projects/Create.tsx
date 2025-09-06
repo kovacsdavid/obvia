@@ -21,7 +21,7 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/projects.ts";
-import { type Errors } from "@/lib/interfaces.ts";
+import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -29,7 +29,7 @@ export default function Create() {
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
   const [status, setStatus] = React.useState("");
-  const [errors, setErrors] = useState<Errors | null>(null);
+  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {

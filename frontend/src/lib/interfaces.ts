@@ -17,7 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export interface Errors {
-  global: string | null
+export interface ErrorContainerWithFields {
+  global: string | null | undefined
   fields: Record<string, string> | null | undefined
+}
+
+export interface ErrorContainer {
+  global: string | null | undefined
 }

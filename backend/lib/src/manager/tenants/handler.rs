@@ -24,8 +24,7 @@ use crate::manager::common::dto::{
 use crate::manager::common::error::FriendlyError;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    FilteringParams, PublicTenant, TenantActivateRequest, TenantCreateRequest,
-    TenantCreateRequestHelper,
+    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::service::try_create;
 use axum::extract::rejection::JsonRejection;
@@ -71,10 +70,10 @@ use tracing::Level;
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
-    payload: Result<Json<TenantCreateRequestHelper>, JsonRejection>,
+    payload: Result<Json<CreateTenantHelper>, JsonRejection>,
 ) -> Response {
     match payload {
-        Ok(Json(payload)) => match TenantCreateRequest::try_from(payload) {
+        Ok(Json(payload)) => match CreateTenant::try_from(payload) {
             Ok(user_input) => {
                 let mut repo = (tenants_module.repo_factory)();
                 let migrator = (tenants_module.migrator_factory)();
@@ -340,7 +339,7 @@ mod tests {
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
-        let payload = serde_json::to_string(&TenantCreateRequestHelper {
+        let payload = serde_json::to_string(&CreateTenantHelper {
             name: String::from("test"),
             is_self_hosted: false,
             db_host: None,
@@ -466,7 +465,7 @@ mod tests {
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
-        let payload = serde_json::to_string(&TenantCreateRequestHelper {
+        let payload = serde_json::to_string(&CreateTenantHelper {
             name: String::from("test"),
             is_self_hosted: false,
             db_host: None,
@@ -597,7 +596,7 @@ mod tests {
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
-        let payload = serde_json::to_string(&TenantCreateRequestHelper {
+        let payload = serde_json::to_string(&CreateTenantHelper {
             name: String::from("test"),
             is_self_hosted: true,
             db_host: Some(String::from("example.com")),

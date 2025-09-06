@@ -43,7 +43,7 @@ use uuid::Uuid;
 ///
 /// * `db_password` - An optional field that specifies the password for database authentication. This field is represented as an `Option<String>`.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
-pub struct TenantCreateRequestHelper {
+pub struct CreateTenantHelper {
     pub name: String,
     pub is_self_hosted: bool,
     pub db_host: Option<String>,
@@ -70,7 +70,7 @@ pub struct TenantCreateRequestHelper {
 /// This struct is typically used to encapsulate errors during creation requests of a tenant
 /// and to provide detailed feedback about specific fields that may have encountered an issue.
 #[derive(Debug, Serialize)]
-pub struct TenantCreateRequestError {
+pub struct CreateTenantError {
     pub name: Option<String>,
     pub is_self_hosted: Option<String>,
     pub db_host: Option<String>,
@@ -80,7 +80,7 @@ pub struct TenantCreateRequestError {
     pub db_password: Option<String>,
 }
 
-impl TenantCreateRequestError {
+impl CreateTenantError {
     /// Checks if the current instance of the struct is empty.
     ///
     ///
@@ -98,7 +98,7 @@ impl TenantCreateRequestError {
     }
 }
 
-impl IntoResponse for TenantCreateRequestError {
+impl IntoResponse for CreateTenantError {
     /// Converts the given error details into an HTTP response.
     ///
     /// This function constructs a response with a status code of `422 Unprocessable Entity`
@@ -138,7 +138,7 @@ impl IntoResponse for TenantCreateRequestError {
 /// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
-pub struct TenantCreateRequest {
+pub struct CreateTenant {
     pub name: ValueObject<Name>,
     pub is_self_hosted: bool,
     pub db_host: Option<ValueObject<DbHost>>,
@@ -148,7 +148,7 @@ pub struct TenantCreateRequest {
     pub db_password: Option<ValueObject<DbPassword>>,
 }
 
-impl TenantCreateRequest {
+impl CreateTenant {
     /// Checks if the instance is self-hosted.
     ///
     /// This method returns the value of the `is_self_hosted` field, indicating whether
@@ -162,7 +162,7 @@ impl TenantCreateRequest {
     }
 }
 
-impl TryInto<TenantDatabaseConfig> for TenantCreateRequest {
+impl TryInto<TenantDatabaseConfig> for CreateTenant {
     type Error = String;
     fn try_into(self) -> Result<TenantDatabaseConfig, Self::Error> {
         Ok(TenantDatabaseConfig {
@@ -187,11 +187,11 @@ impl TryInto<TenantDatabaseConfig> for TenantCreateRequest {
     }
 }
 
-impl TryFrom<TenantCreateRequestHelper> for TenantCreateRequest {
-    type Error = TenantCreateRequestError;
+impl TryFrom<CreateTenantHelper> for CreateTenant {
+    type Error = CreateTenantError;
     // TODO: new docs
-    fn try_from(value: TenantCreateRequestHelper) -> Result<Self, Self::Error> {
-        let mut error = TenantCreateRequestError {
+    fn try_from(value: CreateTenantHelper) -> Result<Self, Self::Error> {
+        let mut error = CreateTenantError {
             name: None,
             is_self_hosted: None,
             db_host: None,
@@ -287,7 +287,7 @@ impl TryFrom<TenantCreateRequestHelper> for TenantCreateRequest {
             }
         }
         if error.is_empty() {
-            Ok(TenantCreateRequest {
+            Ok(CreateTenant {
                 name: name.unwrap(),
                 is_self_hosted: value.is_self_hosted,
                 db_host,

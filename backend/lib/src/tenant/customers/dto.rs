@@ -17,46 +17,111 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::customers::types::customer::contact_name::ContactName;
-use crate::tenant::customers::types::customer::{CustomerEmail, CustomerName, CustomerStatus};
-use crate::tenant::warehouses::types::warehouse::contact_phone::ContactPhone;
+use crate::tenant::customers::types::customer::{
+    CustomerContactName, CustomerEmail, CustomerName, CustomerPhoneNumber, CustomerStatus,
+};
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Deserialize)]
 pub struct CreateCustomerHelper {
-    // TODO: fields
+    pub name: String,
+    pub contact_name: String,
+    pub email: String,
+    pub phone_number: String,
+    pub status: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateCustomerError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub contact_name: Option<String>,
+    pub email: Option<String>,
+    pub phone_number: Option<String>,
+    pub status: Option<String>,
 }
 
 impl CreateCustomerError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none()
+            && self.contact_name.is_none()
+            && self.email.is_none()
+            && self.phone_number.is_none()
+            && self.status.is_none()
     }
 }
 
 impl IntoResponse for CreateCustomerError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("CUSTOMERS/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateCustomer {
     pub name: ValueObject<CustomerName>,
-    pub contact_name: Option<ValueObject<ContactName>>,
+    pub contact_name: Option<ValueObject<CustomerContactName>>,
     pub email: ValueObject<CustomerEmail>,
-    pub phone_number: Option<ValueObject<ContactPhone>>,
+    pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
     pub status: ValueObject<CustomerStatus>,
 }
 
 impl TryFrom<CreateCustomerHelper> for CreateCustomer {
     type Error = CreateCustomerError;
     fn try_from(value: CreateCustomerHelper) -> Result<Self, Self::Error> {
-        todo!()
+        let mut error = CreateCustomerError {
+            name: None,
+            contact_name: None,
+            email: None,
+            phone_number: None,
+            status: None,
+        };
+
+        let name = ValueObject::new(CustomerName(value.name));
+        let contact_name = ValueObject::new(CustomerContactName(value.contact_name));
+        let email = ValueObject::new(CustomerEmail(value.email));
+        let phone_number = ValueObject::new(CustomerPhoneNumber(value.phone_number));
+        let status = ValueObject::new(CustomerStatus(value.status));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+        if let Err(e) = &contact_name {
+            error.contact_name = Some(e.to_string());
+        }
+        if let Err(e) = &email {
+            error.email = Some(e.to_string());
+        }
+        if let Err(e) = &phone_number {
+            error.phone_number = Some(e.to_string());
+        }
+        if let Err(e) = &status {
+            error.status = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateCustomer {
+                name: name.unwrap(),
+                contact_name: Some(contact_name.unwrap()),
+                email: email.unwrap(),
+                phone_number: Some(phone_number.unwrap()),
+                status: status.unwrap(),
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 
@@ -83,9 +148,9 @@ impl IntoResponse for UpdateCustomerError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdateCustomer {
     pub name: ValueObject<CustomerName>,
-    pub contact_name: Option<ValueObject<ContactName>>,
+    pub contact_name: Option<ValueObject<CustomerContactName>>,
     pub email: ValueObject<CustomerEmail>,
-    pub phone_number: Option<ValueObject<ContactPhone>>,
+    pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
     pub status: ValueObject<CustomerStatus>,
 }
 

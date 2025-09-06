@@ -25,7 +25,7 @@ use crate::manager::common::error::FriendlyError;
 use crate::manager::common::services::generate_string_csprng;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::TenantsModule;
-use crate::manager::tenants::dto::TenantCreateRequest;
+use crate::manager::tenants::dto::CreateTenant;
 use crate::manager::tenants::repository::TenantsRepository;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
@@ -70,7 +70,7 @@ async fn self_hosted(
     repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: TenantCreateRequest,
+    payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let config: TenantDatabaseConfig = payload
@@ -196,7 +196,7 @@ async fn managed(
     repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: TenantCreateRequest,
+    payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let uuid = Uuid::new_v4();
@@ -293,7 +293,7 @@ pub async fn try_create(
     repo: &mut (dyn TenantsRepository + Send + Sync),
     migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
-    payload: TenantCreateRequest,
+    payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     if payload.is_self_hosted() {

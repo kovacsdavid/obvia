@@ -19,6 +19,7 @@
 
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
+use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerEmail, CustomerName, CustomerPhoneNumber, CustomerStatus,
 };
@@ -34,6 +35,7 @@ pub struct CreateCustomerHelper {
     pub email: String,
     pub phone_number: String,
     pub status: String,
+    pub customer_type: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -43,6 +45,7 @@ pub struct CreateCustomerError {
     pub email: Option<String>,
     pub phone_number: Option<String>,
     pub status: Option<String>,
+    pub customer_type: Option<String>,
 }
 
 impl CreateCustomerError {
@@ -52,6 +55,7 @@ impl CreateCustomerError {
             && self.email.is_none()
             && self.phone_number.is_none()
             && self.status.is_none()
+            && self.customer_type.is_none()
     }
 }
 
@@ -76,6 +80,7 @@ pub struct CreateCustomer {
     pub email: ValueObject<CustomerEmail>,
     pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
     pub status: ValueObject<CustomerStatus>,
+    pub customer_type: ValueObject<CustomerType>,
 }
 
 impl TryFrom<CreateCustomerHelper> for CreateCustomer {
@@ -87,6 +92,7 @@ impl TryFrom<CreateCustomerHelper> for CreateCustomer {
             email: None,
             phone_number: None,
             status: None,
+            customer_type: None,
         };
 
         let name = ValueObject::new(CustomerName(value.name));
@@ -94,6 +100,7 @@ impl TryFrom<CreateCustomerHelper> for CreateCustomer {
         let email = ValueObject::new(CustomerEmail(value.email));
         let phone_number = ValueObject::new(CustomerPhoneNumber(value.phone_number));
         let status = ValueObject::new(CustomerStatus(value.status));
+        let customer_type = ValueObject::new(CustomerType(value.customer_type));
 
         if let Err(e) = &name {
             error.name = Some(e.to_string());
@@ -110,6 +117,9 @@ impl TryFrom<CreateCustomerHelper> for CreateCustomer {
         if let Err(e) = &status {
             error.status = Some(e.to_string());
         }
+        if let Err(e) = &customer_type {
+            error.customer_type = Some(e.to_string());
+        }
 
         if error.is_empty() {
             Ok(CreateCustomer {
@@ -118,6 +128,7 @@ impl TryFrom<CreateCustomerHelper> for CreateCustomer {
                 email: email.unwrap(),
                 phone_number: Some(phone_number.unwrap()),
                 status: status.unwrap(),
+                customer_type: customer_type.unwrap(),
             })
         } else {
             Err(error)

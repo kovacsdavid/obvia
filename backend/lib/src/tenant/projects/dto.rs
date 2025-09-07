@@ -16,30 +16,57 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::projects::types::project::{ProjectName, ProjectStatus};
+use crate::tenant::projects::types::project::{
+    ProjectEndDate, ProjectName, ProjectStartDate, ProjectStatus,
+};
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
 pub struct CreateProjectHelper {
-    // TODO: fields
+    pub name: String,
+    pub description: String,
+    pub status: String,
+    pub start_date: String,
+    pub end_date: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateProjectError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub status: Option<String>,
+    pub start_date: Option<String>,
+    pub end_date: Option<String>,
 }
 
 impl CreateProjectError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none()
+            && self.description.is_none()
+            && self.status.is_none()
+            && self.start_date.is_none()
+            && self.end_date.is_none()
     }
 }
 
 impl IntoResponse for CreateProjectError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("PROJECTS/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
@@ -47,7 +74,6 @@ impl IntoResponse for CreateProjectError {
 pub struct CreateProject {
     pub name: ValueObject<ProjectName>,
     pub description: Option<String>,
-    pub created_by: Uuid,
     pub status: ValueObject<ProjectStatus>,
     pub start_date: Option<DateTime<Local>>,
     pub end_date: Option<DateTime<Local>>,
@@ -56,7 +82,46 @@ pub struct CreateProject {
 impl TryFrom<CreateProjectHelper> for CreateProject {
     type Error = CreateProjectError;
     fn try_from(value: CreateProjectHelper) -> Result<Self, Self::Error> {
-        todo!()
+        let mut error = CreateProjectError {
+            name: None,
+            description: None,
+            status: None,
+            start_date: None,
+            end_date: None,
+        };
+
+        let name = ValueObject::new(ProjectName(value.name));
+        let status = ValueObject::new(ProjectStatus(value.status));
+        let start_date = ValueObject::new(ProjectStartDate(value.start_date));
+        let end_date = ValueObject::new(ProjectEndDate(value.end_date));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if let Err(e) = &status {
+            error.status = Some(e.to_string());
+        }
+
+        if let Err(e) = &start_date {
+            error.start_date = Some(e.to_string());
+        }
+
+        if let Err(e) = &end_date {
+            error.end_date = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateProject {
+                name: name.unwrap(),
+                description: Some(value.description),
+                status: status.unwrap(),
+                start_date: Some(Local::now()), // TODO: date handling!
+                end_date: Some(Local::now()),   // TODO: date handling!
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 

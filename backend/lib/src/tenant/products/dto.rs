@@ -16,33 +16,67 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::products::types::currency::currency::Currency;
-use crate::tenant::products::types::product::ProductName;
 use crate::tenant::products::types::product::cost::Cost;
 use crate::tenant::products::types::product::price::Price;
+use crate::tenant::products::types::product::{
+    ProductCost, ProductName, ProductPrice, ProductStatus,
+};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
 pub struct CreateProductHelper {
-    // TODO: fields
+    pub name: String,
+    pub description: String,
+    pub unit_of_measure: Uuid,
+    pub price: String,
+    pub cost: String,
+    pub currency_id: Uuid,
+    pub status: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateProductError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub unit_of_measure: Option<String>,
+    pub price: Option<String>,
+    pub cost: Option<String>,
+    pub currency_id: Option<String>,
+    pub status: Option<String>,
 }
 
 impl CreateProductError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none()
+            && self.description.is_none()
+            && self.unit_of_measure.is_none()
+            && self.price.is_none()
+            && self.cost.is_none()
+            && self.currency_id.is_none()
+            && self.status.is_none()
     }
 }
 
 impl IntoResponse for CreateProductError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("PRODUCTS/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
@@ -51,11 +85,61 @@ pub struct CreateProduct {
     pub name: ValueObject<ProductName>,
     pub description: Option<String>,
     pub unit_of_measure: Uuid,
-    pub price: Option<ValueObject<Price>>,
-    pub cost: Option<ValueObject<Cost>>,
+    pub price: Option<ValueObject<ProductPrice>>,
+    pub cost: Option<ValueObject<ProductCost>>,
     pub currency_id: Uuid,
-    pub is_active: bool,
-    pub created_by: Uuid,
+    pub status: ValueObject<ProductStatus>,
+}
+
+impl TryFrom<CreateProductHelper> for CreateProduct {
+    type Error = CreateProductError;
+
+    fn try_from(value: CreateProductHelper) -> Result<Self, Self::Error> {
+        let mut error = CreateProductError {
+            name: None,
+            description: None,
+            unit_of_measure: None,
+            price: None,
+            cost: None,
+            currency_id: None,
+            status: None,
+        };
+
+        let name = ValueObject::new(ProductName(value.name));
+        let price = ValueObject::new(ProductPrice(value.price));
+        let cost = ValueObject::new(ProductCost(value.cost));
+        let status = ValueObject::new(ProductStatus(value.status));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if let Err(e) = &price {
+            error.price = Some(e.to_string());
+        }
+
+        if let Err(e) = &cost {
+            error.cost = Some(e.to_string());
+        }
+
+        if let Err(e) = &status {
+            error.status = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateProduct {
+                name: name.unwrap(),
+                description: Some(value.description),
+                unit_of_measure: value.unit_of_measure,
+                price: Some(price.unwrap()),
+                cost: Some(cost.unwrap()),
+                currency_id: value.currency_id,
+                status: status.unwrap(),
+            })
+        } else {
+            Err(error)
+        }
+    }
 }
 
 pub struct UpdateProductHelper {

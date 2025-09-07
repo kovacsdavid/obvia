@@ -16,31 +16,52 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::warehouses::types::warehouse::{
-    WarehouseContactName, WarehouseContactPhone, WarehouseName,
+    WarehouseContactName, WarehouseContactPhone, WarehouseName, WarehouseStatus,
 };
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
 pub struct CreateWarehouseHelper {
-    // TODO: fields
+    pub name: String,
+    pub contact_name: String,
+    pub contact_phone: String,
+    pub status: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateWarehouseError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub contact_name: Option<String>,
+    pub contact_phone: Option<String>,
+    pub status: Option<String>,
 }
 
 impl CreateWarehouseError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none()
+            && self.contact_name.is_none()
+            && self.contact_phone.is_none()
+            && self.status.is_none()
     }
 }
 
 impl IntoResponse for CreateWarehouseError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("WAREHOUSES/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
@@ -49,14 +70,50 @@ pub struct CreateWarehouse {
     pub name: ValueObject<WarehouseName>,
     pub contact_name: Option<ValueObject<WarehouseContactName>>,
     pub contact_phone: Option<ValueObject<WarehouseContactPhone>>,
-    pub is_active: Option<bool>, // Will default to true if not provided
-    pub created_by: Uuid,
+    pub status: ValueObject<WarehouseStatus>, // Will default to true if not provided
 }
 
 impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
     type Error = CreateWarehouseError;
     fn try_from(value: CreateWarehouseHelper) -> Result<Self, Self::Error> {
-        todo!()
+        let mut error = CreateWarehouseError {
+            name: None,
+            contact_name: None,
+            contact_phone: None,
+            status: None,
+        };
+
+        let name = ValueObject::new(WarehouseName(value.name));
+        let contact_name = ValueObject::new(WarehouseContactName(value.contact_name));
+        let contact_phone = ValueObject::new(WarehouseContactPhone(value.contact_phone));
+        let status = ValueObject::new(WarehouseStatus(value.status));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if let Err(e) = &contact_name {
+            error.contact_name = Some(e.to_string());
+        }
+
+        if let Err(e) = &contact_phone {
+            error.contact_phone = Some(e.to_string());
+        }
+
+        if let Err(e) = &status {
+            error.status = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateWarehouse {
+                name: name.unwrap(),
+                contact_name: Some(contact_name.unwrap()),
+                contact_phone: Some(contact_phone.unwrap()),
+                status: status.unwrap(),
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 

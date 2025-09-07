@@ -28,7 +28,7 @@ impl ValueObjectable for PostalCode {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        todo!()
+        Err(String::from("Not implemented yet!"))
     }
 
     /// Retrieves a reference to the value contained within the struct.

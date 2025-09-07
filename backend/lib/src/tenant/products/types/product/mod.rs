@@ -20,5 +20,9 @@
 pub(crate) mod cost;
 pub(crate) mod name;
 pub(crate) mod price;
+mod status;
 
+pub(crate) use cost::Cost as ProductCost;
 pub(crate) use name::Name as ProductName;
+pub(crate) use price::Price as ProductPrice;
+pub(crate) use status::Status as ProductStatus;

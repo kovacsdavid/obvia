@@ -16,41 +16,75 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::tags::types::tag::TagName;
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
 pub struct CreateTagHelper {
-    // TODO: fields
+    pub name: String,
+    pub description: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateTagError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub description: Option<String>,
 }
 
 impl CreateTagError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none() && self.description.is_none()
     }
 }
 
 impl IntoResponse for CreateTagError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("TAGS/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTag {
     pub name: ValueObject<TagName>,
+    pub description: Option<String>,
 }
 
 impl TryFrom<CreateTagHelper> for CreateTag {
     type Error = CreateTagError;
     fn try_from(value: CreateTagHelper) -> Result<Self, Self::Error> {
-        todo!()
+        let mut error = CreateTagError {
+            name: None,
+            description: None,
+        };
+
+        let name = ValueObject::new(TagName(value.name));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateTag {
+                name: name.unwrap(),
+                description: Some(value.description),
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 

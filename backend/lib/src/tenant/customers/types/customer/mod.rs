@@ -18,6 +18,7 @@
  */
 
 pub(crate) mod contact_name;
+pub(crate) mod customer_type;
 pub(crate) mod email;
 pub(crate) mod name;
 pub(crate) mod phone_number;

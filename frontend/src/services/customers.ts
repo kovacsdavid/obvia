@@ -20,21 +20,21 @@
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
 
 export interface CreateCustomer {
-  type: string,
   name: string
   contactName: string
   email: string
   phoneNumber: string
   status: string
+  customerType: string,
 }
 
 export async function create({
-                               type,
                                name,
                                contactName,
                                email,
                                phoneNumber,
                                status,
+                               customerType,
                              }: CreateCustomer, token: string | null): Promise<Response> {
   return await fetch(`/api/customers/create`, {
     method: "POST",
@@ -44,12 +44,12 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      type,
       name,
       contact_name: contactName,
       email,
       phone_number: phoneNumber,
-      status
+      status,
+      customer_type: customerType,
     }),
   });
 }

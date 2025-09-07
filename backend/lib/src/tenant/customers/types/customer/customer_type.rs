@@ -22,9 +22,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct StreetAddress(pub String);
+pub struct CustomerType(pub String);
 
-impl ValueObjectable for StreetAddress {
+impl ValueObjectable for CustomerType {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
@@ -40,7 +40,7 @@ impl ValueObjectable for StreetAddress {
     }
 }
 
-impl Display for StreetAddress {
+impl Display for CustomerType {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -56,7 +56,7 @@ impl Display for StreetAddress {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<StreetAddress> {
+impl<'de> Deserialize<'de> for ValueObject<CustomerType> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -83,7 +83,7 @@ impl<'de> Deserialize<'de> for ValueObject<StreetAddress> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(StreetAddress(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(CustomerType(s)).map_err(serde::de::Error::custom)
     }
 }
 

@@ -24,7 +24,7 @@ import {create} from "@/store/slices/customers.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
 
 export default function Create() {
-  const [type, setType] = React.useState("");
+  const [customerType, setCustomerType] = React.useState("");
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -36,12 +36,12 @@ export default function Create() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(create({
-      type,
       name,
       contactName,
       email,
       phoneNumber,
-      status
+      status,
+      customerType,
     })).then(async (response) => {
       console.log(response)
       if (response?.meta?.requestStatus === "fulfilled") {
@@ -75,14 +75,14 @@ export default function Create() {
     <>
       <GlobalError error={errors}/>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-        <Label htmlFor="type">Típus</Label>
+        <Label htmlFor="customer_type">Típus</Label>
         <Input
-          id="type"
+          id="customer_type"
           type="text"
-          value={type}
-          onChange={e => setType(e.target.value)}
+          value={customerType}
+          onChange={e => setCustomerType(e.target.value)}
         />
-        <FieldError error={errors} field={"type"}/>
+        <FieldError error={errors} field={"customer_type"}/>
         <Label htmlFor="name">Név</Label>
         <Input
           id="name"

@@ -16,29 +16,52 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::ValueObject;
 use crate::tenant::worksheets::types::worksheet::{WorksheetName, WorksheetStatus};
+use axum::Json;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[derive(Debug, Deserialize)]
 pub struct CreateWorksheetHelper {
-    // TODO: fields
+    pub name: String,
+    pub description: String,
+    pub project_id: Uuid,
+    pub status: String,
 }
 
+#[derive(Debug, Serialize)]
 pub struct CreateWorksheetError {
-    // TODO: fields
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub project_id: Option<String>,
+    pub status: Option<String>,
 }
 
 impl CreateWorksheetError {
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.name.is_none()
+            && self.description.is_none()
+            && self.project_id.is_none()
+            && self.status.is_none()
     }
 }
 
 impl IntoResponse for CreateWorksheetError {
     fn into_response(self) -> Response {
-        todo!()
+        (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(ErrorResponse::new(ErrorBody {
+                reference: String::from("WORKSHEETS/DTO/CREATE"),
+                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
+                fields: Some(self),
+            })),
+        )
+            .into_response()
     }
 }
 
@@ -47,14 +70,40 @@ pub struct CreateWorksheet {
     pub name: ValueObject<WorksheetName>,
     pub description: Option<String>,
     pub project_id: Uuid,
-    pub created_by: Uuid,
-    pub status: Option<ValueObject<WorksheetStatus>>,
+    pub status: ValueObject<WorksheetStatus>,
 }
 
 impl TryFrom<CreateWorksheetHelper> for CreateWorksheet {
     type Error = CreateWorksheetError;
     fn try_from(value: CreateWorksheetHelper) -> Result<Self, Self::Error> {
-        todo!()
+        let mut error = CreateWorksheetError {
+            name: None,
+            description: None,
+            project_id: None,
+            status: None,
+        };
+
+        let name = ValueObject::new(WorksheetName(value.name));
+        let status = ValueObject::new(WorksheetStatus(value.status));
+
+        if let Err(e) = &name {
+            error.name = Some(e.to_string());
+        }
+
+        if let Err(e) = &status {
+            error.status = Some(e.to_string());
+        }
+
+        if error.is_empty() {
+            Ok(CreateWorksheet {
+                name: name.unwrap(),
+                description: Some(value.description),
+                project_id: value.project_id,
+                status: status.unwrap(),
+            })
+        } else {
+            Err(error)
+        }
     }
 }
 

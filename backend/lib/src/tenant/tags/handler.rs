@@ -19,13 +19,16 @@
 
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::QueryParam;
+use crate::manager::common::error::FriendlyError;
 use crate::tenant::tags::TagsModule;
-use crate::tenant::tags::dto::CreateTag;
+use crate::tenant::tags::dto::{CreateTag, CreateTagHelper};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
-use axum::response::Response;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -39,9 +42,21 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
-    payload: Result<Json<CreateTag>, JsonRejection>,
+    payload: Result<Json<CreateTagHelper>, JsonRejection>,
 ) -> Response {
-    todo!()
+    match payload {
+        Ok(Json(payload)) => match CreateTag::try_from(payload) {
+            Ok(_) => todo!(),
+            Err(e) => e.into_response(),
+        },
+        Err(_) => FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
+            "ORGANIZATIONAL_UNITS/HANDLER/CREATE".to_string(),
+            "Invalid JSON".to_string(),
+        )
+        .trace(Level::DEBUG)
+        .into_response(),
+    }
 }
 
 #[debug_handler]

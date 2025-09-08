@@ -19,13 +19,16 @@
 
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::QueryParam;
+use crate::manager::common::error::FriendlyError;
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::CreateTask;
+use crate::tenant::tasks::dto::{CreateTask, CreateTaskHelper};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
-use axum::response::Response;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -39,9 +42,21 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
-    payload: Result<Json<CreateTask>, JsonRejection>,
+    payload: Result<Json<CreateTaskHelper>, JsonRejection>,
 ) -> Response {
-    todo!()
+    match payload {
+        Ok(Json(payload)) => match CreateTask::try_from(payload) {
+            Ok(_) => todo!(),
+            Err(e) => e.into_response(),
+        },
+        Err(_) => FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
+            "ORGANIZATIONAL_UNITS/HANDLER/CREATE".to_string(),
+            "Invalid JSON".to_string(),
+        )
+        .trace(Level::DEBUG)
+        .into_response(),
+    }
 }
 
 #[debug_handler]

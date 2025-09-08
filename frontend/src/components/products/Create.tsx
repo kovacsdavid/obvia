@@ -43,10 +43,33 @@ export default function Create() {
       cost,
       price,
       currencyId,
-      status,
-    })).then((response) => {
-      setErrors({global: "Not implemented yet!"});
+      status
+    })).then(async (response) => {
       console.log(response)
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 201:
+              window.location.href = "/termek/lista";
+              break;
+            case 422:
+              setErrors(responseData.error);
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
     });
   };
 
@@ -61,6 +84,7 @@ export default function Create() {
           value={name}
           onChange={e => setName(e.target.value)}
         />
+        <FieldError error={errors} field={"name"}/>
         <Label htmlFor="description">Leírás</Label>
         <Input
           id="description"

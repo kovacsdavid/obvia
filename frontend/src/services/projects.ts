@@ -45,8 +45,8 @@ export async function create({
       name,
       description,
       status,
-      startDate,
-      endDate
+      start_date: startDate,
+      end_date: endDate
     }),
   })
 }

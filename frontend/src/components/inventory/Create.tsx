@@ -36,9 +36,32 @@ export default function Create() {
       productId,
       warehouseId,
       quantity,
-    })).then((response) => {
-      setErrors({global: "Not implemented yet!"});
+    })).then(async (response) => {
       console.log(response)
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 201:
+              window.location.href = "/leltar/lista";
+              break;
+            case 422:
+              setErrors(responseData.error);
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
     });
   };
 

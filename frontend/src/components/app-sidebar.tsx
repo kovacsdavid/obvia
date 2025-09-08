@@ -123,6 +123,12 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             icon: <Warehouse />,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
+        ]
+      },
+      {
+        title: "Készlet",
+        url: "#",
+        items: [
           {
             title: "Termékek",
             url: "/termek/lista",
@@ -130,12 +136,6 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             icon: <Package />,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
-        ]
-      },
-      {
-        title: "Készlet",
-        url: "#",
-        items: [
           {
             title: "Leltár",
             url: "/leltar/lista",

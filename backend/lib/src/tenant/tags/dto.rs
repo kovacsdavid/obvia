@@ -82,7 +82,7 @@ impl TryFrom<CreateTagHelper> for CreateTag {
                     None
                 }
             }
-            Err(e) => None,
+            Err(_) => None,
         };
 
         if error.is_empty() {

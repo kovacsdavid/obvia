@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::warehouses::types::warehouse::{
     WarehouseContactName, WarehouseContactPhone, WarehouseName, WarehouseStatus,
 };
@@ -34,7 +34,7 @@ pub struct CreateWarehouseHelper {
     pub status: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateWarehouseError {
     pub name: Option<String>,
     pub contact_name: Option<String>,
@@ -76,40 +76,45 @@ pub struct CreateWarehouse {
 impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
     type Error = CreateWarehouseError;
     fn try_from(value: CreateWarehouseHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateWarehouseError {
-            name: None,
-            contact_name: None,
-            contact_phone: None,
-            status: None,
-        };
+        let mut error = CreateWarehouseError::default();
 
-        let name = ValueObject::new(WarehouseName(value.name));
-        let contact_name = ValueObject::new(WarehouseContactName(value.contact_name));
-        let contact_phone = ValueObject::new(WarehouseContactPhone(value.contact_phone));
-        let status = ValueObject::new(WarehouseStatus(value.status));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(WarehouseName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
-
-        if let Err(e) = &contact_name {
+        });
+        let contact_name = match ValueObject::new(WarehouseContactName(value.contact_name)).inspect_err(|e| {
             error.contact_name = Some(e.to_string());
-        }
-
-        if let Err(e) = &contact_phone {
+        }) {
+            Ok(val) => {
+                if !val.extract().get_value().trim().is_empty() {
+                    Some(val)
+                } else {
+                    None
+                }
+            },
+            Err(_) => None
+        };
+        let contact_phone = match ValueObject::new(WarehouseContactPhone(value.contact_phone)).inspect_err(|e| {
             error.contact_phone = Some(e.to_string());
-        }
-
-        if let Err(e) = &status {
+        }) {
+            Ok(val) => {
+                if !val.extract().get_value().trim().is_empty() {
+                    Some(val)
+                } else {
+                    None
+                }
+            },
+            Err(_) => None
+        };
+        let status = ValueObject::new(WarehouseStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
+        });
 
         if error.is_empty() {
             Ok(CreateWarehouse {
-                name: name.unwrap(),
-                contact_name: Some(contact_name.unwrap()),
-                contact_phone: Some(contact_phone.unwrap()),
-                status: status.unwrap(),
+                name: name.map_err(|_| CreateWarehouseError::default())?,
+                contact_name,
+                contact_phone,
+                status: status.map_err(|_| CreateWarehouseError::default())?,
             })
         } else {
             Err(error)

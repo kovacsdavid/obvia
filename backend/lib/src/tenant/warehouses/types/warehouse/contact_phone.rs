@@ -20,6 +20,7 @@
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
+use regex::Regex;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ContactPhone(pub String);
@@ -28,7 +29,17 @@ impl ValueObjectable for ContactPhone {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().is_empty() {
+            Ok(())
+        } else {
+            match Regex::new(r##"^\+[1-9]\d{4,15}$"##) {
+                Ok(re) => match re.is_match(&self.0) {
+                    true => Ok(()),
+                    false => Err(String::from("Hibás telefonszám formátum")),
+                },
+                Err(_) => Err(String::from("Hibás telefonszám formátum")),
+            }
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

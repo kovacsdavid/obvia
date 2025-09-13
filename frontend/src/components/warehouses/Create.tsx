@@ -22,12 +22,19 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/warehouses.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function List() {
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
-  const [status, setStatus] = React.useState("");
+  const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
 
@@ -70,7 +77,7 @@ export default function List() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
         <Label htmlFor="name">Név</Label>
         <Input
           id="name"
@@ -96,12 +103,20 @@ export default function List() {
         />
         <FieldError error={errors} field={"contact_phone"}/>
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
+            <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
+            <SelectItem value="closed">Véglegesen bezárt</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>

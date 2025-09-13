@@ -28,7 +28,7 @@ impl ValueObjectable for ContactName {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        Ok(())
     }
 
     /// Retrieves a reference to the value contained within the struct.

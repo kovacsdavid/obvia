@@ -81,29 +81,31 @@ impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
         let name = ValueObject::new(WarehouseName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
-        let contact_name = match ValueObject::new(WarehouseContactName(value.contact_name)).inspect_err(|e| {
-            error.contact_name = Some(e.to_string());
-        }) {
+        let contact_name = match ValueObject::new(WarehouseContactName(value.contact_name))
+            .inspect_err(|e| {
+                error.contact_name = Some(e.to_string());
+            }) {
             Ok(val) => {
                 if !val.extract().get_value().trim().is_empty() {
                     Some(val)
                 } else {
                     None
                 }
-            },
-            Err(_) => None
+            }
+            Err(_) => None,
         };
-        let contact_phone = match ValueObject::new(WarehouseContactPhone(value.contact_phone)).inspect_err(|e| {
-            error.contact_phone = Some(e.to_string());
-        }) {
+        let contact_phone = match ValueObject::new(WarehouseContactPhone(value.contact_phone))
+            .inspect_err(|e| {
+                error.contact_phone = Some(e.to_string());
+            }) {
             Ok(val) => {
                 if !val.extract().get_value().trim().is_empty() {
                     Some(val)
                 } else {
                     None
                 }
-            },
-            Err(_) => None
+            }
+            Err(_) => None,
         };
         let status = ValueObject::new(WarehouseStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());

@@ -22,15 +22,22 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/products.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [unitOfMeasure, setUnitOfMeasure] = React.useState("");
+  const [unitOfMeasure, setUnitOfMeasure] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [cost, setCost] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [currencyId, setCurrencyId] = React.useState("");
-  const [status, setStatus] = React.useState("");
+  const [currencyId, setCurrencyId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
 
@@ -94,12 +101,18 @@ export default function Create() {
         />
         <FieldError error={errors} field={"description"}/>
         <Label htmlFor="unit_of_measure">Mértékegység</Label>
-        <Input
-          id="unit_of_measure"
-          type="text"
+        <Select
           value={unitOfMeasure}
-          onChange={e => setUnitOfMeasure(e.target.value)}
-        />
+          onValueChange={val => setUnitOfMeasure(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">CM</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">KG</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"unit_of_measure"}/>
         <Label htmlFor="cost">Bekerülési költség</Label>
         <Input
@@ -118,20 +131,32 @@ export default function Create() {
         />
         <FieldError error={errors} field={"price"}/>
         <Label htmlFor="currency_id">Pénznem</Label>
-        <Input
-          id="currency_id"
-          type="text"
+        <Select
           value={currencyId}
-          onChange={e => setCurrencyId(e.target.value)}
-        />
+          onValueChange={val => setCurrencyId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">HUF</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">EUR</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"currency_id"}/>
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>

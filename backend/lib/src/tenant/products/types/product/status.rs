@@ -28,7 +28,11 @@ impl ValueObjectable for Status {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        match self.0.as_str() {
+            "active" => Ok(()),
+            "inactive" => Ok(()),
+            _ => Err(String::from("Hibás termék státusz")),
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

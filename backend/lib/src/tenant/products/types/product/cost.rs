@@ -28,7 +28,16 @@ impl ValueObjectable for Cost {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().is_empty() {
+            Ok(())
+        } else {
+            self.0
+                .trim()
+                .replace(",", ".")
+                .parse::<f64>()
+                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            Ok(())
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

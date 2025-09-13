@@ -16,8 +16,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![forbid(unsafe_code)]
 
-mod common;
-pub mod manager;
-pub mod tenant;
+#[macro_export]
+macro_rules! validate_optional_string {
+    ($value:expr, $error_field:expr) => {
+        match ValueObject::new($value).inspect_err(|e| $error_field = Some(e.to_string())) {
+            Ok(val) => {
+                if !val.extract().get_value().trim().is_empty() {
+                    Some(val)
+                } else {
+                    None
+                }
+            }
+            Err(_) => None,
+        }
+    };
+}

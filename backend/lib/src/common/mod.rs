@@ -16,8 +16,5 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![forbid(unsafe_code)]
 
-mod common;
-pub mod manager;
-pub mod tenant;
+pub(crate) mod macros;

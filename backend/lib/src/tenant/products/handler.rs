@@ -18,7 +18,7 @@
  */
 
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::QueryParam;
+use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::manager::common::error::FriendlyError;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::{CreateProduct, CreateProductHelper};
@@ -46,7 +46,13 @@ pub async fn create(
 ) -> Response {
     match payload {
         Ok(Json(payload)) => match CreateProduct::try_from(payload) {
-            Ok(_) => todo!(),
+            Ok(_) => (
+                StatusCode::CREATED,
+                Json(OkResponse::new(SimpleMessageResponse {
+                    message: String::from("TEST!!!!"), //TODO: implement
+                })),
+            )
+                .into_response(),
             Err(e) => e.into_response(),
         },
         Err(_) => FriendlyError::UserFacing(

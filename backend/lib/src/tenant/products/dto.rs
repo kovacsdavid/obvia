@@ -18,14 +18,15 @@
  */
 
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::products::types::currency::currency::Currency;
 use crate::tenant::products::types::product::cost::Cost;
 use crate::tenant::products::types::product::price::Price;
 use crate::tenant::products::types::product::{
-    ProductCost, ProductName, ProductPrice, ProductStatus,
+    ProductCost, ProductDescription, ProductName, ProductPrice, ProductStatus,
 };
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
+use crate::validate_optional_string;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -43,7 +44,7 @@ pub struct CreateProductHelper {
     pub status: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateProductError {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -83,7 +84,7 @@ impl IntoResponse for CreateProductError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateProduct {
     pub name: ValueObject<ProductName>,
-    pub description: Option<String>,
+    pub description: Option<ValueObject<ProductDescription>>,
     pub unit_of_measure: Uuid,
     pub price: Option<ValueObject<ProductPrice>>,
     pub cost: Option<ValueObject<ProductCost>>,
@@ -95,46 +96,31 @@ impl TryFrom<CreateProductHelper> for CreateProduct {
     type Error = CreateProductError;
 
     fn try_from(value: CreateProductHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateProductError {
-            name: None,
-            description: None,
-            unit_of_measure: None,
-            price: None,
-            cost: None,
-            currency_id: None,
-            status: None,
-        };
+        let mut error = CreateProductError::default();
 
-        let name = ValueObject::new(ProductName(value.name));
-        let price = ValueObject::new(ProductPrice(value.price));
-        let cost = ValueObject::new(ProductCost(value.cost));
-        let status = ValueObject::new(ProductStatus(value.status));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(ProductName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
+        });
 
-        if let Err(e) = &price {
-            error.price = Some(e.to_string());
-        }
+        let price = validate_optional_string!(ProductPrice(value.price), error.price);
+        let cost = validate_optional_string!(ProductCost(value.cost), error.cost);
 
-        if let Err(e) = &cost {
-            error.cost = Some(e.to_string());
-        }
-
-        if let Err(e) = &status {
+        let status = ValueObject::new(ProductStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
+        });
+
+        let description =
+            validate_optional_string!(ProductDescription(value.description), error.description);
 
         if error.is_empty() {
             Ok(CreateProduct {
-                name: name.unwrap(),
-                description: Some(value.description),
+                name: name.map_err(|_| CreateProductError::default())?,
+                description,
                 unit_of_measure: value.unit_of_measure,
-                price: Some(price.unwrap()),
-                cost: Some(cost.unwrap()),
+                price,
+                cost,
                 currency_id: value.currency_id,
-                status: status.unwrap(),
+                status: status.map_err(|_| CreateProductError::default())?,
             })
         } else {
             Err(error)

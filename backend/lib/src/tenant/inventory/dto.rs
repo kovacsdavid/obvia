@@ -33,7 +33,7 @@ pub struct CreateInventoryHelper {
     pub quantity: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateInventoryError {
     pub product_id: Option<String>,
     pub warehouse_id: Option<String>,
@@ -70,23 +70,17 @@ pub struct CreateInventory {
 impl TryFrom<CreateInventoryHelper> for CreateInventory {
     type Error = CreateInventoryError;
     fn try_from(value: CreateInventoryHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateInventoryError {
-            product_id: None,
-            warehouse_id: None,
-            quantity: None,
-        };
+        let mut error = CreateInventoryError::default();
 
-        let quantity = ValueObject::new(InventoryQuantity(value.quantity));
-
-        if let Err(e) = &quantity {
+        let quantity = ValueObject::new(InventoryQuantity(value.quantity)).inspect_err(|e| {
             error.quantity = Some(e.to_string());
-        }
+        });
 
         if error.is_empty() {
             Ok(CreateInventory {
                 product_id: value.product_id,
                 warehouse_id: value.warehouse_id,
-                quantity: quantity.unwrap(),
+                quantity: quantity.map_err(|_| CreateInventoryError::default())?,
             })
         } else {
             Err(error)

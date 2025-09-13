@@ -22,10 +22,17 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/inventory.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Create() {
-  const [productId, setProductId] = React.useState("");
-  const [warehouseId, setWarehouseId] = React.useState("");
+  const [productId, setProductId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [warehouseId, setWarehouseId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [quantity, setQuantity] = React.useState("");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
@@ -70,20 +77,32 @@ export default function Create() {
       <GlobalError error={errors}/>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
         <Label htmlFor="product_id">Termék ID</Label>
-        <Input
-          id="product_id"
-          type="text"
+        <Select
           value={productId}
-          onChange={e => setProductId(e.target.value)}
-        />
+          onValueChange={val => setProductId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Termék 1</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Termék 2</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"product_id"}/>
         <Label htmlFor="warehouse_id">Raktár ID</Label>
-        <Input
-          id="warehouse_id"
-          type="text"
+        <Select
           value={warehouseId}
-          onChange={e => setWarehouseId(e.target.value)}
-        />
+          onValueChange={val => setWarehouseId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Raktár 1</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Raktár 2</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"warehouse_id"}/>
         <Label htmlFor="quantity">Mennyiség</Label>
         <Input

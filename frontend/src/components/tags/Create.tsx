@@ -66,7 +66,7 @@ export default function Create() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
         <Label htmlFor="name">Név</Label>
         <Input
           id="name"

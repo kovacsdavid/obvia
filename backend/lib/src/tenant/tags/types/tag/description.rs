@@ -22,16 +22,18 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Name(pub String);
+pub struct Description(pub String);
 
-impl ValueObjectable for Name {
+impl ValueObjectable for Description {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if !self.0.trim().is_empty() {
+        if self.0.len() <= 3000 {
             Ok(())
         } else {
-            Err(String::from("A mező kitöltése kötelező"))
+            Err(String::from(
+                "A leírás nem lehet 3 000 karakternél hosszabb!",
+            ))
         }
     }
 
@@ -44,7 +46,7 @@ impl ValueObjectable for Name {
     }
 }
 
-impl Display for Name {
+impl Display for Description {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -60,7 +62,7 @@ impl Display for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
+impl<'de> Deserialize<'de> for ValueObject<Description> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -87,7 +89,7 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Name(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Description(s)).map_err(serde::de::Error::custom)
     }
 }
 

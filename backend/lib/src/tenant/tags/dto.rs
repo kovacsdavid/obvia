@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::tags::types::tag::TagName;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::tags::types::tag::{TagDescription, TagName};
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -31,7 +31,7 @@ pub struct CreateTagHelper {
     pub description: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateTagError {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -60,27 +60,35 @@ impl IntoResponse for CreateTagError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateTag {
     pub name: ValueObject<TagName>,
-    pub description: Option<String>,
+    pub description: Option<ValueObject<TagDescription>>,
 }
 
 impl TryFrom<CreateTagHelper> for CreateTag {
     type Error = CreateTagError;
     fn try_from(value: CreateTagHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateTagError {
-            name: None,
-            description: None,
-        };
+        let mut error = CreateTagError::default();
 
-        let name = ValueObject::new(TagName(value.name));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(TagName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
+        });
+
+        let description = match ValueObject::new(TagDescription(value.description))
+            .inspect_err(|e| error.description = Some(e.to_string()))
+        {
+            Ok(val) => {
+                if !val.extract().get_value().trim().is_empty() {
+                    Some(val)
+                } else {
+                    None
+                }
+            }
+            Err(e) => None,
+        };
 
         if error.is_empty() {
             Ok(CreateTag {
-                name: name.unwrap(),
-                description: Some(value.description),
+                name: name.map_err(|_| CreateTagError::default())?,
+                description,
             })
         } else {
             Err(error)

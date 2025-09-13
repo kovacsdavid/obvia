@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod description;
 pub(crate) mod name;
 
+pub(crate) use description::Description as TagDescription;
 pub(crate) use name::Name as TagName;

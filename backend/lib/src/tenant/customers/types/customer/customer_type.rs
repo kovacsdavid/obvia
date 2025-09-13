@@ -28,7 +28,11 @@ impl ValueObjectable for CustomerType {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if &self.0 == "natural" || &self.0 == "legal" {
+            Ok(())
+        } else {
+            Err(String::from("Hibás vevő típus!"))
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

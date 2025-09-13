@@ -24,7 +24,7 @@ export interface CreateCustomer {
   contactName: string
   email: string
   phoneNumber: string
-  status: string
+  status: string | undefined
   customerType: string | undefined,
 }
 
@@ -48,7 +48,7 @@ export async function create({
       contact_name: contactName,
       email,
       phone_number: phoneNumber,
-      status,
+      status: typeof status === "undefined" ? null : status,
       customer_type: typeof customerType === "undefined" ? null : customerType,
     }),
   });

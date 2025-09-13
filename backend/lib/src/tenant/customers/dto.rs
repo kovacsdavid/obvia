@@ -18,10 +18,11 @@
  */
 
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::common::types::Email;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
-    CustomerContactName, CustomerEmail, CustomerName, CustomerPhoneNumber, CustomerStatus,
+    CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,
 };
 use axum::Json;
 use axum::http::StatusCode;
@@ -38,7 +39,7 @@ pub struct CreateCustomerHelper {
     pub customer_type: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateCustomerError {
     pub name: Option<String>,
     pub contact_name: Option<String>,
@@ -77,7 +78,7 @@ impl IntoResponse for CreateCustomerError {
 pub struct CreateCustomer {
     pub name: ValueObject<CustomerName>,
     pub contact_name: Option<ValueObject<CustomerContactName>>,
-    pub email: ValueObject<CustomerEmail>,
+    pub email: ValueObject<Email>,
     pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
     pub status: ValueObject<CustomerStatus>,
     pub customer_type: ValueObject<CustomerType>,
@@ -86,49 +87,53 @@ pub struct CreateCustomer {
 impl TryFrom<CreateCustomerHelper> for CreateCustomer {
     type Error = CreateCustomerError;
     fn try_from(value: CreateCustomerHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateCustomerError {
-            name: None,
-            contact_name: None,
-            email: None,
-            phone_number: None,
-            status: None,
-            customer_type: None,
-        };
+        let mut error = CreateCustomerError::default();
 
-        let name = ValueObject::new(CustomerName(value.name));
-        let contact_name = ValueObject::new(CustomerContactName(value.contact_name));
-        let email = ValueObject::new(CustomerEmail(value.email));
-        let phone_number = ValueObject::new(CustomerPhoneNumber(value.phone_number));
-        let status = ValueObject::new(CustomerStatus(value.status));
-        let customer_type = ValueObject::new(CustomerType(value.customer_type));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(CustomerName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
-        if let Err(e) = &contact_name {
-            error.contact_name = Some(e.to_string());
-        }
-        if let Err(e) = &email {
+        });
+        let email = ValueObject::new(Email(value.email)).inspect_err(|e| {
             error.email = Some(e.to_string());
-        }
-        if let Err(e) = &phone_number {
-            error.phone_number = Some(e.to_string());
-        }
-        if let Err(e) = &status {
+        });
+        let phone_number =
+            ValueObject::new(CustomerPhoneNumber(value.phone_number)).inspect_err(|e| {
+                error.phone_number = Some(e.to_string());
+            });
+        let status = ValueObject::new(CustomerStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
-        if let Err(e) = &customer_type {
+        });
+        let customer_type = ValueObject::new(CustomerType(value.customer_type)).inspect_err(|e| {
             error.customer_type = Some(e.to_string());
-        }
+        });
+
+        let contact_name = match ValueObject::new(CustomerContactName(value.contact_name)) {
+            Ok(val) => {
+                if let Ok(customer_type) = &customer_type
+                    && customer_type.extract().get_value().as_str() == "legal"
+                {
+                    Some(val)
+                } else {
+                    None
+                }
+            }
+            Err(e) => {
+                if let Ok(customer_type) = &customer_type
+                    && customer_type.extract().get_value().as_str() == "legal"
+                {
+                    error.contact_name = Some(e.to_string());
+                }
+                None
+            }
+        };
 
         if error.is_empty() {
             Ok(CreateCustomer {
-                name: name.unwrap(),
-                contact_name: Some(contact_name.unwrap()),
-                email: email.unwrap(),
-                phone_number: Some(phone_number.unwrap()),
-                status: status.unwrap(),
-                customer_type: customer_type.unwrap(),
+                name: name.map_err(|_| CreateCustomerError::default())?,
+                contact_name,
+                email: email.map_err(|_| CreateCustomerError::default())?,
+                phone_number: Some(phone_number.map_err(|_| CreateCustomerError::default())?),
+                status: status.map_err(|_| CreateCustomerError::default())?,
+                customer_type: customer_type.map_err(|_| CreateCustomerError::default())?,
             })
         } else {
             Err(error)
@@ -160,7 +165,7 @@ impl IntoResponse for UpdateCustomerError {
 pub struct UpdateCustomer {
     pub name: ValueObject<CustomerName>,
     pub contact_name: Option<ValueObject<CustomerContactName>>,
-    pub email: ValueObject<CustomerEmail>,
+    pub email: ValueObject<Email>,
     pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
     pub status: ValueObject<CustomerStatus>,
 }

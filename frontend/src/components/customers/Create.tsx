@@ -36,7 +36,7 @@ export default function Create() {
   const [contactName, setContactName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [status, setStatus] = React.useState("");
+  const [status, setStatus] = React.useState<string| undefined>("active");
   const dispatch = useAppDispatch();
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
 
@@ -133,13 +133,22 @@ export default function Create() {
           onChange={e => setPhoneNumber(e.target.value)}
         />
         <FieldError error={errors} field={"phone_number"}/>
+
+
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="lead">Érdeklődő</SelectItem>
+            <SelectItem value="prospect">Lehetséges vevő</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>

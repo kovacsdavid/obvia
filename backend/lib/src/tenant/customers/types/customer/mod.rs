@@ -19,13 +19,11 @@
 
 pub(crate) mod contact_name;
 pub(crate) mod customer_type;
-pub(crate) mod email;
 pub(crate) mod name;
 pub(crate) mod phone_number;
 pub(crate) mod status;
 
 pub(crate) use contact_name::ContactName as CustomerContactName;
-pub(crate) use email::Email as CustomerEmail;
 pub(crate) use name::Name as CustomerName;
 pub(crate) use phone_number::PhoneNumber as CustomerPhoneNumber;
 pub(crate) use status::Status as CustomerStatus;

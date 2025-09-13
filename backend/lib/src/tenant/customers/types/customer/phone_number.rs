@@ -18,6 +18,7 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -28,7 +29,13 @@ impl ValueObjectable for PhoneNumber {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        match Regex::new(r##"^\+[1-9]\d{4,15}$"##) {
+            Ok(re) => match re.is_match(&self.0) {
+                true => Ok(()),
+                false => Err(String::from("Hibás telefonszám formátum")),
+            },
+            Err(_) => Err(String::from("Hibás telefonszám formátum")),
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

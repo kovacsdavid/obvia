@@ -101,7 +101,7 @@ export default function Login() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4" autoComplete={"off"}>
         <Label htmlFor="email">Email</Label>
         <Input
           type="text"

@@ -73,7 +73,7 @@ export default function Register() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4" autoComplete={"off"}>
         <Label htmlFor="last_name">Vezetéknév</Label>
         <Input
           id="last_name"

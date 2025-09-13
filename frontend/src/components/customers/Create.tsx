@@ -22,9 +22,16 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/customers.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Create() {
-  const [customerType, setCustomerType] = React.useState("");
+  const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -74,16 +81,23 @@ export default function Create() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
         <Label htmlFor="customer_type">Típus</Label>
-        <Input
-          id="customer_type"
-          type="text"
+        <Select
           value={customerType}
-          onChange={e => setCustomerType(e.target.value)}
-        />
+          onValueChange={val => setCustomerType(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="natural">Természetes személy</SelectItem>
+            <SelectItem value="legal">Jogi személy</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"customer_type"}/>
-        <Label htmlFor="name">Név</Label>
+        <Label htmlFor="name">{customerType === "legal" ? "Jogi személy neve" : "Név"}</Label>
         <Input
           id="name"
           type="text"
@@ -91,15 +105,19 @@ export default function Create() {
           onChange={e => setName(e.target.value)}
         />
         <FieldError error={errors} field={"name"}/>
-        <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-        <Input
-          id="contact_name"
-          type="text"
-          value={contactName}
-          onChange={e => setContactName(e.target.value)}
-        />
-        <FieldError error={errors} field={"contact_name"}/>
-        <Label htmlFor="email">E-mail cím</Label>
+        {customerType === "legal" ? (
+          <>
+            <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+            <Input
+              id="contact_name"
+              type="text"
+              value={contactName}
+              onChange={e => setContactName(e.target.value)}
+            />
+            <FieldError error={errors} field={"contact_name"}/>
+          </>
+        ) : null}
+        <Label htmlFor="email">{customerType === "legal" ? "Kapcsolattartó e-mail címe" : "E-mail cím"}</Label>
         <Input
           id="email"
           type="text"
@@ -107,7 +125,7 @@ export default function Create() {
           onChange={e => setEmail(e.target.value)}
         />
         <FieldError error={errors} field={"email"}/>
-        <Label htmlFor="phone_number">Telefonszám</Label>
+        <Label htmlFor="phone_number">{customerType === "legal" ? "Kapcsolattartó telefonszáma" : "Telefonszám"}</Label>
         <Input
           id="phone_number"
           type="text"

@@ -21,8 +21,10 @@ pub(crate) mod end_date;
 pub(crate) mod name;
 pub(crate) mod start_date;
 pub(crate) mod status;
+pub(crate) mod description;
 
 pub(crate) use end_date::EndDate as ProjectEndDate;
 pub(crate) use name::Name as ProjectName;
 pub(crate) use start_date::StartDate as ProjectStartDate;
 pub(crate) use status::Status as ProjectStatus;
+pub(crate) use description::Description as ProjectDescription;

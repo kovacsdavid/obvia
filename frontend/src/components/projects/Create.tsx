@@ -22,13 +22,20 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/projects.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState("");
   const [endDate, setEndDate] = React.useState("");
-  const [status, setStatus] = React.useState("");
+  const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
 
@@ -72,7 +79,7 @@ export default function Create() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
         <Label htmlFor="name">Név</Label>
         <Input
           id="name"
@@ -89,20 +96,12 @@ export default function Create() {
           onChange={e => setDescription(e.target.value)}
         />
         <FieldError error={errors} field={"description"}/>
-        <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
-          value={startDate}
-          onChange={e => setStartDate(e.target.value)}
-        />
-        <FieldError error={errors} field={"status"}/>
         <Label htmlFor="start_date">Kezdő dátum</Label>
         <Input
           id="start_date"
           type="text"
-          value={endDate}
-          onChange={e => setEndDate(e.target.value)}
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
         />
         <FieldError error={errors} field={"start_date"}/>
         <Label htmlFor="end_date">Határidő</Label>
@@ -114,12 +113,18 @@ export default function Create() {
         />
         <FieldError error={errors} field={"end_date"}/>
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>

@@ -28,7 +28,11 @@ impl ValueObjectable for Name {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+         if !self.0.trim().is_empty() {
+            Ok(())
+        } else {
+            Err(String::from("A mező kitöltése kötelező"))
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

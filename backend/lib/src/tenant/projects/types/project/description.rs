@@ -20,25 +20,21 @@
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use chrono::NaiveDateTime;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct StartDate(pub String);
+pub struct Description(pub String);
 
-impl ValueObjectable for StartDate {
+impl ValueObjectable for Description {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if self.0.trim().is_empty() {
+        if self.0.len() <= 3000 {
             Ok(())
         } else {
-            NaiveDateTime::parse_from_str(
-                self.0.trim(),
-                "%Y-%m-%d %H:%M:%S"
-            ).map_err(|_|String::from("Hibás dátum formátum! (2006-01-02 15:04:05)"))?;
-            Ok(())
+            Err(String::from(
+                "A leírás nem lehet 3 000 karakternél hosszabb!",
+            ))
         }
-
     }
 
     /// Retrieves a reference to the value contained within the struct.
@@ -50,7 +46,7 @@ impl ValueObjectable for StartDate {
     }
 }
 
-impl Display for StartDate {
+impl Display for Description {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -66,7 +62,7 @@ impl Display for StartDate {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<StartDate> {
+impl<'de> Deserialize<'de> for ValueObject<Description> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -93,7 +89,7 @@ impl<'de> Deserialize<'de> for ValueObject<StartDate> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(StartDate(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Description(s)).map_err(serde::de::Error::custom)
     }
 }
 

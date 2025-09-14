@@ -17,16 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::projects::types::project::{
-    ProjectEndDate, ProjectName, ProjectStartDate, ProjectStatus,
-};
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::projects::types::project::{ProjectDescription, ProjectEndDate, ProjectName, ProjectStartDate, ProjectStatus};
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use crate::validate_optional_string;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateProjectHelper {
@@ -37,7 +36,7 @@ pub struct CreateProjectHelper {
     pub end_date: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateProjectError {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -73,51 +72,37 @@ impl IntoResponse for CreateProjectError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateProject {
     pub name: ValueObject<ProjectName>,
-    pub description: Option<String>,
+    pub description: Option<ValueObject<ProjectDescription>>,
     pub status: ValueObject<ProjectStatus>,
-    pub start_date: Option<DateTime<Local>>,
-    pub end_date: Option<DateTime<Local>>,
+    pub start_date: Option<ValueObject<ProjectStartDate>>,
+    pub end_date: Option<ValueObject<ProjectEndDate>>,
 }
 
 impl TryFrom<CreateProjectHelper> for CreateProject {
     type Error = CreateProjectError;
     fn try_from(value: CreateProjectHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateProjectError {
-            name: None,
-            description: None,
-            status: None,
-            start_date: None,
-            end_date: None,
-        };
+        let mut error = CreateProjectError::default();
 
-        let name = ValueObject::new(ProjectName(value.name));
-        let status = ValueObject::new(ProjectStatus(value.status));
-        let start_date = ValueObject::new(ProjectStartDate(value.start_date));
-        let end_date = ValueObject::new(ProjectEndDate(value.end_date));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(ProjectName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
-
-        if let Err(e) = &status {
+        });
+        let status = ValueObject::new(ProjectStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
-
-        if let Err(e) = &start_date {
-            error.start_date = Some(e.to_string());
-        }
-
-        if let Err(e) = &end_date {
-            error.end_date = Some(e.to_string());
-        }
+        });
+        let description =
+            validate_optional_string!(ProjectDescription(value.description), error.description);
+        let start_date
+            = validate_optional_string!(ProjectStartDate(value.start_date), error.start_date);
+        let end_date =
+            validate_optional_string!(ProjectEndDate(value.end_date), error.end_date);
 
         if error.is_empty() {
             Ok(CreateProject {
-                name: name.unwrap(),
-                description: Some(value.description),
-                status: status.unwrap(),
-                start_date: Some(Local::now()), // TODO: date handling!
-                end_date: Some(Local::now()),   // TODO: date handling!
+                name: name.map_err(|_| CreateProjectError::default())?,
+                description,
+                status: status.map_err(|_| CreateProjectError::default())?,
+                start_date,
+                end_date,
             })
         } else {
             Err(error)

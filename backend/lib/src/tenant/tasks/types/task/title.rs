@@ -28,7 +28,16 @@ impl ValueObjectable for Title {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().is_empty() {
+            return Err(String::from("A mező kitöltése kötelező"));
+        }
+        if self.0.len() <= 500 {
+            Ok(())
+        } else {
+            Err(String::from(
+                "A megnevezés nem lehet 500 karakternél hosszabb!",
+            ))
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

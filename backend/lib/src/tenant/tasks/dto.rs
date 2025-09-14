@@ -17,8 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::tasks::types::task::{TaskPriority, TaskStatus, TaskTitle};
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::tasks::types::task::{
+    TaskDescription, TaskDueDate, TaskPriority, TaskStatus, TaskTitle,
+};
+use crate::validate_optional_string;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -36,7 +39,7 @@ pub struct CreateTaskHelper {
     pub due_date: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateTaskError {
     pub worksheet_id: Option<String>,
     pub title: Option<String>,
@@ -75,48 +78,38 @@ impl IntoResponse for CreateTaskError {
 pub struct CreateTask {
     pub worksheet_id: Uuid,
     pub title: ValueObject<TaskTitle>,
-    pub description: Option<String>,
+    pub description: Option<ValueObject<TaskDescription>>,
     pub status: ValueObject<TaskStatus>,
     pub priority: ValueObject<TaskPriority>,
-    pub due_date: Option<DateTime<Local>>,
+    pub due_date: Option<ValueObject<TaskDueDate>>,
 }
 
 impl TryFrom<CreateTaskHelper> for CreateTask {
     type Error = CreateTaskError;
     fn try_from(value: CreateTaskHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateTaskError {
-            worksheet_id: None,
-            title: None,
-            description: None,
-            status: None,
-            priority: None,
-            due_date: None,
-        };
+        let mut error = CreateTaskError::default();
 
-        let title = ValueObject::new(TaskTitle(value.title));
-        let status = ValueObject::new(TaskStatus(value.status));
-        let priority = ValueObject::new(TaskPriority(value.priority));
-
-        if let Err(e) = &title {
+        let title = ValueObject::new(TaskTitle(value.title)).inspect_err(|e| {
             error.title = Some(e.to_string());
-        }
-
-        if let Err(e) = &status {
+        });
+        let status = ValueObject::new(TaskStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
-
-        if let Err(e) = &priority {
+        });
+        let priority = ValueObject::new(TaskPriority(value.priority)).inspect_err(|e| {
             error.priority = Some(e.to_string());
-        }
+        });
+        let description =
+            validate_optional_string!(TaskDescription(value.description), error.description);
+        let due_date = validate_optional_string!(TaskDueDate(value.due_date), error.due_date);
 
         if error.is_empty() {
             Ok(CreateTask {
                 worksheet_id: value.worksheet_id,
-                title: title.unwrap(),
-                description: Some(value.description),
-                status: status.unwrap(),
-                priority: priority.unwrap(),
-                due_date: Some(Local::now()), // TODO: date handling
+                title: title.map_err(|_| CreateTaskError::default())?,
+                description,
+                status: status.map_err(|_| CreateTaskError::default())?,
+                priority: priority.map_err(|_| CreateTaskError::default())?,
+                due_date,
             })
         } else {
             Err(error)

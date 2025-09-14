@@ -22,13 +22,20 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/tasks.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Create() {
-  const [worksheetId, setWorksheetId] = React.useState("");
+  const [worksheetId, setWorksheetId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [priority, setPriority] = React.useState("");
+  const [status, setStatus] = React.useState("active");
+  const [priority, setPriority] = React.useState("normal");
   const [dueDate, setDueDate] = React.useState("");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
@@ -76,12 +83,18 @@ export default function Create() {
       <GlobalError error={errors}/>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
         <Label htmlFor="worksheet_id">Munkalap ID</Label>
-        <Input
-          id="worksheet_id"
-          type="text"
+        <Select
           value={worksheetId}
-          onChange={e => setWorksheetId(e.target.value)}
-        />
+          onValueChange={val => setWorksheetId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Munkalap 1</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Munkalap 2</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"worksheet_id"}/>
         <Label htmlFor="title">Megnevezés</Label>
         <Input
@@ -100,20 +113,33 @@ export default function Create() {
         />
         <FieldError error={errors} field={"description"}/>
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Label htmlFor="priority">Prioritás</Label>
-        <Input
-          id="priority"
-          type="text"
+        <Select
           value={priority}
-          onChange={e => setPriority(e.target.value)}
-        />
+          onValueChange={val => setPriority(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="low">Alacsony</SelectItem>
+            <SelectItem value="normal">Normál</SelectItem>
+            <SelectItem value="high">Magas</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"priority"}/>
         <Label htmlFor="due_date">Határidő</Label>
         <Input

@@ -18,14 +18,16 @@
  */
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use crate::tenant::projects::types::project::{ProjectDescription, ProjectEndDate, ProjectName, ProjectStartDate, ProjectStatus};
+use crate::tenant::projects::types::project::{
+    ProjectDescription, ProjectEndDate, ProjectName, ProjectStartDate, ProjectStatus,
+};
+use crate::validate_optional_string;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use crate::validate_optional_string;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateProjectHelper {
@@ -91,10 +93,9 @@ impl TryFrom<CreateProjectHelper> for CreateProject {
         });
         let description =
             validate_optional_string!(ProjectDescription(value.description), error.description);
-        let start_date
-            = validate_optional_string!(ProjectStartDate(value.start_date), error.start_date);
-        let end_date =
-            validate_optional_string!(ProjectEndDate(value.end_date), error.end_date);
+        let start_date =
+            validate_optional_string!(ProjectStartDate(value.start_date), error.start_date);
+        let end_date = validate_optional_string!(ProjectEndDate(value.end_date), error.end_date);
 
         if error.is_empty() {
             Ok(CreateProject {

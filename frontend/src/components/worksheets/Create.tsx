@@ -22,12 +22,19 @@ import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/worksheets.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [projectId, setProjectId] = React.useState("");
-  const [status, setStatus] = React.useState("");
+  const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
 
@@ -88,20 +95,32 @@ export default function Create() {
         />
         <FieldError error={errors} field={"description"}/>
         <Label htmlFor="project_id">Project ID</Label>
-        <Input
-          id="project_id"
-          type="text"
+        <Select
           value={projectId}
-          onChange={e => setProjectId(e.target.value)}
-        />
+          onValueChange={val => setProjectId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Project 1</SelectItem>
+            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Project 2</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"project_id"}/>
         <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
+        <Select
           value={status}
-          onChange={e => setStatus(e.target.value)}
-        />
+          onValueChange={val => setStatus(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktív</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
+          </SelectContent>
+        </Select>
         <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>

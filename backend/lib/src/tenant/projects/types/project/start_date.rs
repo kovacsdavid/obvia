@@ -18,9 +18,9 @@
  */
 
 use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use chrono::NaiveDateTime;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use chrono::NaiveDateTime;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct StartDate(pub String);
@@ -32,13 +32,10 @@ impl ValueObjectable for StartDate {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
-            NaiveDateTime::parse_from_str(
-                self.0.trim(),
-                "%Y-%m-%d %H:%M:%S"
-            ).map_err(|_|String::from("Hibás dátum formátum! (2006-01-02 15:04:05)"))?;
+            NaiveDateTime::parse_from_str(self.0.trim(), "%Y-%m-%d %H:%M:%S")
+                .map_err(|_| String::from("Hibás dátum formátum! (2006-01-02 15:04:05)"))?;
             Ok(())
         }
-
     }
 
     /// Retrieves a reference to the value contained within the struct.

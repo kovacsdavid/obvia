@@ -18,8 +18,11 @@
  */
 
 use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
-use crate::tenant::worksheets::types::worksheet::{WorksheetName, WorksheetStatus};
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::worksheets::types::worksheet::{
+    WorksheetDescription, WorksheetName, WorksheetStatus,
+};
+use crate::validate_optional_string;
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -34,7 +37,7 @@ pub struct CreateWorksheetHelper {
     pub status: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateWorksheetError {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -68,7 +71,7 @@ impl IntoResponse for CreateWorksheetError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateWorksheet {
     pub name: ValueObject<WorksheetName>,
-    pub description: Option<String>,
+    pub description: Option<ValueObject<WorksheetDescription>>,
     pub project_id: Uuid,
     pub status: ValueObject<WorksheetStatus>,
 }
@@ -76,30 +79,23 @@ pub struct CreateWorksheet {
 impl TryFrom<CreateWorksheetHelper> for CreateWorksheet {
     type Error = CreateWorksheetError;
     fn try_from(value: CreateWorksheetHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateWorksheetError {
-            name: None,
-            description: None,
-            project_id: None,
-            status: None,
-        };
+        let mut error = CreateWorksheetError::default();
 
-        let name = ValueObject::new(WorksheetName(value.name));
-        let status = ValueObject::new(WorksheetStatus(value.status));
-
-        if let Err(e) = &name {
+        let name = ValueObject::new(WorksheetName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
-        }
-
-        if let Err(e) = &status {
+        });
+        let status = ValueObject::new(WorksheetStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
-        }
+        });
+        let description =
+            validate_optional_string!(WorksheetDescription(value.description), error.description);
 
         if error.is_empty() {
             Ok(CreateWorksheet {
-                name: name.unwrap(),
-                description: Some(value.description),
+                name: name.map_err(|_| CreateWorksheetError::default())?,
+                description,
                 project_id: value.project_id,
-                status: status.unwrap(),
+                status: status.map_err(|_| CreateWorksheetError::default())?,
             })
         } else {
             Err(error)

@@ -28,7 +28,7 @@ impl ValueObjectable for Name {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-         if !self.0.trim().is_empty() {
+        if !self.0.trim().is_empty() {
             Ok(())
         } else {
             Err(String::from("A mező kitöltése kötelező"))

@@ -58,26 +58,17 @@ pub fn init_default_tenants_module(
     TenantsModuleBuilder::default()
         .pool_manager(pool_manager.clone())
         .config(config)
-        .repo_factory(Box::new(
-            move || -> Box<dyn TenantsRepository + Send + Sync> {
-                Box::new(PoolManagerWrapper::new(pool_manager.clone()))
-            },
-        ))
-        .migrator_factory(Box::new(|| -> Box<dyn DatabaseMigrator + Send + Sync> {
-            Box::new(PgDatabaseMigrator)
-        }))
-        .connection_tester_factory(Box::new(|| -> Box<dyn ConnectionTester + Send + Sync> {
-            Box::new(PgConnectionTester)
-        }))
+        .tenants_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .migrator(Arc::new(PgDatabaseMigrator))
+        .connection_tester(Arc::new(PgConnectionTester))
 }
 
 pub struct TenantsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
-    pub repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
-    pub migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
-    pub connection_tester_factory:
-        Box<dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync>,
+    pub tenants_repo: Arc<dyn TenantsRepository + Send + Sync>,
+    pub migrator: Arc<dyn DatabaseMigrator + Send + Sync>,
+    pub connection_tester: Arc<dyn ConnectionTester + Send + Sync>,
 }
 
 /// A builder struct for initializing a `TenantsModule`. This struct provides a configurable way to set up the
@@ -86,12 +77,9 @@ pub struct TenantsModule {
 pub struct TenantsModuleBuilder {
     pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
-    pub repo_factory:
-        Option<Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>>,
-    pub migrator_factory:
-        Option<Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>>,
-    pub connection_tester_factory:
-        Option<Box<dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync>>,
+    pub tenants_repo: Option<Arc<dyn TenantsRepository + Send + Sync>>,
+    pub migrator: Option<Arc<dyn DatabaseMigrator + Send + Sync>>,
+    pub connection_tester: Option<Arc<dyn ConnectionTester + Send + Sync>>,
 }
 
 impl TenantsModuleBuilder {
@@ -106,9 +94,9 @@ impl TenantsModuleBuilder {
         Self {
             pool_manager: None,
             config: None,
-            repo_factory: None,
-            migrator_factory: None,
-            connection_tester_factory: None,
+            tenants_repo: None,
+            migrator: None,
+            connection_tester: None,
         }
     }
     /// Sets the database pool manager for the current instance.
@@ -159,11 +147,8 @@ impl TenantsModuleBuilder {
     /// # Returns
     /// - `Self`: Returns the modified instance of `Self` with the provided repository
     ///   factory stored.
-    pub fn repo_factory(
-        mut self,
-        repo_factory: Box<dyn Fn() -> Box<dyn TenantsRepository + Send + Sync> + Send + Sync>,
-    ) -> Self {
-        self.repo_factory = Some(repo_factory);
+    pub fn tenants_repo(mut self, tenants_repo: Arc<dyn TenantsRepository + Send + Sync>) -> Self {
+        self.tenants_repo = Some(tenants_repo);
         self
     }
     /// Sets a custom migrator factory for the database migration process.
@@ -176,11 +161,8 @@ impl TenantsModuleBuilder {
     /// # Returns
     ///
     /// Returns `Self`, allowing for method chaining.
-    pub fn migrator_factory(
-        mut self,
-        migrator_factory: Box<dyn Fn() -> Box<dyn DatabaseMigrator + Send + Sync> + Send + Sync>,
-    ) -> Self {
-        self.migrator_factory = Some(migrator_factory);
+    pub fn migrator(mut self, migrator_factory: Arc<dyn DatabaseMigrator + Send + Sync>) -> Self {
+        self.migrator = Some(migrator_factory);
         self
     }
     /// Sets a custom connection tester for the object.
@@ -199,13 +181,11 @@ impl TenantsModuleBuilder {
     ///
     /// Returns the instance of `Self` with the `connection_tester` field updated to the provided
     /// function, allowing for method chaining.
-    pub fn connection_tester_factory(
+    pub fn connection_tester(
         mut self,
-        connection_tester_factory: Box<
-            dyn Fn() -> Box<dyn ConnectionTester + Send + Sync> + Send + Sync,
-        >,
+        connection_tester: Arc<dyn ConnectionTester + Send + Sync>,
     ) -> Self {
-        self.connection_tester_factory = Some(connection_tester_factory);
+        self.connection_tester = Some(connection_tester);
         self
     }
     /// Builds and returns an instance of `TenantsModule`.
@@ -226,14 +206,14 @@ impl TenantsModuleBuilder {
                 .pool_manager
                 .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
-            repo_factory: self
-                .repo_factory
+            tenants_repo: self
+                .tenants_repo
                 .ok_or("repo_factory is required".to_string())?,
-            migrator_factory: self
-                .migrator_factory
+            migrator: self
+                .migrator
                 .ok_or("migrator_factory is required".to_string())?,
-            connection_tester_factory: self
-                .connection_tester_factory
+            connection_tester: self
+                .connection_tester
                 .ok_or("connection_tester is required".to_string())?,
         })
     }
@@ -261,9 +241,9 @@ pub(crate) mod tests {
             TenantsModuleBuilder {
                 pool_manager: Some(Arc::new(MockPgPoolManagerTrait::new())),
                 config: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
-                repo_factory: Some(Box::new(|| Box::new(MockTenantsRepository::new()))),
-                migrator_factory: Some(Box::new(|| Box::new(MockDatabaseMigrator::new()))),
-                connection_tester_factory: Some(Box::new(|| Box::new(MockConnectionTester::new()))),
+                tenants_repo: Some(Arc::new(MockTenantsRepository::new())),
+                migrator: Some(Arc::new(MockDatabaseMigrator::new())),
+                connection_tester: Some(Arc::new(MockConnectionTester::new())),
             }
         }
     }

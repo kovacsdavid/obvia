@@ -18,7 +18,6 @@
  */
 
 use crate::manager::app::config::{BasicDatabaseConfig, TenantDatabaseConfig};
-use crate::manager::app::database::DatabaseMigrator;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::manager::common::error::FriendlyError;
@@ -26,7 +25,6 @@ use crate::manager::common::services::generate_string_csprng;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::CreateTenant;
-use crate::manager::tenants::repository::TenantsRepository;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
@@ -67,8 +65,6 @@ use uuid::Uuid;
 /// # Panics
 /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
 async fn self_hosted(
-    repo: &mut (dyn TenantsRepository + Send + Sync),
-    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
@@ -77,14 +73,19 @@ async fn self_hosted(
         .clone()
         .try_into()
         .map_err(|e: String| FriendlyError::Internal(e).trace(Level::ERROR))?;
-    let connection_tester = (tenants_module.connection_tester_factory)();
-    match connection_tester
+    match tenants_module
+        .connection_tester
         .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
         .await
     {
         Ok(pool) => {
-            match connection_tester.is_empty_database(&pool).await {
-                Ok(_) => match repo
+            match tenants_module
+                .connection_tester
+                .is_empty_database(&pool)
+                .await
+            {
+                Ok(_) => match tenants_module
+                    .tenants_repo
                     .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
                     .await
                 {
@@ -108,7 +109,11 @@ async fn self_hosted(
                                     FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
                                 })? {
                                 Some(tenant_pool) => {
-                                    match migrator.migrate_tenant_db(tenant_pool).await {
+                                    match tenants_module
+                                        .migrator
+                                        .migrate_tenant_db(tenant_pool)
+                                        .await
+                                    {
                                         Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
                                             message: String::from(
                                                 "Szervezeti egység létrehozása sikeresen megtörtént!",
@@ -193,8 +198,6 @@ async fn self_hosted(
 /// * The success message, "Szervezeti egység létrehozása sikeresen megtörtént!", is hardcoded
 ///   in Hungarian. Modify it if localization is necessary for other languages.
 async fn managed(
-    repo: &mut (dyn TenantsRepository + Send + Sync),
-    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
@@ -209,7 +212,8 @@ async fn managed(
         max_pool_size: None,
         ssl_mode: Some(String::from("disable")),
     };
-    match repo
+    match tenants_module
+        .tenants_repo
         .setup_managed(
             uuid,
             payload.name.extract().get_value(),
@@ -235,16 +239,18 @@ async fn managed(
                         .get_tenant_pool(tenant.id)
                         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
                     {
-                        Some(tenant_pool) => match migrator.migrate_tenant_db(tenant_pool).await {
-                            Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
-                                message: String::from(
-                                    "Szervezeti egység létrehozása sikeresen megtörtént!",
-                                ),
-                            })),
-                            Err(e) => {
-                                Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR))
+                        Some(tenant_pool) => {
+                            match tenants_module.migrator.migrate_tenant_db(tenant_pool).await {
+                                Ok(_) => Ok(OkResponse::new(SimpleMessageResponse {
+                                    message: String::from(
+                                        "Szervezeti egység létrehozása sikeresen megtörtént!",
+                                    ),
+                                })),
+                                Err(e) => {
+                                    Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR))
+                                }
                             }
-                        },
+                        }
                         None => Err(FriendlyError::Internal(
                             "Could not get tenant_pool".to_string(),
                         )
@@ -290,15 +296,13 @@ async fn managed(
 /// If the creation fails, a `FriendlyError` is returned, which provides a user-comprehensible description
 /// of the error for better clarity and user experience.
 pub async fn try_create(
-    repo: &mut (dyn TenantsRepository + Send + Sync),
-    migrator: &(dyn DatabaseMigrator + Send + Sync),
     claims: Claims,
     payload: CreateTenant,
     tenants_module: Arc<TenantsModule>,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     if payload.is_self_hosted() {
-        self_hosted(repo, migrator, claims, payload, tenants_module).await
+        self_hosted(claims, payload, tenants_module).await
     } else {
-        managed(repo, migrator, claims, payload, tenants_module).await
+        managed(claims, payload, tenants_module).await
     }
 }

@@ -74,14 +74,10 @@ pub async fn create(
 ) -> Response {
     match payload {
         Ok(Json(payload)) => match CreateTenant::try_from(payload) {
-            Ok(user_input) => {
-                let mut repo = (tenants_module.repo_factory)();
-                let migrator = (tenants_module.migrator_factory)();
-                match try_create(&mut *repo, &*migrator, claims, user_input, tenants_module).await {
-                    Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
-                    Err(e) => e.into_response(),
-                }
-            }
+            Ok(user_input) => match try_create(claims, user_input, tenants_module).await {
+                Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
+                Err(e) => e.into_response(),
+            },
             Err(e) => e.into_response(),
         },
         Err(_) => FriendlyError::UserFacing(
@@ -142,8 +138,6 @@ pub async fn list(
     State(tenants_module): State<Arc<TenantsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> Response {
-    let repo = (tenants_module.repo_factory)();
-
     let paginator = PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default());
     let orderding = OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
         order_by: "name".to_string(),
@@ -151,7 +145,8 @@ pub async fn list(
     });
     let filtering = FilteringParams::from(&payload);
 
-    match repo
+    match tenants_module
+        .tenants_repo
         .get_all_by_user_id(claims.sub(), paginator, orderding, filtering)
         .await
     {
@@ -215,8 +210,8 @@ pub async fn activate(
 ) -> Response {
     match payload {
         Ok(payload) => {
-            let repo = (tenants_module.repo_factory)();
-            match repo
+            match tenants_module
+                .tenants_repo
                 .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
                 .await
             {
@@ -259,15 +254,14 @@ mod tests {
         AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
     use crate::manager::app::database::{
-        ConnectionTester, DatabaseMigrator, MockConnectionTester, MockDatabaseMigrator,
-        MockPgPoolManagerTrait,
+        MockConnectionTester, MockDatabaseMigrator, MockPgPoolManagerTrait,
     };
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::manager::tenants;
     use crate::manager::tenants::TenantsModuleBuilder;
     use crate::manager::tenants::model::{Tenant, UserTenant};
-    use crate::manager::tenants::repository::{MockTenantsRepository, TenantsRepository};
+    use crate::manager::tenants::repository::MockTenantsRepository;
     use axum::Router;
     use axum::body::Body;
     use axum::http::Request;
@@ -299,43 +293,35 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
-        let repo_factory = Box::new(|| {
-            let mut repo = MockTenantsRepository::new();
-            repo.expect_setup_managed()
-                .times(1)
-                .withf(|_, name, _, _, _| name == "test")
-                .returning(|uuid: Uuid, _, _, _, _| {
-                    Ok(Tenant {
-                        id: uuid,
-                        name: "test".to_string(),
-                        is_self_hosted: false,
-                        db_host: "localhost".to_string(),
-                        db_port: 5432,
-                        db_name: "database".to_string(),
-                        db_user: "user".to_string(),
-                        db_password: "password".to_string(),
-                        db_max_pool_size: 5,
-                        db_ssl_mode: "disable".to_string(),
-                        created_at: Local::now(),
-                        updated_at: Local::now(),
-                        deleted_at: None,
-                    })
-                });
-            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
-        });
+        let mut repo = MockTenantsRepository::new();
+        repo.expect_setup_managed()
+            .times(1)
+            .withf(|_, name, _, _, _| name == "test")
+            .returning(|uuid: Uuid, _, _, _, _| {
+                Ok(Tenant {
+                    id: uuid,
+                    name: "test".to_string(),
+                    is_self_hosted: false,
+                    db_host: "localhost".to_string(),
+                    db_port: 5432,
+                    db_name: "database".to_string(),
+                    db_user: "user".to_string(),
+                    db_password: "password".to_string(),
+                    db_max_pool_size: 5,
+                    db_ssl_mode: "disable".to_string(),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                })
+            });
 
-        let migrator_factory = Box::new(|| {
-            let mut migrator = MockDatabaseMigrator::new();
-            migrator
-                .expect_migrate_tenant_db()
-                .times(1)
-                .returning(|_| Ok(()));
-            Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
-        });
+        let mut migrator = MockDatabaseMigrator::new();
+        migrator
+            .expect_migrate_tenant_db()
+            .times(1)
+            .returning(|_| Ok(()));
 
-        let connection_tester_factory = Box::new(|| {
-            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
-        });
+        let connection_tester = MockConnectionTester::new();
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
@@ -378,9 +364,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(pool_manager_mock.clone())
             .config(config.clone())
-            .repo_factory(repo_factory)
-            .migrator_factory(migrator_factory)
-            .connection_tester_factory(connection_tester_factory)
+            .tenants_repo(Arc::new(repo))
+            .migrator(Arc::new(migrator))
+            .connection_tester(Arc::new(connection_tester))
             .build()
             .unwrap();
 
@@ -425,43 +411,35 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
-        let repo_factory = Box::new(|| {
-            let mut repo = MockTenantsRepository::new();
-            repo.expect_setup_managed()
-                .times(0)
-                .withf(|_, name, _, _, _| name == "test")
-                .returning(|uuid: Uuid, _, _, _, _| {
-                    Ok(Tenant {
-                        id: uuid,
-                        name: "test".to_string(),
-                        is_self_hosted: false,
-                        db_host: "localhost".to_string(),
-                        db_port: 5432,
-                        db_name: "database".to_string(),
-                        db_user: "user".to_string(),
-                        db_password: "password".to_string(),
-                        db_max_pool_size: 5,
-                        db_ssl_mode: "disable".to_string(),
-                        created_at: Local::now(),
-                        updated_at: Local::now(),
-                        deleted_at: None,
-                    })
-                });
-            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
-        });
+        let mut repo = MockTenantsRepository::new();
+        repo.expect_setup_managed()
+            .times(0)
+            .withf(|_, name, _, _, _| name == "test")
+            .returning(|uuid: Uuid, _, _, _, _| {
+                Ok(Tenant {
+                    id: uuid,
+                    name: "test".to_string(),
+                    is_self_hosted: false,
+                    db_host: "localhost".to_string(),
+                    db_port: 5432,
+                    db_name: "database".to_string(),
+                    db_user: "user".to_string(),
+                    db_password: "password".to_string(),
+                    db_max_pool_size: 5,
+                    db_ssl_mode: "disable".to_string(),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                })
+            });
 
-        let migrator_factory = Box::new(|| {
-            let mut migrator = MockDatabaseMigrator::new();
-            migrator
-                .expect_migrate_tenant_db()
-                .times(0)
-                .returning(|_| Ok(()));
-            Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
-        });
+        let mut migrator = MockDatabaseMigrator::new();
+        migrator
+            .expect_migrate_tenant_db()
+            .times(0)
+            .returning(|_| Ok(()));
 
-        let connection_tester_factory = Box::new(|| {
-            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
-        });
+        let connection_tester = MockConnectionTester::new();
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
@@ -504,9 +482,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(pool_manager_mock.clone())
             .config(config.clone())
-            .repo_factory(repo_factory)
-            .migrator_factory(migrator_factory)
-            .connection_tester_factory(connection_tester_factory)
+            .tenants_repo(Arc::new(repo))
+            .migrator(Arc::new(migrator))
+            .connection_tester(Arc::new(connection_tester))
             .build()
             .unwrap();
 
@@ -539,60 +517,51 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
-        let repo_factory = Box::new(|| {
-            let mut repo = MockTenantsRepository::new();
-            repo.expect_setup_self_hosted()
-                .times(1)
-                .withf(|name, _, _| name == "test")
-                .returning(|_, _, _| {
-                    Ok(Tenant {
-                        id: Uuid::new_v4(),
-                        name: "test".to_string(),
-                        is_self_hosted: true,
-                        db_host: "example.com".to_string(),
-                        db_port: 5432,
-                        db_name: "tenant_1234567890".to_string(),
-                        db_user: "tenant_1234567890".to_string(),
-                        db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
-                        db_max_pool_size: 5,
-                        db_ssl_mode: "verify-full".to_string(),
-                        created_at: Local::now(),
-                        updated_at: Local::now(),
-                        deleted_at: None,
-                    })
-                });
-            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
-        });
+        let mut repo = MockTenantsRepository::new();
+        repo.expect_setup_self_hosted()
+            .times(1)
+            .withf(|name, _, _| name == "test")
+            .returning(|_, _, _| {
+                Ok(Tenant {
+                    id: Uuid::new_v4(),
+                    name: "test".to_string(),
+                    is_self_hosted: true,
+                    db_host: "example.com".to_string(),
+                    db_port: 5432,
+                    db_name: "tenant_1234567890".to_string(),
+                    db_user: "tenant_1234567890".to_string(),
+                    db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
+                    db_max_pool_size: 5,
+                    db_ssl_mode: "verify-full".to_string(),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                })
+            });
 
-        let migrator_factory = Box::new(|| {
-            let mut migrator = MockDatabaseMigrator::new();
-            migrator
-                .expect_migrate_tenant_db()
-                .times(1)
-                .returning(|_| Ok(()));
-            Box::new(migrator) as Box<dyn DatabaseMigrator + Send + Sync>
-        });
+        let mut migrator = MockDatabaseMigrator::new();
+        migrator
+            .expect_migrate_tenant_db()
+            .times(1)
+            .returning(|_| Ok(()));
 
-        let connection_tester_factory = Box::new(|| {
-            let mut connection_tester = MockConnectionTester::new();
-            connection_tester
-                .expect_test_connect()
-                .times(1)
-                .returning(|config, ssl_mode| {
-                    let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
-                    let pool = PgPoolOptions::new()
-                        .max_connections(config.max_pool_size())
-                        .acquire_timeout(Duration::from_secs(3))
-                        .connect_lazy_with(conn);
-                    Ok(pool)
-                });
-            connection_tester
-                .expect_is_empty_database()
-                .times(1)
-                .returning(|_| Ok(()));
+        let mut connection_tester = MockConnectionTester::new();
+        connection_tester
+            .expect_test_connect()
+            .times(1)
+            .returning(|config, ssl_mode| {
+                let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
+                let pool = PgPoolOptions::new()
+                    .max_connections(config.max_pool_size())
+                    .acquire_timeout(Duration::from_secs(3))
+                    .connect_lazy_with(conn);
+                Ok(pool)
+            });
 
-            Box::new(connection_tester) as Box<dyn ConnectionTester + Send + Sync>
-        });
+        connection_tester
+            .expect_is_empty_database()
+            .times(1)
+            .returning(|_| Ok(()));
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
@@ -635,9 +604,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(pool_manager_mock.clone())
             .config(config.clone())
-            .repo_factory(repo_factory)
-            .migrator_factory(migrator_factory)
-            .connection_tester_factory(connection_tester_factory)
+            .tenants_repo(Arc::new(repo))
+            .migrator(Arc::new(migrator))
+            .connection_tester(Arc::new(connection_tester))
             .build()
             .unwrap();
 
@@ -667,36 +636,30 @@ mod tests {
         let active_tenant_id2 = active_tenant_id1;
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
-        let repo_factory = Box::new(move || {
-            let mut repo = MockTenantsRepository::new();
-            repo.expect_get_user_active_tenant_by_id()
-                .times(1)
-                .withf(move |user_id, tenant_id| {
-                    *user_id == user_id1 && *tenant_id == active_tenant_id1
-                })
-                .returning(|user_id, tenant_id| {
-                    Ok(Some(UserTenant {
-                        id: Uuid::new_v4(),
-                        user_id,
-                        tenant_id,
-                        role: "owner".to_string(),
-                        invited_by: None,
-                        last_activated: Local::now(),
-                        created_at: Local::now(),
-                        updated_at: Local::now(),
-                        deleted_at: None,
-                    }))
-                });
-            Box::new(repo) as Box<dyn TenantsRepository + Send + Sync>
-        });
 
-        let migrator_factory = Box::new(|| {
-            Box::new(MockDatabaseMigrator::new()) as Box<dyn DatabaseMigrator + Send + Sync>
-        });
+        let mut repo = MockTenantsRepository::new();
+        repo.expect_get_user_active_tenant_by_id()
+            .times(1)
+            .withf(move |user_id, tenant_id| {
+                *user_id == user_id1 && *tenant_id == active_tenant_id1
+            })
+            .returning(|user_id, tenant_id| {
+                Ok(Some(UserTenant {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    tenant_id,
+                    role: "owner".to_string(),
+                    invited_by: None,
+                    last_activated: Local::now(),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                }))
+            });
 
-        let connection_tester_factory = Box::new(|| {
-            Box::new(MockConnectionTester::new()) as Box<dyn ConnectionTester + Send + Sync>
-        });
+        let migrator = MockDatabaseMigrator::new();
+
+        let connection_tester = MockConnectionTester::new();
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
@@ -737,9 +700,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(Arc::new(MockPgPoolManagerTrait::new()))
             .config(config.clone())
-            .repo_factory(repo_factory)
-            .migrator_factory(migrator_factory)
-            .connection_tester_factory(connection_tester_factory)
+            .tenants_repo(Arc::new(repo))
+            .migrator(Arc::new(migrator))
+            .connection_tester(Arc::new(connection_tester))
             .build()
             .unwrap();
 

@@ -51,6 +51,7 @@ export default function Register() {
               navigate("/login");
               break;
             }
+            case 409:
             case 422:
               setErrors(responseData.error);
               break;

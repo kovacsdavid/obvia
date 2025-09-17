@@ -137,7 +137,7 @@ impl AuthRepository for PoolManagerWrapper {
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
                 .bind(email)
                 .fetch_one(&self.pool_manager.get_main_pool())
-                .await?
+                .await?,
         )
     }
 

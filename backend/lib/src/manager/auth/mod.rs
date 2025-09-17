@@ -50,7 +50,6 @@ pub fn init_default_auth_module(
     config: Arc<AppConfig>,
 ) -> AuthModuleBuilder {
     AuthModuleBuilder::default()
-        .pool_manager(pool_manager.clone())
         .config(config)
         .auth_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
@@ -73,7 +72,6 @@ pub fn init_default_auth_module(
 ///
 /// Using `Arc` for the fields allows safe sharing of these components across multiple threads.
 pub struct AuthModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
     pub auth_repo: Arc<dyn AuthRepository + Send + Sync>,
 }
@@ -98,7 +96,6 @@ pub struct AuthModule {
 ///   (e.g., user credentials, tokens, etc.). The closure is designed to create a factory for fetching repository
 ///   instances and supports `Send + Sync` for concurrent use.
 pub struct AuthModuleBuilder {
-    pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     config: Option<Arc<AppConfig>>,
     auth_repo: Option<Arc<dyn AuthRepository + Send + Sync>>,
 }
@@ -114,26 +111,9 @@ impl AuthModuleBuilder {
     /// - `repo_factory`: Set to `None`.
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
             auth_repo: None,
         }
-    }
-    /// Sets the pool manager for the current instance.
-    ///
-    /// This method allows you to specify a custom pool manager that conforms to the `PgPoolManagerTrait`.
-    /// The provided pool manager will be stored in the current instance for further usage.
-    ///
-    /// # Arguments
-    ///
-    /// * `pool_manager` - An `Arc` containing a type that implements the `PgPoolManagerTrait`.
-    ///
-    /// # Returns
-    ///
-    /// Returns the updated instance of `Self` with the `pool_manager` set.
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     /// Sets the configuration for the current instance.
     ///
@@ -186,9 +166,6 @@ impl AuthModuleBuilder {
     /// - Returns an error if `repo_factory` is not set.
     pub fn build(self) -> Result<AuthModule, String> {
         Ok(AuthModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("pool_manager is required".to_string())?,
             auth_repo: self
                 .auth_repo
@@ -208,13 +185,11 @@ impl Default for AuthModuleBuilder {
 pub(crate) mod tests {
     use super::*;
     use crate::manager::app::config::AppConfigBuilder;
-    use crate::manager::app::database::MockPgPoolManagerTrait;
     use crate::manager::auth::repository::MockAuthRepository;
 
     impl Default for AuthModuleBuilder {
         fn default() -> Self {
             AuthModuleBuilder {
-                pool_manager: Some(Arc::new(MockPgPoolManagerTrait::new())),
                 config: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
                 auth_repo: Some(Arc::new(MockAuthRepository::new())),
             }

@@ -130,7 +130,6 @@ mod tests {
     use uuid::Uuid;
 
     use crate::manager::app::config::AppConfigBuilder;
-    use crate::manager::app::database::MockPgPoolManagerTrait;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::common::error::DatabaseError;
@@ -175,7 +174,6 @@ mod tests {
             .with(eq(user_id2))
             .returning(|_| Ok(None));
         let auth_module = AuthModule {
-            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             auth_repo: Arc::new(repo),
         };
@@ -249,7 +247,6 @@ mod tests {
             .with(eq(user_id2))
             .returning(|_| Ok(None));
         let auth_module = AuthModule {
-            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             auth_repo: Arc::new(repo),
         };
@@ -308,7 +305,6 @@ mod tests {
             .returning(|_, _| Ok(()));
 
         let auth_module = AuthModule {
-            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             auth_repo: Arc::new(repo),
         };
@@ -348,7 +344,6 @@ mod tests {
         });
 
         let auth_module = AuthModule {
-            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             auth_repo: Arc::new(repo),
         };
@@ -412,7 +407,6 @@ mod tests {
                 }))
             });
         let auth_module = AuthModule {
-            pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
             auth_repo: Arc::new(repo),
         };

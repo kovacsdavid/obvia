@@ -59,8 +59,7 @@ pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
     Json(payload): Json<LoginRequest>,
 ) -> Response {
-    let repo = (auth_module.repo_factory)();
-    match try_login(&*repo, auth_module.clone(), payload).await {
+    match try_login(auth_module.clone(), payload).await {
         Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
         Err(e) => e.into_response(),
     }
@@ -101,13 +100,10 @@ pub async fn register(
 ) -> Response {
     match payload {
         Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
-            Ok(user_input) => {
-                let repo = (auth_module.repo_factory)();
-                match try_register(&*repo, user_input).await {
-                    Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
-                    Err(e) => e.into_response(),
-                }
-            }
+            Ok(user_input) => match try_register(auth_module.auth_repo.clone(), user_input).await {
+                Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
+                Err(e) => e.into_response(),
+            },
             Err(e) => e.into_response(),
         },
         Err(_) => FriendlyError::UserFacing(
@@ -137,7 +133,6 @@ mod tests {
     use crate::manager::app::database::MockPgPoolManagerTrait;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
-    use crate::manager::auth::repository::AuthRepository;
     use crate::manager::common::error::DatabaseError;
     use crate::manager::common::types::value_object::ValueObject;
     use crate::manager::common::types::{Email, FirstName, LastName, Password};
@@ -154,38 +149,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_success() {
-        let repo_factory = Box::new(|| {
-            let mut repo = MockAuthRepository::new();
-            let user_id1 = Uuid::new_v4();
-            let user_id2 = user_id1;
-            repo.expect_get_user_by_email()
-                .with(eq("testuser@example.com"))
-                .returning(move |_| Ok(User {
-                    id: user_id1,
-                    email: "testuser@example.com".to_string(),
-                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-                    first_name: Some("Test".to_string()),
-                    last_name: Some("User".to_string()),
-                    phone: Some("+123456789".to_string()),
-                    status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
-                    profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
-                    invited_by: None,
-                    email_verified_at: Some(Local::now()),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
-                    deleted_at: None,
-                }));
-            repo.expect_get_user_active_tenant()
-                .with(eq(user_id2))
-                .returning(|_| Ok(None));
-            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
-        });
+        let mut repo = MockAuthRepository::new();
+        let user_id1 = Uuid::new_v4();
+        let user_id2 = user_id1;
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(move |_| Ok(User {
+                id: user_id1,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Local::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Local::now()),
+                created_at: Local::now(),
+                updated_at: Local::now(),
+                deleted_at: None,
+            }));
+        repo.expect_get_user_active_tenant()
+            .with(eq(user_id2))
+            .returning(|_| Ok(None));
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            repo_factory,
+            auth_repo: Arc::new(repo),
         };
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
@@ -231,38 +223,35 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_failure() {
-        let repo_factory = Box::new(|| {
-            let mut repo = MockAuthRepository::new();
-            let user_id1 = Uuid::new_v4();
-            let user_id2 = user_id1;
-            repo.expect_get_user_by_email()
-                .with(eq("testuser@example.com"))
-                .returning(move |_| Ok(User {
-                    id: user_id1,
-                    email: "testuser@example.com".to_string(),
-                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-                    first_name: Some("Test".to_string()),
-                    last_name: Some("User".to_string()),
-                    phone: Some("+123456789".to_string()),
-                    status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
-                    profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
-                    invited_by: None,
-                    email_verified_at: Some(Local::now()),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
-                    deleted_at: None,
-                }));
-            repo.expect_get_user_active_tenant()
-                .with(eq(user_id2))
-                .returning(|_| Ok(None));
-            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
-        });
+        let mut repo = MockAuthRepository::new();
+        let user_id1 = Uuid::new_v4();
+        let user_id2 = user_id1;
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(move |_| Ok(User {
+                id: user_id1,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Local::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Local::now()),
+                created_at: Local::now(),
+                updated_at: Local::now(),
+                deleted_at: None,
+            }));
+        repo.expect_get_user_active_tenant()
+            .with(eq(user_id2))
+            .returning(|_| Ok(None));
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            repo_factory,
+            auth_repo: Arc::new(repo),
         };
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
@@ -299,32 +288,29 @@ mod tests {
         })
         .unwrap();
 
-        let repo_factory = Box::new(|| {
-            let mut repo = MockAuthRepository::new();
-            repo.expect_insert_user()
-                .withf(move |payload_param, hashed_password| {
-                    *payload_param
-                        == RegisterRequest {
-                            email: ValueObject::new(Email("testuser@example.com".to_string()))
-                                .unwrap(),
-                            first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
-                            last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
-                            password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
-                        }
-                        && Argon2::default()
-                            .verify_password(
-                                b"Password1!",
-                                &PasswordHash::new(&hashed_password).unwrap(),
-                            )
-                            .is_ok()
-                })
-                .returning(|_, _| Ok(()));
-            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
-        });
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user()
+            .withf(move |payload_param, hashed_password| {
+                *payload_param
+                    == RegisterRequest {
+                        email: ValueObject::new(Email("testuser@example.com".to_string())).unwrap(),
+                        first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
+                        last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
+                        password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
+                    }
+                    && Argon2::default()
+                        .verify_password(
+                            b"Password1!",
+                            &PasswordHash::new(&hashed_password).unwrap(),
+                        )
+                        .is_ok()
+            })
+            .returning(|_, _| Ok(()));
+
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            repo_factory,
+            auth_repo: Arc::new(repo),
         };
 
         let request = Request::builder()
@@ -354,19 +340,17 @@ mod tests {
         })
         .unwrap();
 
-        let repo_factory = Box::new(|| {
-            let mut repo = MockAuthRepository::new();
-            repo.expect_insert_user().returning(|_, _| {
-                Err(DatabaseError::DatabaseError(
-                    "duplicate key value violates unique constraint".to_string(),
-                ))
-            });
-            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user().returning(|_, _| {
+            Err(DatabaseError::DatabaseError(
+                "duplicate key value violates unique constraint".to_string(),
+            ))
         });
+
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            repo_factory,
+            auth_repo: Arc::new(repo),
         };
 
         let request = Request::builder()
@@ -390,50 +374,47 @@ mod tests {
     async fn test_active_user_tenant() {
         let active_tenant_id1 = Uuid::new_v4();
         let active_tenant_id2 = active_tenant_id1;
-        let repo_factory = Box::new(move || {
-            let mut repo = MockAuthRepository::new();
-            let user_id1 = Uuid::new_v4();
-            let user_id2 = user_id1;
-            repo.expect_get_user_by_email()
-                .with(eq("testuser@example.com"))
-                .returning(move |_| Ok(User {
-                    id: user_id1,
-                    email: "testuser@example.com".to_string(),
-                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-                    first_name: Some("Test".to_string()),
-                    last_name: Some("User".to_string()),
-                    phone: Some("+123456789".to_string()),
-                    status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
-                    profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+        let mut repo = MockAuthRepository::new();
+        let user_id1 = Uuid::new_v4();
+        let user_id2 = user_id1;
+        repo.expect_get_user_by_email()
+            .with(eq("testuser@example.com"))
+            .returning(move |_| Ok(User {
+                id: user_id1,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Local::now()),
+                profile_picture_url: None,
+                locale: Some("hu-HU".to_string()),
+                invited_by: None,
+                email_verified_at: Some(Local::now()),
+                created_at: Local::now(),
+                updated_at: Local::now(),
+                deleted_at: None,
+            }));
+        repo.expect_get_user_active_tenant()
+            .with(eq(user_id2))
+            .returning(move |user_id| {
+                Ok(Some(UserTenant {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    tenant_id: active_tenant_id1,
+                    role: "owner".to_string(),
                     invited_by: None,
-                    email_verified_at: Some(Local::now()),
+                    last_activated: Local::now(),
                     created_at: Local::now(),
                     updated_at: Local::now(),
                     deleted_at: None,
-                }));
-            repo.expect_get_user_active_tenant()
-                .with(eq(user_id2))
-                .returning(move |user_id| {
-                    Ok(Some(UserTenant {
-                        id: Uuid::new_v4(),
-                        user_id,
-                        tenant_id: active_tenant_id1,
-                        role: "owner".to_string(),
-                        invited_by: None,
-                        last_activated: Local::now(),
-                        created_at: Local::now(),
-                        updated_at: Local::now(),
-                        deleted_at: None,
-                    }))
-                });
-            Box::new(repo) as Box<dyn AuthRepository + Send + Sync>
-        });
+                }))
+            });
         let auth_module = AuthModule {
             pool_manager: Arc::new(MockPgPoolManagerTrait::new()),
             config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            repo_factory,
+            auth_repo: Arc::new(repo),
         };
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),

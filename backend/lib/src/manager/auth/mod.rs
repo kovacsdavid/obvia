@@ -52,11 +52,7 @@ pub fn init_default_auth_module(
     AuthModuleBuilder::default()
         .pool_manager(pool_manager.clone())
         .config(config)
-        .repo_factory(Box::new(
-            move || -> Box<dyn AuthRepository + Send + Sync> {
-                Box::new(PoolManagerWrapper::new(pool_manager.clone()))
-            },
-        ))
+        .auth_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 /// `AuthModule` is a structure that represents the authentication module in the application.
@@ -79,7 +75,7 @@ pub fn init_default_auth_module(
 pub struct AuthModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
-    pub repo_factory: Box<dyn Fn() -> Box<dyn AuthRepository + Send + Sync> + Send + Sync>,
+    pub auth_repo: Arc<dyn AuthRepository + Send + Sync>,
 }
 
 /// A builder for constructing an instance of an authentication module with configurable dependencies.
@@ -104,7 +100,7 @@ pub struct AuthModule {
 pub struct AuthModuleBuilder {
     pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     config: Option<Arc<AppConfig>>,
-    repo_factory: Option<Box<dyn Fn() -> Box<dyn AuthRepository + Send + Sync> + Send + Sync>>,
+    auth_repo: Option<Arc<dyn AuthRepository + Send + Sync>>,
 }
 
 impl AuthModuleBuilder {
@@ -120,7 +116,7 @@ impl AuthModuleBuilder {
         Self {
             pool_manager: None,
             config: None,
-            repo_factory: None,
+            auth_repo: None,
         }
     }
     /// Sets the pool manager for the current instance.
@@ -170,11 +166,8 @@ impl AuthModuleBuilder {
     /// # Returns
     ///
     /// Returns the modified instance of `Self` with the repository factory set.
-    pub fn repo_factory(
-        mut self,
-        repo_factory: Box<dyn Fn() -> Box<dyn AuthRepository + Send + Sync> + Send + Sync>,
-    ) -> Self {
-        self.repo_factory = Some(repo_factory);
+    pub fn auth_repo(mut self, auth_repo: Arc<dyn AuthRepository + Send + Sync>) -> Self {
+        self.auth_repo = Some(auth_repo);
         self
     }
     /// Builds an `AuthModule` instance using the provided configuration in the builder.
@@ -197,8 +190,8 @@ impl AuthModuleBuilder {
                 .pool_manager
                 .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("pool_manager is required".to_string())?,
-            repo_factory: self
-                .repo_factory
+            auth_repo: self
+                .auth_repo
                 .ok_or("pool_manager is required".to_string())?,
         })
     }
@@ -223,7 +216,7 @@ pub(crate) mod tests {
             AuthModuleBuilder {
                 pool_manager: Some(Arc::new(MockPgPoolManagerTrait::new())),
                 config: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
-                repo_factory: Some(Box::new(|| Box::new(MockAuthRepository::new()))),
+                auth_repo: Some(Arc::new(MockAuthRepository::new())),
             }
         }
     }

@@ -79,19 +79,23 @@ use uuid::Uuid;
 /// - `jsonwebtoken` crate for JWT creation.
 /// - `chrono` crate for timestamps and expiration calculations.
 pub async fn try_login(
-    repo: &(dyn AuthRepository + Send + Sync),
     auth_module: Arc<AuthModule>,
     payload: LoginRequest,
 ) -> Result<OkResponse<LoginResponse>, FriendlyError> {
-    let user = repo.get_user_by_email(&payload.email).await.map_err(|_| {
-        FriendlyError::UserFacing(
-            StatusCode::UNAUTHORIZED,
-            "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-            "Hibás e-mail cím vagy jelszó".to_string(),
-        )
-        .trace(tracing::Level::DEBUG)
-    })?;
-    let active_user_tenant = repo
+    let user = auth_module
+        .auth_repo
+        .get_user_by_email(&payload.email)
+        .await
+        .map_err(|_| {
+            FriendlyError::UserFacing(
+                StatusCode::UNAUTHORIZED,
+                "AUTH/SERVICE/UNAUTHORIZED".to_string(),
+                "Hibás e-mail cím vagy jelszó".to_string(),
+            )
+            .trace(tracing::Level::DEBUG)
+        })?;
+    let active_user_tenant = auth_module
+        .auth_repo
         .get_user_active_tenant(user.id)
         .await
         .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
@@ -169,7 +173,7 @@ pub async fn try_login(
 /// - The email duplication check relies on the database rejecting duplicate entries based on a unique constraint.
 /// - Ensure that the password hashing utility is properly configured and secure.
 pub async fn try_register(
-    repo: &(dyn AuthRepository + Send + Sync),
+    repo: Arc<dyn AuthRepository + Send + Sync>,
     payload: RegisterRequest,
 ) -> Result<OkResponse<SimpleMessageResponse>, FriendlyError> {
     let salt = SaltString::generate(&mut OsRng);

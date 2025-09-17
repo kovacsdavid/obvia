@@ -76,7 +76,7 @@ pub struct RegisterRequestHelper {
 ///   in any other ways
 /// - Make sure to handle the `password_confirm` field securely and avoid logging, storing or exposing it
 ///   in any other ways
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct RegisterRequestError {
     pub email: Option<String>,
     pub first_name: Option<String>,
@@ -178,7 +178,6 @@ pub struct RegisterRequest {
     pub first_name: ValueObject<FirstName>,
     pub last_name: ValueObject<LastName>,
     pub password: ValueObject<Password>,
-    pub password_confirm: String,
 }
 
 impl TryFrom<RegisterRequestHelper> for RegisterRequest {
@@ -222,48 +221,37 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
     /// - Make sure to handle the `password_confirm` field securely and avoid logging, storing or exposing it
     ///   in any other ways
     fn try_from(value: RegisterRequestHelper) -> Result<Self, Self::Error> {
-        let mut errors = RegisterRequestError {
-            email: None,
-            first_name: None,
-            last_name: None,
-            password: None,
-            password_confirm: None,
-        };
+        let mut error = RegisterRequestError::default();
 
-        let email_result = ValueObject::new(Email(value.email));
-        let first_name_result = ValueObject::new(FirstName(value.first_name));
-        let last_name_result = ValueObject::new(LastName(value.last_name));
-        let password_result = ValueObject::new(Password(value.password));
+        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+            error.email = Some(e.to_string());
+        });
+        let first_name_result = ValueObject::new(FirstName(value.first_name)).inspect_err(|e| {
+            error.first_name = Some(e.to_string());
+        });
+        let last_name_result = ValueObject::new(LastName(value.last_name)).inspect_err(|e| {
+            error.last_name = Some(e.to_string());
+        });
+        let password_result = ValueObject::new(Password(value.password)).inspect_err(|e| {
+            error.password = Some(e.to_string());
+        });
 
-        if let Err(e) = &email_result {
-            errors.email = Some(e.to_string());
-        }
-        if let Err(e) = &first_name_result {
-            errors.first_name = Some(e.to_string());
-        }
-        if let Err(e) = &last_name_result {
-            errors.last_name = Some(e.to_string());
-        }
-        if let Err(e) = &password_result {
-            errors.password = Some(e.to_string());
-        }
         if let Ok(password) = &password_result
             && password.extract().get_value().clone() != value.password_confirm.clone()
         {
-            errors.password_confirm =
+            error.password_confirm =
                 Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
         }
 
-        if errors.is_empty() {
+        if error.is_empty() {
             Ok(RegisterRequest {
-                email: email_result.unwrap(),
-                first_name: first_name_result.unwrap(),
-                last_name: last_name_result.unwrap(),
-                password: password_result.unwrap(),
-                password_confirm: value.password_confirm,
+                email: email_result.map_err(|_| RegisterRequestError::default())?,
+                first_name: first_name_result.map_err(|_| RegisterRequestError::default())?,
+                last_name: last_name_result.map_err(|_| RegisterRequestError::default())?,
+                password: password_result.map_err(|_| RegisterRequestError::default())?,
             })
         } else {
-            Err(errors)
+            Err(error)
         }
     }
 }

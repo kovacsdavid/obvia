@@ -310,7 +310,6 @@ mod tests {
                             first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
                             last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
                             password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
-                            password_confirm: "Password1!".to_string(),
                         }
                         && Argon2::default()
                             .verify_password(

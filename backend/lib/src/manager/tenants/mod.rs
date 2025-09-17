@@ -181,10 +181,7 @@ impl TenantsModuleBuilder {
     ///
     /// Returns the instance of `Self` with the `connection_tester` field updated to the provided
     /// function, allowing for method chaining.
-    pub fn connection_tester(
-        mut self,
-        connection_tester: Arc<dyn ConnectionTester>,
-    ) -> Self {
+    pub fn connection_tester(mut self, connection_tester: Arc<dyn ConnectionTester>) -> Self {
         self.connection_tester = Some(connection_tester);
         self
     }

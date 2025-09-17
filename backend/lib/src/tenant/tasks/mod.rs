@@ -23,6 +23,7 @@ use std::sync::Arc;
 mod dto;
 mod handler;
 pub(crate) mod model;
+pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod types;
 

@@ -73,7 +73,7 @@ pub fn init_default_auth_module(
 /// Using `Arc` for the fields allows safe sharing of these components across multiple threads.
 pub struct AuthModule {
     pub config: Arc<AppConfig>,
-    pub auth_repo: Arc<dyn AuthRepository + Send + Sync>,
+    pub auth_repo: Arc<dyn AuthRepository>,
 }
 
 /// A builder for constructing an instance of an authentication module with configurable dependencies.
@@ -97,7 +97,7 @@ pub struct AuthModule {
 ///   instances and supports `Send + Sync` for concurrent use.
 pub struct AuthModuleBuilder {
     config: Option<Arc<AppConfig>>,
-    auth_repo: Option<Arc<dyn AuthRepository + Send + Sync>>,
+    auth_repo: Option<Arc<dyn AuthRepository>>,
 }
 
 impl AuthModuleBuilder {
@@ -146,7 +146,7 @@ impl AuthModuleBuilder {
     /// # Returns
     ///
     /// Returns the modified instance of `Self` with the repository factory set.
-    pub fn auth_repo(mut self, auth_repo: Arc<dyn AuthRepository + Send + Sync>) -> Self {
+    pub fn auth_repo(mut self, auth_repo: Arc<dyn AuthRepository>) -> Self {
         self.auth_repo = Some(auth_repo);
         self
     }

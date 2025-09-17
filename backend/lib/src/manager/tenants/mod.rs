@@ -66,9 +66,9 @@ pub fn init_default_tenants_module(
 pub struct TenantsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
-    pub tenants_repo: Arc<dyn TenantsRepository + Send + Sync>,
-    pub migrator: Arc<dyn DatabaseMigrator + Send + Sync>,
-    pub connection_tester: Arc<dyn ConnectionTester + Send + Sync>,
+    pub tenants_repo: Arc<dyn TenantsRepository>,
+    pub migrator: Arc<dyn DatabaseMigrator>,
+    pub connection_tester: Arc<dyn ConnectionTester>,
 }
 
 /// A builder struct for initializing a `TenantsModule`. This struct provides a configurable way to set up the
@@ -77,9 +77,9 @@ pub struct TenantsModule {
 pub struct TenantsModuleBuilder {
     pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
-    pub tenants_repo: Option<Arc<dyn TenantsRepository + Send + Sync>>,
-    pub migrator: Option<Arc<dyn DatabaseMigrator + Send + Sync>>,
-    pub connection_tester: Option<Arc<dyn ConnectionTester + Send + Sync>>,
+    pub tenants_repo: Option<Arc<dyn TenantsRepository>>,
+    pub migrator: Option<Arc<dyn DatabaseMigrator>>,
+    pub connection_tester: Option<Arc<dyn ConnectionTester>>,
 }
 
 impl TenantsModuleBuilder {
@@ -147,7 +147,7 @@ impl TenantsModuleBuilder {
     /// # Returns
     /// - `Self`: Returns the modified instance of `Self` with the provided repository
     ///   factory stored.
-    pub fn tenants_repo(mut self, tenants_repo: Arc<dyn TenantsRepository + Send + Sync>) -> Self {
+    pub fn tenants_repo(mut self, tenants_repo: Arc<dyn TenantsRepository>) -> Self {
         self.tenants_repo = Some(tenants_repo);
         self
     }
@@ -161,7 +161,7 @@ impl TenantsModuleBuilder {
     /// # Returns
     ///
     /// Returns `Self`, allowing for method chaining.
-    pub fn migrator(mut self, migrator_factory: Arc<dyn DatabaseMigrator + Send + Sync>) -> Self {
+    pub fn migrator(mut self, migrator_factory: Arc<dyn DatabaseMigrator>) -> Self {
         self.migrator = Some(migrator_factory);
         self
     }
@@ -183,7 +183,7 @@ impl TenantsModuleBuilder {
     /// function, allowing for method chaining.
     pub fn connection_tester(
         mut self,
-        connection_tester: Arc<dyn ConnectionTester + Send + Sync>,
+        connection_tester: Arc<dyn ConnectionTester>,
     ) -> Self {
         self.connection_tester = Some(connection_tester);
         self

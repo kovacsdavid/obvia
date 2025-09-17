@@ -249,7 +249,7 @@ impl PgPoolManagerTrait for PgPoolManager {
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait ConnectionTester {
+pub trait ConnectionTester: Send + Sync {
     async fn test_connect(
         &self,
         config: &BasicDatabaseConfig,
@@ -330,7 +330,7 @@ impl ConnectionTester for PgConnectionTester {
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait DatabaseMigrator {
+pub trait DatabaseMigrator: Send + Sync {
     async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<()>;
 }
 

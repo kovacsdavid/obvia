@@ -64,7 +64,7 @@ use uuid::Uuid;
 ///   found or a database error occurred.
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait AuthRepository: Send + Sync + 'static {
+pub trait AuthRepository: Send + Sync {
     /// Inserts a new user into the database.
     ///
     /// # Parameters

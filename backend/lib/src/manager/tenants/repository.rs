@@ -85,7 +85,7 @@ use uuid::Uuid;
 ///     of all tenants, or an error if the operation fails.
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait TenantsRepository: Send + Sync + 'static {
+pub trait TenantsRepository: Send + Sync {
     /// Retrieves an `Tenant` by its UUID.
     ///
     /// # Parameters

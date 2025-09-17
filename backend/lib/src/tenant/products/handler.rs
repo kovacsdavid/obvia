@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::FriendlyError;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
-use crate::manager::common::error::FriendlyError;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::{CreateProduct, CreateProductHelper};
 use axum::extract::rejection::JsonRejection;

@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::app::config::{
     BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider,
 };
-use crate::manager::common::error::DatabaseError;
 use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -256,7 +256,7 @@ pub trait ConnectionTester: Send + Sync {
         ssl_mode: PgSslMode,
     ) -> sqlx::Result<PgPool, sqlx::Error>;
 
-    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), DatabaseError>;
+    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), RepositoryError>;
 }
 
 /// `PgConnectionTester` is a struct used for testing or verifying connections to a PostgreSQL database.
@@ -309,21 +309,18 @@ impl ConnectionTester for PgConnectionTester {
     /// This function returns a `DatabaseError` in two cases:
     /// * If the query fails to execute due to a database connection or syntax error.
     /// * If the count of tables in the database schema is greater than zero, indicating that the database is not empty.
-    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), DatabaseError> {
+    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), RepositoryError> {
         let result = sqlx::query_scalar::<_, i32>(
             "SELECT count(*) as number_of_tables
                     FROM information_schema.tables
                     WHERE table_schema = 'public'",
         )
         .fetch_one(pool)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        .await?;
         if result == 0 {
             Ok(())
         } else {
-            Err(DatabaseError::DatabaseError(
-                "Database is not empty".to_string(),
-            ))
+            Err(RepositoryError::Custom("Database is not empty".to_string()))
         }
     }
 }

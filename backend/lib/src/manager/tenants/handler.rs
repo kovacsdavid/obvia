@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::FriendlyError;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{
     OkResponse, OrderingParams, PagedResult, PaginatorParams, QueryParam,
 };
-use crate::manager::common::error::FriendlyError;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, PublicTenant, TenantActivateRequest,

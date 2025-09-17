@@ -22,11 +22,12 @@ use super::{
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
+use crate::common::error::FriendlyError;
 use crate::manager::common::dto::SimpleMessageResponse;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::{
     auth::dto::{login::LoginRequest, register::RegisterRequest},
-    common::{dto::OkResponse, error::FriendlyError},
+    common::dto::OkResponse,
 };
 use anyhow::Result;
 use argon2::{

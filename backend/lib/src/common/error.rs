@@ -18,13 +18,12 @@
  */
 use thiserror::Error;
 
+use crate::manager::common::dto::{ErrorBody, ErrorResponse};
 use axum::{
     Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-
-use super::dto::{ErrorBody, ErrorResponse};
 
 /// An enumeration representing different types of errors that can occur.
 /// This enum implements the `Debug`, `Error`, and `Clone` traits for debugging,
@@ -231,7 +230,16 @@ impl IntoResponse for FriendlyError {
 /// # Notes
 /// - It is compatible with the `thiserror` crate to provide human-readable error messages via the `Display` implementation.
 #[derive(Debug, Error)]
-pub enum DatabaseError {
+pub enum RepositoryError {
     #[error("Database error: {0}")]
-    DatabaseError(String),
+    Database(#[from] sqlx::Error),
+
+    #[error("Parse error: {0}")]
+    Parse(String),
+
+    #[error("ValueObject error: {0}")]
+    ValueObject(String),
+
+    #[error("Custom error: {0}")]
+    Custom(String),
 }

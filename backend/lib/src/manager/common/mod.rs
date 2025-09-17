@@ -18,7 +18,6 @@
  */
 
 pub(crate) mod dto;
-pub(crate) mod error;
 pub(crate) mod repository;
 pub(crate) mod services;
 pub(crate) mod types;

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::register::RegisterRequest;
-use crate::manager::common::error::DatabaseError;
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::model::UserTenant;
@@ -84,7 +84,7 @@ pub trait AuthRepository: Send + Sync {
         &self,
         payload: &RegisterRequest,
         password_hash: &str,
-    ) -> Result<(), DatabaseError>;
+    ) -> Result<(), RepositoryError>;
     /// Asynchronously retrieves a user from the database by their email address.
     ///
     /// # Arguments
@@ -102,12 +102,12 @@ pub trait AuthRepository: Send + Sync {
     /// - The database connection fails.
     /// - The query encounters an error.
     /// - No user is found with the specified email address.
-    async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError>;
+    async fn get_user_by_email(&self, email: &str) -> Result<User, RepositoryError>;
 
     async fn get_user_active_tenant(
         &self,
         user_id: Uuid,
-    ) -> Result<Option<UserTenant>, DatabaseError>;
+    ) -> Result<Option<UserTenant>, RepositoryError>;
 }
 
 #[async_trait]
@@ -116,7 +116,7 @@ impl AuthRepository for PoolManagerWrapper {
         &self,
         payload: &RegisterRequest,
         password_hash: &str,
-    ) -> Result<(), DatabaseError> {
+    ) -> Result<(), RepositoryError> {
         sqlx::query(
             "INSERT INTO users (
                     id, email, password_hash, first_name, last_name
@@ -128,25 +128,23 @@ impl AuthRepository for PoolManagerWrapper {
         .bind(payload.first_name.extract().get_value())
         .bind(payload.last_name.extract().get_value())
         .execute(&self.pool_manager.get_main_pool())
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        .await?;
         Ok(())
     }
 
-    async fn get_user_by_email(&self, email: &str) -> Result<User, DatabaseError> {
+    async fn get_user_by_email(&self, email: &str) -> Result<User, RepositoryError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
                 .bind(email)
                 .fetch_one(&self.pool_manager.get_main_pool())
-                .await
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+                .await?
         )
     }
 
     async fn get_user_active_tenant(
         &self,
         user_id: Uuid,
-    ) -> Result<Option<UserTenant>, DatabaseError> {
+    ) -> Result<Option<UserTenant>, RepositoryError> {
         let user_tenant_result = sqlx::query_as::<_, UserTenant>(
             "SELECT * FROM user_tenants WHERE user_id = $1 AND deleted_at IS NULL ORDER BY last_activated DESC LIMIT 1",
         )
@@ -157,7 +155,7 @@ impl AuthRepository for PoolManagerWrapper {
             Ok(user_tenant) => Ok(Some(user_tenant)),
             Err(e) => match e {
                 Error::RowNotFound => Ok(None),
-                _ => Err(DatabaseError::DatabaseError(e.to_string())),
+                _ => Err(RepositoryError::Database(e)),
             },
         };
         if let Ok(user_tenant_option) = &user_tenant_result
@@ -166,8 +164,7 @@ impl AuthRepository for PoolManagerWrapper {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
                 .execute(&self.pool_manager.get_main_pool())
-                .await
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+                .await?;
         }
 
         user_tenant_result

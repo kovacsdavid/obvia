@@ -21,11 +21,9 @@ use super::{
     AuthModule,
     service::{try_login, try_register},
 };
+use crate::common::error::FriendlyError;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
-use crate::manager::{
-    auth::dto::{login::LoginRequest, register::RegisterRequest},
-    common::error::FriendlyError,
-};
+use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use axum::{
     Json, debug_handler,
     extract::{State, rejection::JsonRejection},
@@ -129,10 +127,10 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
+    use crate::common::error::RepositoryError;
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
-    use crate::manager::common::error::DatabaseError;
     use crate::manager::common::types::value_object::ValueObject;
     use crate::manager::common::types::{Email, FirstName, LastName, Password};
     use crate::manager::tenants::model::UserTenant;
@@ -338,9 +336,9 @@ mod tests {
 
         let mut repo = MockAuthRepository::new();
         repo.expect_insert_user().returning(|_, _| {
-            Err(DatabaseError::DatabaseError(
+            Err(RepositoryError::Database(sqlx::Error::Protocol(
                 "duplicate key value violates unique constraint".to_string(),
-            ))
+            )))
         });
 
         let auth_module = AuthModule {

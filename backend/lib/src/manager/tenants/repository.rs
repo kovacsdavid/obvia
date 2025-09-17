@@ -16,10 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::error::RepositoryError;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::common::dto::{OrderingParams, PagedResult, PaginatorParams};
-use crate::manager::common::error::DatabaseError;
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::DdlParameter;
 use crate::manager::common::types::value_object::ValueObject;
@@ -30,7 +31,6 @@ use async_trait::async_trait;
 use mockall::automock;
 use sqlx::Error;
 use sqlx::PgConnection;
-use sqlx::error::BoxDynError;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -98,7 +98,7 @@ pub trait TenantsRepository: Send + Sync {
     /// - `Err(DatabaseError)`: If there is an error during the database operation, or if
     ///   the tenant could not be found.
     #[allow(dead_code)]
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, DatabaseError>;
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, RepositoryError>;
 
     /// Sets up a self-hosted instance for a specific tenant based on the provided payload.
     ///
@@ -129,7 +129,7 @@ pub trait TenantsRepository: Send + Sync {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<Tenant, DatabaseError>;
+    ) -> Result<Tenant, RepositoryError>;
 
     /// Sets up a managed resource based on the provided parameters.
     ///
@@ -169,7 +169,7 @@ pub trait TenantsRepository: Send + Sync {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<Tenant, DatabaseError>;
+    ) -> Result<Tenant, RepositoryError>;
     /// Asynchronously retrieves all tenants associated with a specific user UUID.
     ///
     /// # Parameters
@@ -190,7 +190,7 @@ pub trait TenantsRepository: Send + Sync {
         paginator_params: PaginatorParams,
         ordering_params: OrderingParams,
         filtering_params: FilteringParams,
-    ) -> Result<PagedResult<Vec<Tenant>>, DatabaseError>;
+    ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError>;
     /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
@@ -212,7 +212,7 @@ pub trait TenantsRepository: Send + Sync {
     ///
     /// This function should not be used in any user facing scenario as it will not check if
     /// the user is associated to the tenant or not.
-    async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError>;
+    async fn get_all(&self) -> Result<Vec<Tenant>, RepositoryError>;
 
     /// Retrieves the active tenant associated with a specific user by their user ID and tenant ID.
     ///
@@ -234,41 +234,32 @@ pub trait TenantsRepository: Send + Sync {
         &self,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> Result<Option<UserTenant>, DatabaseError>;
+    ) -> Result<Option<UserTenant>, RepositoryError>;
 }
 
 #[async_trait]
 impl TenantsRepository for PoolManagerWrapper {
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, DatabaseError> {
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, RepositoryError> {
         Ok(sqlx::query_as::<_, Tenant>(
             "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
         .fetch_one(&self.pool_manager.get_main_pool())
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?)
+        .await?)
     }
     async fn setup_self_hosted(
         &self,
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<Tenant, DatabaseError> {
+    ) -> Result<Tenant, RepositoryError> {
         let uuid = Uuid::new_v4();
-        let mut tx = self
-            .pool_manager
-            .get_main_pool()
-            .begin()
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        let mut tx = self.pool_manager.get_main_pool().begin().await?;
 
-        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, true, db_config, claims)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        let tenant =
+            insert_and_connect_with_user(&mut tx, uuid, name, true, db_config, claims).await?;
 
-        tx.commit()
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        tx.commit().await?;
 
         Ok(tenant)
     }
@@ -279,45 +270,33 @@ impl TenantsRepository for PoolManagerWrapper {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<Tenant, DatabaseError> {
-        let mut tx = self
-            .pool_manager
-            .get_main_pool()
-            .begin()
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+    ) -> Result<Tenant, RepositoryError> {
+        let mut tx = self.pool_manager.get_main_pool().begin().await?;
+        let tenant =
+            insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims).await?;
 
         let mut default_tenant_pool = self
             .pool_manager
             .get_default_tenant_pool()
             .acquire()
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config)
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
-        tx.commit()
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+            .await?;
+        create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config).await?;
+        tx.commit().await?;
 
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
             ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+                .map_err(RepositoryError::ValueObject)?,
             ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+                .map_err(RepositoryError::ValueObject)?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
             .bind(tenant.id)
             .bind(tenant.id.to_string())
             .execute(&self.pool_manager.get_default_tenant_pool())
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+            .await?;
         Ok(tenant)
     }
 
@@ -327,7 +306,7 @@ impl TenantsRepository for PoolManagerWrapper {
         paginator_params: PaginatorParams,
         ordering_params: OrderingParams,
         filtering_params: FilteringParams,
-    ) -> Result<PagedResult<Vec<Tenant>>, DatabaseError> {
+    ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError> {
         let total: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM tenants
                 LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
@@ -339,8 +318,7 @@ impl TenantsRepository for PoolManagerWrapper {
         .bind(user_uuid)
         .bind(filtering_params.name.clone())
         .fetch_one(&self.pool_manager.get_main_pool())
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+        .await?;
 
         let order_by_clause = match ordering_params.order_by.as_str() {
             "name" => format!("ORDER BY tenants.name {}", ordering_params.order),
@@ -371,8 +349,7 @@ impl TenantsRepository for PoolManagerWrapper {
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_main_pool())
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+            .await?;
 
         Ok(PagedResult {
             page: paginator_params.page,
@@ -382,18 +359,19 @@ impl TenantsRepository for PoolManagerWrapper {
         })
     }
 
-    async fn get_all(&self) -> Result<Vec<Tenant>, DatabaseError> {
-        sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
-            .fetch_all(&self.pool_manager.get_main_pool())
-            .await
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))
+    async fn get_all(&self) -> Result<Vec<Tenant>, RepositoryError> {
+        Ok(
+            sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
+                .fetch_all(&self.pool_manager.get_main_pool())
+                .await?,
+        )
     }
 
     async fn get_user_active_tenant_by_id(
         &self,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> Result<Option<UserTenant>, DatabaseError> {
+    ) -> Result<Option<UserTenant>, RepositoryError> {
         let user_tenant_result = sqlx::query_as::<_, UserTenant>(
             "SELECT * FROM user_tenants WHERE user_id = $1 AND tenant_id = $2 AND deleted_at IS NULL LIMIT 1",
         )
@@ -405,7 +383,7 @@ impl TenantsRepository for PoolManagerWrapper {
             Ok(user_tenant) => Ok(Some(user_tenant)),
             Err(e) => match e {
                 Error::RowNotFound => Ok(None),
-                _ => Err(DatabaseError::DatabaseError(e.to_string())),
+                _ => Err(RepositoryError::Database(e)),
             },
         };
         if let Ok(user_tenant_option) = &user_tenant_result
@@ -414,8 +392,7 @@ impl TenantsRepository for PoolManagerWrapper {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
                 .execute(&self.pool_manager.get_main_pool())
-                .await
-                .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+                .await?;
         }
 
         user_tenant_result
@@ -429,7 +406,7 @@ async fn insert_and_connect_with_user(
     is_self_hosted: bool,
     db_config: &BasicDatabaseConfig,
     claims: &Claims,
-) -> Result<Tenant, BoxDynError> {
+) -> Result<Tenant, RepositoryError> {
     let tenant = sqlx::query_as::<_, Tenant>(
         "INSERT INTO tenants (
             id, name, is_self_hosted, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode, created_by
@@ -445,13 +422,13 @@ async fn insert_and_connect_with_user(
     .bind(&db_config.password)
     .bind(
         i32::try_from(db_config.max_pool_size())
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            .map_err(|e| RepositoryError::Parse(e.to_string()))?,
     )
     .bind(&db_config.ssl_mode)
     .bind(claims.sub())
     .fetch_one(&mut *conn)
     .await
-    .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+    .map_err(|e| RepositoryError::Parse(e.to_string()))?;
 
     let _connect = sqlx::query_as::<_, UserTenant>(
         "INSERT INTO user_tenants (
@@ -462,8 +439,7 @@ async fn insert_and_connect_with_user(
     .bind(uuid)
     .bind("owner")
     .fetch_one(&mut *conn)
-    .await
-    .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+    .await?;
 
     Ok(tenant)
 }
@@ -472,31 +448,25 @@ async fn create_database_user_for_managed(
     conn: &mut PgConnection,
     tenant: &Tenant,
     app_config: Arc<AppConfig>,
-) -> Result<(), BoxDynError> {
+) -> Result<(), RepositoryError> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
         ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(DatabaseError::DatabaseError)?,
+            .map_err(RepositoryError::ValueObject)?,
         ValueObject::new(DdlParameter(tenant.db_password.to_string()))
-            .map_err(DatabaseError::DatabaseError)?
+            .map_err(RepositoryError::ValueObject)?
     );
 
-    let _create_user = sqlx::query(&create_user_sql)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+    let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
         ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?,
+            .map_err(RepositoryError::ValueObject)?,
         app_config.default_tenant_database().username // safety: not user input
     );
 
-    let _grant = sqlx::query(&grant_sql)
-        .execute(&mut *conn)
-        .await
-        .map_err(|e| DatabaseError::DatabaseError(e.to_string()))?;
+    let _grant = sqlx::query(&grant_sql).execute(&mut *conn).await?;
 
     Ok(())
 }

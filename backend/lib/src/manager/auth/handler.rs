@@ -17,13 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::{
-    AuthModule,
-    service::{try_login, try_register},
-};
+use super::AuthModule;
 use crate::common::error::FriendlyError;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
+use crate::manager::auth::service::AuthService;
+use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
 use axum::{
     Json, debug_handler,
     extract::{State, rejection::JsonRejection},
@@ -57,8 +56,8 @@ pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
     Json(payload): Json<LoginRequest>,
 ) -> Response {
-    match try_login(auth_module.clone(), payload).await {
-        Ok(resp) => (StatusCode::OK, Json(resp)).into_response(),
+    match AuthService::try_login(auth_module.clone(), payload).await {
+        Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
         Err(e) => e.into_response(),
     }
 }
@@ -98,10 +97,18 @@ pub async fn register(
 ) -> Response {
     match payload {
         Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
-            Ok(user_input) => match try_register(auth_module.auth_repo.clone(), user_input).await {
-                Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
-                Err(e) => e.into_response(),
-            },
+            Ok(user_input) => {
+                match AuthService::try_register(auth_module.auth_repo.clone(), user_input).await {
+                    Ok(_) => (
+                        StatusCode::CREATED,
+                        Json(OkResponse::new(SimpleMessageResponse {
+                            message: "A felhasználó sikeresen létrehozva".to_string(),
+                        })),
+                    )
+                        .into_response(),
+                    Err(e) => e.into_response(),
+                }
+            }
             Err(e) => e.into_response(),
         },
         Err(_) => FriendlyError::UserFacing(

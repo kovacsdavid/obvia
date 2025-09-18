@@ -26,7 +26,7 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
-use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
+use crate::manager::tenants::service::TenantsService;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -71,47 +71,34 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     payload: Result<Json<CreateTenantHelper>, JsonRejection>,
-) -> Response {
-    match payload {
-        Ok(Json(payload)) => match CreateTenant::try_from(payload) {
-            Ok(user_input) => {
-                match TenantsService::try_create(claims, user_input, tenants_module).await {
-                    Ok(_) => (
-                        StatusCode::CREATED,
-                        Json(OkResponse::new(SimpleMessageResponse {
-                            message: String::from(
-                                "Szervezeti egység létrehozása sikeresen megtörtént!",
-                            ),
-                        })),
-                    )
-                        .into_response(),
-                    Err(e) => match e {
-                        TenantsServiceError::Repository(_) => {
-                            FriendlyError::Internal(e.to_string())
-                                .trace(Level::ERROR)
-                                .into_response()
-                        }
-                        TenantsServiceError::Config(_) => FriendlyError::Internal(e.to_string())
-                            .trace(Level::ERROR)
-                            .into_response(),
-                        TenantsServiceError::AccessTenantPool => {
-                            FriendlyError::Internal(e.to_string())
-                                .trace(Level::ERROR)
-                                .into_response()
-                        }
-                    },
-                }
-            }
-            Err(e) => e.into_response(),
-        },
-        Err(_) => FriendlyError::UserFacing(
+) -> Result<Response, Response> {
+    let Json(payload) = payload.map_err(|_| {
+        FriendlyError::UserFacing(
             StatusCode::BAD_REQUEST,
             "ORGANIZATIONAL_UNITS/HANDLER/CREATE".to_string(),
             "Invalid JSON".to_string(),
         )
         .trace(Level::DEBUG)
-        .into_response(),
-    }
+        .into_response()
+    })?;
+
+    let user_input = CreateTenant::try_from(payload).map_err(|e| e.into_response())?;
+
+    TenantsService::try_create(claims, user_input, tenants_module)
+        .await
+        .map_err(|e| {
+            FriendlyError::Internal(e.to_string())
+                .trace(Level::ERROR)
+                .into_response()
+        })?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(OkResponse::new(SimpleMessageResponse {
+            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
+        })),
+    )
+        .into_response())
 }
 
 /// Handles the HTTP GET request for a tenant
@@ -161,22 +148,29 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     Query(payload): Query<QueryParam>,
-) -> Response {
-    match TenantsService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: "name".to_string(),
-            order: "asc".to_string(),
-        }),
-        &FilteringParams::from(&payload),
-        &claims,
-        tenants_module.tenants_repo.clone(),
+) -> Result<Response, Response> {
+    Ok((
+        StatusCode::OK,
+        Json(OkResponse::new(
+            TenantsService::get_paged_list(
+                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+                    order_by: "name".to_string(),
+                    order: "asc".to_string(),
+                }),
+                &FilteringParams::from(&payload),
+                &claims,
+                tenants_module.tenants_repo.clone(),
+            )
+            .await
+            .map_err(|e| {
+                FriendlyError::Internal(e.to_string())
+                    .trace(Level::ERROR)
+                    .into_response()
+            })?,
+        )),
     )
-    .await
-    {
-        Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
-        Err(e) => e.into_response(),
-    }
+        .into_response())
 }
 
 /// Activates a tenant for the authenticated user.
@@ -217,28 +211,31 @@ pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     payload: Result<Json<TenantActivateRequest>, JsonRejection>,
-) -> Response {
-    match payload {
-        Ok(payload) => {
-            match TenantsService::activate(
+) -> Result<Response, Response> {
+    let Json(payload) = payload.map_err(|_| {
+        FriendlyError::UserFacing(
+            StatusCode::BAD_REQUEST,
+            "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
+            "Invalid JSON".to_string(),
+        )
+        .trace(Level::DEBUG)
+        .into_response()
+    })?;
+
+    Ok((
+        StatusCode::OK,
+        Json(OkResponse::new(
+            TenantsService::activate(
                 &payload,
                 &claims,
                 tenants_module.tenants_repo.clone(),
                 tenants_module.config.clone(),
             )
             .await
-            {
-                Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
-                Err(e) => e.into_response(),
-            }
-        }
-        Err(_) => FriendlyError::UserFacing(
-            StatusCode::BAD_REQUEST,
-            "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
-            "Invalid JSON".to_string(),
-        )
-        .into_response(),
-    }
+            .map_err(|e| e.into_response())?,
+        )),
+    )
+        .into_response())
 }
 
 #[cfg(test)]

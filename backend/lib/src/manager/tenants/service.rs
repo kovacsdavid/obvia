@@ -107,6 +107,7 @@ impl TenantsService {
             .tenants_repo
             .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
             .await?;
+
         tenants_module
             .pool_manager
             .add_tenant_pool(
@@ -266,26 +267,22 @@ impl TenantsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository + Send + Sync>,
-    ) -> Result<PagedResult<Vec<PublicTenant>>, FriendlyError> {
-        match repo
+    ) -> Result<PagedResult<Vec<PublicTenant>>, TenantsServiceError> {
+        let res = repo
             .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
-            .await
-        {
-            Ok(res) => {
-                let mut public_tenants = vec![];
-                for tenant in res.data {
-                    public_tenants.push(PublicTenant::from(tenant))
-                }
-                Ok(PagedResult {
-                    page: res.page,
-                    limit: res.limit,
-                    total: res.total,
-                    data: public_tenants,
-                })
-            }
-            Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+            .await?;
+        let mut public_tenants = vec![];
+        for tenant in res.data {
+            public_tenants.push(PublicTenant::from(tenant))
         }
+        Ok(PagedResult {
+            page: res.page,
+            limit: res.limit,
+            total: res.total,
+            data: public_tenants,
+        })
     }
+
     pub async fn activate(
         payload: &TenantActivateRequest,
         claims: &Claims,

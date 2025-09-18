@@ -30,6 +30,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use std::sync::Arc;
+use tracing::Level;
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -94,31 +95,29 @@ pub async fn login(
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
     payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
-) -> Response {
-    match payload {
-        Ok(Json(payload)) => match RegisterRequest::try_from(payload) {
-            Ok(user_input) => {
-                match AuthService::try_register(auth_module.auth_repo.clone(), user_input).await {
-                    Ok(_) => (
-                        StatusCode::CREATED,
-                        Json(OkResponse::new(SimpleMessageResponse {
-                            message: "A felhasználó sikeresen létrehozva".to_string(),
-                        })),
-                    )
-                        .into_response(),
-                    Err(e) => e.into_response(),
-                }
-            }
-            Err(e) => e.into_response(),
-        },
-        Err(_) => FriendlyError::UserFacing(
+) -> Result<Response, Response> {
+    let Json(payload) = payload.map_err(|_| {
+        FriendlyError::UserFacing(
             StatusCode::BAD_REQUEST,
             "AUTH/HANDLER/REGISTER".to_string(),
-            "Hibás adatszerkezet".to_string(),
+            "Invalid JSON".to_string(),
         )
-        .trace(tracing::Level::DEBUG)
-        .into_response(),
-    }
+        .trace(Level::DEBUG)
+        .into_response()
+    })?;
+
+    let user_input = RegisterRequest::try_from(payload).map_err(|e| e.into_response())?;
+
+    AuthService::try_register(auth_module.auth_repo.clone(), user_input)
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok((
+        StatusCode::CREATED,
+        Json(OkResponse::new(SimpleMessageResponse {
+            message: "A felhasználó sikeresen létrehozva".to_string(),
+        })),
+    )
+        .into_response())
 }
 
 #[cfg(test)]

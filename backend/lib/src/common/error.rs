@@ -24,6 +24,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use sqlx::migrate::MigrateError;
 
 /// An enumeration representing different types of errors that can occur.
 /// This enum implements the `Debug`, `Error`, and `Clone` traits for debugging,
@@ -234,6 +235,9 @@ pub enum RepositoryError {
     #[error("Database error: {0}")]
     Database(#[from] sqlx::Error),
 
+    #[error("Migrate error: {0}")]
+    Migrate(#[from] MigrateError),
+
     #[error("Parse error: {0}")]
     Parse(String),
 
@@ -242,4 +246,10 @@ pub enum RepositoryError {
 
     #[error("Custom error: {0}")]
     Custom(String),
+
+    #[error("RwLockReadGuard error: {0}")]
+    RwLockReadGuard(String),
+
+    #[error("RwLockWriteGuard error: {0}")]
+    RwLockWriteGuard(String),
 }

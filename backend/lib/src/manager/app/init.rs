@@ -111,7 +111,7 @@ pub fn config() -> Result<AppConfig> {
 /// This function will return an error if the `PgPoolManager::new` method fails to initialize
 /// due to invalid configuration or database connection issues.
 pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<PgPoolManager> {
-    PgPoolManager::new(config.main_database(), config.default_tenant_database()).await
+    Ok(PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?)
 }
 
 /// Initializes the default application with required modules and configurations.

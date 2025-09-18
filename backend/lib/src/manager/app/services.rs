@@ -126,7 +126,7 @@ pub async fn migrate_all_tenant_dbs(pg_pool_manager: Arc<PgPoolManager>) -> anyh
 /// Ensure that the `../migrations/tenant` directory contains all the necessary
 /// migration files in the correct format expected by `sqlx`.
 pub async fn migrate_tenant_db(tenant_pool: &PgPool) -> anyhow::Result<()> {
-    PgDatabaseMigrator.migrate_tenant_db(tenant_pool).await
+    Ok(PgDatabaseMigrator.migrate_tenant_db(tenant_pool).await?)
 }
 
 /// Initializes tenant-specific database connection pools.

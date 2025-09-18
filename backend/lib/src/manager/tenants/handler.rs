@@ -26,7 +26,7 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
-use crate::manager::tenants::service::TenantsService;
+use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -85,7 +85,21 @@ pub async fn create(
                         })),
                     )
                         .into_response(),
-                    Err(e) => e.into_response(),
+                    Err(e) => match e {
+                        TenantsServiceError::Repository(_) => {
+                            FriendlyError::Internal(e.to_string())
+                                .trace(Level::ERROR)
+                                .into_response()
+                        }
+                        TenantsServiceError::Config(_) => FriendlyError::Internal(e.to_string())
+                            .trace(Level::ERROR)
+                            .into_response(),
+                        TenantsServiceError::AccessTenantPool => {
+                            FriendlyError::Internal(e.to_string())
+                                .trace(Level::ERROR)
+                                .into_response()
+                        }
+                    },
                 }
             }
             Err(e) => e.into_response(),

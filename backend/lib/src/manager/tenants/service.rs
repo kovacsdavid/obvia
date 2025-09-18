@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FriendlyError;
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::common::dto::{OrderingParams, PagedResult, PaginatorParams};
@@ -31,8 +31,21 @@ use crate::manager::tenants::repository::TenantsRepository;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
+use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum TenantsServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Config error: {0}")]
+    Config(String),
+
+    #[error("Could not get tenant_pool")]
+    AccessTenantPool,
+}
 
 pub struct TenantsService;
 
@@ -74,77 +87,45 @@ impl TenantsService {
         claims: Claims,
         payload: CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), FriendlyError> {
+    ) -> Result<(), TenantsServiceError> {
         let config: TenantDatabaseConfig = payload
             .clone()
             .try_into()
-            .map_err(|e: String| FriendlyError::Internal(e).trace(Level::ERROR))?;
+            .map_err(TenantsServiceError::Config)?;
 
         let pool = tenants_module
             .connection_tester
             .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
-            .await
-            .map_err(|_| {
-                FriendlyError::UserFacing(
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
-                        .to_string(),
-                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-                )
-                .trace(Level::INFO)
-            })?;
+            .await?;
 
         tenants_module
             .connection_tester
             .is_empty_database(&pool)
-            .await
-            .map_err(|_| {
-                FriendlyError::UserFacing(
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
-                        .to_string(),
-                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-                )
-                .trace(Level::INFO)
-            })?;
+            .await?;
 
         let tenant = tenants_module
             .tenants_repo
             .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
-            .await
-            .map_err(|_| {
-                FriendlyError::UserFacing(
-                    StatusCode::UNPROCESSABLE_ENTITY,
-                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_DATABASE".to_string(),
-                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-                )
-                .trace(Level::INFO)
-            })?;
+            .await?;
         tenants_module
             .pool_manager
             .add_tenant_pool(
                 tenant.id,
                 &TenantDatabaseConfig::try_from(&tenant)
-                    .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
+                    .map_err(TenantsServiceError::Config)?
                     .into(),
             )
-            .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+            .await?;
 
         let tenant_pool = tenants_module
             .pool_manager
-            .get_tenant_pool(tenant.id)
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
-            .ok_or(
-                FriendlyError::Internal("Could not get tenant_pool".to_string())
-                    .trace(Level::ERROR),
-            )?;
+            .get_tenant_pool(tenant.id)?
+            .ok_or(TenantsServiceError::AccessTenantPool)?;
 
         tenants_module
             .migrator
             .migrate_tenant_db(&tenant_pool)
-            .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+            .await?;
 
         Ok(())
     }
@@ -194,7 +175,7 @@ impl TenantsService {
         claims: Claims,
         payload: CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), FriendlyError> {
+    ) -> Result<(), TenantsServiceError> {
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
             host: tenants_module.config.default_tenant_database().host.clone(),
@@ -215,33 +196,25 @@ impl TenantsService {
                 &claims,
                 tenants_module.config.clone(),
             )
-            .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+            .await?;
 
         tenants_module
             .pool_manager
             .add_tenant_pool(
                 tenant.id,
-                &BasicDatabaseConfig::try_from(&tenant)
-                    .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?,
+                &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
             )
-            .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+            .await?;
 
         let tenant_pool = tenants_module
             .pool_manager
-            .get_tenant_pool(tenant.id)
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
-            .ok_or(
-                FriendlyError::Internal("Could not get tenant_pool".to_string())
-                    .trace(Level::ERROR),
-            )?;
+            .get_tenant_pool(tenant.id)?
+            .ok_or(TenantsServiceError::AccessTenantPool)?;
 
         tenants_module
             .migrator
             .migrate_tenant_db(&tenant_pool)
-            .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+            .await?;
         Ok(())
     }
 
@@ -280,7 +253,7 @@ impl TenantsService {
         claims: Claims,
         payload: CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), FriendlyError> {
+    ) -> Result<(), TenantsServiceError> {
         if payload.is_self_hosted() {
             Self::self_hosted(claims, payload, tenants_module).await
         } else {

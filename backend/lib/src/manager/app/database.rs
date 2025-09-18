@@ -21,7 +21,6 @@ use crate::common::error::RepositoryError;
 use crate::manager::app::config::{
     BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider,
 };
-use anyhow::Result;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -126,7 +125,7 @@ pub trait PgPoolManagerTrait: Send + Sync {
     /// * `Ok(Some(PgPool))` - The tenant's database connection pool, if it exists.
     /// * `Ok(None)` - No connection pool exists for the given tenant ID.
     /// * `Err(E)` - An error occurred while attempting to retrieve the pool.
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>>; // TODO: the return signature could be simplified
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>, RepositoryError>; // TODO: the return signature could be simplified
     /// Asynchronously adds a new tenant pool to the system with the specified tenant ID and configuration.
     ///
     /// # Arguments
@@ -138,7 +137,11 @@ pub trait PgPoolManagerTrait: Send + Sync {
     ///
     /// * `Result<Uuid>` - On success, returns the UUID of the newly created tenant pool.
     ///   On failure, returns an error wrapped in a `Result`.
-    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &BasicDatabaseConfig) -> Result<Uuid>;
+    async fn add_tenant_pool(
+        &self,
+        tenant_id: Uuid,
+        config: &BasicDatabaseConfig,
+    ) -> Result<Uuid, RepositoryError>;
 }
 
 /// `PgPoolManager` is a structure designed to manage multiple instances of PostgreSQL connection pools.
@@ -195,7 +198,7 @@ impl PgPoolManager {
     pub async fn new(
         main_database_config: &BasicDatabaseConfig,
         default_tenant_database_config: &BasicDatabaseConfig,
-    ) -> Result<PgPoolManager> {
+    ) -> Result<PgPoolManager, RepositoryError> {
         let main_pool = PgPoolOptions::new()
             .max_connections(main_database_config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
@@ -222,14 +225,18 @@ impl PgPoolManagerTrait for PgPoolManager {
     fn get_default_tenant_pool(&self) -> PgPool {
         self.default_tenant_pool.clone()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>, RepositoryError> {
         let guard = self
             .tenant_pools
             .read()
-            .map_err(|_| anyhow::anyhow!("Failed to acquire read lock on company pools"))?;
+            .map_err(|e| RepositoryError::RwLockReadGuard(e.to_string()))?;
         Ok(guard.get(&tenant_id.to_string()).cloned())
     }
-    async fn add_tenant_pool(&self, tenant_id: Uuid, config: &BasicDatabaseConfig) -> Result<Uuid> {
+    async fn add_tenant_pool(
+        &self,
+        tenant_id: Uuid,
+        config: &BasicDatabaseConfig,
+    ) -> Result<Uuid, RepositoryError> {
         let pool = PgPoolOptions::new()
             .max_connections(config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
@@ -240,7 +247,7 @@ impl PgPoolManagerTrait for PgPoolManager {
             let mut pools = self
                 .tenant_pools
                 .write()
-                .map_err(|_| anyhow::anyhow!("Failed to acquire write lock on company pools"))?;
+                .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
             pools.insert(tenant_id.to_string(), pool);
         }
         Ok(tenant_id)
@@ -254,7 +261,7 @@ pub trait ConnectionTester: Send + Sync {
         &self,
         config: &BasicDatabaseConfig,
         ssl_mode: PgSslMode,
-    ) -> sqlx::Result<PgPool, sqlx::Error>;
+    ) -> sqlx::Result<PgPool, RepositoryError>;
 
     async fn is_empty_database(&self, pool: &PgPool) -> Result<(), RepositoryError>;
 }
@@ -284,7 +291,7 @@ impl ConnectionTester for PgConnectionTester {
         &self,
         config: &BasicDatabaseConfig,
         ssl_mode: PgSslMode,
-    ) -> sqlx::Result<PgPool, sqlx::Error> {
+    ) -> sqlx::Result<PgPool, RepositoryError> {
         let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
         let pool = PgPoolOptions::new()
             .max_connections(config.max_pool_size())
@@ -328,14 +335,14 @@ impl ConnectionTester for PgConnectionTester {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DatabaseMigrator: Send + Sync {
-    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<()>;
+    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<(), RepositoryError>;
 }
 
 pub struct PgDatabaseMigrator;
 
 #[async_trait]
 impl DatabaseMigrator for PgDatabaseMigrator {
-    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<()> {
+    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<(), RepositoryError> {
         Ok(sqlx::migrate!("../migrations/tenant")
             .run(tenant_pool)
             .await?)

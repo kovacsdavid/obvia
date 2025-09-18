@@ -25,6 +25,7 @@ mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
+pub(crate) mod service;
 pub(crate) mod types;
 
 pub fn init_default_projects_module(

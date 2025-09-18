@@ -79,91 +79,74 @@ impl TenantsService {
             .clone()
             .try_into()
             .map_err(|e: String| FriendlyError::Internal(e).trace(Level::ERROR))?;
-        match tenants_module
+
+        let pool = tenants_module
             .connection_tester
             .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
             .await
-        {
-            Ok(pool) => {
-                match tenants_module
-                    .connection_tester
-                    .is_empty_database(&pool)
-                    .await
-                {
-                    Ok(_) => match tenants_module
-                        .tenants_repo
-                        .setup_self_hosted(
-                            payload.name.extract().get_value(),
-                            &config.into(),
-                            &claims,
-                        )
-                        .await
-                    {
-                        Ok(tenant) => match tenants_module
-                            .pool_manager
-                            .add_tenant_pool(
-                                tenant.id,
-                                &TenantDatabaseConfig::try_from(&tenant)
-                                    .map_err(|e| {
-                                        FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                                    })?
-                                    .into(),
-                            )
-                            .await
-                        {
-                            Ok(_) => {
-                                match &tenants_module
-                                    .pool_manager
-                                    .get_tenant_pool(tenant.id)
-                                    .map_err(|e| {
-                                        FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                                    })? {
-                                    Some(tenant_pool) => {
-                                        match tenants_module
-                                            .migrator
-                                            .migrate_tenant_db(tenant_pool)
-                                            .await
-                                        {
-                                            Ok(_) => Ok(()),
-                                            Err(e) => Err(FriendlyError::Internal(e.to_string())
-                                                .trace(Level::ERROR)),
-                                        }
-                                    }
-                                    None => Err(FriendlyError::Internal(
-                                        "Could not get tenant_pool".to_string(),
-                                    )
-                                    .trace(Level::ERROR)),
-                                }
-                            }
-                            Err(e) => {
-                                Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR))
-                            }
-                        },
-                        Err(_) => Err(FriendlyError::UserFacing(
-                            StatusCode::UNPROCESSABLE_ENTITY,
-                            "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_DATABASE"
-                                .to_string(),
-                            "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-                        )
-                        .trace(Level::INFO)),
-                    },
-                    Err(_) => Err(FriendlyError::UserFacing(
-                        StatusCode::UNPROCESSABLE_ENTITY,
-                        "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
-                            .to_string(),
-                        "Nem sikerült csatlakozni az adatbázishoz".to_string(),
-                    )
-                    .trace(Level::INFO)),
-                }
-            }
-            Err(_) => Err(FriendlyError::UserFacing(
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
-                    .to_string(),
-                "Nem sikerült csatlakozni az adatbázishoz".to_string(),
+            .map_err(|_| {
+                FriendlyError::UserFacing(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
+                        .to_string(),
+                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
+                )
+                .trace(Level::INFO)
+            })?;
+
+        tenants_module
+            .connection_tester
+            .is_empty_database(&pool)
+            .await
+            .map_err(|_| {
+                FriendlyError::UserFacing(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_SELF_HOSTED_DATABASE"
+                        .to_string(),
+                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
+                )
+                .trace(Level::INFO)
+            })?;
+
+        let tenant = tenants_module
+            .tenants_repo
+            .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
+            .await
+            .map_err(|_| {
+                FriendlyError::UserFacing(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "ORGANIZATIONAL_UNTIS/SERVICE/COULD_NOT_CONNECT_TO_DATABASE".to_string(),
+                    "Nem sikerült csatlakozni az adatbázishoz".to_string(),
+                )
+                .trace(Level::INFO)
+            })?;
+        tenants_module
+            .pool_manager
+            .add_tenant_pool(
+                tenant.id,
+                &TenantDatabaseConfig::try_from(&tenant)
+                    .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
+                    .into(),
             )
-            .trace(Level::INFO)),
-        }
+            .await
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+
+        let tenant_pool = tenants_module
+            .pool_manager
+            .get_tenant_pool(tenant.id)
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
+            .ok_or(
+                FriendlyError::Internal("Could not get tenant_pool".to_string())
+                    .trace(Level::ERROR),
+            )?;
+
+        tenants_module
+            .migrator
+            .migrate_tenant_db(&tenant_pool)
+            .await
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+
+        Ok(())
     }
 
     /// Asynchronously manages the creation and setup of a tenant, including
@@ -222,7 +205,8 @@ impl TenantsService {
             max_pool_size: None,
             ssl_mode: Some(String::from("disable")),
         };
-        match tenants_module
+
+        let tenant = tenants_module
             .tenants_repo
             .setup_managed(
                 uuid,
@@ -232,45 +216,33 @@ impl TenantsService {
                 tenants_module.config.clone(),
             )
             .await
-        {
-            Ok(tenant) => {
-                match tenants_module
-                    .pool_manager
-                    .add_tenant_pool(
-                        tenant.id,
-                        &BasicDatabaseConfig::try_from(&tenant).map_err(|e| {
-                            FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                        })?,
-                    )
-                    .await
-                {
-                    Ok(_) => {
-                        match &tenants_module
-                            .pool_manager
-                            .get_tenant_pool(tenant.id)
-                            .map_err(|e| {
-                                FriendlyError::Internal(e.to_string()).trace(Level::ERROR)
-                            })? {
-                            Some(tenant_pool) => {
-                                match tenants_module.migrator.migrate_tenant_db(tenant_pool).await {
-                                    Ok(_) => Ok(()),
-                                    Err(e) => {
-                                        Err(FriendlyError::Internal(e.to_string())
-                                            .trace(Level::ERROR))
-                                    }
-                                }
-                            }
-                            None => Err(FriendlyError::Internal(
-                                "Could not get tenant_pool".to_string(),
-                            )
-                            .trace(Level::ERROR)),
-                        }
-                    }
-                    Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
-                }
-            }
-            Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
-        }
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+
+        tenants_module
+            .pool_manager
+            .add_tenant_pool(
+                tenant.id,
+                &BasicDatabaseConfig::try_from(&tenant)
+                    .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?,
+            )
+            .await
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+
+        let tenant_pool = tenants_module
+            .pool_manager
+            .get_tenant_pool(tenant.id)
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?
+            .ok_or(
+                FriendlyError::Internal("Could not get tenant_pool".to_string())
+                    .trace(Level::ERROR),
+            )?;
+
+        tenants_module
+            .migrator
+            .migrate_tenant_db(&tenant_pool)
+            .await
+            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(Level::ERROR))?;
+        Ok(())
     }
 
     /// Attempts to create a tenant based on the provided payload, handling both self-hosted

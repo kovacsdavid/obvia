@@ -72,7 +72,6 @@ impl IntoResponse for CreateProductError {
         (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(ErrorResponse::new(ErrorBody {
-                reference: String::from("PRODUCTS/DTO/CREATE"),
                 global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
                 fields: Some(self),
             })),

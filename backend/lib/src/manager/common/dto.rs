@@ -107,7 +107,6 @@ impl<T: Serialize> ErrorResponse<T> {
 ///   when the error is related to input validation or similar cases.
 #[derive(Serialize)]
 pub struct ErrorBody<T: Serialize> {
-    pub reference: String,
     pub global: String,
     pub fields: Option<T>,
 }

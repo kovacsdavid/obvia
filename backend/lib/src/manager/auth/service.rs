@@ -34,6 +34,7 @@ use axum::http::StatusCode;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use std::sync::Arc;
+use tracing::Level;
 use uuid::Uuid;
 
 pub struct AuthService;
@@ -87,31 +88,31 @@ impl AuthService {
             .get_user_by_email(&payload.email)
             .await
             .map_err(|_| {
-                FriendlyError::UserFacing(
+                FriendlyError::user_facing(
+                    Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
-                    "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-                    "Hibás e-mail cím vagy jelszó".to_string(),
+                    file!(),
+                    "Hibás e-mail cím vagy jelszó",
                 )
-                .trace(tracing::Level::DEBUG)
             })?;
         let active_user_tenant = auth_module
             .auth_repo
             .get_user_active_tenant(user.id)
             .await
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
 
         let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
 
         Argon2::default()
             .verify_password(payload.password.as_bytes(), &parsed_hash)
             .map_err(|_| {
-                FriendlyError::UserFacing(
+                FriendlyError::user_facing(
+                    Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
-                    "AUTH/SERVICE/UNAUTHORIZED".to_string(),
-                    "Hibás e-mail cím vagy jelszó".to_string(),
+                    file!(),
+                    "Hibás e-mail cím vagy jelszó",
                 )
-                .trace(tracing::Level::DEBUG)
             })?;
 
         let now = Utc::now().timestamp() as usize;
@@ -140,7 +141,7 @@ impl AuthService {
             &claims,
             &EncodingKey::from_secret(auth_module.config.auth().jwt_secret().as_bytes()),
         )
-        .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
+        .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
 
         Ok(LoginResponse::new(UserPublic::from(user), token))
     }
@@ -177,7 +178,7 @@ impl AuthService {
         let password_hash = Argon2::default()
             .hash_password(payload.password.extract().get_value().as_bytes(), &salt)
             .map(|hash| hash.to_string())
-            .map_err(|e| FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR))?;
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
 
         repo.insert_user(&payload, &password_hash)
             .await
@@ -185,14 +186,14 @@ impl AuthService {
                 if e.to_string()
                     .contains("duplicate key value violates unique constraint")
                 {
-                    FriendlyError::UserFacing(
+                    FriendlyError::user_facing(
+                        Level::DEBUG,
                         StatusCode::CONFLICT,
-                        "AUTH/SERVICE/ALREADYEXISTS".to_string(),
-                        "Ez az e-mail cím már foglalt".to_string(),
+                        file!(),
+                        "Ez az e-mail cím már foglalt",
                     )
-                    .trace(tracing::Level::DEBUG)
                 } else {
-                    FriendlyError::Internal(e.to_string()).trace(tracing::Level::ERROR)
+                    FriendlyError::internal(file!(), e.to_string())
                 }
             })?;
 

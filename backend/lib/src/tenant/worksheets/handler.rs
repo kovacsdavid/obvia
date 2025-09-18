@@ -55,12 +55,12 @@ pub async fn create(
                 .into_response(),
             Err(e) => e.into_response(),
         },
-        Err(_) => FriendlyError::UserFacing(
+        Err(_) => FriendlyError::user_facing(
+            Level::DEBUG,
             StatusCode::BAD_REQUEST,
-            "ORGANIZATIONAL_UNITS/HANDLER/CREATE".to_string(),
-            "Invalid JSON".to_string(),
+            file!(),
+            "Invalid JSON",
         )
-        .trace(Level::DEBUG)
         .into_response(),
     }
 }

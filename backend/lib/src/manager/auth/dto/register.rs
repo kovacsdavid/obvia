@@ -143,7 +143,6 @@ impl IntoResponse for RegisterRequestError {
         (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(ErrorResponse::new(ErrorBody {
-                reference: "AUTH/DTO/REGISTER".to_string(),
                 global: "Kérjük ellenőrizze a hibás mezőket".to_string(), // TODO: i18n?
                 fields: Some(self),
             })),

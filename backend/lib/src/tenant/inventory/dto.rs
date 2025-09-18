@@ -51,7 +51,6 @@ impl IntoResponse for CreateInventoryError {
         (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(ErrorResponse::new(ErrorBody {
-                reference: String::from("INVENTORY/DTO/CREATE"),
                 global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
                 fields: Some(self),
             })),

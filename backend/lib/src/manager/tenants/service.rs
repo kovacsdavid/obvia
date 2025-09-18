@@ -294,10 +294,11 @@ impl TenantsService {
             .await
         {
             Ok(user_tenant) => match user_tenant {
-                None => Err(FriendlyError::UserFacing(
+                None => Err(FriendlyError::user_facing(
+                    Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
-                    "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
-                    "Hozzáférés megtagadva!".to_string(),
+                    file!(),
+                    "Hozzáférés megtagadva!",
                 )),
                 Some(user_tenant) => {
                     match claims
@@ -306,11 +307,11 @@ impl TenantsService {
                         .to_token(config.auth().jwt_secret().as_bytes())
                     {
                         Ok(new_claims) => Ok(new_claims),
-                        Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+                        Err(e) => Err(FriendlyError::internal(file!(), e.to_string())),
                     }
                 }
             },
-            Err(e) => Err(FriendlyError::Internal(e.to_string()).trace(Level::ERROR)),
+            Err(e) => Err(FriendlyError::internal(file!(), e.to_string())),
         }
     }
 }

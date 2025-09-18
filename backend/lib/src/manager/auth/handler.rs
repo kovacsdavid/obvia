@@ -97,12 +97,12 @@ pub async fn register(
     payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
 ) -> Result<Response, Response> {
     let Json(payload) = payload.map_err(|_| {
-        FriendlyError::UserFacing(
+        FriendlyError::user_facing(
+            Level::DEBUG,
             StatusCode::BAD_REQUEST,
-            "AUTH/HANDLER/REGISTER".to_string(),
-            "Invalid JSON".to_string(),
+            file!(),
+            "Invalid JSON",
         )
-        .trace(Level::DEBUG)
         .into_response()
     })?;
 

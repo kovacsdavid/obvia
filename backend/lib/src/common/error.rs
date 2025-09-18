@@ -25,6 +25,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use sqlx::migrate::MigrateError;
+use tracing::Level;
 
 /// An enumeration representing different types of errors that can occur.
 /// This enum implements the `Debug`, `Error`, and `Clone` traits for debugging,
@@ -54,10 +55,18 @@ pub enum FriendlyError {
     #[error("{0}")]
     UserFacing(StatusCode, String, String),
     #[error("Váratlan hiba történt a feldolgozás során!")]
-    Internal(String),
+    Internal(String, String),
 }
 
 impl FriendlyError {
+    pub fn user_facing(severity: tracing::Level, status: StatusCode, loc: &str, msg: &str) -> Self {
+        Self::UserFacing(status, loc.to_string(), msg.to_string()).trace(severity)
+    }
+
+    pub fn internal(loc: &str, msg: String) -> Self {
+        Self::Internal(loc.to_string(), msg).trace(Level::ERROR)
+    }
+
     /// Logs the error information associated with the current `FriendlyError` instance
     /// at the specified severity level using the `tracing` crate.
     ///
@@ -82,65 +91,70 @@ impl FriendlyError {
     /// # Note
     /// - Make sure that the `tracing` subscriber is properly initialized, otherwise the logs
     ///   emitted may not be recorded or displayed.
-    pub fn trace(self, severity: tracing::Level) -> Self {
+    fn trace(self, severity: tracing::Level) -> Self {
         match &self {
-            FriendlyError::UserFacing(_, code, msg) => match severity {
+            FriendlyError::UserFacing(status, loc, msg) => match severity {
                 tracing::Level::ERROR => {
                     tracing::event!(
                         tracing::Level::ERROR,
-                        "User-facing error: code={}, message={}",
-                        code,
-                        msg
+                        "User-facing error: http-status={status} location={loc}, message={msg}",
                     );
                 }
                 tracing::Level::WARN => {
                     tracing::event!(
                         tracing::Level::WARN,
-                        "User-facing error: code={}, message={}",
-                        code,
-                        msg
+                        "User-facing error: http-status={status} location={loc}, message={msg}",
                     );
                 }
                 tracing::Level::INFO => {
                     tracing::event!(
                         tracing::Level::INFO,
-                        "User-facing error: code={}, message={}",
-                        code,
-                        msg
+                        "User-facing error: http-status={status} location={loc}, message={msg}",
                     );
                 }
                 tracing::Level::DEBUG => {
                     tracing::event!(
                         tracing::Level::DEBUG,
-                        "User-facing error: code={}, message={}",
-                        code,
-                        msg
+                        "User-facing error: http-status={status} location={loc}, message={msg}",
                     );
                 }
                 tracing::Level::TRACE => {
                     tracing::event!(
                         tracing::Level::TRACE,
-                        "User-facing error: code={}, message={}",
-                        code,
-                        msg
+                        "User-facing error: http-status={status} location={loc}, message={msg}",
                     );
                 }
             },
-            FriendlyError::Internal(msg) => match severity {
+            FriendlyError::Internal(msg, loc) => match severity {
                 tracing::Level::ERROR => {
-                    tracing::event!(tracing::Level::ERROR, "Internal error: message={}", msg);
+                    tracing::event!(
+                        tracing::Level::ERROR,
+                        "Internal error: location={loc} message={msg}"
+                    );
                 }
                 tracing::Level::WARN => {
-                    tracing::event!(tracing::Level::WARN, "Internal error: message={}", msg);
+                    tracing::event!(
+                        tracing::Level::WARN,
+                        "Internal error: location={loc} message={msg}"
+                    );
                 }
                 tracing::Level::INFO => {
-                    tracing::event!(tracing::Level::INFO, "Internal error: message={}", msg);
+                    tracing::event!(
+                        tracing::Level::INFO,
+                        "Internal error:  location={loc} message={msg}"
+                    );
                 }
                 tracing::Level::DEBUG => {
-                    tracing::event!(tracing::Level::DEBUG, "Internal error: message={}", msg);
+                    tracing::event!(
+                        tracing::Level::DEBUG,
+                        "Internal error: location={loc} message={msg}"
+                    );
                 }
                 tracing::Level::TRACE => {
-                    tracing::event!(tracing::Level::TRACE, "Internal error: message={}", msg);
+                    tracing::event!(
+                        tracing::Level::TRACE,
+                        "Internal error: location={loc} message={msg}"
+                    );
                 }
             },
         }
@@ -201,16 +215,15 @@ impl IntoResponse for FriendlyError {
     ///   and implement axum `IntoResponse` on it (ex.: crate::tenants::dto::TenantCreateRequestError)
     fn into_response(self) -> Response {
         let msg_for_internal = "Váratlan hiba történt a feldolgozás során!".to_string();
-        let (status, code, message) = match self {
-            FriendlyError::UserFacing(status, code, msg) => (status, code, msg),
-            FriendlyError::Internal(_) => (
+        let (status, _, message) = match self {
+            FriendlyError::UserFacing(status, loc, msg) => (status, loc, msg),
+            FriendlyError::Internal(_, _) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL".to_string(),
                 msg_for_internal,
             ),
         };
         let body = ErrorResponse::<String>::new(ErrorBody {
-            reference: code,
             global: message,
             fields: None,
         });

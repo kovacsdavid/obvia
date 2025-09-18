@@ -73,12 +73,12 @@ pub async fn create(
     payload: Result<Json<CreateTenantHelper>, JsonRejection>,
 ) -> Result<Response, Response> {
     let Json(payload) = payload.map_err(|_| {
-        FriendlyError::UserFacing(
+        FriendlyError::user_facing(
+            Level::DEBUG,
             StatusCode::BAD_REQUEST,
-            "ORGANIZATIONAL_UNITS/HANDLER/CREATE".to_string(),
-            "Invalid JSON".to_string(),
+            file!(),
+            "Invalid JSON",
         )
-        .trace(Level::DEBUG)
         .into_response()
     })?;
 
@@ -86,11 +86,7 @@ pub async fn create(
 
     TenantsService::try_create(claims, user_input, tenants_module)
         .await
-        .map_err(|e| {
-            FriendlyError::Internal(e.to_string())
-                .trace(Level::ERROR)
-                .into_response()
-        })?;
+        .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?;
 
     Ok((
         StatusCode::CREATED,
@@ -163,11 +159,7 @@ pub async fn list(
                 tenants_module.tenants_repo.clone(),
             )
             .await
-            .map_err(|e| {
-                FriendlyError::Internal(e.to_string())
-                    .trace(Level::ERROR)
-                    .into_response()
-            })?,
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         )),
     )
         .into_response())
@@ -213,12 +205,12 @@ pub async fn activate(
     payload: Result<Json<TenantActivateRequest>, JsonRejection>,
 ) -> Result<Response, Response> {
     let Json(payload) = payload.map_err(|_| {
-        FriendlyError::UserFacing(
+        FriendlyError::user_facing(
+            Level::DEBUG,
             StatusCode::BAD_REQUEST,
-            "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
-            "Invalid JSON".to_string(),
+            file!(),
+            "Invalid JSON",
         )
-        .trace(Level::DEBUG)
         .into_response()
     })?;
 

@@ -20,13 +20,13 @@
 use crate::common::error::FriendlyError;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{
-    OkResponse, OrderingParams, PagedResult, PaginatorParams, QueryParam,
+    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
 };
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenant, TenantActivateRequest,
+    CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
-use crate::manager::tenants::service::try_create;
+use crate::manager::tenants::service::TenantsService;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -74,10 +74,20 @@ pub async fn create(
 ) -> Response {
     match payload {
         Ok(Json(payload)) => match CreateTenant::try_from(payload) {
-            Ok(user_input) => match try_create(claims, user_input, tenants_module).await {
-                Ok(resp) => (StatusCode::CREATED, Json(resp)).into_response(),
-                Err(e) => e.into_response(),
-            },
+            Ok(user_input) => {
+                match TenantsService::try_create(claims, user_input, tenants_module).await {
+                    Ok(_) => (
+                        StatusCode::CREATED,
+                        Json(OkResponse::new(SimpleMessageResponse {
+                            message: String::from(
+                                "Szervezeti egység létrehozása sikeresen megtörtént!",
+                            ),
+                        })),
+                    )
+                        .into_response(),
+                    Err(e) => e.into_response(),
+                }
+            }
             Err(e) => e.into_response(),
         },
         Err(_) => FriendlyError::UserFacing(
@@ -138,34 +148,20 @@ pub async fn list(
     State(tenants_module): State<Arc<TenantsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> Response {
-    let paginator = PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default());
-    let orderding = OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-        order_by: "name".to_string(),
-        order: "asc".to_string(),
-    });
-    let filtering = FilteringParams::from(&payload);
-
-    match tenants_module
-        .tenants_repo
-        .get_all_by_user_id(claims.sub(), paginator, orderding, filtering)
-        .await
+    match TenantsService::get_paged_list(
+        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+            order_by: "name".to_string(),
+            order: "asc".to_string(),
+        }),
+        &FilteringParams::from(&payload),
+        &claims,
+        tenants_module.tenants_repo.clone(),
+    )
+    .await
     {
-        Ok(result) => {
-            let mut public_tenants = vec![];
-            for tenant in result.data {
-                public_tenants.push(PublicTenant::from(tenant))
-            }
-            let result = PagedResult {
-                page: result.page,
-                limit: result.limit,
-                total: result.total,
-                data: public_tenants,
-            };
-            (StatusCode::OK, Json(OkResponse::new(result))).into_response()
-        }
-        Err(_e) => {
-            todo!()
-        }
+        Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
+        Err(e) => e.into_response(),
     }
 }
 
@@ -210,32 +206,16 @@ pub async fn activate(
 ) -> Response {
     match payload {
         Ok(payload) => {
-            match tenants_module
-                .tenants_repo
-                .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
-                .await
+            match TenantsService::activate(
+                &payload,
+                &claims,
+                tenants_module.tenants_repo.clone(),
+                tenants_module.config.clone(),
+            )
+            .await
             {
-                Ok(user_tenant) => match user_tenant {
-                    None => FriendlyError::UserFacing(
-                        StatusCode::UNAUTHORIZED,
-                        "ORGANIZATIONAL_UNITS/HANDLER/ACTIVATE".to_string(),
-                        "Hozzáférés megtagadva!".to_string(),
-                    )
-                    .into_response(),
-                    Some(user_tenant) => {
-                        match claims
-                            .clone()
-                            .set_active_tenant(Some(user_tenant.tenant_id))
-                            .to_token(tenants_module.config.auth().jwt_secret().as_bytes())
-                        {
-                            Ok(new_claims) => {
-                                (StatusCode::OK, Json(OkResponse::new(new_claims))).into_response()
-                            }
-                            Err(e) => FriendlyError::Internal(e.to_string()).into_response(),
-                        }
-                    }
-                },
-                Err(e) => FriendlyError::Internal(e.to_string()).into_response(),
+                Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
+                Err(e) => e.into_response(),
             }
         }
         Err(_) => FriendlyError::UserFacing(

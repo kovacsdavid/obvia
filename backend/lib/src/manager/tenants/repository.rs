@@ -187,9 +187,9 @@ pub trait TenantsRepository: Send + Sync {
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        paginator_params: PaginatorParams,
-        ordering_params: OrderingParams,
-        filtering_params: FilteringParams,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams,
+        filtering_params: &FilteringParams,
     ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError>;
     /// Retrieves all tenants from the database.
     ///
@@ -303,9 +303,9 @@ impl TenantsRepository for PoolManagerWrapper {
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        paginator_params: PaginatorParams,
-        ordering_params: OrderingParams,
-        filtering_params: FilteringParams,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams,
+        filtering_params: &FilteringParams,
     ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError> {
         let total: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM tenants
@@ -345,7 +345,7 @@ impl TenantsRepository for PoolManagerWrapper {
 
         let tenants = sqlx::query_as::<_, Tenant>(&sql)
             .bind(user_uuid)
-            .bind(filtering_params.name)
+            .bind(filtering_params.name.clone())
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_main_pool())

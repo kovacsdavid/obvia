@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FriendlyError;
+use crate::common::extractors::ValidJson;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::customers::CustomersModule;
@@ -28,7 +28,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
-use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,26 +41,17 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
-    payload: Result<Json<CreateCustomerHelper>, JsonRejection>,
+    ValidJson(payload): ValidJson<CreateCustomerHelper>,
 ) -> Response {
-    match payload {
-        Ok(Json(payload)) => match CreateCustomer::try_from(payload) {
-            Ok(_) => (
-                StatusCode::CREATED,
-                Json(OkResponse::new(SimpleMessageResponse {
-                    message: String::from("TEST!!!!"), //TODO: implement
-                })),
-            )
-                .into_response(),
-            Err(e) => e.into_response(),
-        },
-        Err(_) => FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid JSON",
+    match CreateCustomer::try_from(payload) {
+        Ok(_) => (
+            StatusCode::CREATED,
+            Json(OkResponse::new(SimpleMessageResponse {
+                message: String::from("TEST!!!!"), //TODO: implement
+            })),
         )
-        .into_response(),
+            .into_response(),
+        Err(e) => e.into_response(),
     }
 }
 

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FriendlyError;
+use crate::common::extractors::ValidJson;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::inventory::InventoryModule;
@@ -28,7 +28,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
-use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,26 +41,17 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<InventoryModule>>,
-    payload: Result<Json<CreateInventoryHelper>, JsonRejection>,
+    ValidJson(payload): ValidJson<CreateInventoryHelper>,
 ) -> Response {
-    match payload {
-        Ok(Json(payload)) => match CreateInventory::try_from(payload) {
-            Ok(_) => (
-                StatusCode::CREATED,
-                Json(OkResponse::new(SimpleMessageResponse {
-                    message: String::from("TEST!!!!"), //TODO: implement
-                })),
-            )
-                .into_response(),
-            Err(e) => e.into_response(),
-        },
-        Err(_) => FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid JSON",
+    match CreateInventory::try_from(payload) {
+        Ok(_) => (
+            StatusCode::CREATED,
+            Json(OkResponse::new(SimpleMessageResponse {
+                message: String::from("TEST!!!!"), //TODO: implement
+            })),
         )
-        .into_response(),
+            .into_response(),
+        Err(e) => e.into_response(),
     }
 }
 

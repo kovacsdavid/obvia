@@ -18,6 +18,7 @@
  */
 
 use crate::common::error::FriendlyError;
+use crate::common::extractors::ValidJson;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{
     OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
@@ -27,7 +28,6 @@ use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
 use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
-use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -70,18 +70,8 @@ use tracing::Level;
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
-    payload: Result<Json<CreateTenantHelper>, JsonRejection>,
+    ValidJson(payload): ValidJson<CreateTenantHelper>,
 ) -> Result<Response, Response> {
-    let Json(payload) = payload.map_err(|_| {
-        FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid JSON",
-        )
-        .into_response()
-    })?;
-
     let user_input = CreateTenant::try_from(payload).map_err(|e| e.into_response())?;
 
     TenantsService::try_create(claims, user_input, tenants_module)
@@ -202,18 +192,8 @@ pub async fn list(
 pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
-    payload: Result<Json<TenantActivateRequest>, JsonRejection>,
+    ValidJson(payload): ValidJson<TenantActivateRequest>,
 ) -> Result<Response, Response> {
-    let Json(payload) = payload.map_err(|_| {
-        FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid JSON",
-        )
-        .into_response()
-    })?;
-
     Ok((
         StatusCode::OK,
         Json(OkResponse::new(

@@ -19,13 +19,14 @@
 
 use super::AuthModule;
 use crate::common::error::FriendlyError;
+use crate::common::extractors::ValidJson;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::service::{AuthService, AuthServiceError};
 use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
 use axum::{
     Json, debug_handler,
-    extract::{State, rejection::JsonRejection},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -105,18 +106,8 @@ pub async fn login(
 #[debug_handler]
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
-    payload: Result<Json<RegisterRequestHelper>, JsonRejection>,
+    ValidJson(payload): ValidJson<RegisterRequestHelper>,
 ) -> Result<Response, Response> {
-    let Json(payload) = payload.map_err(|_| {
-        FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid JSON",
-        )
-        .into_response()
-    })?;
-
     let user_input = RegisterRequest::try_from(payload).map_err(|e| e.into_response())?;
 
     AuthService::try_register(auth_module.auth_repo.clone(), user_input)

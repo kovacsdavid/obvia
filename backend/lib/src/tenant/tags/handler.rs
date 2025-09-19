@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::extractors::ValidJson;
+use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::tags::TagsModule;
@@ -41,18 +41,15 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
-    ValidJson(payload): ValidJson<CreateTagHelper>,
+    UserInput(user_input, _): UserInput<CreateTag, CreateTagHelper>,
 ) -> Response {
-    match CreateTag::try_from(payload) {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Json(OkResponse::new(SimpleMessageResponse {
-                message: String::from("TEST!!!!"), //TODO: implement
-            })),
-        )
-            .into_response(),
-        Err(e) => e.into_response(),
-    }
+    (
+        StatusCode::CREATED,
+        Json(OkResponse::new(SimpleMessageResponse {
+            message: String::from("TEST!!!!"), //TODO: implement
+        })),
+    )
+        .into_response()
 }
 
 #[debug_handler]

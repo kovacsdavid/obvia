@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::extractors::ValidJson;
+use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::products::ProductsModule;
@@ -41,18 +41,15 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<ProductsModule>>,
-    ValidJson(payload): ValidJson<CreateProductHelper>,
+    UserInput(user_input, _): UserInput<CreateProduct, CreateProductHelper>,
 ) -> Response {
-    match CreateProduct::try_from(payload) {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Json(OkResponse::new(SimpleMessageResponse {
-                message: String::from("TEST!!!!"), //TODO: implement
-            })),
-        )
-            .into_response(),
-        Err(e) => e.into_response(),
-    }
+    (
+        StatusCode::CREATED,
+        Json(OkResponse::new(SimpleMessageResponse {
+            message: String::from("TEST!!!!"), //TODO: implement
+        })),
+    )
+        .into_response()
 }
 
 #[debug_handler]

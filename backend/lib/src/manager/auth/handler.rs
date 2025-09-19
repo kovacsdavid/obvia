@@ -19,7 +19,7 @@
 
 use super::AuthModule;
 use crate::common::error::FriendlyError;
-use crate::common::extractors::ValidJson;
+use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::service::{AuthService, AuthServiceError};
@@ -106,10 +106,8 @@ pub async fn login(
 #[debug_handler]
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
-    ValidJson(payload): ValidJson<RegisterRequestHelper>,
+    UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> Result<Response, Response> {
-    let user_input = RegisterRequest::try_from(payload).map_err(|e| e.into_response())?;
-
     AuthService::try_register(auth_module.auth_repo.clone(), user_input)
         .await
         .map_err(|e| match e {

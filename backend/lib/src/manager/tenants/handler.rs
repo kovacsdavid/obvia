@@ -18,7 +18,7 @@
  */
 
 use crate::common::error::FriendlyError;
-use crate::common::extractors::ValidJson;
+use crate::common::extractors::{UserInput, ValidJson};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{
     OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
@@ -70,10 +70,8 @@ use tracing::Level;
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
-    ValidJson(payload): ValidJson<CreateTenantHelper>,
+    UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> Result<Response, Response> {
-    let user_input = CreateTenant::try_from(payload).map_err(|e| e.into_response())?;
-
     TenantsService::try_create(claims, user_input, tenants_module)
         .await
         .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?;

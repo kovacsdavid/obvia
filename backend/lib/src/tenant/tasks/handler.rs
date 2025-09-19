@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::extractors::ValidJson;
+use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::tasks::TasksModule;
@@ -41,18 +41,15 @@ pub async fn get(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
-    ValidJson(payload): ValidJson<CreateTaskHelper>,
+    UserInput(user_input, _): UserInput<CreateTask, CreateTaskHelper>,
 ) -> Response {
-    match CreateTask::try_from(payload) {
-        Ok(_) => (
-            StatusCode::CREATED,
-            Json(OkResponse::new(SimpleMessageResponse {
-                message: String::from("TEST!!!!"), //TODO: implement
-            })),
-        )
-            .into_response(),
-        Err(e) => e.into_response(),
-    }
+    (
+        StatusCode::CREATED,
+        Json(OkResponse::new(SimpleMessageResponse {
+            message: String::from("TEST!!!!"), //TODO: implement
+        })),
+    )
+        .into_response()
 }
 
 #[debug_handler]

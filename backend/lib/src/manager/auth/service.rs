@@ -22,7 +22,7 @@ use super::{
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
-use crate::common::error::FriendlyError;
+use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::common::types::value_object::ValueObjectable;
 use anyhow::Result;
@@ -30,12 +30,33 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
-use axum::http::StatusCode;
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
+use sqlx::Error;
 use std::sync::Arc;
-use tracing::Level;
+use thiserror::Error;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum AuthServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("User not found")]
+    UserNotFound,
+
+    #[error("User exists")]
+    UserExists,
+
+    #[error("Invalid password")]
+    InvalidPassword,
+
+    #[error("Hash error: {0}")]
+    Hash(String),
+
+    #[error("Token generation: {0}")]
+    Token(String),
+}
 
 pub struct AuthService;
 
@@ -82,38 +103,23 @@ impl AuthService {
     pub async fn try_login(
         auth_module: Arc<AuthModule>,
         payload: LoginRequest,
-    ) -> Result<LoginResponse, FriendlyError> {
+    ) -> Result<LoginResponse, AuthServiceError> {
         let user = auth_module
             .auth_repo
             .get_user_by_email(&payload.email)
             .await
-            .map_err(|_| {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hibás e-mail cím vagy jelszó",
-                )
-            })?;
+            .map_err(|_| AuthServiceError::UserNotFound)?;
         let active_user_tenant = auth_module
             .auth_repo
             .get_user_active_tenant(user.id)
-            .await
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
+            .await?;
 
         let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
+            .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
 
         Argon2::default()
             .verify_password(payload.password.as_bytes(), &parsed_hash)
-            .map_err(|_| {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hibás e-mail cím vagy jelszó",
-                )
-            })?;
+            .map_err(|_| AuthServiceError::InvalidPassword)?;
 
         let now = Utc::now().timestamp() as usize;
         let exp = (Utc::now()
@@ -141,7 +147,7 @@ impl AuthService {
             &claims,
             &EncodingKey::from_secret(auth_module.config.auth().jwt_secret().as_bytes()),
         )
-        .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
+        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
 
         Ok(LoginResponse::new(UserPublic::from(user), token))
     }
@@ -173,27 +179,23 @@ impl AuthService {
     pub async fn try_register(
         repo: Arc<dyn AuthRepository + Send + Sync>,
         payload: RegisterRequest,
-    ) -> Result<(), FriendlyError> {
+    ) -> Result<(), AuthServiceError> {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = Argon2::default()
             .hash_password(payload.password.extract().get_value().as_bytes(), &salt)
             .map(|hash| hash.to_string())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()))?;
+            .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
 
         repo.insert_user(&payload, &password_hash)
             .await
             .map_err(|e| {
-                if e.to_string()
-                    .contains("duplicate key value violates unique constraint")
+                if let RepositoryError::Database(sqlxe) = &e
+                    && let Error::Database(database_error) = sqlxe
+                    && database_error.is_unique_violation()
                 {
-                    FriendlyError::user_facing(
-                        Level::DEBUG,
-                        StatusCode::CONFLICT,
-                        file!(),
-                        "Ez az e-mail cím már foglalt",
-                    )
+                    AuthServiceError::UserExists
                 } else {
-                    FriendlyError::internal(file!(), e.to_string())
+                    e.into()
                 }
             })?;
 

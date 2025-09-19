@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::RepositoryError;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::common::dto::{OrderingParams, PagedResult, PaginatorParams};
@@ -28,11 +28,9 @@ use crate::manager::tenants::dto::{
     CreateTenant, FilteringParams, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::repository::TenantsRepository;
-use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Debug, Error)]
@@ -45,6 +43,12 @@ pub enum TenantsServiceError {
 
     #[error("Could not get tenant_pool")]
     AccessTenantPool,
+
+    #[error("Access denied")]
+    AccessDenied,
+
+    #[error("Token error: {0}")]
+    Token(String),
 }
 
 pub struct TenantsService;
@@ -288,30 +292,15 @@ impl TenantsService {
         claims: &Claims,
         repo: Arc<dyn TenantsRepository + Send + Sync>,
         config: Arc<AppConfig>,
-    ) -> Result<String, FriendlyError> {
-        match repo
+    ) -> Result<String, TenantsServiceError> {
+        let user_tenant = repo
             .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
-            .await
-        {
-            Ok(user_tenant) => match user_tenant {
-                None => Err(FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hozzáférés megtagadva!",
-                )),
-                Some(user_tenant) => {
-                    match claims
-                        .clone()
-                        .set_active_tenant(Some(user_tenant.tenant_id))
-                        .to_token(config.auth().jwt_secret().as_bytes())
-                    {
-                        Ok(new_claims) => Ok(new_claims),
-                        Err(e) => Err(FriendlyError::internal(file!(), e.to_string())),
-                    }
-                }
-            },
-            Err(e) => Err(FriendlyError::internal(file!(), e.to_string())),
-        }
+            .await?
+            .ok_or(TenantsServiceError::AccessDenied)?;
+        claims
+            .clone()
+            .set_active_tenant(Some(user_tenant.tenant_id))
+            .to_token(config.auth().jwt_secret().as_bytes())
+            .map_err(TenantsServiceError::Token)
     }
 }

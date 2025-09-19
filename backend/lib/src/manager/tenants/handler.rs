@@ -26,7 +26,7 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
-use crate::manager::tenants::service::TenantsService;
+use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -224,7 +224,18 @@ pub async fn activate(
                 tenants_module.config.clone(),
             )
             .await
-            .map_err(|e| e.into_response())?,
+            .map_err(|e| {
+                match e {
+                    TenantsServiceError::AccessDenied => FriendlyError::user_facing(
+                        Level::DEBUG,
+                        StatusCode::UNAUTHORIZED,
+                        file!(),
+                        "Hozzáférés megtagadva",
+                    ),
+                    _ => FriendlyError::internal(file!(), e.to_string()),
+                }
+                .into_response()
+            })?,
         )),
     )
         .into_response())

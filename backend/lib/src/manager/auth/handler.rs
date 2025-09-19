@@ -21,7 +21,7 @@ use super::AuthModule;
 use crate::common::error::FriendlyError;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::auth::service::AuthService;
+use crate::manager::auth::service::{AuthService, AuthServiceError};
 use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
 use axum::{
     Json, debug_handler,
@@ -59,7 +59,18 @@ pub async fn login(
 ) -> Response {
     match AuthService::try_login(auth_module.clone(), payload).await {
         Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
-        Err(e) => e.into_response(),
+        Err(e) => match e {
+            AuthServiceError::UserNotFound | AuthServiceError::InvalidPassword => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hibás e-mail cím vagy jelszó",
+                )
+            }
+            _ => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response(),
     }
 }
 
@@ -110,7 +121,16 @@ pub async fn register(
 
     AuthService::try_register(auth_module.auth_repo.clone(), user_input)
         .await
-        .map_err(|e| e.into_response())?;
+        .map_err(|e| match e {
+            AuthServiceError::UserExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                "A megadott e-mail cím már foglalt!",
+            )
+            .into_response(),
+            _ => FriendlyError::internal(file!(), e.to_string()).into_response(),
+        })?;
     Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
@@ -129,6 +149,9 @@ mod tests {
     use axum::http::StatusCode;
     use chrono::Local;
     use mockall::predicate::*;
+    use sqlx::error::{DatabaseError, ErrorKind};
+    use std::error::Error;
+    use std::fmt::{Debug, Display, Formatter};
     use std::sync::Arc;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -340,10 +363,48 @@ mod tests {
         })
         .unwrap();
 
+        pub struct DummyDatabaseError;
+
+        impl Error for DummyDatabaseError {}
+        impl Debug for DummyDatabaseError {
+            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+                unimplemented!()
+            }
+        }
+        impl Display for DummyDatabaseError {
+            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+                unimplemented!()
+            }
+        }
+        impl DatabaseError for DummyDatabaseError {
+            fn message(&self) -> &str {
+                unimplemented!()
+            }
+
+            fn as_error(&self) -> &(dyn Error + Send + Sync + 'static) {
+                unimplemented!()
+            }
+
+            fn as_error_mut(&mut self) -> &mut (dyn Error + Send + Sync + 'static) {
+                unimplemented!()
+            }
+
+            fn into_error(self: Box<Self>) -> Box<dyn Error + Send + Sync + 'static> {
+                unimplemented!()
+            }
+
+            fn kind(&self) -> ErrorKind {
+                unimplemented!()
+            }
+            fn is_unique_violation(&self) -> bool {
+                true
+            }
+        }
+
         let mut repo = MockAuthRepository::new();
         repo.expect_insert_user().returning(|_, _| {
-            Err(RepositoryError::Database(sqlx::Error::Protocol(
-                "duplicate key value violates unique constraint".to_string(),
+            Err(RepositoryError::Database(sqlx::Error::Database(
+                Box::new(DummyDatabaseError) as Box<dyn DatabaseError>,
             )))
         });
 

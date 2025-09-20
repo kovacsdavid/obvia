@@ -60,18 +60,21 @@ EXECUTE FUNCTION update_updated_at();
 
 create table customers
 (
-    id            uuid primary key      default uuid_generate_v4(),
-    name          varchar(255) not null,
-    contact_name  varchar(255),
-    email         varchar(255) not null unique,
-    phone_number  varchar(50),
-    status        varchar(50) not null,
-    type          varchar(50) not null,
-    created_at    timestamptz  not null default now(),
-    updated_at    timestamptz  not null default now(),
-    deleted_at    timestamptz
+    id           uuid primary key      default uuid_generate_v4(),
+    name         varchar(255) not null,
+    contact_name varchar(255),
+    email        varchar(255) not null unique,
+    phone_number varchar(50),
+    status       varchar(50)  not null,
+    type         varchar(50)  not null,
+    created_by   uuid         not null,
+    created_at   timestamptz  not null default now(),
+    updated_at   timestamptz  not null default now(),
+    deleted_at   timestamptz,
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_customers_created_by ON customers (created_by);
 CREATE INDEX idx_customers_created_at ON customers (created_at);
 CREATE INDEX idx_customers_updated_at ON customers (updated_at);
 CREATE INDEX idx_customers_deleted_at ON customers (deleted_at);
@@ -88,11 +91,14 @@ create table comments
     commentable_type varchar(255) not null,
     commentable_id   uuid         not null,
     comment          text,
+    created_by       uuid         not null,
     created_at       timestamptz  not null default now(),
     updated_at       timestamptz  not null default now(),
-    deleted_at       timestamptz
+    deleted_at       timestamptz,
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_comments_created_by ON comments (created_by);
 CREATE INDEX idx_comments_created_at ON comments (created_at);
 CREATE INDEX idx_comments_updated_at ON comments (updated_at);
 CREATE INDEX idx_comments_deleted_at ON comments (deleted_at);
@@ -107,9 +113,12 @@ create table countries -- Entry can only be deleted if no data relies on it!
 (
     id         uuid         not null primary key,
     name       varchar(100) not null,
-    created_at timestamptz  not null default now()
+    created_by uuid         not null,
+    created_at timestamptz  not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_countries_created_by ON countries (created_by);
 CREATE INDEX idx_countries_created_at ON countries (created_at);
 
 CREATE TRIGGER update_updated_at_on_countries_table
@@ -122,9 +131,12 @@ create table states -- Entry can only be deleted if no data relies on it!
 (
     id         uuid         not null primary key,
     name       varchar(100) not null,
-    created_at timestamptz  not null default now()
+    created_by uuid         not null,
+    created_at timestamptz  not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_states_created_by ON states (created_by);
 CREATE INDEX idx_states_created_at ON states (created_at);
 
 CREATE TRIGGER update_updated_at_on_states_table
@@ -137,9 +149,12 @@ create table postal_codes -- Entry can only be deleted if no data relies on it!
 (
     id          uuid        not null primary key,
     postal_code varchar(20) not null,
-    created_at  timestamptz not null default now()
+    created_by  uuid        not null,
+    created_at  timestamptz not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_postal_codes_created_by ON postal_codes (created_by);
 CREATE INDEX idx_postal_codes_created_at ON postal_codes (created_at);
 
 create table cities -- Entry can only be deleted if no data relies on it!
@@ -147,9 +162,12 @@ create table cities -- Entry can only be deleted if no data relies on it!
     id          uuid         not null primary key,
     postal_code uuid         not null,
     name        varchar(100) not null,
-    created_at  timestamptz  not null default now()
+    created_by  uuid         not null,
+    created_at  timestamptz  not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_cities_created_by ON cities (created_by);
 CREATE INDEX idx_cities_created_at ON cities (created_at);
 
 create table address
@@ -160,9 +178,11 @@ create table address
     state_id        uuid         not null,
     country_id      uuid         not null,
     additional_info text,
+    created_by      uuid         not null,
     created_at      timestamptz  not null default now(),
     updated_at      timestamptz  not null default now(),
     deleted_at      timestamptz,
+    foreign key (created_by) references users (id),
     foreign key (city_id) references cities (id),
     foreign key (state_id) references states (id),
     foreign key (country_id) references countries (id)
@@ -171,6 +191,7 @@ create table address
 CREATE INDEX idx_address_city_id ON address (city_id);
 CREATE INDEX idx_address_state_id ON address (state_id);
 CREATE INDEX idx_address_country_id ON address (country_id);
+CREATE INDEX idx_address_created_by ON address (created_by);
 CREATE INDEX idx_address_created_at ON address (created_at);
 CREATE INDEX idx_address_updated_at ON address (updated_at);
 CREATE INDEX idx_address_deleted_at ON address (deleted_at);
@@ -187,14 +208,17 @@ create table address_connect
     address_id       uuid         not null,
     addressable_id   uuid         not null,
     addressable_type varchar(100) not null,
+    created_by       uuid         not null,
     created_at       timestamptz      default now(),
     updated_at       timestamptz      default now(),
     deleted_at       timestamptz,
-    foreign key (address_id) references address (id)
+    foreign key (address_id) references address (id),
+    foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_address_connect_address_id ON address_connect (address_id);
 CREATE INDEX idx_address_connect_addressable_type_id ON address_connect (addressable_type, addressable_id);
+CREATE INDEX idx_address_connect_created_by ON address_connect (created_by);
 CREATE INDEX idx_address_connect_created_at ON address_connect (created_at);
 CREATE INDEX idx_address_connect_updated_at ON address_connect (updated_at);
 CREATE INDEX idx_address_connect_deleted_at ON address_connect (deleted_at);
@@ -210,9 +234,12 @@ create table tags -- Entry can only be deleted if no data relies on it!
     id          uuid primary key      default uuid_generate_v4(),
     name        varchar(255) not null,
     description text,
-    created_at  timestamptz  not null default now()
+    created_by  uuid         not null,
+    created_at  timestamptz  not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_tags_created_by ON tags (created_by);
 CREATE INDEX idx_tags_created_at ON tags (created_at);
 
 create table tag_connect
@@ -221,13 +248,16 @@ create table tag_connect
     taggable_id   uuid         not null,
     taggable_type varchar(255) not null,
     tag_id        uuid,
+    created_by    uuid         not null,
     created_at    timestamptz  not null default now(),
     deleted_at    timestamptz,
-    foreign key (tag_id) references tags (id)
+    foreign key (tag_id) references tags (id),
+    foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_tag_connect_tag_id ON tag_connect (tag_id);
 CREATE INDEX idx_tag_connect_taggable_type_id ON tag_connect (taggable_type, taggable_id);
+CREATE INDEX idx_tag_connect_created_by ON tag_connect (created_by);
 CREATE INDEX idx_tag_connect_created_at ON tag_connect (created_at);
 CREATE INDEX idx_tag_connect_deleted_at ON tag_connect (deleted_at);
 
@@ -317,33 +347,39 @@ create table currencies
 (
     id         uuid primary key     default uuid_generate_v4(),
     currency   varchar(3)  not null,
-    created_at timestamptz not null default now()
+    created_by uuid        not null,
+    created_at timestamptz not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_currencies_created_by ON currencies (created_by);
 CREATE INDEX idx_currencies_created_at ON currencies (created_at);
 
 create table units_of_measure
 (
     id              uuid primary key     default uuid_generate_v4(),
     unit_of_measure varchar(50) not null,
-    created_at      timestamptz not null default now()
+    created_by      uuid        not null,
+    created_at      timestamptz not null default now(),
+    foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_units_of_measure_created_by ON units_of_measure (created_by);
 CREATE INDEX idx_units_of_measure_created_at ON units_of_measure (created_at);
 
 create table products
 (
-    id              uuid primary key default uuid_generate_v4(),
+    id              uuid primary key      default uuid_generate_v4(),
     name            varchar(255) not null,
     description     text,
     unit_of_measure uuid         not null,
     price           numeric(15, 2),
     cost            numeric(15, 2),
     currency_id     uuid         not null,
-    is_active       boolean      not null    default true,
+    status          varchar(50)  not null default 'active',
     created_by      uuid         not null,
-    created_at      timestamptz      default now(),
-    updated_at      timestamptz      default now(),
+    created_at      timestamptz           default now(),
+    updated_at      timestamptz           default now(),
     deleted_at      timestamptz,
     foreign key (currency_id) references currencies (id),
     foreign key (unit_of_measure) references units_of_measure (id),
@@ -369,11 +405,14 @@ create table product_category
     name        varchar(255) not null,
     description text,
     parent_id   uuid,
+    created_by  uuid         not null,
     created_at  timestamptz  not null default now(),
-    foreign key (parent_id) references product_category (id)
+    foreign key (parent_id) references product_category (id),
+    foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_product_category_parent_id ON product_category (parent_id);
+CREATE INDEX idx_product_category_created_by ON product_category (created_by);
 CREATE INDEX idx_product_category_created_at ON product_category (created_at);
 
 create table product_category_connect
@@ -381,14 +420,17 @@ create table product_category_connect
     id                  uuid primary key     default uuid_generate_v4(),
     product_id          uuid        not null,
     product_category_id uuid        not null,
+    created_by          uuid        not null,
     created_at          timestamptz not null default now(),
     deleted_at          timestamptz,
     foreign key (product_id) references products (id),
-    foreign key (product_category_id) references product_category (id)
+    foreign key (product_category_id) references product_category (id),
+    foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_product_category_connect_product_id ON product_category_connect (product_id);
 CREATE INDEX idx_product_category_connect_product_category_id ON product_category_connect (product_category_id);
+CREATE INDEX idx_product_category_connect_created_by ON product_category_connect (created_by);
 CREATE INDEX idx_product_category_connect_created_at ON product_category_connect (created_at);
 CREATE INDEX idx_product_category_connect_deleted_at ON product_category_connect (deleted_at);
 

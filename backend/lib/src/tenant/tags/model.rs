@@ -43,6 +43,7 @@ use uuid::Uuid;
 pub struct Tag {
     pub id: Uuid,
     pub name: String,
+    pub created_by: Uuid,
     pub created_at: DateTime<Local>,
 }
 
@@ -75,6 +76,7 @@ pub struct TagConnect {
     pub taggable_id: Uuid,
     pub taggable_type: String,
     pub tag_id: Option<Uuid>,
+    pub created_by: Uuid,
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }

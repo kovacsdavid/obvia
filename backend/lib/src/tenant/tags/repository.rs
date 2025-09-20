@@ -47,10 +47,11 @@ impl TagsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Tag, RepositoryError> {
         Ok(sqlx::query_as::<_, Tag>(
-            "INSERT INTO tags (name, description) VALUES ($1, $2) RETURNING *",
+            "INSERT INTO tags (name, description, created_by) VALUES ($1, $2, $3) RETURNING *",
         )
         .bind(tag.name.extract().get_value())
         .bind(tag.description.map(|v| v.extract().get_value().clone()))
+        .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }

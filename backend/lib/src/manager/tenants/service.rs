@@ -125,6 +125,8 @@ impl TenantsService {
             .migrator
             .migrate_tenant_db(&tenant_pool)
             .await?;
+        
+        // TODO: Add the current user as the tenant's first user!
 
         Ok(())
     }
@@ -211,6 +213,9 @@ impl TenantsService {
             .migrator
             .migrate_tenant_db(&tenant_pool)
             .await?;
+
+        // TODO: Add the current user as the tenant's first user!
+        
         Ok(())
     }
 

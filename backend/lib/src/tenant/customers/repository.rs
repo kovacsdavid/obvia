@@ -47,8 +47,8 @@ impl CustomersRespository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Customer, RepositoryError> {
         Ok(sqlx::query_as::<_, Customer>(
-            "INSERT INTO customers (name, contact_name, email, phone_number, status, type)
-                 VALUES ($1, $2, $3,$4, $5, $6) RETURNING *",
+            "INSERT INTO customers (name, contact_name, email, phone_number, status, type, created_by)
+                 VALUES ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
         )
         .bind(customer.name.extract().get_value())
         .bind(
@@ -64,6 +64,7 @@ impl CustomersRespository for PoolManagerWrapper {
         )
         .bind(customer.status.extract().get_value())
         .bind(customer.customer_type.extract().get_value())
+        .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }

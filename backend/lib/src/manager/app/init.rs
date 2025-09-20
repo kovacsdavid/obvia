@@ -18,7 +18,7 @@
  */
 
 use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManager;
+use crate::manager::app::database::{PgPoolManager, PgPoolManagerTrait};
 use crate::manager::tenants::{self, init_default_tenants_module};
 use anyhow::{Result, anyhow};
 use axum::Router;
@@ -137,10 +137,10 @@ pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<PgPoolManager> {
 /// # Dependencies
 /// - The function depends on the external crates `axum` for the router, `tower-http` for the trace
 ///   layer, and `anyhow` for error handling.
-pub async fn init_default_app() -> Result<Router> {
-    let config = Arc::new(config()?);
-    let pool_manager = pg_pool_manager(config.clone()).await?;
-    let pool_manager = Arc::new(pool_manager);
+pub async fn init_default_app(
+    config: Arc<AppConfig>,
+    pool_manager: Arc<dyn PgPoolManagerTrait>,
+) -> Result<Router> {
     let auth_module = init_default_auth_module(pool_manager.clone(), config.clone())
         .build()
         .map_err(|e| anyhow!("{e}"))?;

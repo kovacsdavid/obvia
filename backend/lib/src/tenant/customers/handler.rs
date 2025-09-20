@@ -17,17 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CreateCustomer, CreateCustomerHelper};
+use crate::tenant::customers::service::{CustomersService, CustomersServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,14 +45,30 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CreateCustomer, CreateCustomerHelper>,
-) -> Response {
-    (
+) -> Result<Response, Response> {
+    CustomersService::try_create(&claims, &user_input, customers_module)
+        .await
+        .map_err(|e| {
+            match e {
+                CustomersServiceError::Repository(_) => {
+                    FriendlyError::internal(file!(), e.to_string())
+                }
+                CustomersServiceError::Unauthorized => FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hozzáférés megtagadva!",
+                ),
+            }
+            .into_response()
+        })?;
+    Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("TEST!!!!"), //TODO: implement
+            message: String::from("A vevő létrehozása sikeresen megtörétnt"),
         })),
     )
-        .into_response()
+        .into_response())
 }
 
 #[debug_handler]

@@ -16,7 +16,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::customers::CustomersModule;
+use crate::tenant::customers::dto::CreateCustomer;
+use std::sync::Arc;
+use thiserror::Error;
 
+#[derive(Debug, Error)]
+pub enum CustomersServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+}
 pub struct CustomersService;
 
-impl CustomersService {}
+impl CustomersService {
+    pub async fn try_create(
+        claims: &Claims,
+        payload: &CreateCustomer,
+        customers_module: Arc<CustomersModule>,
+    ) -> Result<(), CustomersServiceError> {
+        customers_module
+            .customers_repo
+            .insert(
+                payload.clone(),
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+}

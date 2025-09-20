@@ -18,6 +18,8 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::customers::repository::CustomersRespository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +35,41 @@ pub fn init_default_customers_module(
     config: Arc<AppConfig>,
 ) -> CustomersModuleBuilder {
     CustomersModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .customers_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct CustomersModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub customers_repo: Arc<dyn CustomersRespository>,
 }
 
 pub struct CustomersModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub customers_repo: Option<Arc<dyn CustomersRespository>>,
 }
 
 impl CustomersModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            customers_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRespository>) -> Self {
+        self.customers_repo = Some(customers_repo);
+        self
+    }
     pub fn build(self) -> Result<CustomersModule, String> {
         Ok(CustomersModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            customers_repo: self
+                .customers_repo
+                .ok_or("customers_repo is required".to_string())?,
         })
     }
 }

@@ -41,9 +41,6 @@ pub enum TenantsServiceError {
     #[error("Config error: {0}")]
     Config(String),
 
-    #[error("Could not get tenant_pool")]
-    AccessTenantPool,
-
     #[error("Access denied")]
     AccessDenied,
 
@@ -88,8 +85,8 @@ impl TenantsService {
     /// # Panics
     /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
     async fn self_hosted(
-        claims: Claims,
-        payload: CreateTenant,
+        claims: &Claims,
+        payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
     ) -> Result<(), TenantsServiceError> {
         let config: TenantDatabaseConfig = payload
@@ -109,7 +106,7 @@ impl TenantsService {
 
         let tenant = tenants_module
             .tenants_repo
-            .setup_self_hosted(payload.name.extract().get_value(), &config.into(), &claims)
+            .setup_self_hosted(payload.name.extract().get_value(), &config.into(), claims)
             .await?;
 
         tenants_module
@@ -122,10 +119,7 @@ impl TenantsService {
             )
             .await?;
 
-        let tenant_pool = tenants_module
-            .pool_manager
-            .get_tenant_pool(tenant.id)?
-            .ok_or(TenantsServiceError::AccessTenantPool)?;
+        let tenant_pool = tenants_module.pool_manager.get_tenant_pool(tenant.id)?;
 
         tenants_module
             .migrator
@@ -177,8 +171,8 @@ impl TenantsService {
     /// * The success message, "Szervezeti egység létrehozása sikeresen megtörtént!", is hardcoded
     ///   in Hungarian. Modify it if localization is necessary for other languages.
     async fn managed(
-        claims: Claims,
-        payload: CreateTenant,
+        claims: &Claims,
+        payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
     ) -> Result<(), TenantsServiceError> {
         let uuid = Uuid::new_v4();
@@ -198,7 +192,7 @@ impl TenantsService {
                 uuid,
                 payload.name.extract().get_value(),
                 &db_config,
-                &claims,
+                claims,
                 tenants_module.config.clone(),
             )
             .await?;
@@ -211,10 +205,7 @@ impl TenantsService {
             )
             .await?;
 
-        let tenant_pool = tenants_module
-            .pool_manager
-            .get_tenant_pool(tenant.id)?
-            .ok_or(TenantsServiceError::AccessTenantPool)?;
+        let tenant_pool = tenants_module.pool_manager.get_tenant_pool(tenant.id)?;
 
         tenants_module
             .migrator
@@ -255,8 +246,8 @@ impl TenantsService {
     /// If the creation fails, a `FriendlyError` is returned, which provides a user-comprehensible description
     /// of the error for better clarity and user experience.
     pub async fn try_create(
-        claims: Claims,
-        payload: CreateTenant,
+        claims: &Claims,
+        payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
     ) -> Result<(), TenantsServiceError> {
         if payload.is_self_hosted() {

@@ -17,14 +17,54 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::common::repository::PoolManagerWrapper;
+use crate::manager::common::types::value_object::ValueObjectable;
+use crate::tenant::customers::dto::CreateCustomer;
+use crate::tenant::customers::model::Customer;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait CustomersRespository: Send + Sync {}
+pub trait CustomersRespository: Send + Sync {
+    async fn insert(
+        &self,
+        customer: CreateCustomer,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Customer, RepositoryError>;
+}
 
 #[async_trait]
-impl CustomersRespository for PoolManagerWrapper {}
+impl CustomersRespository for PoolManagerWrapper {
+    async fn insert(
+        &self,
+        customer: CreateCustomer,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Customer, RepositoryError> {
+        Ok(sqlx::query_as::<_, Customer>(
+            "INSERT INTO customers (name, contact_name, email, phone_number, status, type)
+                 VALUES ($1, $2, $3,$4, $5, $6) RETURNING *",
+        )
+        .bind(customer.name.extract().get_value())
+        .bind(
+            customer
+                .contact_name
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(customer.email.extract().get_value())
+        .bind(
+            customer
+                .phone_number
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(customer.status.extract().get_value())
+        .bind(customer.customer_type.extract().get_value())
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+}

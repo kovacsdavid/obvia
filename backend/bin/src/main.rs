@@ -53,7 +53,7 @@ async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     subscriber();
     let config = Arc::new(config()?);
     let pool_manager = Arc::new(pg_pool_manager(config.clone()).await?);
-    let app = init_default_app().await?;
+    let app = init_default_app(config.clone(), pool_manager.clone()).await?;
     migrate_main_db(pool_manager.clone()).await?;
     init_tenant_pools(pool_manager.clone()).await?;
     migrate_all_tenant_dbs(pool_manager.clone()).await?;

@@ -265,4 +265,7 @@ pub enum RepositoryError {
 
     #[error("RwLockWriteGuard error: {0}")]
     RwLockWriteGuard(String),
+
+    #[error("Tenant pool not found")]
+    TenantPoolNotFound,
 }

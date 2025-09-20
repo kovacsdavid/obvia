@@ -125,7 +125,7 @@ pub trait PgPoolManagerTrait: Send + Sync {
     /// * `Ok(Some(PgPool))` - The tenant's database connection pool, if it exists.
     /// * `Ok(None)` - No connection pool exists for the given tenant ID.
     /// * `Err(E)` - An error occurred while attempting to retrieve the pool.
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>, RepositoryError>; // TODO: the return signature could be simplified
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError>;
     /// Asynchronously adds a new tenant pool to the system with the specified tenant ID and configuration.
     ///
     /// # Arguments
@@ -225,12 +225,16 @@ impl PgPoolManagerTrait for PgPoolManager {
     fn get_default_tenant_pool(&self) -> PgPool {
         self.default_tenant_pool.clone()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Option<PgPool>, RepositoryError> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError> {
+        let _tenant_id_string = tenant_id.to_string();
         let guard = self
             .tenant_pools
             .read()
             .map_err(|e| RepositoryError::RwLockReadGuard(e.to_string()))?;
-        Ok(guard.get(&tenant_id.to_string()).cloned())
+        Ok(guard
+            .get(&tenant_id.to_string())
+            .ok_or(RepositoryError::TenantPoolNotFound)?
+            .clone())
     }
     async fn add_tenant_pool(
         &self,

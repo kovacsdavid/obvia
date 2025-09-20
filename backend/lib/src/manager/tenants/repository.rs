@@ -427,8 +427,7 @@ async fn insert_and_connect_with_user(
     .bind(&db_config.ssl_mode)
     .bind(claims.sub())
     .fetch_one(&mut *conn)
-    .await
-    .map_err(|e| RepositoryError::Parse(e.to_string()))?;
+    .await?;
 
     let _connect = sqlx::query_as::<_, UserTenant>(
         "INSERT INTO user_tenants (

@@ -17,14 +17,41 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::common::repository::PoolManagerWrapper;
+use crate::manager::common::types::value_object::ValueObjectable;
+use crate::tenant::tags::dto::CreateTag;
+use crate::tenant::tags::model::Tag;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait TagsRepository: Send + Sync {}
+pub trait TagsRepository: Send + Sync {
+    async fn insert(
+        &self,
+        tag: CreateTag,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Tag, RepositoryError>;
+}
 
 #[async_trait]
-impl TagsRepository for PoolManagerWrapper {}
+impl TagsRepository for PoolManagerWrapper {
+    async fn insert(
+        &self,
+        tag: CreateTag,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Tag, RepositoryError> {
+        Ok(sqlx::query_as::<_, Tag>(
+            "INSERT INTO tags (name, description) VALUES ($1, $2) RETURNING *",
+        )
+        .bind(tag.name.extract().get_value())
+        .bind(tag.description.map(|v| v.extract().get_value().clone()))
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+}

@@ -207,7 +207,7 @@ EXECUTE FUNCTION update_updated_at();
 
 create table tags -- Entry can only be deleted if no data relies on it!
 (
-    id          uuid         not null primary key,
+    id          uuid primary key      default uuid_generate_v4(),
     name        varchar(255) not null,
     description text,
     created_at  timestamptz  not null default now()

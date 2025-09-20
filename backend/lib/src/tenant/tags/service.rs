@@ -16,7 +16,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::tags::TagsModule;
+use crate::tenant::tags::dto::CreateTag;
+use std::sync::Arc;
+use thiserror::Error;
 
+#[derive(Debug, Error)]
+pub enum TagsServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+}
 pub struct TagsService;
 
-impl TagsService {}
+impl TagsService {
+    pub async fn try_create(
+        claims: &Claims,
+        payload: &CreateTag,
+        tags_module: Arc<TagsModule>,
+    ) -> Result<(), TagsServiceError> {
+        tags_module
+            .tags_repo
+            .insert(
+                payload.clone(),
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(TagsServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+}

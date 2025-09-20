@@ -18,6 +18,8 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::tags::repository::TagsRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +35,39 @@ pub fn init_default_tags_module(
     config: Arc<AppConfig>,
 ) -> TagsModuleBuilder {
     TagsModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .tags_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct TagsModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub tags_repo: Arc<dyn TagsRepository>,
 }
 
 pub struct TagsModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub tags_repo: Option<Arc<dyn TagsRepository>>,
 }
 
 impl TagsModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            tags_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn tags_repo(mut self, tags_repo: Arc<dyn TagsRepository>) -> Self {
+        self.tags_repo = Some(tags_repo);
+        self
+    }
     pub fn build(self) -> Result<TagsModule, String> {
         Ok(TagsModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            tags_repo: self.tags_repo.ok_or("tags_repo is required".to_string())?,
         })
     }
 }

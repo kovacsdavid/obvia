@@ -17,17 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::tags::TagsModule;
 use crate::tenant::tags::dto::{CreateTag, CreateTagHelper};
+use crate::tenant::tags::service::{TagsService, TagsServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,14 +45,28 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
     UserInput(user_input, _): UserInput<CreateTag, CreateTagHelper>,
-) -> Response {
-    (
+) -> Result<Response, Response> {
+    TagsService::try_create(&claims, &user_input, tags_module)
+        .await
+        .map_err(|e| {
+            match e {
+                TagsServiceError::Repository(_) => FriendlyError::internal(file!(), e.to_string()),
+                TagsServiceError::Unauthorized => FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hozzáférés megtagadva!",
+                ),
+            }
+            .into_response()
+        })?;
+    Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("TEST!!!!"), //TODO: implement
+            message: String::from("A címke létrehozása sikeresen megtörtént!"), //TODO: implement
         })),
     )
-        .into_response()
+        .into_response())
 }
 
 #[debug_handler]

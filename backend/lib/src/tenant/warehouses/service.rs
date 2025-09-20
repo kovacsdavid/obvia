@@ -17,6 +17,40 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::warehouses::WarehousesModule;
+use crate::tenant::warehouses::dto::CreateWarehouse;
+use std::sync::Arc;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum WarehousesServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+}
+
 pub struct WarehousesService;
 
-impl WarehousesService {}
+impl WarehousesService {
+    pub async fn try_create(
+        claims: &Claims,
+        payload: &CreateWarehouse,
+        warehouses_module: Arc<WarehousesModule>,
+    ) -> Result<(), WarehousesServiceError> {
+        warehouses_module
+            .warehouses_repo
+            .insert(
+                payload.clone(),
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+}

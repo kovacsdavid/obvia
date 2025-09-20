@@ -17,14 +17,53 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::common::repository::PoolManagerWrapper;
+use crate::manager::common::types::value_object::ValueObjectable;
+use crate::tenant::warehouses::dto::CreateWarehouse;
+use crate::tenant::warehouses::model::Warehouse;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait WarehousesRepository: Send + Sync {}
+pub trait WarehousesRepository: Send + Sync {
+    async fn insert(
+        &self,
+        warehouse: CreateWarehouse,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Warehouse, RepositoryError>;
+}
 
 #[async_trait]
-impl WarehousesRepository for PoolManagerWrapper {}
+impl WarehousesRepository for PoolManagerWrapper {
+    async fn insert(
+        &self,
+        warehouse: CreateWarehouse,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Warehouse, RepositoryError> {
+        Ok(sqlx::query_as::<_, Warehouse>(
+            "INSERT INTO warehouses (name, contact_name, contact_phone, status, created_by)\
+             VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        )
+        .bind(warehouse.name.extract().get_value())
+        .bind(
+            warehouse
+                .contact_name
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(
+            warehouse
+                .contact_phone
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(warehouse.status.extract().get_value())
+        .bind(sub)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+}

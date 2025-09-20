@@ -17,17 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::{CreateWarehouse, CreateWarehouseHelper};
+use crate::tenant::warehouses::service::{WarehousesService, WarehousesServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,14 +45,30 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<WarehousesModule>>,
     UserInput(user_input, _): UserInput<CreateWarehouse, CreateWarehouseHelper>,
-) -> Response {
-    (
+) -> Result<Response, Response> {
+    WarehousesService::try_create(&claims, &user_input, warehouses_module)
+        .await
+        .map_err(|e| {
+            match e {
+                WarehousesServiceError::Repository(_) => {
+                    FriendlyError::internal(file!(), e.to_string())
+                }
+                WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hozzáférés megtagadva!",
+                ),
+            }
+            .into_response()
+        })?;
+    Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("TEST!!!!"), //TODO: implement
+            message: String::from("A raktár létrehozása sikeresen megtörtént!"),
         })),
     )
-        .into_response()
+        .into_response())
 }
 
 #[debug_handler]

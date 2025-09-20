@@ -18,6 +18,8 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::warehouses::repository::WarehousesRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +35,41 @@ pub fn init_default_warehouses_module(
     config: Arc<AppConfig>,
 ) -> WarehousesModuleBuilder {
     WarehousesModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct WarehousesModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub warehouses_repo: Arc<dyn WarehousesRepository>,
 }
 
 pub struct WarehousesModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
 }
 
 impl WarehousesModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            warehouses_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn warehouses_repo(mut self, warehouses_repo: Arc<dyn WarehousesRepository>) -> Self {
+        self.warehouses_repo = Some(warehouses_repo);
+        self
+    }
     pub fn build(self) -> Result<WarehousesModule, String> {
         Ok(WarehousesModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            warehouses_repo: self
+                .warehouses_repo
+                .ok_or("warehouses_repo is required".to_string())?,
         })
     }
 }

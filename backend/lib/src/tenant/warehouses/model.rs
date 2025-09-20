@@ -56,7 +56,7 @@ pub struct Warehouse {
     pub name: String,
     pub contact_name: Option<String>,
     pub contact_phone: Option<String>,
-    pub is_active: bool,
+    pub status: String,
     pub created_by: Uuid,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,

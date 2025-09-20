@@ -63,7 +63,7 @@ pub async fn create(
     Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("A címke létrehozása sikeresen megtörtént!"), //TODO: implement
+            message: String::from("A címke létrehozása sikeresen megtörtént!"),
         })),
     )
         .into_response())

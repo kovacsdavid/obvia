@@ -23,6 +23,8 @@ use crate::manager::app::database::{
 };
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::tenants::repository::TenantsRepository;
+use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
+use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
 use std::sync::Arc;
 
 pub(crate) mod dto;
@@ -59,6 +61,8 @@ pub fn init_default_tenants_module(
         .pool_manager(pool_manager.clone())
         .config(config)
         .tenants_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .tenant_user_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .manager_user_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .migrator(Arc::new(PgDatabaseMigrator))
         .connection_tester(Arc::new(PgConnectionTester))
 }
@@ -67,6 +71,8 @@ pub struct TenantsModule {
     pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
     pub tenants_repo: Arc<dyn TenantsRepository>,
+    pub tenant_user_repo: Arc<dyn TenantUserRepository>,
+    pub manager_user_repo: Arc<dyn ManagerUserRepository>,
     pub migrator: Arc<dyn DatabaseMigrator>,
     pub connection_tester: Arc<dyn ConnectionTester>,
 }
@@ -78,6 +84,8 @@ pub struct TenantsModuleBuilder {
     pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
     pub tenants_repo: Option<Arc<dyn TenantsRepository>>,
+    pub tenant_user_repo: Option<Arc<dyn TenantUserRepository>>,
+    pub manager_user_repo: Option<Arc<dyn ManagerUserRepository>>,
     pub migrator: Option<Arc<dyn DatabaseMigrator>>,
     pub connection_tester: Option<Arc<dyn ConnectionTester>>,
 }
@@ -95,6 +103,8 @@ impl TenantsModuleBuilder {
             pool_manager: None,
             config: None,
             tenants_repo: None,
+            tenant_user_repo: None,
+            manager_user_repo: None,
             migrator: None,
             connection_tester: None,
         }
@@ -151,6 +161,17 @@ impl TenantsModuleBuilder {
         self.tenants_repo = Some(tenants_repo);
         self
     }
+
+    pub fn tenant_user_repo(mut self, tenant_user_repo: Arc<dyn TenantUserRepository>) -> Self {
+        self.tenant_user_repo = Some(tenant_user_repo);
+        self
+    }
+
+    pub fn manager_user_repo(mut self, manager_user_repo: Arc<dyn ManagerUserRepository>) -> Self {
+        self.manager_user_repo = Some(manager_user_repo);
+        self
+    }
+
     /// Sets a custom migrator factory for the database migration process.
     ///
     /// This method allows you to provide a factory function that creates an instance of a type
@@ -205,10 +226,14 @@ impl TenantsModuleBuilder {
             config: self.config.ok_or("config is required".to_string())?,
             tenants_repo: self
                 .tenants_repo
-                .ok_or("repo_factory is required".to_string())?,
-            migrator: self
-                .migrator
-                .ok_or("migrator_factory is required".to_string())?,
+                .ok_or("tenants_repo is required".to_string())?,
+            tenant_user_repo: self
+                .tenant_user_repo
+                .ok_or("tenant_user_repo is required".to_string())?,
+            manager_user_repo: self
+                .manager_user_repo
+                .ok_or("manager_user_repo is required".to_string())?,
+            migrator: self.migrator.ok_or("migrator is required".to_string())?,
             connection_tester: self
                 .connection_tester
                 .ok_or("connection_tester is required".to_string())?,
@@ -232,6 +257,8 @@ pub(crate) mod tests {
         MockConnectionTester, MockDatabaseMigrator, MockPgPoolManagerTrait,
     };
     use crate::manager::tenants::repository::MockTenantsRepository;
+    use crate::manager::users::repository::MockUsersRepository as MockManagerUsersRepository;
+    use crate::tenant::users::repository::MockUsersRepository as MockTenantUsersRepository;
 
     impl Default for TenantsModuleBuilder {
         fn default() -> Self {
@@ -239,6 +266,8 @@ pub(crate) mod tests {
                 pool_manager: Some(Arc::new(MockPgPoolManagerTrait::new())),
                 config: Some(Arc::new(AppConfigBuilder::default().build().unwrap())),
                 tenants_repo: Some(Arc::new(MockTenantsRepository::new())),
+                tenant_user_repo: Some(Arc::new(MockTenantUsersRepository::new())),
+                manager_user_repo: Some(Arc::new(MockManagerUsersRepository::new())),
                 migrator: Some(Arc::new(MockDatabaseMigrator::new())),
                 connection_tester: Some(Arc::new(MockConnectionTester::new())),
             }

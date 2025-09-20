@@ -20,8 +20,9 @@ use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
 use std::sync::Arc;
 
-mod dto;
+pub(crate) mod dto;
 pub(crate) mod model;
+pub(crate) mod repository;
 
 pub fn init_default_users_module(
     pool_manager_config: Arc<dyn PgPoolManagerTrait>,

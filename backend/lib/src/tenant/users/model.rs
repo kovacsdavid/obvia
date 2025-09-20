@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::manager::users::model::User as ManagerUser;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -66,4 +67,24 @@ pub struct User {
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
+}
+
+impl From<ManagerUser> for User {
+    fn from(value: ManagerUser) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            first_name: value.first_name,
+            last_name: value.last_name,
+            phone: value.phone,
+            status: value.status,
+            profile_picture_url: value.profile_picture_url,
+            locale: value.locale,
+            invited_by: value.invited_by,
+            email_verified_at: value.email_verified_at,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            deleted_at: value.deleted_at,
+        }
+    }
 }

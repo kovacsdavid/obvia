@@ -125,8 +125,16 @@ impl TenantsService {
             .migrator
             .migrate_tenant_db(&tenant_pool)
             .await?;
-        
-        // TODO: Add the current user as the tenant's first user!
+
+        let manager_user = tenants_module
+            .manager_user_repo
+            .get_by_uuid(claims.sub())
+            .await?;
+
+        tenants_module
+            .tenant_user_repo
+            .insert_from_manager(manager_user.into(), tenant.id)
+            .await?;
 
         Ok(())
     }
@@ -214,8 +222,16 @@ impl TenantsService {
             .migrate_tenant_db(&tenant_pool)
             .await?;
 
-        // TODO: Add the current user as the tenant's first user!
-        
+        let manager_user = tenants_module
+            .manager_user_repo
+            .get_by_uuid(claims.sub())
+            .await?;
+
+        tenants_module
+            .tenant_user_repo
+            .insert_from_manager(manager_user.into(), tenant.id)
+            .await?;
+
         Ok(())
     }
 

@@ -234,6 +234,9 @@ mod tests {
     use crate::manager::tenants::TenantsModuleBuilder;
     use crate::manager::tenants::model::{Tenant, UserTenant};
     use crate::manager::tenants::repository::MockTenantsRepository;
+    use crate::manager::users::model::User as ManagerUser;
+    use crate::manager::users::repository::MockUsersRepository as MockManagerUserRepository;
+    use crate::tenant::users::repository::MockUsersRepository as MockTenantUserRepository;
     use axum::Router;
     use axum::body::Body;
     use axum::http::Request;
@@ -263,8 +266,9 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
-        let mut repo = MockTenantsRepository::new();
-        repo.expect_setup_managed()
+        let mut tenants_repo = MockTenantsRepository::new();
+        tenants_repo
+            .expect_setup_managed()
             .times(1)
             .withf(|_, name, _, _, _| name == "test")
             .returning(|uuid: Uuid, _, _, _, _| {
@@ -284,6 +288,38 @@ mod tests {
                     deleted_at: None,
                 })
             });
+
+        let mut manager_user_repo = MockManagerUserRepository::new();
+
+        manager_user_repo
+            .expect_get_by_uuid()
+            .times(1)
+            .returning(|_| {
+                Ok(ManagerUser {
+                    id: Uuid::new_v4(),
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Local::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                })
+            });
+
+        let mut tenant_user_repo = MockTenantUserRepository::new();
+
+        tenant_user_repo
+            .expect_insert_from_manager()
+            .times(1)
+            .returning(|user, _| Ok(user));
 
         let mut migrator = MockDatabaseMigrator::new();
         migrator
@@ -334,7 +370,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(pool_manager_mock.clone())
             .config(config.clone())
-            .tenants_repo(Arc::new(repo))
+            .tenants_repo(Arc::new(tenants_repo))
+            .tenant_user_repo(Arc::new(tenant_user_repo))
+            .manager_user_repo(Arc::new(manager_user_repo))
             .migrator(Arc::new(migrator))
             .connection_tester(Arc::new(connection_tester))
             .build()
@@ -483,8 +521,9 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
-        let mut repo = MockTenantsRepository::new();
-        repo.expect_setup_self_hosted()
+        let mut tenants_repo = MockTenantsRepository::new();
+        tenants_repo
+            .expect_setup_self_hosted()
             .times(1)
             .withf(|name, _, _| name == "test")
             .returning(|_, _, _| {
@@ -504,6 +543,38 @@ mod tests {
                     deleted_at: None,
                 })
             });
+
+        let mut manager_user_repo = MockManagerUserRepository::new();
+
+        manager_user_repo
+            .expect_get_by_uuid()
+            .times(1)
+            .returning(|_| {
+                Ok(ManagerUser {
+                    id: Uuid::new_v4(),
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Local::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                })
+            });
+
+        let mut tenant_user_repo = MockTenantUserRepository::new();
+
+        tenant_user_repo
+            .expect_insert_from_manager()
+            .times(1)
+            .returning(|user, _| Ok(user));
 
         let mut migrator = MockDatabaseMigrator::new();
         migrator
@@ -570,7 +641,9 @@ mod tests {
         let tenants_module = TenantsModuleBuilder::default()
             .pool_manager(pool_manager_mock.clone())
             .config(config.clone())
-            .tenants_repo(Arc::new(repo))
+            .tenants_repo(Arc::new(tenants_repo))
+            .tenant_user_repo(Arc::new(tenant_user_repo))
+            .manager_user_repo(Arc::new(manager_user_repo))
             .migrator(Arc::new(migrator))
             .connection_tester(Arc::new(connection_tester))
             .build()

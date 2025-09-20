@@ -20,7 +20,7 @@
 mod error;
 mod handler;
 pub(crate) mod model;
-mod repository;
+pub(crate) mod repository;
 mod routes;
 mod service;
 

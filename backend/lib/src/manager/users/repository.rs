@@ -16,3 +16,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::error::RepositoryError;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::manager::users::model::User;
+use async_trait::async_trait;
+#[cfg(test)]
+use mockall::automock;
+use uuid::Uuid;
+
+#[cfg_attr(test, automock)]
+#[async_trait]
+pub trait UsersRepository: Send + Sync {
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError>;
+}
+
+#[async_trait]
+impl UsersRepository for PoolManagerWrapper {
+    async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError> {
+        Ok(
+            sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
+                .bind(uuid)
+                .fetch_one(&self.pool_manager.get_main_pool())
+                .await?,
+        )
+    }
+}

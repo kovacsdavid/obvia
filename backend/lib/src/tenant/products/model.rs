@@ -59,11 +59,11 @@ pub struct Product {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub unit_of_measure: Uuid,
+    pub unit_of_measure_id: Uuid,
     pub price: Option<BigDecimal>,
     pub cost: Option<BigDecimal>,
     pub currency_id: Uuid,
-    pub is_active: bool,
+    pub status: String,
     pub created_by: Uuid,
     pub created_at: Option<DateTime<Local>>,
     pub updated_at: Option<DateTime<Local>>,
@@ -90,6 +90,7 @@ pub struct Currency {
     pub id: Uuid,
     pub currency: String,
     pub created_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
 }
 
 /// The `UnitOfMeasure` struct represents a unit of measurement for items, typically used
@@ -118,6 +119,7 @@ pub struct UnitOfMeasure {
     pub id: Uuid,
     pub unit_of_measure: String,
     pub created_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
 }
 
 /// Represents a product category within a system. Each category is uniquely identified

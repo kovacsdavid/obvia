@@ -55,6 +55,19 @@ export const list = createAsyncThunk(
   }
 )
 
+export const select_list = createAsyncThunk(
+  "products/select_list",
+  async (list: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await productsApi.select_list(list, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
 const productsSlice = createSlice({
   name: "products",
   initialState,

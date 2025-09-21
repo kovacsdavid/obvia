@@ -28,7 +28,13 @@ impl ValueObjectable for UnitsOfMeasure {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().is_empty() {
+            return Err("A mező kitöltése kötelező".to_string());
+        }
+        if self.0.trim().len() > 50 {
+            return Err("A mező maximum 50 karakter hosszú lehet".to_string());
+        }
+        Ok(())
     }
 
     /// Retrieves a reference to the value contained within the struct.

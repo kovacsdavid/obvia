@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/store/slices/products.ts";
+import {create, select_list} from "@/store/slices/products.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
 import {
   Select,
@@ -29,30 +29,103 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  type CurrencySelectListItem,
+  isCurrencySelectListResponse,
+  isUnitsOfMeasureSelectListResponse, type UnitsOfMeasureSelectListItem
+} from "@/services/products.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [unitOfMeasure, setUnitOfMeasure] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
+  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<UnitsOfMeasureSelectListItem[]>([]);
   const [cost, setCost] = React.useState("");
   const [price, setPrice] = React.useState("");
   const [currencyId, setCurrencyId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [newCurrency, setNewCurrecy] = React.useState("");
+  const [currencyList, setCurrencyList] = React.useState<CurrencySelectListItem[]>([]);
   const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(select_list("currencies")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isCurrencySelectListResponse(responseData)) {
+                setCurrencyList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+    dispatch(select_list("units_of_measure")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isUnitsOfMeasureSelectListResponse(responseData)) {
+                setUnitsOfMeasureList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(create({
       name,
       description,
-      unitOfMeasure,
+      unitOfMeasureId,
+      newUnitOfMeasure,
       cost,
       price,
       currencyId,
+      newCurrency,
       status
     })).then(async (response) => {
-      console.log(response)
       if (response?.meta?.requestStatus === "fulfilled") {
         const payload = response.payload as Response;
         try {
@@ -102,17 +175,33 @@ export default function Create() {
         <FieldError error={errors} field={"description"}/>
         <Label htmlFor="unit_of_measure">Mértékegység</Label>
         <Select
-          value={unitOfMeasure}
-          onValueChange={val => setUnitOfMeasure(val)}
+          value={unitOfMeasureId}
+          onValueChange={val => setUnitOfMeasureId(val)}
         >
           <SelectTrigger className={"w-full"}>
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">CM</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">KG</SelectItem>
+            {unitsOfMeasureList.map(unit_of_measure => {
+              return <SelectItem key={unit_of_measure.id} value={unit_of_measure.id}>{unit_of_measure.unit_of_measure}</SelectItem>
+            })}
+            <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>
         </Select>
+        <FieldError error={errors} field={"unit_of_measure"}/>
+
+        {unitOfMeasureId === "other" ? (
+          <>
+            <Label htmlFor="new_unit_of_measure">Egyéb mértékegység</Label>
+            <Input
+              id="new_unit_of_measure"
+              type="text"
+              value={newUnitOfMeasure}
+              onChange={e => setNewUnitOfMeasure(e.target.value)}
+            />
+            <FieldError error={errors} field={"new_unit_of_measure"}/>
+          </>
+        ) : null}
         <FieldError error={errors} field={"unit_of_measure"}/>
         <Label htmlFor="cost">Bekerülési költség</Label>
         <Input
@@ -139,10 +228,26 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">HUF</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">EUR</SelectItem>
+            {currencyList.map(currency => {
+              return <SelectItem key={currency.id} value={currency.id}>{currency.currency}</SelectItem>
+            })}
+            <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>
         </Select>
+
+        {currencyId === "other" ? (
+          <>
+            <Label htmlFor="new_currency">Egyéb mértékegység</Label>
+            <Input
+              id="new_currency"
+              type="text"
+              value={newCurrency}
+              onChange={e => setNewCurrecy(e.target.value)}
+            />
+            <FieldError error={errors} field={"new_currency"}/>
+          </>
+        ) : null}
+
         <FieldError error={errors} field={"currency_id"}/>
         <Label htmlFor="status">Státusz</Label>
         <Select

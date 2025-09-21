@@ -113,7 +113,6 @@ export interface TenantData {
   deleted_at: string | null;
 }
 
-// Interface for the response
 export interface TenantsListResponse {
   success: boolean,
   data: {
@@ -123,7 +122,6 @@ export interface TenantsListResponse {
     data: TenantData[]
   };
 }
-
 
 export function isTenantsList(data: unknown): data is TenantsListResponse {
   if (typeof data !== 'object' || data === null) return false;

@@ -72,7 +72,7 @@ export default function List() {
     orderSelect,
     filterSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams, []);
+  } = useDataDisplayCommon(updateSpecialQueryParams);
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {

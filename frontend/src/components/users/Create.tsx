@@ -41,7 +41,7 @@ export default function Create() {
       phone,
       status,
     })).then((response) => {
-      setErrors({global: "Not implemented yet!"});
+      setErrors({global: "Not implemented yet!", fields: {}});
       console.log(response)
     });
   };

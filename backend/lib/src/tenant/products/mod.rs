@@ -18,6 +18,8 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::products::repository::ProductsRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +35,41 @@ pub fn init_default_products_module(
     config: Arc<AppConfig>,
 ) -> ProductsModuleBuilder {
     ProductsModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct ProductsModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub products_repo: Arc<dyn ProductsRepository>,
 }
 
 pub struct ProductsModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub products_repo: Option<Arc<dyn ProductsRepository>>,
 }
 
 impl ProductsModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            products_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn products_repo(mut self, products_repo: Arc<dyn ProductsRepository>) -> Self {
+        self.products_repo = Some(products_repo);
+        self
+    }
     pub fn build(self) -> Result<ProductsModule, String> {
         Ok(ProductsModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            products_repo: self
+                .products_repo
+                .ok_or("products_repo is required".to_string())?,
         })
     }
 }

@@ -21,7 +21,7 @@ import {useSearchParams} from "react-router-dom";
 import {query_encoder, query_parser} from "@/lib/utils.ts";
 import React, {useEffect, useMemo} from "react";
 
-export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Record<string, string | number>) => null) {
+export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Record<string, string | number>) => void) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
   const [limit, setLimit] = React.useState<number>(25);

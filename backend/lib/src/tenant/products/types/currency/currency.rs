@@ -28,7 +28,11 @@ impl ValueObjectable for Currency {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().len() == 3 {
+            Ok(())
+        } else {
+            Err("A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF".to_string())
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.

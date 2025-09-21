@@ -349,7 +349,9 @@ create table currencies
     currency   varchar(3)  not null,
     created_by uuid        not null,
     created_at timestamptz not null default now(),
-    foreign key (created_by) references users (id)
+    deleted_at timestamptz,
+    foreign key (created_by) references users (id),
+    unique (currency)
 );
 
 CREATE INDEX idx_currencies_created_by ON currencies (created_by);
@@ -361,7 +363,9 @@ create table units_of_measure
     unit_of_measure varchar(50) not null,
     created_by      uuid        not null,
     created_at      timestamptz not null default now(),
-    foreign key (created_by) references users (id)
+    deleted_at      timestamptz,
+    foreign key (created_by) references users (id),
+    unique (unit_of_measure)
 );
 
 CREATE INDEX idx_units_of_measure_created_by ON units_of_measure (created_by);
@@ -369,25 +373,25 @@ CREATE INDEX idx_units_of_measure_created_at ON units_of_measure (created_at);
 
 create table products
 (
-    id              uuid primary key      default uuid_generate_v4(),
-    name            varchar(255) not null,
-    description     text,
-    unit_of_measure uuid         not null,
-    price           numeric(15, 2),
-    cost            numeric(15, 2),
-    currency_id     uuid         not null,
-    status          varchar(50)  not null default 'active',
-    created_by      uuid         not null,
-    created_at      timestamptz           default now(),
-    updated_at      timestamptz           default now(),
-    deleted_at      timestamptz,
+    id                 uuid primary key      default uuid_generate_v4(),
+    name               varchar(255) not null,
+    description        text,
+    unit_of_measure_id uuid         not null,
+    price              numeric(15, 2),
+    cost               numeric(15, 2),
+    currency_id        uuid         not null,
+    status             varchar(50)  not null default 'active',
+    created_by         uuid         not null,
+    created_at         timestamptz           default now(),
+    updated_at         timestamptz           default now(),
+    deleted_at         timestamptz,
     foreign key (currency_id) references currencies (id),
-    foreign key (unit_of_measure) references units_of_measure (id),
+    foreign key (unit_of_measure_id) references units_of_measure (id),
     foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_products_currency_id ON products (currency_id);
-CREATE INDEX idx_products_unit_of_measure ON products (unit_of_measure);
+CREATE INDEX idx_products_unit_of_measure_id ON products (unit_of_measure_id);
 CREATE INDEX idx_products_created_by ON products (created_by);
 CREATE INDEX idx_products_created_at ON products (created_at);
 CREATE INDEX idx_products_updated_at ON products (updated_at);

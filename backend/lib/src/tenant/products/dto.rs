@@ -37,10 +37,12 @@ use uuid::Uuid;
 pub struct CreateProductHelper {
     pub name: String,
     pub description: String,
-    pub unit_of_measure: Uuid,
+    pub unit_of_measure_id: String,
+    pub new_unit_of_measure: String,
     pub price: String,
     pub cost: String,
-    pub currency_id: Uuid,
+    pub currency_id: String,
+    pub new_currency: String,
     pub status: String,
 }
 
@@ -48,10 +50,12 @@ pub struct CreateProductHelper {
 pub struct CreateProductError {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub unit_of_measure: Option<String>,
+    pub unit_of_measure_id: Option<String>,
+    pub new_unit_of_measure: Option<String>,
     pub price: Option<String>,
     pub cost: Option<String>,
     pub currency_id: Option<String>,
+    pub new_currency: Option<String>,
     pub status: Option<String>,
 }
 
@@ -59,7 +63,7 @@ impl CreateProductError {
     pub fn is_empty(&self) -> bool {
         self.name.is_none()
             && self.description.is_none()
-            && self.unit_of_measure.is_none()
+            && self.unit_of_measure_id.is_none()
             && self.price.is_none()
             && self.cost.is_none()
             && self.currency_id.is_none()
@@ -84,10 +88,12 @@ impl IntoResponse for CreateProductError {
 pub struct CreateProduct {
     pub name: ValueObject<ProductName>,
     pub description: Option<ValueObject<ProductDescription>>,
-    pub unit_of_measure: Uuid,
+    pub unit_of_measure_id: Option<Uuid>,
+    pub new_unit_of_measure: Option<ValueObject<UnitsOfMeasure>>,
     pub price: Option<ValueObject<ProductPrice>>,
     pub cost: Option<ValueObject<ProductCost>>,
-    pub currency_id: Uuid,
+    pub currency_id: Option<Uuid>,
+    pub new_currency: Option<ValueObject<Currency>>,
     pub status: ValueObject<ProductStatus>,
 }
 
@@ -102,6 +108,7 @@ impl TryFrom<CreateProductHelper> for CreateProduct {
         });
 
         let price = validate_optional_string!(ProductPrice(value.price), error.price);
+
         let cost = validate_optional_string!(ProductCost(value.cost), error.cost);
 
         let status = ValueObject::new(ProductStatus(value.status)).inspect_err(|e| {
@@ -111,14 +118,54 @@ impl TryFrom<CreateProductHelper> for CreateProduct {
         let description =
             validate_optional_string!(ProductDescription(value.description), error.description);
 
+        let unit_of_measure_id = match value.unit_of_measure_id.as_str() {
+            "other" => None,
+            _ => match Uuid::parse_str(value.unit_of_measure_id.as_str()) {
+                Ok(v) => Some(v),
+                Err(_) => {
+                    error.unit_of_measure_id = Some("Hibás mértékegység".to_string());
+                    None
+                }
+            },
+        };
+
+        let new_unit_of_measure = if unit_of_measure_id.is_some() {
+            None
+        } else {
+            ValueObject::new(UnitsOfMeasure(value.new_unit_of_measure))
+                .inspect_err(|e| error.new_unit_of_measure = Some(e.to_string()))
+                .ok()
+        };
+
+        let currency_id = match value.currency_id.as_str() {
+            "other" => None,
+            _ => match Uuid::parse_str(value.currency_id.as_str()) {
+                Ok(v) => Some(v),
+                Err(_) => {
+                    error.currency_id = Some("Hibás mértékegység".to_string());
+                    None
+                }
+            },
+        };
+
+        let new_currency = if currency_id.is_some() {
+            None
+        } else {
+            ValueObject::new(Currency(value.new_currency))
+                .inspect_err(|e| error.new_currency = Some(e.to_string()))
+                .ok()
+        };
+
         if error.is_empty() {
             Ok(CreateProduct {
                 name: name.map_err(|_| CreateProductError::default())?,
                 description,
-                unit_of_measure: value.unit_of_measure,
+                unit_of_measure_id,
+                new_unit_of_measure,
                 price,
                 cost,
-                currency_id: value.currency_id,
+                currency_id,
+                new_currency,
                 status: status.map_err(|_| CreateProductError::default())?,
             })
         } else {

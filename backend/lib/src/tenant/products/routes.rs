@@ -21,7 +21,7 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::handler::{
     create as products_create, delete as products_delete, get as products_get,
-    list as products_list, update as products_update,
+    list as products_list, select_list as products_select_list, update as products_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -34,6 +34,7 @@ pub fn routes(products_module: Arc<ProductsModule>) -> Router {
         Router::new()
             .route("/get", get(products_get))
             .route("/list", get(products_list))
+            .route("/select_list", get(products_select_list))
             .route("/create", post(products_create))
             .route("/update", post(products_update))
             .route("/delete", post(products_delete))

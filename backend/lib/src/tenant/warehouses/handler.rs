@@ -50,15 +50,13 @@ pub async fn create(
         .await
         .map_err(|e| {
             match e {
-                WarehousesServiceError::Repository(_) => {
-                    FriendlyError::internal(file!(), e.to_string())
-                }
                 WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
                     Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
                     file!(),
                     "Hozzáférés megtagadva!",
                 ),
+                _ => FriendlyError::internal(file!(), e.to_string()),
             }
             .into_response()
         })?;

@@ -263,7 +263,7 @@ CREATE INDEX idx_tag_connect_deleted_at ON tag_connect (deleted_at);
 
 create table projects
 (
-    id          uuid         not null primary key,
+    id          uuid primary key      default uuid_generate_v4(),
     name        varchar(255) not null,
     description text,
     created_by  uuid         not null,
@@ -289,7 +289,7 @@ EXECUTE FUNCTION update_updated_at();
 
 create table worksheets
 (
-    id          uuid         not null primary key,
+    id          uuid primary key      default uuid_generate_v4(),
     name        varchar(255) not null,
     description text,
     project_id  uuid         not null,
@@ -316,7 +316,7 @@ EXECUTE FUNCTION update_updated_at();
 
 create table tasks
 (
-    id           uuid         not null primary key,
+    id           uuid primary key      default uuid_generate_v4(),
     worksheet_id uuid         not null,
     title        varchar(255) not null,
     description  text,

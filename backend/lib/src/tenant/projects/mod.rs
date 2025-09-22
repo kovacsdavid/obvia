@@ -18,6 +18,8 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::projects::repository::ProjectsRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +35,41 @@ pub fn init_default_projects_module(
     config: Arc<AppConfig>,
 ) -> ProjectsModuleBuilder {
     ProjectsModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .projects_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct ProjectsModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub projects_repo: Arc<dyn ProjectsRepository>,
 }
 
 pub struct ProjectsModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub projects_repo: Option<Arc<dyn ProjectsRepository>>,
 }
 
 impl ProjectsModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            projects_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn projects_repo(mut self, projects_repo: Arc<dyn ProjectsRepository>) -> Self {
+        self.projects_repo = Some(projects_repo);
+        self
+    }
     pub fn build(self) -> Result<ProjectsModule, String> {
         Ok(ProjectsModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            projects_repo: self
+                .projects_repo
+                .ok_or("projects_repo is required".to_string())?,
         })
     }
 }

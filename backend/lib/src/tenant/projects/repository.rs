@@ -56,16 +56,27 @@ impl ProjectsRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Project, RepositoryError> {
-        let start_date = NaiveDateTime::parse_from_str(
-            project.start_date.unwrap().extract().get_value(),
-            "%Y-%m-%d %H:%M:%S",
-        )
-        .map_err(|e| RepositoryError::Parse(e.to_string()))?;
-        let end_date = NaiveDateTime::parse_from_str(
-            project.end_date.unwrap().extract().get_value(),
-            "%Y-%m-%d %H:%M:%S",
-        )
-        .map_err(|e| RepositoryError::Parse(e.to_string()))?;
+        let start_date = match project.start_date {
+            None => None,
+            Some(v) => {
+                Some(NaiveDateTime::parse_from_str(
+                    &v.extract().get_value(),
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                    .map_err(|e| RepositoryError::Parse(e.to_string()))?)
+            }
+        };
+        let end_date = match project.end_date {
+            None => None,
+            Some(v) => {
+                Some(NaiveDateTime::parse_from_str(
+                    &v.extract().get_value(),
+                    "%Y-%m-%d %H:%M:%S",
+                )
+                    .map_err(|e| RepositoryError::Parse(e.to_string()))?)
+            }
+        };
+
         Ok(sqlx::query_as::<_, Project>(
             "INSERT INTO projects (name, description, created_by, status, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",

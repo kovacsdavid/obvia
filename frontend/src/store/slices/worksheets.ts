@@ -42,6 +42,19 @@ export const create = createAsyncThunk(
   }
 )
 
+export const select_list = createAsyncThunk(
+  "worksheets/select_list",
+  async (list: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await worksheetsApi.select_list(list, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
 export const list = createAsyncThunk(
   "worksheets/list",
   async (query: string | null, {rejectWithValue, getState}) => {

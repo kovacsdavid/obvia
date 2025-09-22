@@ -64,8 +64,6 @@ export async function list(query: string | null, token: string | null): Promise<
   });
 }
 
-
-
 export interface UnitsOfMeasureSelectListItem {
   id: string,
   unit_of_measure: string,
@@ -99,7 +97,6 @@ export function isUnitsOfMeasureSelectListResponse(obj: any): obj is UnitsOfMeas
     obj.data.every((item: any) => isUnitsOfMeasureSelectListItem(item))
   );
 }
-
 
 export async function select_list(list: string, token: string | null): Promise<Response> {
   return await fetch(`/api/products/select_list?list=${list}`, {

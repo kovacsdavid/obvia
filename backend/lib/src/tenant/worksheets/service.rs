@@ -16,7 +16,51 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::worksheets::WorksheetsModule;
+use crate::tenant::worksheets::dto::CreateWorksheet;
+use std::sync::Arc;
+use thiserror::Error;
+use crate::tenant::projects::model::Project;
+
+#[derive(Debug, Error)]
+pub enum WorksheetsServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+}
+
+type WorksheetsServiceResult<T> =  Result<T, WorksheetsServiceError>;
 
 pub struct WorksheetsService;
 
-impl WorksheetsService {}
+impl WorksheetsService {
+    pub async fn create(
+        claims: &Claims,
+        payload: &CreateWorksheet,
+        worksheets_module: Arc<WorksheetsModule>,
+    ) -> WorksheetsServiceResult<()> {
+        worksheets_module
+            .worksheets_repo
+            .insert(
+                payload.clone(),
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+    pub async fn get_all_projects(
+        claims: &Claims,
+        worksheets_module: Arc<WorksheetsModule>,
+    ) -> WorksheetsServiceResult<Vec<Project>> {
+        Ok(worksheets_module.projects_repo.get_all(
+            claims.active_tenant().ok_or(WorksheetsServiceError::Unauthorized)?,
+        ).await?)
+    }
+}

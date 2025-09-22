@@ -18,6 +18,9 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::projects::repository::ProjectsRepository;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +36,52 @@ pub fn init_default_worksheets_module(
     config: Arc<AppConfig>,
 ) -> WorksheetsModuleBuilder {
     WorksheetsModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .projects_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct WorksheetsModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
+    pub projects_repo: Arc<dyn ProjectsRepository>,
 }
 
 pub struct WorksheetsModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
+    pub projects_repo: Option<Arc<dyn ProjectsRepository>>,
 }
 
 impl WorksheetsModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            worksheets_repo: None,
+            projects_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
+        self.worksheets_repo = Some(worksheets_repo);
+        self
+    }
+    pub fn projects_repo(mut self, projects_repo: Arc<dyn ProjectsRepository>) -> Self {
+        self.projects_repo = Some(projects_repo);
+        self
+    }
     pub fn build(self) -> Result<WorksheetsModule, String> {
         Ok(WorksheetsModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            worksheets_repo: self
+                .worksheets_repo
+                .ok_or("worksheets_repo is required".to_string())?,
+            projects_repo: self
+                .projects_repo
+                .ok_or("projects_repo is required".to_string())?,
         })
     }
 }

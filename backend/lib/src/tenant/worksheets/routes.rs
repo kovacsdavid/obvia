@@ -21,7 +21,7 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::handler::{
     create as worksheets_create, delete as worksheets_delete, get as worksheets_get,
-    list as worksheets_list, update as worksheets_update,
+    list as worksheets_list, update as worksheets_update, select_list as worksheets_select_list
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -34,6 +34,7 @@ pub fn routes(worksheets_module: Arc<WorksheetsModule>) -> Router {
         Router::new()
             .route("/get", get(worksheets_get))
             .route("/list", get(worksheets_list))
+            .route("/select_list", get(worksheets_select_list))
             .route("/create", post(worksheets_create))
             .route("/update", post(worksheets_update))
             .route("/delete", post(worksheets_delete))

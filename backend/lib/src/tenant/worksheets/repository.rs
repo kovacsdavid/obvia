@@ -17,14 +17,58 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::error::RepositoryError;
 use crate::manager::common::repository::PoolManagerWrapper;
+use crate::manager::common::types::value_object::ValueObjectable;
+use crate::tenant::worksheets::dto::CreateWorksheet;
+use crate::tenant::worksheets::model::Worksheet;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait WorksheetsRepository: Send + Sync {}
+pub trait WorksheetsRepository: Send + Sync {
+    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Worksheet>, RepositoryError>;
+    async fn insert(
+        &self,
+        worksheet: CreateWorksheet,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Worksheet, RepositoryError>;
+}
 
 #[async_trait]
-impl WorksheetsRepository for PoolManagerWrapper {}
+impl WorksheetsRepository for PoolManagerWrapper {
+    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Worksheet>, RepositoryError> {
+        Ok(sqlx::query_as::<_, Worksheet>(
+            "SELECT * FROM worksheets WHERE deleted_at IS NULL ORDER BY name",
+        )
+        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn insert(
+        &self,
+        worksheet: CreateWorksheet,
+        sub: Uuid,
+        active_tenant: Uuid,
+    ) -> Result<Worksheet, RepositoryError> {
+        Ok(sqlx::query_as::<_, Worksheet>(
+            "INSERT INTO worksheets (name, description, project_id, created_by, status)\
+             VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        )
+        .bind(worksheet.name.extract().get_value())
+        .bind(
+            worksheet
+                .description
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(worksheet.project_id)
+        .bind(sub)
+        .bind(worksheet.status.extract().get_value())
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+}

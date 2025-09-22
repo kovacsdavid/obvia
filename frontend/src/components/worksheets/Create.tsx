@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/worksheets.ts";
@@ -29,14 +29,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {select_list} from "@/store/slices/worksheets.ts";
+import {
+  type ProjectsSelectListItem,
+  isProjectsSelectsListResponse
+} from "@/services/worksheets.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [status, setStatus] = React.useState("active");
+  const [projectsList, setProjectsList] = React.useState<ProjectsSelectListItem[]>([]);
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
+
+
+  useEffect(() => {
+    dispatch(select_list("projects")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isProjectsSelectsListResponse(responseData)) {
+                setProjectsList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,8 +143,9 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Project 1</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Project 2</SelectItem>
+            {projectsList.map(project => {
+              return <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+            })}
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"project_id"}/>

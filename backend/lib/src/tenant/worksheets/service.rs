@@ -18,11 +18,11 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::projects::model::Project;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::CreateWorksheet;
 use std::sync::Arc;
 use thiserror::Error;
-use crate::tenant::projects::model::Project;
 
 #[derive(Debug, Error)]
 pub enum WorksheetsServiceError {
@@ -33,7 +33,7 @@ pub enum WorksheetsServiceError {
     Unauthorized,
 }
 
-type WorksheetsServiceResult<T> =  Result<T, WorksheetsServiceError>;
+type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
 
 pub struct WorksheetsService;
 
@@ -59,8 +59,13 @@ impl WorksheetsService {
         claims: &Claims,
         worksheets_module: Arc<WorksheetsModule>,
     ) -> WorksheetsServiceResult<Vec<Project>> {
-        Ok(worksheets_module.projects_repo.get_all(
-            claims.active_tenant().ok_or(WorksheetsServiceError::Unauthorized)?,
-        ).await?)
+        Ok(worksheets_module
+            .projects_repo
+            .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
     }
 }

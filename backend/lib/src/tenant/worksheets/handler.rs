@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::collections::HashMap;
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -29,6 +28,7 @@ use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::Level;
 
@@ -69,7 +69,6 @@ pub async fn create(
         .into_response())
 }
 
-
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<WorksheetsModule>>,
@@ -82,7 +81,7 @@ pub async fn select_list(
             file!(),
             "Invalid request",
         )
-            .into_response()
+        .into_response()
     };
     let list_type = payload.get("list").ok_or(invalid_request())?;
 

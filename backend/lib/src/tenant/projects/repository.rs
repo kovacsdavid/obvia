@@ -59,14 +59,14 @@ impl ProjectsRepository for PoolManagerWrapper {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(&v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
                     .map_err(|e| RepositoryError::Parse(e.to_string()))?,
             ),
         };
         let end_date = match project.end_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(&v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
                     .map_err(|e| RepositoryError::Parse(e.to_string()))?,
             ),
         };

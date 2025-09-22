@@ -377,20 +377,15 @@ create table products
     name               varchar(255) not null,
     description        text,
     unit_of_measure_id uuid         not null,
-    price              numeric(15, 2),
-    cost               numeric(15, 2),
-    currency_id        uuid         not null,
     status             varchar(50)  not null default 'active',
     created_by         uuid         not null,
     created_at         timestamptz           default now(),
     updated_at         timestamptz           default now(),
     deleted_at         timestamptz,
-    foreign key (currency_id) references currencies (id),
     foreign key (unit_of_measure_id) references units_of_measure (id),
     foreign key (created_by) references users (id)
 );
 
-CREATE INDEX idx_products_currency_id ON products (currency_id);
 CREATE INDEX idx_products_unit_of_measure_id ON products (unit_of_measure_id);
 CREATE INDEX idx_products_created_by ON products (created_by);
 CREATE INDEX idx_products_created_at ON products (created_at);
@@ -469,15 +464,22 @@ create table inventory
     product_id   uuid        not null,
     warehouse_id uuid        not null,
     quantity     integer     not null default 0,
+    price        numeric(15, 2),
+    cost         numeric(15, 2),
+    currency_id  uuid        not null,
     created_by   uuid        not null,
     created_at   timestamptz not null default now(),
     updated_at   timestamptz not null default now(),
     deleted_at   timestamptz,
+    foreign key (currency_id) references currencies (id),
     foreign key (product_id) references products (id),
     foreign key (warehouse_id) references warehouses (id),
     foreign key (created_by) references users (id)
 );
 
+CREATE INDEX idx_inventory_price ON inventory (price);
+CREATE INDEX idx_inventory_cost ON inventory (cost);
+CREATE INDEX idx_inventory_currency_id ON inventory (currency_id);
 CREATE INDEX idx_inventory_product_id ON inventory (product_id);
 CREATE INDEX idx_inventory_warehouse_id ON inventory (warehouse_id);
 CREATE INDEX idx_inventory_created_by ON inventory (created_by);

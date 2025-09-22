@@ -18,6 +18,10 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::inventory::repository::InventoryRepository;
+use crate::tenant::products::repository::ProductsRepository;
+use crate::tenant::warehouses::repository::WarehousesRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +37,63 @@ pub fn init_default_inventory_module(
     config: Arc<AppConfig>,
 ) -> InventoryModuleBuilder {
     InventoryModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .inventory_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct InventoryModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub inventory_repo: Arc<dyn InventoryRepository>,
+    pub products_repo: Arc<dyn ProductsRepository>,
+    pub warehouses_repo: Arc<dyn WarehousesRepository>,
 }
 
 pub struct InventoryModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
+    pub products_repo: Option<Arc<dyn ProductsRepository>>,
+    pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
 }
 
 impl InventoryModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            inventory_repo: None,
+            products_repo: None,
+            warehouses_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn inventory_repo(mut self, inventory_repo: Arc<dyn InventoryRepository>) -> Self {
+        self.inventory_repo = Some(inventory_repo);
+        self
+    }
+    pub fn products_repo(mut self, products_repo: Arc<dyn ProductsRepository>) -> Self {
+        self.products_repo = Some(products_repo);
+        self
+    }
+    pub fn warehouses_repo(mut self, warehouses_repo: Arc<dyn WarehousesRepository>) -> Self {
+        self.warehouses_repo = Some(warehouses_repo);
+        self
+    }
     pub fn build(self) -> Result<InventoryModule, String> {
         Ok(InventoryModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            inventory_repo: self
+                .inventory_repo
+                .ok_or("inventory_repo  is required".to_string())?,
+            products_repo: self
+                .products_repo
+                .ok_or("products_repo  is required".to_string())?,
+            warehouses_repo: self
+                .warehouses_repo
+                .ok_or("warehouses_repo  is required".to_string())?,
         })
     }
 }

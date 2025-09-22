@@ -113,15 +113,6 @@ pub async fn select_list(
     let list_type = payload.get("list").ok_or(invalid_request())?;
 
     match list_type.as_str() {
-        "currencies" => Ok((
-            StatusCode::OK,
-            Json(OkResponse::new(
-                ProductsService::get_all_currencies(&claims, products_module)
-                    .await
-                    .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            )),
-        )
-            .into_response()),
         "units_of_measure" => Ok((
             StatusCode::OK,
             Json(OkResponse::new(

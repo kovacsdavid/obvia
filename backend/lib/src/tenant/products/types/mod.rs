@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod currency;
 pub(crate) mod product;
 pub(crate) mod product_category;
 pub(crate) mod unit_of_measure;

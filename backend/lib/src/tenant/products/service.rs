@@ -21,7 +21,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::CreateProduct;
-use crate::tenant::products::model::{Currency, UnitOfMeasure};
+use crate::tenant::products::model::UnitOfMeasure;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -71,30 +71,6 @@ impl ProductsService {
             )
         };
 
-        product.currency_id = if product.currency_id.is_some() {
-            product.currency_id
-        } else {
-            Some(
-                products_module
-                    .products_repo
-                    .insert_currency(
-                        product
-                            .new_currency
-                            .as_ref()
-                            .ok_or(ProductsServiceError::InvalidState)?
-                            .extract()
-                            .get_value()
-                            .as_str(),
-                        claims.sub(),
-                        claims
-                            .active_tenant()
-                            .ok_or(ProductsServiceError::Unauthorized)?,
-                    )
-                    .await?
-                    .id,
-            )
-        };
-
         products_module
             .products_repo
             .insert(
@@ -114,19 +90,6 @@ impl ProductsService {
         Ok(products_module
             .products_repo
             .get_all_units_of_measure(
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_all_currencies(
-        claims: &Claims,
-        products_module: Arc<ProductsModule>,
-    ) -> Result<Vec<Currency>, ProductsServiceError> {
-        Ok(products_module
-            .products_repo
-            .get_all_currencies(
                 claims
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,

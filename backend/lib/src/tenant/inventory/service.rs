@@ -16,7 +16,110 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::types::value_object::ValueObjectable;
+use crate::tenant::inventory::InventoryModule;
+use crate::tenant::inventory::dto::CreateInventory;
+use crate::tenant::inventory::model::Currency;
+use crate::tenant::products::model::Product;
+use crate::tenant::warehouses::model::Warehouse;
+use std::sync::Arc;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum InventoryServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+
+    #[error("Invalid state")]
+    InvalidState,
+}
 
 pub struct InventoryService;
 
-impl InventoryService {}
+impl InventoryService {
+    pub async fn create(
+        claims: &Claims,
+        payload: &CreateInventory,
+        inventory_module: Arc<InventoryModule>,
+    ) -> Result<(), InventoryServiceError> {
+        let mut inventory = payload.clone();
+        inventory.currency_id = if inventory.currency_id.is_some() {
+            inventory.currency_id
+        } else {
+            Some(
+                inventory_module
+                    .inventory_repo
+                    .insert_currency(
+                        inventory
+                            .new_currency
+                            .as_ref()
+                            .ok_or(InventoryServiceError::InvalidState)?
+                            .extract()
+                            .get_value()
+                            .as_str(),
+                        claims.sub(),
+                        claims
+                            .active_tenant()
+                            .ok_or(InventoryServiceError::Unauthorized)?,
+                    )
+                    .await?
+                    .id,
+            )
+        };
+        inventory_module
+            .inventory_repo
+            .insert(
+                inventory,
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+    pub async fn get_all_currencies(
+        claims: &Claims,
+        inventory_module: Arc<InventoryModule>,
+    ) -> Result<Vec<Currency>, InventoryServiceError> {
+        Ok(inventory_module
+            .inventory_repo
+            .get_all_currencies(
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get_all_products(
+        claims: &Claims,
+        inventory_module: Arc<InventoryModule>,
+    ) -> Result<Vec<Product>, InventoryServiceError> {
+        Ok(inventory_module
+            .products_repo
+            .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get_all_warehouses(
+        claims: &Claims,
+        inventory_module: Arc<InventoryModule>,
+    ) -> Result<Vec<Warehouse>, InventoryServiceError> {
+        Ok(inventory_module
+            .warehouses_repo
+            .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+}

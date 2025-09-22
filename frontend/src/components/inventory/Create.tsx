@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/store/slices/inventory.ts";
+import {create, select_list} from "@/store/slices/inventory.ts";
 import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
 import {
   Select,
@@ -29,13 +29,118 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  type CurrencySelectListItem,
+  isCurrencySelectListResponse, isProductSelectListResponse, isWarehouseSelectListResponse, type ProductSelectListItem,
+  type WarehouseSelectListItem,
+} from "@/services/inventory.ts";
 
 export default function Create() {
   const [productId, setProductId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [warehouseId, setWarehouseId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [quantity, setQuantity] = React.useState("");
+  const [cost, setCost] = React.useState("");
+  const [price, setPrice] = React.useState("");
+  const [currencyId, setCurrencyId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [newCurrency, setNewCurrecy] = React.useState("");
+  const [currencyList, setCurrencyList] = React.useState<CurrencySelectListItem[]>([]);
+  const [productList, setProductList] = React.useState<ProductSelectListItem[]>([]);
+  const [warehouseList, setWarehouseList] = React.useState<WarehouseSelectListItem[]>([]);
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(select_list("currencies")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isCurrencySelectListResponse(responseData)) {
+                setCurrencyList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+    dispatch(select_list("products")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isProductSelectListResponse(responseData)) {
+                setProductList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+    dispatch(select_list("warehouses")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isWarehouseSelectListResponse(responseData)) {
+                setWarehouseList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +148,10 @@ export default function Create() {
       productId,
       warehouseId,
       quantity,
+      cost,
+      price,
+      currencyId,
+      newCurrency,
     })).then(async (response) => {
       console.log(response)
       if (response?.meta?.requestStatus === "fulfilled") {
@@ -75,8 +184,8 @@ export default function Create() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-        <Label htmlFor="product_id">Termék ID</Label>
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
+        <Label htmlFor="product_id">Termék</Label>
         <Select
           value={productId}
           onValueChange={val => setProductId(val)}
@@ -85,12 +194,14 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Termék 1</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Termék 2</SelectItem>
+            {productList.map(product => {
+              return <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+            })}
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"product_id"}/>
-        <Label htmlFor="warehouse_id">Raktár ID</Label>
+
+        <Label htmlFor="warehouse_id">Raktár</Label>
         <Select
           value={warehouseId}
           onValueChange={val => setWarehouseId(val)}
@@ -99,8 +210,9 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Raktár 1</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Raktár 2</SelectItem>
+            {warehouseList.map(warehouse => {
+              return <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</SelectItem>
+            })}
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"warehouse_id"}/>
@@ -112,6 +224,53 @@ export default function Create() {
           onChange={e => setQuantity(e.target.value)}
         />
         <FieldError error={errors} field={"quantity"}/>
+        <FieldError error={errors} field={"unit_of_measure"}/>
+        <Label htmlFor="cost">Bekerülési költség</Label>
+        <Input
+          id="cost"
+          type="text"
+          value={cost}
+          onChange={e => setCost(e.target.value)}
+        />
+        <FieldError error={errors} field={"cost"}/>
+        <Label htmlFor="price">Fogyasztói ár</Label>
+        <Input
+          id="price"
+          type="text"
+          value={price}
+          onChange={e => setPrice(e.target.value)}
+        />
+        <FieldError error={errors} field={"price"}/>
+        <Label htmlFor="currency_id">Pénznem</Label>
+        <Select
+          value={currencyId}
+          onValueChange={val => setCurrencyId(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            {currencyList.map(currency => {
+              return <SelectItem key={currency.id} value={currency.id}>{currency.currency}</SelectItem>
+            })}
+            <SelectItem value="other">Egyéb</SelectItem>
+          </SelectContent>
+        </Select>
+        <FieldError error={errors} field={"currency_id"}/>
+
+        {currencyId === "other" ? (
+          <>
+            <Label htmlFor="new_currency">Új pénznem</Label>
+            <Input
+              id="new_currency"
+              type="text"
+              value={newCurrency}
+              onChange={e => setNewCurrecy(e.target.value)}
+            />
+            <FieldError error={errors} field={"new_currency"}/>
+          </>
+        ) : null}
+
         <Button type="submit">Létrehozás</Button>
       </form>
     </>

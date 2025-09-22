@@ -34,8 +34,8 @@ impl ValueObjectable for Quantity {
         self.0
             .trim()
             .replace(",", ".")
-            .parse::<f64>()
-            .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            .parse::<i32>()
+            .map_err(|_| String::from("Hibás mennyiség formátum"))?;
         Ok(())
     }
 

@@ -30,6 +30,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait WarehousesRepository: Send + Sync {
+    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Warehouse>, RepositoryError>;
     async fn insert(
         &self,
         warehouse: CreateWarehouse,
@@ -40,6 +41,13 @@ pub trait WarehousesRepository: Send + Sync {
 
 #[async_trait]
 impl WarehousesRepository for PoolManagerWrapper {
+    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Warehouse>, RepositoryError> {
+        Ok(sqlx::query_as::<_, Warehouse>(
+            "SELECT * FROM warehouses WHERE deleted_at IS NULL ORDER BY name ",
+        )
+        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn insert(
         &self,
         warehouse: CreateWarehouse,

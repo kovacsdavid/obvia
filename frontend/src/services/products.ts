@@ -24,10 +24,6 @@ export interface CreateProduct {
   description: string
   unitOfMeasureId: string
   newUnitOfMeasure: string,
-  price: string
-  cost: string
-  currencyId: string
-  newCurrency: string
   status: string
 }
 
@@ -36,10 +32,7 @@ export async function create({
                                description,
                                unitOfMeasureId,
                                newUnitOfMeasure,
-                               price,
-                               cost,
-                               currencyId,
-                               newCurrency,
+
                                status
                              }: CreateProduct, token: string | null): Promise<Response> {
   return await fetch(`/api/products/create`, {
@@ -54,10 +47,6 @@ export async function create({
       description,
       unit_of_measure_id: unitOfMeasureId,
       new_unit_of_measure: newUnitOfMeasure,
-      price,
-      cost,
-      currency_id: currencyId,
-      new_currency: newCurrency,
       status
     })
   })
@@ -75,17 +64,7 @@ export async function list(query: string | null, token: string | null): Promise<
   });
 }
 
-export interface CurrencySelectListItem {
-  id: string,
-  currency: string,
-  created_at: string,
-  deleted_at: string | null
-}
 
-export interface CurrencySelectListResponse {
-  success: boolean,
-  data: CurrencySelectListItem[]
-}
 
 export interface UnitsOfMeasureSelectListItem {
   id: string,
@@ -99,26 +78,6 @@ export interface UnitsOfMeasureSelectListResponse {
   data: UnitsOfMeasureSelectListItem[]
 }
 
-export function isCurrencySelectListItem(obj: any): obj is CurrencySelectListItem {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.id === 'string' &&
-    typeof obj.currency === 'string' &&
-    typeof obj.created_at === 'string' &&
-    (obj.deleted_at === null || typeof obj.deleted_at === 'string')
-  );
-}
-
-export function isCurrencySelectListResponse(obj: any): obj is CurrencySelectListResponse {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.success === 'boolean' &&
-    Array.isArray(obj.data) &&
-    obj.data.every((item: any) => isCurrencySelectListItem(item))
-  );
-}
 
 export function isUnitsOfMeasureSelectListItem(obj: any): obj is UnitsOfMeasureSelectListItem {
   return (

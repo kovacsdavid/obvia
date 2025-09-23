@@ -53,7 +53,7 @@ pub struct Task {
     pub description: Option<String>,
     pub created_by: Uuid,
     pub status: String,
-    pub priority: Option<i32>,
+    pub priority: Option<String>,
     pub due_date: Option<DateTime<Local>>,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,

@@ -322,7 +322,7 @@ create table tasks
     description  text,
     created_by   uuid         not null,
     status       varchar(50)  not null default 'pending',
-    priority     integer,
+    priority     varchar(50),
     due_date     timestamptz,
     created_at   timestamptz  not null default now(),
     updated_at   timestamptz  not null default now(),

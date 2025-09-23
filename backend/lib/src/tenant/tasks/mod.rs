@@ -18,6 +18,9 @@
  */
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::common::repository::PoolManagerWrapper;
+use crate::tenant::tasks::repository::TasksRepository;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -33,41 +36,52 @@ pub fn init_default_tasks_module(
     config: Arc<AppConfig>,
 ) -> TasksModuleBuilder {
     TasksModuleBuilder::default()
-        .pool_manager(pool_manager)
         .config(config)
+        .tasks_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct TasksModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
     pub config: Arc<AppConfig>,
+    pub tasks_repo: Arc<dyn TasksRepository>,
+    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
 }
 
 pub struct TasksModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
     pub config: Option<Arc<AppConfig>>,
+    pub tasks_repo: Option<Arc<dyn TasksRepository>>,
+    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
 }
 
 impl TasksModuleBuilder {
     pub fn new() -> Self {
         Self {
-            pool_manager: None,
             config: None,
+            tasks_repo: None,
+            worksheets_repo: None,
         }
-    }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
-        self.pool_manager = Some(pool_manager);
-        self
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
         self.config = Some(config);
         self
     }
+    pub fn tasks_repo(mut self, tasks_repo: Arc<dyn TasksRepository>) -> Self {
+        self.tasks_repo = Some(tasks_repo);
+        self
+    }
+    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
+        self.worksheets_repo = Some(worksheets_repo);
+        self
+    }
     pub fn build(self) -> Result<TasksModule, String> {
         Ok(TasksModule {
-            pool_manager: self
-                .pool_manager
-                .ok_or("pool_manager is required".to_string())?,
             config: self.config.ok_or("config is required".to_string())?,
+            tasks_repo: self
+                .tasks_repo
+                .ok_or("tasks_repo is required".to_string())?,
+            worksheets_repo: self
+                .worksheets_repo
+                .ok_or("worksheets_repo is required".to_string())?,
         })
     }
 }

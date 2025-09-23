@@ -66,3 +66,66 @@ export async function list(query: string | null, token: string | null): Promise<
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }
+
+export interface WorksheetsSelectListItem {
+  id: string,
+  name: string,
+  description: string | null,
+  project_id: string,
+  created_by: string,
+  status: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null
+}
+
+export interface WorksheetsSelectListResponse {
+  success: boolean,
+  data: WorksheetsSelectListItem[],
+}
+
+
+export function isWorksheetsSelectListItem(obj: unknown): obj is WorksheetsSelectListItem {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const item = obj as Record<string, unknown>;
+
+  return (
+    typeof item.id === 'string' &&
+    typeof item.name === 'string' &&
+    (typeof item.description === 'string' || item.description === null) &&
+    typeof item.project_id === 'string' &&
+    typeof item.created_by === 'string' &&
+    typeof item.status === 'string' &&
+    typeof item.created_at === 'string' &&
+    typeof item.updated_at === 'string' &&
+    (typeof item.deleted_at === 'string' || item.deleted_at === null)
+  );
+}
+
+export function isWorksheetsSelectListResponse(obj: unknown): obj is WorksheetsSelectListResponse {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const response = obj as Record<string, unknown>;
+
+  return (
+    typeof response.success === 'boolean' &&
+    Array.isArray(response.data) &&
+    response.data.every(item => isWorksheetsSelectListItem(item))
+  );
+}
+
+export async function select_list(list: string, token: string | null): Promise<Response> {
+  return await fetch(`/api/tasks/select_list?list=${list}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}

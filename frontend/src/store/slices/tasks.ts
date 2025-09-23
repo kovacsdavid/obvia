@@ -55,6 +55,19 @@ export const list = createAsyncThunk(
   }
 )
 
+export const select_list = createAsyncThunk(
+  "tasks/select_list",
+  async (list: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await tasksApi.select_list(list, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,

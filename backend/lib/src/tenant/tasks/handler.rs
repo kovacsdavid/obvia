@@ -16,18 +16,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::{CreateTask, CreateTaskHelper};
+use crate::tenant::tasks::service::{TasksService, TasksServiceError};
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
+use std::collections::HashMap;
 use std::sync::Arc;
+use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -42,14 +45,58 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<CreateTask, CreateTaskHelper>,
-) -> Response {
-    (
+) -> Result<Response, Response> {
+    TasksService::create(&claims, &user_input, tasks_module)
+        .await
+        .map_err(|e| {
+            match e {
+                TasksServiceError::Unauthorized => FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hozzáférés megtagadva!",
+                ),
+                _ => FriendlyError::internal(file!(), e.to_string()),
+            }
+            .into_response()
+        })?;
+    Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("TEST!!!!"), //TODO: implement
+            message: String::from("A feladat létrehozása sikeresen megtörtént"),
         })),
     )
+        .into_response())
+}
+
+pub async fn select_list(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tasks_module): State<Arc<TasksModule>>,
+    Query(payload): Query<HashMap<String, String>>,
+) -> Result<Response, Response> {
+    let invalid_request = || {
+        FriendlyError::user_facing(
+            Level::DEBUG,
+            StatusCode::BAD_REQUEST,
+            file!(),
+            "Invalid request",
+        )
         .into_response()
+    };
+    let list_type = payload.get("list").ok_or(invalid_request())?;
+
+    match list_type.as_str() {
+        "worksheets" => Ok((
+            StatusCode::OK,
+            Json(OkResponse::new(
+                TasksService::get_all_worksheets(&claims, tasks_module)
+                    .await
+                    .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+            )),
+        )
+            .into_response()),
+        _ => Err(invalid_request()),
+    }
 }
 
 #[debug_handler]

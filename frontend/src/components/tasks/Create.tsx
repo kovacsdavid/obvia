@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/tasks.ts";
@@ -29,6 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {select_list} from "@/store/slices/tasks.ts";
+import {isWorksheetsSelectListResponse, type WorksheetsSelectListItem} from "@/services/tasks.ts";
 
 export default function Create() {
   const [worksheetId, setWorksheetId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
@@ -37,8 +39,44 @@ export default function Create() {
   const [status, setStatus] = React.useState("active");
   const [priority, setPriority] = React.useState("normal");
   const [dueDate, setDueDate] = React.useState("");
+  const [worksheetList, setWorksheetList] = React.useState<WorksheetsSelectListItem[]>([]);
   const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
   const dispatch = useAppDispatch();
+
+
+  useEffect(() => {
+    dispatch(select_list("worksheets")).then(async (response) => {
+      if (response?.meta?.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200:
+              if (isWorksheetsSelectListResponse(responseData)) {
+                setWorksheetList(responseData.data);
+              } else {
+                setErrors({
+                  global: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
+              }
+              break;
+            default:
+              setErrors({
+                global: "Váratlan hiba történt a feldolgozás során!",
+                fields: {}
+              });
+          }
+        } catch {
+          setErrors({
+            global: "Váratlan hiba történt a feldolgozás során!",
+            fields: {}
+          });
+        }
+      }
+    });
+  }, []);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +119,7 @@ export default function Create() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
+      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
         <Label htmlFor="worksheet_id">Munkalap ID</Label>
         <Select
           value={worksheetId}
@@ -91,8 +129,9 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="239b22ad-5db9-4c9c-851b-ba76885c2dae">Munkalap 1</SelectItem>
-            <SelectItem value="9f68f241-5063-4965-ac60-d0fd0a3147eb">Munkalap 2</SelectItem>
+            {worksheetList.map(worksheet => {
+              return <SelectItem key={worksheet.id} value={worksheet.id}>{worksheet.name}</SelectItem>
+            })}
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"worksheet_id"}/>

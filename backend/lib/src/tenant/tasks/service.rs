@@ -16,7 +16,59 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::RepositoryError;
+use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::tasks::TasksModule;
+use crate::tenant::tasks::dto::CreateTask;
+use crate::tenant::worksheets::model::Worksheet;
+use std::sync::Arc;
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum TasksServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Unauthorized")]
+    Unauthorized,
+
+    #[error("Invalid state")]
+    InvalidState,
+}
+
+type TasksServiceResult<T> = Result<T, TasksServiceError>;
 
 pub struct TasksService;
 
-impl TasksService {}
+impl TasksService {
+    pub async fn create(
+        claims: &Claims,
+        payload: &CreateTask,
+        tasks_module: Arc<TasksModule>,
+    ) -> TasksServiceResult<()> {
+        tasks_module
+            .tasks_repo
+            .insert(
+                payload.clone(),
+                claims.sub(),
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?;
+        Ok(())
+    }
+    pub async fn get_all_worksheets(
+        claims: &Claims,
+        tasks_module: Arc<TasksModule>,
+    ) -> TasksServiceResult<Vec<Worksheet>> {
+        Ok(tasks_module
+            .worksheets_repo
+            .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+}

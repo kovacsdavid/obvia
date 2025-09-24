@@ -44,7 +44,6 @@ export default function Create() {
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
-
   useEffect(() => {
     dispatch(select_list("projects")).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {

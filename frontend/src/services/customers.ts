@@ -18,15 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface CreateCustomer {
-  name: string
-  contactName: string
-  email: string
-  phoneNumber: string
-  status: string | undefined
-  customerType: string | undefined,
-}
+import type {CreateCustomer} from "@/lib/interfaces/customers.ts";
 
 export async function create({
                                name,

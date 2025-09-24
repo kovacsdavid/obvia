@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {isCreateCustomerResponse} from "@/lib/interfaces/customers.ts";
 
 export default function Create() {
   const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
@@ -50,29 +51,33 @@ export default function Create() {
       status,
       customerType,
     })).then(async (response) => {
-      console.log(response)
+      const unexpectedError = () => {
+        setErrors({
+          global: "Váratlan hiba történt a feldolgozás során!",
+          fields: {}
+        });
+      }
       if (response?.meta?.requestStatus === "fulfilled") {
         const payload = response.payload as Response;
         try {
           const responseData = await payload.json();
           switch (payload.status) {
             case 201:
-              window.location.href = "/vevo/lista";
+              if (isCreateCustomerResponse(responseData)) {
+                window.location.href = "/vevo/lista";
+              } else {
+                unexpectedError();
+              }
               break;
             case 422:
               setErrors(responseData.error);
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
+
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });

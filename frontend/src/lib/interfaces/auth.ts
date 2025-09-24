@@ -21,8 +21,8 @@ import {
   type CommonResponse,
   type FormError,
   isCommonResponse,
-  isFormError, isSimpleMessageResponse,
-  type SimpleMessageResponse
+  isFormError, isSimpleMessageData,
+  type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
 
@@ -91,10 +91,10 @@ export interface RegisterRequest {
   passwordConfirm: string,
 }
 
-export function isRegisterResponse(data: unknown): data is CommonResponse<SimpleMessageResponse, FormError> {
-  return isCommonResponse<SimpleMessageResponse, FormError>(
+export function isRegisterResponse(data: unknown): data is CommonResponse<SimpleMessageData, FormError> {
+  return isCommonResponse<SimpleMessageData, FormError>(
     data,
-    isSimpleMessageResponse,
+    isSimpleMessageData,
     isFormError
   )
 }

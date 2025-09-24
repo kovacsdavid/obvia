@@ -32,7 +32,7 @@ export interface CommonResponse<T, E> {
   error?: E
 }
 
-export interface SimpleMessageResponse {
+export interface SimpleMessageData {
   message: string
 }
 
@@ -83,7 +83,7 @@ export function isCommonResponse<T, E>(
   return true;
 }
 
-export function isSimpleMessageResponse(data: unknown): data is SimpleMessageResponse {
+export function isSimpleMessageData(data: unknown): data is SimpleMessageData {
   return (
     typeof data === "object" &&
     data !== null &&

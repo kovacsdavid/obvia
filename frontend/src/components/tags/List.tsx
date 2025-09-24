@@ -34,11 +34,11 @@ import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/store/slices/tags.ts";
-import {type ErrorContainer} from "@/lib/interfaces.ts";
+import {type SimpeError} from "@/lib/interfaces/common.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<ErrorContainer | null>(null);
+  const [errors, setErrors] = React.useState<SimpeError | null>(null);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);

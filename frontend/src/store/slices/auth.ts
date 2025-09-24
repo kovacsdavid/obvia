@@ -19,6 +19,7 @@
 
 import {createSlice, createAsyncThunk, type PayloadAction} from "@reduxjs/toolkit";
 import * as authApi from "@/services/auth";
+import type {LoginRequest, RegisterRequest} from "@/lib/interfaces/auth.ts";
 
 interface User {
   id: string;
@@ -55,7 +56,7 @@ const initialState: AuthState = {
 
 export const registerUserRequest = createAsyncThunk(
   "auth/registerUserRequest",
-  async (userData: authApi.RegisterRequest, { rejectWithValue }) => {
+  async (userData: RegisterRequest, { rejectWithValue }) => {
     try {
       return await authApi.register(userData);
     } catch (error: unknown) {
@@ -66,7 +67,7 @@ export const registerUserRequest = createAsyncThunk(
 
 export const loginUserRequest = createAsyncThunk(
   "auth/loginUserRequest",
-  async (credentials: authApi.LoginRequest, { rejectWithValue }) => {
+  async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       return await authApi.login(credentials);
     } catch (error: unknown) {

@@ -21,7 +21,7 @@ import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/store/slices/inventory.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
   SelectContent,
@@ -46,7 +46,7 @@ export default function Create() {
   const [currencyList, setCurrencyList] = React.useState<CurrencySelectListItem[]>([]);
   const [productList, setProductList] = React.useState<ProductSelectListItem[]>([]);
   const [warehouseList, setWarehouseList] = React.useState<WarehouseSelectListItem[]>([]);
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
   useEffect(() => {

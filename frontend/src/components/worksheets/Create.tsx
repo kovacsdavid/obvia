@@ -21,7 +21,7 @@ import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/worksheets.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
   SelectContent,
@@ -41,7 +41,7 @@ export default function Create() {
   const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [status, setStatus] = React.useState("active");
   const [projectsList, setProjectsList] = React.useState<ProjectsSelectListItem[]>([]);
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
 

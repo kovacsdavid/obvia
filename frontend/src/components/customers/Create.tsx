@@ -21,7 +21,7 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/customers.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
   SelectContent,
@@ -38,7 +38,7 @@ export default function Create() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [status, setStatus] = React.useState<string| undefined>("active");
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

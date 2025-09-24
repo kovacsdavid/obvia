@@ -18,63 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface LoginRequest {
-  email: string,
-  password: string,
-}
-
-export interface LoginResponse {
-  success: boolean,
-  data?: {
-    user: {
-      id: string;
-      email: string;
-      first_name: string | null;
-      last_name: string | null;
-      status: string;
-      profile_picture_url: string | null;
-    },
-    token: string,
-  },
-  error?: {
-    reference: string | null,
-    global: string | null,
-    fields: Record<string, string | null>,
-  }
-}
-
-export function isLoginResponse(data: unknown): data is LoginResponse {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "success" in data &&
-    typeof data.success === "boolean" &&
-    (
-      !("data" in data) ||
-      (typeof data.data === "object" &&
-        data.data !== null &&
-        "user" in data.data &&
-        typeof data.data.user === "object" &&
-        data.data.user !== null &&
-        "id" in data.data.user &&
-        typeof data.data.user.id === "string" &&
-        "email" in data.data.user &&
-        typeof data.data.user.email === "string" &&
-        "token" in data.data &&
-        typeof data.data.token === "string")
-    ) &&
-    (
-      !("error" in data) ||
-      (typeof data.error === "object" &&
-        data.error !== null &&
-        "global" in data.error &&
-        (data.error.global === null || typeof data.error.global === "string") &&
-        "fields" in data.error &&
-        typeof data.error.fields === "object")
-    )
-  );
-}
+import type {LoginRequest, RegisterRequest} from "@/lib/interfaces/auth.ts";
 
 export async function login({ email, password }: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
@@ -85,53 +29,6 @@ export async function login({ email, password }: LoginRequest): Promise<Response
     body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
-}
-
-export interface RegisterRequest {
-  firstName: string,
-  lastName: string,
-  email: string,
-  password: string,
-  passwordConfirm: string,
-}
-
-export interface RegisterResponse {
-  success: boolean,
-  data?: {
-    message: string,
-  },
-  error?: {
-    reference: string | null,
-    global: string | null,
-    fields: Record<string, string | null>,
-  }
-}
-
-export function isRegisterResponse(data: unknown): data is RegisterResponse {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "success" in data &&
-    typeof data.success === "boolean" &&
-    (
-      !("data" in data) ||
-      (typeof data.data === "object" &&
-        data.data !== null &&
-        "message" in data.data &&
-        typeof data.data.message === "string")
-    ) &&
-    (
-      !("error" in data) ||
-      (typeof data.error === "object" &&
-        data.error !== null &&
-        "reference" in data.error &&
-        (data.error.reference === null || typeof data.error.reference === "string") &&
-        "global" in data.error &&
-        (data.error.global === null || typeof data.error.global === "string") &&
-        "fields" in data.error &&
-        typeof data.error.fields === "object")
-    )
-  );
 }
 
 export async function register({

@@ -26,7 +26,8 @@ import {
 import { registerUserRequest } from "@/store/slices/auth";
 import { useAppDispatch } from "@/store/hooks";
 import { useNavigate } from "react-router-dom";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
+import {isRegisterResponse} from "@/lib/interfaces/auth.ts";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -36,7 +37,7 @@ export default function Register() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +49,9 @@ export default function Register() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 201: {
-              navigate("/login");
+              if (isRegisterResponse(responseData)) {
+                navigate("/login");
+              }
               break;
             }
             case 409:

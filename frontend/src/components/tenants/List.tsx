@@ -43,13 +43,13 @@ import {
 import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
 import {updateToken} from "@/store/slices/auth.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import {type ErrorContainer} from "@/lib/interfaces.ts";
+import {type SimpeError} from "@/lib/interfaces/common.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<TenantData[]>([]);
-  const [errors, setErrors] = React.useState<ErrorContainer | null>(null);
+  const [errors, setErrors] = React.useState<SimpeError | null>(null);
 
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     if ("name" in parsedQuery) {

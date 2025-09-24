@@ -32,7 +32,7 @@ import {
 } from "@/components/ui";
 import {create} from "@/store/slices/tenants.ts";
 import {AlertCircle, Terminal} from "lucide-react";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -43,7 +43,7 @@ export default function Create() {
   const [dbUser, setDbUser] = React.useState("");
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = React.useState<FormError | null>(null);
 
   React.useEffect(() => {
     setDbHost("");

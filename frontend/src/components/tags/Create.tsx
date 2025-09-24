@@ -21,12 +21,12 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/tags.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {

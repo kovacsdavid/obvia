@@ -27,15 +27,15 @@ import {
 } from "@/components/ui";
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from "@/context/AuthContext";
-import {isLoginResponse} from "@/services/auth.ts";
+import {isLoginResponse} from "@/lib/interfaces/auth.ts";
 import {loginUser} from "@/store/slices/auth.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const status = useAppSelector((state: RootState) => state.auth.login.status);
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
   const navigate = useNavigate();
   const { login } = useAuth();
   const dispatch = useAppDispatch();

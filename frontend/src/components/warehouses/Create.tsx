@@ -21,7 +21,7 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/store/slices/warehouses.ts";
-import { type ErrorContainerWithFields } from "@/lib/interfaces.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
   SelectContent,
@@ -35,7 +35,7 @@ export default function List() {
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
   const [status, setStatus] = React.useState("active");
-  const [errors, setErrors] = useState<ErrorContainerWithFields | null>(null);
+  const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {

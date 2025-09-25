@@ -18,25 +18,25 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as tasksApi from "@/services/tasks.ts";
+import * as inventoryApi from "@/components/inventory/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTask} from "@/lib/interfaces/tasks.ts";
+import type {CreateInventory} from "@/components/inventory/interface.ts";
 
-interface TasksState {
+interface InventoryState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: TasksState = {
+const initialState: InventoryState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "tasks/create",
-  async (requestData: CreateTask, {rejectWithValue, getState}) => {
+  "inventory/create",
+  async (requestData: CreateInventory, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return tasksApi.create(requestData, token);
+      return await inventoryApi.create(requestData, token);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
@@ -44,12 +44,12 @@ export const create = createAsyncThunk(
 )
 
 export const list = createAsyncThunk(
-  "tasks/list",
+  "inventory/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return tasksApi.list(query, token);
+      return await inventoryApi.list(query, token);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
@@ -57,20 +57,20 @@ export const list = createAsyncThunk(
 )
 
 export const select_list = createAsyncThunk(
-  "tasks/select_list",
+  "inventory/select_list",
   async (list: string, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await tasksApi.select_list(list, token);
+      return await inventoryApi.select_list(list, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-const tasksSlice = createSlice({
-  name: "tasks",
+const inventorySlice = createSlice({
+  name: "inventory",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -101,4 +101,4 @@ const tasksSlice = createSlice({
   }
 });
 
-export default tasksSlice.reducer;
+export default inventorySlice.reducer;

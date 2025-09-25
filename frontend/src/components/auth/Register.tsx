@@ -23,11 +23,11 @@ import {
   Input,
   Label,
 } from "@/components/ui";
-import { registerUserRequest } from "@/store/slices/auth";
+import { registerUserRequest } from "@/components/auth/slice.ts";
 import { useAppDispatch } from "@/store/hooks";
 import { useNavigate } from "react-router-dom";
 import { type FormError } from "@/lib/interfaces/common.ts";
-import {isRegisterResponse} from "@/lib/interfaces/auth.ts";
+import {isRegisterResponse} from "@/components/auth/interface.ts";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");

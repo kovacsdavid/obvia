@@ -18,46 +18,46 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as projectsApi from "@/services/projects.ts";
+import * as warehousesApi from "@/components/warehouses/service.ts";
 import type {RootState} from "@/store";
-import type {CreateProject} from "@/lib/interfaces/projects.ts";
+import type {CreateWarehouse} from "@/components/warehouses/interface.ts";
 
-interface ProjectsState {
+interface WarehousesState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: ProjectsState = {
+const initialState: WarehousesState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "projects/create",
-  async (requestData: CreateProject, {rejectWithValue, getState}) => {
+  "warehouses/create",
+  async (requestData: CreateWarehouse, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return projectsApi.create(requestData, token);
+      return warehousesApi.create(requestData, token);
     } catch (error: unknown) {
-      return rejectWithValue(error)
+      return rejectWithValue(error);
     }
   }
 )
 
 export const list = createAsyncThunk(
-  "projects/list",
+  "warehouses/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return projectsApi.list(query, token);
+      return warehousesApi.list(query, token);
     } catch (error: unknown) {
-      return rejectWithValue(error)
+      return rejectWithValue(error);
     }
   }
 )
 
-const projectsSlice = createSlice({
-  name: "projects",
+const warehousesSlice = createSlice({
+  name: "warehouses",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -88,4 +88,4 @@ const projectsSlice = createSlice({
   }
 });
 
-export default projectsSlice.reducer;
+export default warehousesSlice.reducer;

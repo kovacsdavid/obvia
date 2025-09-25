@@ -20,7 +20,7 @@
 import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, select_list} from "@/store/slices/products.ts";
+import {create, select_list} from "@/components/products/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {isUnitsOfMeasureListResponse, type UnitsOfMeasureList} from "@/lib/interfaces/products.ts";
+import {isUnitsOfMeasureListResponse, type UnitsOfMeasureList} from "@/components/products/interface.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");

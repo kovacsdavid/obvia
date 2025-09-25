@@ -20,7 +20,7 @@
 import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, select_list} from "@/store/slices/inventory.ts";
+import {create, select_list} from "@/components/inventory/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
@@ -29,9 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {isProductListResponse, type ProductList} from "@/lib/interfaces/products.ts";
-import {isWarehouseListResponse, type WarehouseList} from "@/lib/interfaces/warehouses.ts";
-import {type CurrencyList, isCurrencyListResponse} from "@/lib/interfaces/inventory.ts";
+import {isProductListResponse, type ProductList} from "@/components/products/interface.ts";
+import {isWarehouseListResponse, type WarehouseList} from "@/components/warehouses/interface.ts";
+import {type CurrencyList, isCurrencyListResponse} from "@/components/inventory/interface.ts";
 
 export default function Create() {
   const [productId, setProductId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");

@@ -18,54 +18,59 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as tagsApi from "@/services/tags.ts";
+import * as productsApi from "@/components/products/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTag} from "@/lib/interfaces/tags.ts";
+import type {CreateProduct} from "@/components/products/interface.ts";
 
-interface TagsState {
+interface ProductsState {
   status: "idle" | "loading" | "succeeded" | "failed",
-  error: {
-    global: string | null,
-    fields: Record<string, string | null>
-  }
 }
 
-const initialState: TagsState = {
+const initialState: ProductsState = {
   status: "idle",
-  error: {
-    global: null,
-    fields: {}
-  }
 }
 
 export const create = createAsyncThunk(
-  "tags/create",
-  async (requestData: CreateTag, {rejectWithValue, getState}) => {
+  "products/create",
+  async (requestData: CreateProduct, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return tagsApi.create(requestData, token);
+      return await productsApi.create(requestData, token);
     } catch (error: unknown) {
-      return rejectWithValue(error);
+      return rejectWithValue(error)
     }
   }
 )
 
 export const list = createAsyncThunk(
-  "tags/list",
+  "products/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return tagsApi.list(query, token);
+      return await productsApi.list(query, token);
     } catch (error: unknown) {
-      return rejectWithValue(error);
+      return rejectWithValue(error)
     }
   }
 )
 
-const tagsSlice = createSlice({
-  name: "tags",
+export const select_list = createAsyncThunk(
+  "products/select_list",
+  async (list: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await productsApi.select_list(list, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
+const productsSlice = createSlice({
+  name: "products",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -96,4 +101,4 @@ const tagsSlice = createSlice({
   }
 });
 
-export default tagsSlice.reducer;
+export default productsSlice.reducer;

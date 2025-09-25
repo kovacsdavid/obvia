@@ -20,7 +20,7 @@
 import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/store/slices/customers.ts";
+import {create} from "@/components/customers/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {isCreateCustomerResponse} from "@/lib/interfaces/customers.ts";
+import {isCreateCustomerResponse} from "@/components/customers/interface.ts";
 
 export default function Create() {
   const [customerType, setCustomerType] = React.useState<string | undefined>("natural");

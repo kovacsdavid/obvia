@@ -18,25 +18,25 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as productsApi from "@/services/products.ts";
+import * as customersApi from "@/components/customers/service.ts";
 import type {RootState} from "@/store";
-import type {CreateProduct} from "@/lib/interfaces/products.ts";
+import type {CreateCustomer} from "@/components/customers/interface.ts";
 
-interface ProductsState {
+interface CustomersState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: ProductsState = {
+const initialState: CustomersState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "products/create",
-  async (requestData: CreateProduct, {rejectWithValue, getState}) => {
+  "customers/create",
+  async (requestData: CreateCustomer, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await productsApi.create(requestData, token);
+      return await customersApi.create(requestData, token)
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
@@ -44,33 +44,20 @@ export const create = createAsyncThunk(
 )
 
 export const list = createAsyncThunk(
-  "products/list",
+  "customers/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await productsApi.list(query, token);
+      return await customersApi.list(query, token)
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-export const select_list = createAsyncThunk(
-  "products/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return await productsApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
-  }
-)
-
-const productsSlice = createSlice({
-  name: "products",
+const customersSlice = createSlice({
+  name: "customers",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -101,4 +88,4 @@ const productsSlice = createSlice({
   }
 });
 
-export default productsSlice.reducer;
+export default customersSlice.reducer;

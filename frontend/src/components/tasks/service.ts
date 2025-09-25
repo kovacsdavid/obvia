@@ -18,18 +18,18 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateProject} from "@/lib/interfaces/projects.ts";
-
-
+import type {CreateTask} from "@/components/tasks/interface.ts";
 
 export async function create({
-                               name,
+                               worksheetId,
+                               title,
                                description,
                                status,
-                               startDate,
-                               endDate
-                             }: CreateProject, token: string | null): Promise<Response> {
-  return await fetch(`/api/projects/create`, {
+                               priority,
+                               dueDate
+                             }: CreateTask, token: string | null): Promise<Response>
+{
+  return await fetch(`/api/tasks/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,18 +37,30 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      name,
+      worksheet_id: worksheetId,
+      title,
       description,
       status,
-      start_date: startDate,
-      end_date: endDate
-    }),
-  })
+      priority,
+      due_date: dueDate
+    })
+  });
 }
 
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/projects/list` : `/api/projects/list?q=${query}`;
+  const uri = query === null ? `/api/tasks/list` : `/api/tasks/list?q=${query}`;
   return await fetch(uri, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}
+
+export async function select_list(list: string, token: string | null): Promise<Response> {
+  return await fetch(`/api/tasks/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

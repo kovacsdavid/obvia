@@ -18,15 +18,15 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateWorksheet} from "@/lib/interfaces/worksheets.ts";
+import type {CreateWarehouse} from "@/components/warehouses/interface.ts";
 
 export async function create({
-                         name,
-                         description,
-                         projectId,
-                         status
-                       }: CreateWorksheet, token: string | null): Promise<Response> {
-  return await fetch(`/api/worksheets/create`, {
+                               name,
+                               contactName,
+                               contactPhone,
+                               status
+                             }: CreateWarehouse, token: string | null): Promise<Response> {
+  return await fetch(`/api/warehouses/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -35,27 +35,16 @@ export async function create({
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
       name,
-      description,
-      project_id: projectId,
+      contact_name: contactName,
+      contact_phone: contactPhone,
       status
     })
-  });
+  })
 }
 
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/worksheets/list` : `/api/worksheets/list?q=${query}`;
+  const uri = query === null ? `/api/warehouses/list` : `/api/warehouses/list?q=${query}`;
   return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  });
-}
-
-export async function select_list(list: string, token: string | null): Promise<Response> {
-  return await fetch(`/api/worksheets/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

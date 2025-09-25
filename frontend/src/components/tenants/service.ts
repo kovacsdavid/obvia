@@ -18,37 +18,41 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateTask} from "@/lib/interfaces/tasks.ts";
+import type {CreateTenant} from "@/components/tenants/interface.ts";
 
 export async function create({
-                               worksheetId,
-                               title,
-                               description,
-                               status,
-                               priority,
-                               dueDate
-                             }: CreateTask, token: string | null): Promise<Response>
-{
-  return await fetch(`/api/tasks/create`, {
+                               name,
+                               dbIsSelfHosted,
+                               dbHost,
+                               dbPort,
+                               dbName,
+                               dbUser,
+                               dbPassword
+
+                             }: CreateTenant, token: string | null): Promise<Response> {
+  return await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
+
     },
-    signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      worksheet_id: worksheetId,
-      title,
-      description,
-      status,
-      priority,
-      due_date: dueDate
-    })
+      name,
+      is_self_hosted: dbIsSelfHosted,
+      db_host: dbHost,
+      db_port: dbPort,
+      db_name: dbName,
+      db_user: dbUser,
+      db_password: dbPassword
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),  
   });
 }
 
+
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/tasks/list` : `/api/tasks/list?q=${query}`;
+  const uri = query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`
   return await fetch(uri, {
     method: "GET",
     headers: {
@@ -59,13 +63,16 @@ export async function list(query: string | null, token: string | null): Promise<
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<Response> {
-  return await fetch(`/api/tasks/select_list?list=${list}`, {
-    method: "GET",
+export async function activate(new_tenant_id: string | null, token: string | null) {
+  return await fetch(`/api/tenants/activate`, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
+    body: JSON.stringify({
+      new_tenant_id
+    }),
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }

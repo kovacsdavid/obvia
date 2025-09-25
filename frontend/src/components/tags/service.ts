@@ -18,17 +18,13 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateCustomer} from "@/lib/interfaces/customers.ts";
+import type {CreateTag} from "@/components/tags/interface.ts";
 
 export async function create({
                                name,
-                               contactName,
-                               email,
-                               phoneNumber,
-                               status,
-                               customerType,
-                             }: CreateCustomer, token: string | null): Promise<Response> {
-  return await fetch(`/api/customers/create`, {
+                               description
+                             }: CreateTag, token: string | null): Promise<Response> {
+  return await fetch(`/api/tags/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -37,17 +33,13 @@ export async function create({
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
       name,
-      contact_name: contactName,
-      email,
-      phone_number: phoneNumber,
-      status: typeof status === "undefined" ? null : status,
-      customer_type: typeof customerType === "undefined" ? null : customerType,
-    }),
-  });
+      description
+    })
+  })
 }
 
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/customers/list` : `/api/customers/list?q=${query}`;
+  const uri = query === null ? `/api/tags/list` : `/api/tags/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {

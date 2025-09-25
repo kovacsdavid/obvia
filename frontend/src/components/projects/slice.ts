@@ -18,25 +18,25 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as usersApi from "@/services/users.ts";
+import * as projectsApi from "@/components/projects/service.ts";
 import type {RootState} from "@/store";
-import type {CreateUser} from "@/lib/interfaces/users.ts";
+import type {CreateProject} from "@/components/projects/interface.ts";
 
-interface UsersState {
+interface ProjectsState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: UsersState = {
+const initialState: ProjectsState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "users/create",
-  async (requestData: CreateUser, {rejectWithValue, getState}) => {
+  "projects/create",
+  async (requestData: CreateProject, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return usersApi.create(requestData, token);
+      return projectsApi.create(requestData, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
@@ -44,20 +44,20 @@ export const create = createAsyncThunk(
 )
 
 export const list = createAsyncThunk(
-  "users/list",
+  "projects/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return usersApi.list(query, token);
+      return projectsApi.list(query, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-const usersSlice = createSlice({
-  name: "users",
+const projectsSlice = createSlice({
+  name: "projects",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -88,4 +88,4 @@ const usersSlice = createSlice({
   }
 });
 
-export default usersSlice.reducer;
+export default projectsSlice.reducer;

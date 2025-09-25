@@ -18,16 +18,18 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateUser} from "@/lib/interfaces/users.ts";
+import type {CreateInventory} from "@/components/inventory/interface.ts";
 
 export async function create({
-                               email,
-                               lastName,
-                               firstName,
-                               phone,
-                               status
-                             }: CreateUser, token: string | null): Promise<Response> {
-  return await fetch(`/api/users/create`, {
+                               productId,
+                               warehouseId,
+                               quantity,
+                               price,
+                               cost,
+                               currencyId,
+                               newCurrency,
+                             }: CreateInventory, token: string | null) {
+  return await fetch(`/api/inventory/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -35,18 +37,31 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      email,
-      last_name: lastName,
-      first_name: firstName,
-      phone,
-      status
+      product_id: productId,
+      warehouse_id: warehouseId,
+      quantity,
+      price,
+      cost,
+      currency_id: currencyId,
+      new_currency: newCurrency,
     })
-  });
+  })
 }
 
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
+  const uri = query === null ? `/api/inventory/list` : `/api/inventory/list?q=${query}`;
   return await fetch(uri, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}
+
+export async function select_list(list: string, token: string | null): Promise<Response> {
+  return await fetch(`/api/inventory/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

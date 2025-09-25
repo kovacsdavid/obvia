@@ -18,46 +18,59 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as customersApi from "@/services/customers.ts";
+import * as tenantsApi from "@/components/tenants/service.ts";
 import type {RootState} from "@/store";
-import type {CreateCustomer} from "@/lib/interfaces/customers.ts";
+import type {CreateTenant} from "@/components/tenants/interface.ts";
 
-interface CustomersState {
+interface TenantsState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: CustomersState = {
+const initialState: TenantsState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "customers/create",
-  async (requestData: CreateCustomer, {rejectWithValue, getState}) => {
+  "tenants/create",
+  async (requestData: CreateTenant, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await customersApi.create(requestData, token)
-    } catch (error: unknown) {
-      return rejectWithValue(error)
+      return await tenantsApi.create(requestData, token);
+    } catch (error: unknown ){
+      return rejectWithValue(error);
     }
   }
 )
 
 export const list = createAsyncThunk(
-  "customers/list",
+  "tenants/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await customersApi.list(query, token)
+      return await tenantsApi.list(query, token);
+    } catch (error: unknown) {
+      rejectWithValue(error)
+    }
+  }
+)
+
+export const activate = createAsyncThunk(
+  "tenants/activate",
+  async (new_tenant_id: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await tenantsApi.activate(new_tenant_id, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-const customersSlice = createSlice({
-  name: "customers",
+const tenantsSlice = createSlice({
+  name: "tenants",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -85,7 +98,17 @@ const customersSlice = createSlice({
       .addCase(list.rejected, (state) => {
         state.status = "failed";
       });
+    builder
+      .addCase(activate.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(activate.fulfilled, (state) => {
+        state.status = "succeeded";
+      })
+      .addCase(activate.rejected, (state) => {
+        state.status = "failed";
+      })
   }
 });
 
-export default customersSlice.reducer;
+export default tenantsSlice.reducer;

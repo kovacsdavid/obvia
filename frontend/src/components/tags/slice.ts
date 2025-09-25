@@ -18,25 +18,33 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as inventoryApi from "@/services/inventory.ts";
+import * as tagsApi from "@/components/tags/service.ts";
 import type {RootState} from "@/store";
-import type {CreateInventory} from "@/lib/interfaces/inventory.ts";
+import type {CreateTag} from "@/components/tags/interface.ts";
 
-interface InventoryState {
+interface TagsState {
   status: "idle" | "loading" | "succeeded" | "failed",
+  error: {
+    global: string | null,
+    fields: Record<string, string | null>
+  }
 }
 
-const initialState: InventoryState = {
+const initialState: TagsState = {
   status: "idle",
+  error: {
+    global: null,
+    fields: {}
+  }
 }
 
 export const create = createAsyncThunk(
-  "inventory/create",
-  async (requestData: CreateInventory, {rejectWithValue, getState}) => {
+  "tags/create",
+  async (requestData: CreateTag, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await inventoryApi.create(requestData, token);
+      return tagsApi.create(requestData, token);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
@@ -44,33 +52,20 @@ export const create = createAsyncThunk(
 )
 
 export const list = createAsyncThunk(
-  "inventory/list",
+  "tags/list",
   async (query: string | null, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await inventoryApi.list(query, token);
+      return tagsApi.list(query, token);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
   }
 )
 
-export const select_list = createAsyncThunk(
-  "inventory/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return await inventoryApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
-  }
-)
-
-const inventorySlice = createSlice({
-  name: "inventory",
+const tagsSlice = createSlice({
+  name: "tags",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -101,4 +96,4 @@ const inventorySlice = createSlice({
   }
 });
 
-export default inventorySlice.reducer;
+export default tagsSlice.reducer;

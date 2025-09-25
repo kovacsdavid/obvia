@@ -18,34 +18,36 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateTag} from "@/lib/interfaces/tags.ts";
+import type {LoginRequest, RegisterRequest} from "@/components/auth/interface.ts";
 
-export async function create({
-                               name,
-                               description
-                             }: CreateTag, token: string | null): Promise<Response> {
-  return await fetch(`/api/tags/create`, {
+export async function login({ email, password }: LoginRequest): Promise<Response> {
+  return await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
+    body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      name,
-      description
-    })
-  })
+  });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/tags/list` : `/api/tags/list?q=${query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
+export async function register({
+                                 firstName,
+                                 lastName,
+                                 email,
+                                 password,
+                                 passwordConfirm
+                               }: RegisterRequest): Promise<Response> {
+  return await fetch(`/api/auth/register`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      password,
+      password_confirm: passwordConfirm
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout)
   });
 }

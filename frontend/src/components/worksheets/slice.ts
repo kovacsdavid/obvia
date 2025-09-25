@@ -18,59 +18,59 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as tenantsApi from "@/services/tenants.ts";
+import * as worksheetsApi from "@/components/worksheets/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTenant} from "@/lib/interfaces/tenants.ts";
+import type {CreateWorksheet} from "@/components/worksheets/interface.ts";
 
-interface TenantsState {
+interface WorksheetsState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: TenantsState = {
+const initialState: WorksheetsState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "tenants/create",
-  async (requestData: CreateTenant, {rejectWithValue, getState}) => {
+  "worksheets/create",
+  async (requestData: CreateWorksheet, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await tenantsApi.create(requestData, token);
-    } catch (error: unknown ){
+      return worksheetsApi.create(requestData, token);
+    } catch (error: unknown) {
       return rejectWithValue(error);
     }
   }
 )
 
-export const list = createAsyncThunk(
-  "tenants/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+export const select_list = createAsyncThunk(
+  "worksheets/select_list",
+  async (list: string, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await tenantsApi.list(query, token);
-    } catch (error: unknown) {
-      rejectWithValue(error)
-    }
-  }
-)
-
-export const activate = createAsyncThunk(
-  "tenants/activate",
-  async (new_tenant_id: string, {rejectWithValue, getState}) => {
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return await tenantsApi.activate(new_tenant_id, token);
+      return await worksheetsApi.select_list(list, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-const tenantsSlice = createSlice({
-  name: "tenants",
+export const list = createAsyncThunk(
+  "worksheets/list",
+  async (query: string | null, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return worksheetsApi.list(query, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error);
+    }
+  }
+)
+
+const worksheetsSlice = createSlice({
+  name: "worksheets",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -98,17 +98,7 @@ const tenantsSlice = createSlice({
       .addCase(list.rejected, (state) => {
         state.status = "failed";
       });
-    builder
-      .addCase(activate.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(activate.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(activate.rejected, (state) => {
-        state.status = "failed";
-      })
   }
 });
 
-export default tenantsSlice.reducer;
+export default worksheetsSlice.reducer;

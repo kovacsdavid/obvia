@@ -22,7 +22,7 @@ import { createContext, useContext } from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
-import { loginUserRequest, logoutUser } from "@/store/slices/auth";
+import { loginUserRequest, logoutUser } from "@/components/auth/slice.ts";
 import type {PayloadAction} from "@reduxjs/toolkit";
 
 type AuthContextType = {

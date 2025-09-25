@@ -30,7 +30,7 @@ import {
   FieldError,
   GlobalError
 } from "@/components/ui";
-import {create} from "@/store/slices/tenants.ts";
+import {create} from "@/components/tenants/slice.ts";
 import {AlertCircle, Terminal} from "lucide-react";
 import { type FormError } from "@/lib/interfaces/common.ts";
 

@@ -19,17 +19,17 @@
 
 import { configureStore } from "@reduxjs/toolkit";
 import { combineReducers } from "redux";
-import authReducer from "@/store/slices/auth";
-import tenantsReducer from "@/store/slices/tenants.ts";
-import customersReducer from "@/store/slices/customers.ts";
-import inventoryReducer from "@/store/slices/inventory.ts";
-import productsReducer from "@/store/slices/products.ts";
-import projectsReducer from "@/store/slices/projects.ts";
-import tagsReducer from "@/store/slices/tags.ts";
-import tasksReducer from "@/store/slices/tasks.ts";
-import usersReducer from "@/store/slices/users.ts";
-import warehousesReducer from "@/store/slices/warehouses.ts";
-import worksheetsReducer from "@/store/slices/worksheets.ts";
+import authReducer from "@/components/auth/slice.ts";
+import tenantsReducer from "@/components/tenants/slice.ts";
+import customersReducer from "@/components/customers/slice.ts";
+import inventoryReducer from "@/components/inventory/slice.ts";
+import productsReducer from "@/components/products/slice.ts";
+import projectsReducer from "@/components/projects/slice.ts";
+import tagsReducer from "@/components/tags/slice.ts";
+import tasksReducer from "@/components/tasks/slice.ts";
+import usersReducer from "@/components/users/slice.ts";
+import warehousesReducer from "@/components/warehouses/slice.ts";
+import worksheetsReducer from "@/components/worksheets/slice.ts";
 import storage from "redux-persist/lib/storage";
 import { persistStore, persistReducer } from "redux-persist";
 import authMiddleware from "@/store/middleware/authMiddleware.ts";

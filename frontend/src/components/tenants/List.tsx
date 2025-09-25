@@ -19,7 +19,7 @@
 
 import {Link} from "react-router-dom";
 import React, {useCallback, useEffect} from "react";
-import {activate, list} from "@/store/slices/tenants.ts";
+import {activate, list} from "@/components/tenants/slice.ts";
 import { useAppDispatch } from "@/store/hooks";
 import {
   Table,
@@ -40,14 +40,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
-import {updateToken} from "@/store/slices/auth.ts";
+import {updateToken} from "@/components/auth/slice.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
   isActiveTenantResponse,
   isPaginatedTenantListResponse,
   type Tenant
-} from "@/lib/interfaces/tenants.ts";
+} from "@/components/tenants/interface.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");

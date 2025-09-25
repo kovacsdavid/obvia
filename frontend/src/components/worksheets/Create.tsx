@@ -20,7 +20,7 @@
 import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/store/slices/worksheets.ts";
+import {create} from "@/components/worksheets/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,
@@ -29,8 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {select_list} from "@/store/slices/worksheets.ts";
-import {isProjectListResponse, type ProjectList} from "@/lib/interfaces/projects.ts";
+import {select_list} from "@/components/worksheets/slice.ts";
+import {isProjectListResponse, type ProjectList} from "@/components/projects/interface.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");

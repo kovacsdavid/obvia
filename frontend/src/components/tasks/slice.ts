@@ -18,25 +18,38 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as worksheetsApi from "@/services/worksheets.ts";
+import * as tasksApi from "@/components/tasks/service.ts";
 import type {RootState} from "@/store";
-import type {CreateWorksheet} from "@/lib/interfaces/worksheets.ts";
+import type {CreateTask} from "@/components/tasks/interface.ts";
 
-interface WorksheetsState {
+interface TasksState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: WorksheetsState = {
+const initialState: TasksState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "worksheets/create",
-  async (requestData: CreateWorksheet, {rejectWithValue, getState}) => {
+  "tasks/create",
+  async (requestData: CreateTask, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return worksheetsApi.create(requestData, token);
+      return tasksApi.create(requestData, token);
+    } catch (error: unknown) {
+      return rejectWithValue(error);
+    }
+  }
+)
+
+export const list = createAsyncThunk(
+  "tasks/list",
+  async (query: string | null, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return tasksApi.list(query, token);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
@@ -44,33 +57,20 @@ export const create = createAsyncThunk(
 )
 
 export const select_list = createAsyncThunk(
-  "worksheets/select_list",
+  "tasks/select_list",
   async (list: string, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
-      return await worksheetsApi.select_list(list, token);
+      return await tasksApi.select_list(list, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }
   }
 )
 
-export const list = createAsyncThunk(
-  "worksheets/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return worksheetsApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
-  }
-)
-
-const worksheetsSlice = createSlice({
-  name: "worksheets",
+const tasksSlice = createSlice({
+  name: "tasks",
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -101,4 +101,4 @@ const worksheetsSlice = createSlice({
   }
 });
 
-export default worksheetsSlice.reducer;
+export default tasksSlice.reducer;

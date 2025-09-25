@@ -18,17 +18,18 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateProduct} from "@/lib/interfaces/products.ts";
+import type {CreateProject} from "@/components/projects/interface.ts";
+
+
 
 export async function create({
                                name,
                                description,
-                               unitOfMeasureId,
-                               newUnitOfMeasure,
-
-                               status
-                             }: CreateProduct, token: string | null): Promise<Response> {
-  return await fetch(`/api/products/create`, {
+                               status,
+                               startDate,
+                               endDate
+                             }: CreateProject, token: string | null): Promise<Response> {
+  return await fetch(`/api/projects/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -38,27 +39,16 @@ export async function create({
     body: JSON.stringify({
       name,
       description,
-      unit_of_measure_id: unitOfMeasureId,
-      new_unit_of_measure: newUnitOfMeasure,
-      status
-    })
+      status,
+      start_date: startDate,
+      end_date: endDate
+    }),
   })
 }
 
 export async function list(query: string | null, token: string | null): Promise<Response> {
-  const uri = query === null ? `/api/products/list` : `/api/products/list?q=${query}`;
+  const uri = query === null ? `/api/projects/list` : `/api/projects/list?q=${query}`;
   return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  });
-}
-
-export async function select_list(list: string, token: string | null): Promise<Response> {
-  return await fetch(`/api/products/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

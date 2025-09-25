@@ -20,7 +20,7 @@
 import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/store/slices/warehouses.ts";
+import {create} from "@/components/warehouses/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Select,

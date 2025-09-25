@@ -18,8 +18,8 @@
  */
 
 import {createSlice, createAsyncThunk, type PayloadAction} from "@reduxjs/toolkit";
-import * as authApi from "@/services/auth";
-import type {LoginRequest, RegisterRequest} from "@/lib/interfaces/auth.ts";
+import * as authApi from "@/components/auth/service.ts";
+import type {LoginRequest, RegisterRequest} from "@/components/auth/interface.ts";
 
 interface User {
   id: string;

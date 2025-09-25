@@ -18,36 +18,40 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {LoginRequest, RegisterRequest} from "@/lib/interfaces/auth.ts";
+import type {CreateUser} from "@/components/users/interface.ts";
 
-export async function login({ email, password }: LoginRequest): Promise<Response> {
-  return await fetch(`/api/auth/login`, {
+export async function create({
+                               email,
+                               lastName,
+                               firstName,
+                               phone,
+                               status
+                             }: CreateUser, token: string | null): Promise<Response> {
+  return await fetch(`/api/users/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
-    body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      email,
+      last_name: lastName,
+      first_name: firstName,
+      phone,
+      status
+    })
   });
 }
 
-export async function register({
-                                 firstName,
-                                 lastName,
-                                 email,
-                                 password,
-                                 passwordConfirm
-                               }: RegisterRequest): Promise<Response> {
-  return await fetch(`/api/auth/register`, {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      password,
-      password_confirm: passwordConfirm
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout)
+export async function list(query: string | null, token: string | null): Promise<Response> {
+  const uri = query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
+  return await fetch(uri, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }

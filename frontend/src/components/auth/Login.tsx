@@ -27,8 +27,8 @@ import {
 } from "@/components/ui";
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from "@/context/AuthContext";
-import {isLoginResponse} from "@/lib/interfaces/auth.ts";
-import {loginUser} from "@/store/slices/auth.ts";
+import {isLoginResponse} from "@/components/auth/interface.ts";
+import {loginUser} from "@/components/auth/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 
 export default function Login() {

@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as tagsApi from "@/services/tags.ts";
 import type {RootState} from "@/store";
+import type {CreateTag} from "@/lib/interfaces/tags.ts";
 
 interface TagsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -39,7 +40,7 @@ const initialState: TagsState = {
 
 export const create = createAsyncThunk(
   "tags/create",
-  async (requestData: tagsApi.CreateTag, {rejectWithValue, getState}) => {
+  async (requestData: CreateTag, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

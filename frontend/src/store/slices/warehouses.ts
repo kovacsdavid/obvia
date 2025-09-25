@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as warehousesApi from "@/services/warehouses.ts";
 import type {RootState} from "@/store";
+import type {CreateWarehouse} from "@/lib/interfaces/warehouses.ts";
 
 interface WarehousesState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: WarehousesState = {
 
 export const create = createAsyncThunk(
   "warehouses/create",
-  async (requestData: warehousesApi.CreateWarehouse, {rejectWithValue, getState}) => {
+  async (requestData: CreateWarehouse, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

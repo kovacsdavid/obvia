@@ -18,11 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface CreateTag {
-  name: string;
-  description: string
-}
+import type {CreateTag} from "@/lib/interfaces/tags.ts";
 
 export async function create({
                                name,

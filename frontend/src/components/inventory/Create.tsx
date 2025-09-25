@@ -29,11 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  type CurrencySelectListItem,
-  isCurrencySelectListResponse, isProductSelectListResponse, isWarehouseSelectListResponse, type ProductSelectListItem,
-  type WarehouseSelectListItem,
-} from "@/services/inventory.ts";
+import {isProductListResponse, type ProductList} from "@/lib/interfaces/products.ts";
+import {isWarehouseListResponse, type WarehouseList} from "@/lib/interfaces/warehouses.ts";
+import {type CurrencyList, isCurrencyListResponse} from "@/lib/interfaces/inventory.ts";
 
 export default function Create() {
   const [productId, setProductId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
@@ -43,11 +41,18 @@ export default function Create() {
   const [price, setPrice] = React.useState("");
   const [currencyId, setCurrencyId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [newCurrency, setNewCurrecy] = React.useState("");
-  const [currencyList, setCurrencyList] = React.useState<CurrencySelectListItem[]>([]);
-  const [productList, setProductList] = React.useState<ProductSelectListItem[]>([]);
-  const [warehouseList, setWarehouseList] = React.useState<WarehouseSelectListItem[]>([]);
+  const [currencyList, setCurrencyList] = React.useState<CurrencyList>([]);
+  const [productList, setProductList] = React.useState<ProductList>([]);
+  const [warehouseList, setWarehouseList] = React.useState<WarehouseList>([]);
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
+
+  const unexpectedError = () => {
+    setErrors({
+      global: "Váratlan hiba történt a feldolgozás során!",
+      fields: {}
+    });
+  };
 
   useEffect(() => {
     dispatch(select_list("currencies")).then(async (response) => {
@@ -57,26 +62,21 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200:
-              if (isCurrencySelectListResponse(responseData)) {
-                setCurrencyList(responseData.data);
+              if (isCurrencyListResponse(responseData)) {
+                if (typeof responseData.data !== "undefined") {
+                  setCurrencyList(responseData.data);
+                } else {
+                  unexpectedError();
+                }
               } else {
-                setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
-                });
+                unexpectedError();
               }
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });
@@ -87,26 +87,20 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200:
-              if (isProductSelectListResponse(responseData)) {
+              if (
+                isProductListResponse(responseData)
+                && typeof responseData.data !== "undefined"
+              ) {
                 setProductList(responseData.data);
               } else {
-                setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
-                });
+                unexpectedError();
               }
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });
@@ -117,30 +111,24 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200:
-              if (isWarehouseSelectListResponse(responseData)) {
+              if (
+                isWarehouseListResponse(responseData)
+                && typeof responseData.data !== "undefined"
+              ) {
                 setWarehouseList(responseData.data);
               } else {
-                setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
-                });
+                unexpectedError();
               }
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });
-  }, []);
+  }, [dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

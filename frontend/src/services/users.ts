@@ -18,14 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface CreateUser {
-  email: string;
-  lastName: string;
-  firstName: string;
-  phone: string;
-  status: string;
-}
+import type {CreateUser} from "@/lib/interfaces/users.ts";
 
 export async function create({
                                email,

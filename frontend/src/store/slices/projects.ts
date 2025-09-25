@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as projectsApi from "@/services/projects.ts";
 import type {RootState} from "@/store";
+import type {CreateProject} from "@/lib/interfaces/projects.ts";
 
 interface ProjectsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: ProjectsState = {
 
 export const create = createAsyncThunk(
   "projects/create",
-  async (requestData: projectsApi.CreateProject, {rejectWithValue, getState}) => {
+  async (requestData: CreateProject, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

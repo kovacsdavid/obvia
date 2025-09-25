@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as worksheetsApi from "@/services/worksheets.ts";
 import type {RootState} from "@/store";
+import type {CreateWorksheet} from "@/lib/interfaces/worksheets.ts";
 
 interface WorksheetsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: WorksheetsState = {
 
 export const create = createAsyncThunk(
   "worksheets/create",
-  async (requestData: worksheetsApi.CreateWorksheet, {rejectWithValue, getState}) => {
+  async (requestData: CreateWorksheet, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

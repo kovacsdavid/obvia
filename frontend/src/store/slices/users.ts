@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as usersApi from "@/services/users.ts";
 import type {RootState} from "@/store";
+import type {CreateUser} from "@/lib/interfaces/users.ts";
 
 interface UsersState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: UsersState = {
 
 export const create = createAsyncThunk(
   "users/create",
-  async (requestData: usersApi.CreateUser, {rejectWithValue, getState}) => {
+  async (requestData: CreateUser, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

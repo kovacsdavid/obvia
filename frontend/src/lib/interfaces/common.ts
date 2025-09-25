@@ -92,7 +92,37 @@ export function isSimpleMessageData(data: unknown): data is SimpleMessageData {
   );
 }
 
+export interface PaginatedDataResponse<T> {
+  success: boolean,
+  data: {
+    page: number,
+    limit: number,
+    total: number
+    data: T
+  }
+}
 
-
+export function isPaginatedDataResponse<T>(
+  data: unknown,
+  isT: (value: unknown) => value is T
+): data is PaginatedDataResponse<T> {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "success" in data &&
+    typeof data.success === "boolean" &&
+    "data" in data &&
+    typeof data.data === "object" &&
+    data.data !== null &&
+    "page" in data.data &&
+    typeof data.data.page === "number" &&
+    "limit" in data.data &&
+    typeof data.data.limit === "number" &&
+    "total" in data.data &&
+    typeof data.data.total === "number" &&
+    "data" in data.data &&
+    isT(data.data.data)
+  );
+}
 
 

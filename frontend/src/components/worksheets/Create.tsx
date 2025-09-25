@@ -30,17 +30,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {select_list} from "@/store/slices/worksheets.ts";
-import {
-  type ProjectsSelectListItem,
-  isProjectsSelectsListResponse
-} from "@/services/worksheets.ts";
+import {isProjectListResponse, type ProjectList} from "@/lib/interfaces/projects.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [status, setStatus] = React.useState("active");
-  const [projectsList, setProjectsList] = React.useState<ProjectsSelectListItem[]>([]);
+  const [projectsList, setProjectsList] = React.useState<ProjectList>([]);
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
@@ -52,7 +49,10 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200:
-              if (isProjectsSelectsListResponse(responseData)) {
+              if (
+                isProjectListResponse(responseData)
+                && typeof responseData.data !== "undefined"
+              ) {
                 setProjectsList(responseData.data);
               } else {
                 setErrors({
@@ -75,7 +75,7 @@ export default function Create() {
         }
       }
     });
-  }, []);
+  }, [dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

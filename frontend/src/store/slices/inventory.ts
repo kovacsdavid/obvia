@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as inventoryApi from "@/services/inventory.ts";
 import type {RootState} from "@/store";
+import type {CreateInventory} from "@/lib/interfaces/inventory.ts";
 
 interface InventoryState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: InventoryState = {
 
 export const create = createAsyncThunk(
   "inventory/create",
-  async (requestData: inventoryApi.CreateInventory, {rejectWithValue, getState}) => {
+  async (requestData: CreateInventory, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

@@ -18,14 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface CreateProduct {
-  name: string
-  description: string
-  unitOfMeasureId: string
-  newUnitOfMeasure: string,
-  status: string
-}
+import type {CreateProduct} from "@/lib/interfaces/products.ts";
 
 export async function create({
                                name,
@@ -62,40 +55,6 @@ export async function list(query: string | null, token: string | null): Promise<
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
-}
-
-export interface UnitsOfMeasureSelectListItem {
-  id: string,
-  unit_of_measure: string,
-  created_at: string,
-  deleted_at: string | null
-}
-
-export interface UnitsOfMeasureSelectListResponse {
-  success: boolean,
-  data: UnitsOfMeasureSelectListItem[]
-}
-
-
-export function isUnitsOfMeasureSelectListItem(obj: any): obj is UnitsOfMeasureSelectListItem {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.id === 'string' &&
-    typeof obj.unit_of_measure === 'string' &&
-    typeof obj.created_at === 'string' &&
-    (obj.deleted_at === null || typeof obj.deleted_at === 'string')
-  );
-}
-
-export function isUnitsOfMeasureSelectListResponse(obj: any): obj is UnitsOfMeasureSelectListResponse {
-  return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    typeof obj.success === 'boolean' &&
-    Array.isArray(obj.data) &&
-    obj.data.every((item: any) => isUnitsOfMeasureSelectListItem(item))
-  );
 }
 
 export async function select_list(list: string, token: string | null): Promise<Response> {

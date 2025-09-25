@@ -20,6 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as tenantsApi from "@/services/tenants.ts";
 import type {RootState} from "@/store";
+import type {CreateTenant} from "@/lib/interfaces/tenants.ts";
 
 interface TenantsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -31,7 +32,7 @@ const initialState: TenantsState = {
 
 export const create = createAsyncThunk(
   "tenants/create",
-  async (requestData: tenantsApi.CreateTenant, {rejectWithValue, getState}) => {
+  async (requestData: CreateTenant, {rejectWithValue, getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
@@ -58,15 +59,10 @@ export const list = createAsyncThunk(
 export const activate = createAsyncThunk(
   "tenants/activate",
   async (new_tenant_id: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
     try {
-      const rootState = getState() as RootState;
-      const token = rootState.auth.login.token;
-      const response = await tenantsApi.activate(new_tenant_id, token);
-      if (response.success) {
-        return response;
-      } else {
-        return rejectWithValue(response)
-      }
+      return await tenantsApi.activate(new_tenant_id, token);
     } catch (error: unknown) {
       return rejectWithValue(error)
     }

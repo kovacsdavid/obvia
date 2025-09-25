@@ -29,6 +29,13 @@ export default function Create() {
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
+  const unexpectedError = () => {
+    setErrors({
+      global: "Váratlan hiba történt a feldolgozás során!",
+      fields: {}
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     dispatch(create({
@@ -48,16 +55,10 @@ export default function Create() {
               setErrors(responseData.error);
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError()
         }
       }
     });

@@ -18,13 +18,7 @@
  */
 
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
-
-export interface CreateWarehouse {
-  name: string
-  contactName: string
-  contactPhone: string
-  status: string
-}
+import type {CreateWarehouse} from "@/lib/interfaces/warehouses.ts";
 
 export async function create({
                                name,

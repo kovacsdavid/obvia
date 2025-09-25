@@ -29,7 +29,6 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table.tsx";
-import {isActivateResponse, isTenantsList, type TenantData} from "@/services/tenants.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
 import { Button } from "@/components/ui/button"
@@ -44,11 +43,16 @@ import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components
 import {updateToken} from "@/store/slices/auth.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  isActiveTenantResponse,
+  isPaginatedTenantListResponse,
+  type Tenant
+} from "@/lib/interfaces/tenants.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
-  const [data, setData] = React.useState<TenantData[]>([]);
+  const [data, setData] = React.useState<Tenant[]>([]);
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
 
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
@@ -56,6 +60,12 @@ export default function List() {
       setNameFilter(parsedQuery["name"] as string);
     }
   }, []);
+
+  const unexpectedError = () => {
+    setErrors({
+      global: "Váratlan hiba történt a feldolgozás során!",
+    });
+  };
 
   const {
     searchParams,
@@ -82,27 +92,23 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isTenantsList(responseData)) {
+              if (isPaginatedTenantListResponse(responseData)) {
+                if (typeof responseData.data !== "undefined") {
                 setPage(responseData.data.page);
                 setLimit(responseData.data.limit);
                 setTotal(responseData.data.total);
                 setData(responseData.data.data);
+              }
               } else {
-                setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
-                });
+                unexpectedError();
               }
               break;
             }
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-          });
+          unexpectedError();
         }
       }
     })
@@ -120,7 +126,7 @@ export default function List() {
   const handleActivate = async (new_tenant_id: string) => {
     dispatch(activate(new_tenant_id)).then((response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        if (isActivateResponse(response.payload)) {
+        if (isActiveTenantResponse(response.payload)) {
           dispatch(updateToken(response.payload.data))
         }
       }

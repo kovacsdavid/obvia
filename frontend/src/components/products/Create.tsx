@@ -29,19 +29,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  isUnitsOfMeasureSelectListResponse, type UnitsOfMeasureSelectListItem
-} from "@/services/products.ts";
+import {isUnitsOfMeasureListResponse, type UnitsOfMeasureList} from "@/lib/interfaces/products.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
-  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<UnitsOfMeasureSelectListItem[]>([]);
+  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<UnitsOfMeasureList>([]);
   const [status, setStatus] = React.useState("active");
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
+
+  const unexpectedError = () => {
+    setErrors({
+      global: "Váratlan hiba történt a feldolgozás során!",
+      fields: {}
+    });
+  }
 
   useEffect(() => {
     dispatch(select_list("units_of_measure")).then(async (response) => {
@@ -51,30 +56,24 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200:
-              if (isUnitsOfMeasureSelectListResponse(responseData)) {
+              if (
+                isUnitsOfMeasureListResponse(responseData)
+                && typeof responseData.data !== "undefined"
+              ) {
                 setUnitsOfMeasureList(responseData.data);
               } else {
-                setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
-                });
+                unexpectedError();
               }
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });
-  }, []);
+  }, [dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,16 +96,10 @@ export default function Create() {
               setErrors(responseData.error);
               break;
             default:
-              setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError();
         }
       }
     });

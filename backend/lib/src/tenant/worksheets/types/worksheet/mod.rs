@@ -19,8 +19,10 @@
 
 pub(crate) mod description;
 pub(crate) mod name;
+pub(crate) mod order_by;
 pub(crate) mod status;
 
 pub(crate) use description::Description as WorksheetDescription;
 pub(crate) use name::Name as WorksheetName;
+pub(crate) use order_by::OrderBy as WorksheetOrderBy;
 pub(crate) use status::Status as WorksheetStatus;

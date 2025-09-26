@@ -20,10 +20,16 @@
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
+use crate::manager::common::dto::{
+    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+};
+use crate::manager::common::types::order::Order;
+use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
 use crate::tenant::tags::dto::{CreateTag, CreateTagHelper};
 use crate::tenant::tags::service::{TagsService, TagsServiceError};
+use crate::tenant::tags::types::tag::TagOrderBy;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -92,6 +98,27 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
     Query(payload): Query<QueryParam>,
-) -> Response {
-    todo!()
+) -> Result<Response, Response> {
+    Ok((
+        StatusCode::OK,
+        Json(OkResponse::new(
+            TagsService::get_paged_list(
+                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+                    order_by: ValueObject::new(TagOrderBy("name".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                }),
+                &FilteringParams::from(&payload),
+                &claims,
+                tags_module.tags_repo.clone(),
+            )
+            .await
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        )),
+    )
+        .into_response())
 }

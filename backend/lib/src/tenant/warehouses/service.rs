@@ -19,8 +19,13 @@
 
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::CreateWarehouse;
+use crate::tenant::warehouses::model::Warehouse;
+use crate::tenant::warehouses::repository::WarehousesRepository;
+use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -33,6 +38,8 @@ pub enum WarehousesServiceError {
     Unauthorized,
 }
 
+pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
+
 pub struct WarehousesService;
 
 impl WarehousesService {
@@ -40,7 +47,7 @@ impl WarehousesService {
         claims: &Claims,
         payload: &CreateWarehouse,
         warehouses_module: Arc<WarehousesModule>,
-    ) -> Result<(), WarehousesServiceError> {
+    ) -> WarehousesServiceResult<()> {
         warehouses_module
             .warehouses_repo
             .insert(
@@ -52,5 +59,23 @@ impl WarehousesService {
             )
             .await?;
         Ok(())
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<WarehouseOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn WarehousesRepository>,
+    ) -> WarehousesServiceResult<PagedData<Vec<Warehouse>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
+                claims
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )
+            .await?)
     }
 }

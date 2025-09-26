@@ -236,11 +236,13 @@ create table tags -- Entry can only be deleted if no data relies on it!
     description text,
     created_by  uuid         not null,
     created_at  timestamptz  not null default now(),
+    deleted_at  timestamptz,
     foreign key (created_by) references users (id)
 );
 
 CREATE INDEX idx_tags_created_by ON tags (created_by);
 CREATE INDEX idx_tags_created_at ON tags (created_at);
+CREATE INDEX idx_tags_deleted_at ON tags (deleted_at);
 
 create table tag_connect
 (

@@ -17,7 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {type CommonResponse, isCommonResponse, isSimpleError, type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  type CommonResponse,
+  isCommonResponse, isPaginatedDataResponse,
+  isSimpleError,
+  type PaginatedDataResponse,
+  type SimpeError
+} from "@/lib/interfaces/common.ts";
 
 export interface CreateInventory {
   productId: string
@@ -66,5 +72,64 @@ export function isCurrencyListResponse(data: unknown): data is CommonResponse<Cu
     data,
     isCurrencyList,
     isSimpleError
+  )
+}
+
+export interface Inventory {
+  id: string,
+  product_id: string,
+  warehouse_id: string,
+  quantity: number,
+  price: string,
+  cost: string,
+  currency_id: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type InventoryList = Inventory[];
+
+export function isInventory(data: unknown): data is Inventory {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "product_id" in data &&
+    typeof data.product_id === "string" &&
+    "warehouse_id" in data &&
+    typeof data.warehouse_id === "string" &&
+    "quantity" in data &&
+    typeof data.quantity === "number" &&
+    "price" in data &&
+    typeof data.price === "string" &&
+    "cost" in data &&
+    typeof data.cost === "string" &&
+    "currency_id" in data &&
+    typeof data.currency_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isInventoryList(data: unknown): data is InventoryList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isInventory(item))
+  );
+}
+
+export function isPaginatedInventoryListResponse(data: unknown): data is PaginatedDataResponse<InventoryList> {
+  return isPaginatedDataResponse(
+    data,
+    isInventoryList
   )
 }

@@ -18,8 +18,13 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
 use crate::tenant::tags::dto::CreateTag;
+use crate::tenant::tags::model::Tag;
+use crate::tenant::tags::repository::TagsRepository;
+use crate::tenant::tags::types::tag::TagOrderBy;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -31,6 +36,9 @@ pub enum TagsServiceError {
     #[error("Unauthorized")]
     Unauthorized,
 }
+
+pub type TagsServiceResult<T> = Result<T, TagsServiceError>;
+
 pub struct TagsService;
 
 impl TagsService {
@@ -38,7 +46,7 @@ impl TagsService {
         claims: &Claims,
         payload: &CreateTag,
         tags_module: Arc<TagsModule>,
-    ) -> Result<(), TagsServiceError> {
+    ) -> TagsServiceResult<()> {
         tags_module
             .tags_repo
             .insert(
@@ -50,5 +58,23 @@ impl TagsService {
             )
             .await?;
         Ok(())
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<TagOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn TagsRepository>,
+    ) -> TagsServiceResult<PagedData<Vec<Tag>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
+                claims
+                    .active_tenant()
+                    .ok_or(TagsServiceError::Unauthorized)?,
+            )
+            .await?)
     }
 }

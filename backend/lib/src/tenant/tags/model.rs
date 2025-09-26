@@ -45,6 +45,7 @@ pub struct Tag {
     pub name: String,
     pub created_by: Uuid,
     pub created_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
 }
 
 /// Represents a connection between a tag and a taggable entity in the system.

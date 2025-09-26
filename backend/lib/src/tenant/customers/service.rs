@@ -63,7 +63,7 @@ impl CustomersService {
         repo: Arc<dyn CustomersRespository>,
     ) -> CustomersServiceResult<PagedData<Vec<Customer>>> {
         Ok(repo
-            .get_all(
+            .get_all_paged(
                 paginator,
                 ordering,
                 filtering,

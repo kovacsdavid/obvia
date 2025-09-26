@@ -18,7 +18,13 @@
  */
 
 
-import {type CommonResponse, isCommonResponse, isSimpleError, type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  type CommonResponse,
+  isCommonResponse, isPaginatedDataResponse,
+  isSimpleError,
+  type PaginatedDataResponse,
+  type SimpeError
+} from "@/lib/interfaces/common.ts";
 
 export interface CreateWarehouse {
   name: string
@@ -78,6 +84,13 @@ export function isWarehouseListResponse(data: unknown): data is CommonResponse<W
     data,
     isWarehouseList,
     isSimpleError,
+  )
+}
+
+export function isPaginatedWarehouseListResponse(data: unknown): data is PaginatedDataResponse<WarehouseList> {
+  return isPaginatedDataResponse(
+    data,
+    isWarehouseList,
   )
 }
 

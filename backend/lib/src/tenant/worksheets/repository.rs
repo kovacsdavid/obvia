@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::dto::CreateWorksheet;
 use crate::tenant::worksheets::model::Worksheet;
+use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -31,12 +34,19 @@ use uuid::Uuid;
 #[async_trait]
 pub trait WorksheetsRepository: Send + Sync {
     async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Worksheet>, RepositoryError>;
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<WorksheetOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Worksheet>>>;
     async fn insert(
         &self,
         worksheet: CreateWorksheet,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Worksheet, RepositoryError>;
+    ) -> RepositoryResult<Worksheet>;
 }
 
 #[async_trait]
@@ -48,7 +58,47 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<WorksheetOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Worksheet>>> {
+        let total: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
+                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .await?;
 
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY worksheets.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM worksheets
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let worksheets = sqlx::query_as::<_, Worksheet>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: worksheets,
+        })
+    }
     async fn insert(
         &self,
         worksheet: CreateWorksheet,

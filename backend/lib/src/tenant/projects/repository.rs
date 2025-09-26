@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::dto::CreateProject;
 use crate::tenant::projects::model::Project;
+use crate::tenant::projects::types::project::ProjectOrderBy;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 #[cfg(test)]
@@ -32,17 +35,24 @@ use uuid::Uuid;
 #[async_trait]
 pub trait ProjectsRepository: Send + Sync {
     async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Project>, RepositoryError>;
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<ProjectOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Project>>>;
     async fn insert(
         &self,
         project: CreateProject,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Project, RepositoryError>;
+    ) -> RepositoryResult<Project>;
 }
 
 #[async_trait]
 impl ProjectsRepository for PoolManagerWrapper {
-    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Project>, RepositoryError> {
+    async fn get_all(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Project>> {
         Ok(sqlx::query_as::<_, Project>(
             "SELECT * FROM projects WHERE deleted_at IS NULL ORDER BY name",
         )
@@ -50,12 +60,54 @@ impl ProjectsRepository for PoolManagerWrapper {
         .await?)
     }
 
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<ProjectOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Project>>> {
+        let total: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM projects WHERE deleted_at IS NULL")
+                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .await?;
+
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY projects.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM projects
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let projects = sqlx::query_as::<_, Project>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: projects,
+        })
+    }
+
     async fn insert(
         &self,
         project: CreateProject,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Project, RepositoryError> {
+    ) -> RepositoryResult<Project> {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(

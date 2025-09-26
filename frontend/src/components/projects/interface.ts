@@ -20,7 +20,12 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse, isFormError, isSimpleMessageData, type SimpeError,
+  isCommonResponse,
+  isFormError,
+  isPaginatedDataResponse,
+  isSimpleMessageData,
+  type PaginatedDataResponse,
+  type SimpeError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
@@ -86,6 +91,13 @@ export function isProjectListResponse(data: unknown): data is CommonResponse<Pro
     data,
     isProjectList,
     isFormError
+  )
+}
+
+export function isPaginatedProjectListResponse(data: unknown): data is PaginatedDataResponse<ProjectList> {
+  return isPaginatedDataResponse(
+    data,
+    isProjectList,
   )
 }
 

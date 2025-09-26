@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::CreateProduct;
 use crate::tenant::products::model::{Product, UnitOfMeasure};
+use crate::tenant::products::types::product::ProductOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -31,22 +34,29 @@ use uuid::Uuid;
 #[async_trait]
 pub trait ProductsRepository: Send + Sync {
     async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Product>, RepositoryError>;
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<ProductOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Product>>>;
     async fn insert(
         &self,
         product: CreateProduct,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Product, RepositoryError>;
+    ) -> RepositoryResult<Product>;
     async fn insert_unit_of_measure(
         &self,
         unit_of_measure: &str,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<UnitOfMeasure, RepositoryError>;
+    ) -> RepositoryResult<UnitOfMeasure>;
     async fn get_all_units_of_measure(
         &self,
         active_tenant: Uuid,
-    ) -> Result<Vec<UnitOfMeasure>, RepositoryError>;
+    ) -> RepositoryResult<Vec<UnitOfMeasure>>;
 }
 
 #[async_trait]
@@ -58,7 +68,47 @@ impl ProductsRepository for PoolManagerWrapper {
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<ProductOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Product>>> {
+        let total: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL")
+                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .await?;
 
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY products.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM products 
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let products = sqlx::query_as::<_, Product>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: products,
+        })
+    }
     async fn insert(
         &self,
         product: CreateProduct,

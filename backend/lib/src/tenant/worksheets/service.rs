@@ -18,9 +18,14 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::model::Project;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::CreateWorksheet;
+use crate::tenant::worksheets::model::Worksheet;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
+use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -62,6 +67,24 @@ impl WorksheetsService {
         Ok(worksheets_module
             .projects_repo
             .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<WorksheetOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn WorksheetsRepository>,
+    ) -> WorksheetsServiceResult<PagedData<Vec<Worksheet>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
                 claims
                     .active_tenant()
                     .ok_or(WorksheetsServiceError::Unauthorized)?,

@@ -17,7 +17,50 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {isPaginatedDataResponse, type PaginatedDataResponse} from "@/lib/interfaces/common.ts";
+
 export interface CreateTag {
   name: string;
   description: string
+}
+
+export interface Tag {
+  id: string,
+  name: string,
+  created_by: string,
+  created_at: string,
+  deleted_at: string | null,
+}
+
+export type TagList = Tag[];
+
+export function isTag(data: unknown): data is Tag {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isTagList(data: unknown): data is TagList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isTag(item))
+  );
+}
+
+export function isPaginatedTagListResponse(data: unknown): data is PaginatedDataResponse<TagList> {
+  return isPaginatedDataResponse(
+    data,
+    isTagList
+  )
 }

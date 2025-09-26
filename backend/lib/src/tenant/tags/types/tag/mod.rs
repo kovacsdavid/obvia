@@ -19,6 +19,8 @@
 
 pub(crate) mod description;
 pub(crate) mod name;
+pub(crate) mod order_by;
 
 pub(crate) use description::Description as TagDescription;
 pub(crate) use name::Name as TagName;
+pub(crate) use order_by::OrderBy as TagOrderBy;

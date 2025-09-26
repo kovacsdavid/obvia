@@ -20,9 +20,11 @@
 pub(crate) mod contact_name;
 pub(crate) mod contact_phone;
 pub(crate) mod name;
+pub(crate) mod order_by;
 pub(crate) mod status;
 
 pub(crate) use contact_name::ContactName as WarehouseContactName;
 pub(crate) use contact_phone::ContactPhone as WarehouseContactPhone;
 pub(crate) use name::Name as WarehouseName;
+pub(crate) use order_by::OrderBy as WarehouseOrderBy;
 pub(crate) use status::Status as WarehouseStatus;

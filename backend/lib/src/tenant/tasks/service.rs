@@ -18,8 +18,13 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::CreateTask;
+use crate::tenant::tasks::model::Task;
+use crate::tenant::tasks::repository::TasksRepository;
+use crate::tenant::tasks::types::task::TaskOrderBy;
 use crate::tenant::worksheets::model::Worksheet;
 use std::sync::Arc;
 use thiserror::Error;
@@ -65,6 +70,24 @@ impl TasksService {
         Ok(tasks_module
             .worksheets_repo
             .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<TaskOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn TasksRepository>,
+    ) -> TasksServiceResult<PagedData<Vec<Task>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
                 claims
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,

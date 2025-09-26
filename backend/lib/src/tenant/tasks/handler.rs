@@ -19,10 +19,16 @@
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
+use crate::manager::common::dto::{
+    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+};
+use crate::manager::common::types::order::Order;
+use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::{CreateTask, CreateTaskHelper};
 use crate::tenant::tasks::service::{TasksService, TasksServiceError};
+use crate::tenant::tasks::types::task::TaskOrderBy;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -122,6 +128,27 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     Query(payload): Query<QueryParam>,
-) -> Response {
-    todo!()
+) -> Result<Response, Response> {
+    Ok((
+        StatusCode::OK,
+        Json(OkResponse::new(
+            TasksService::get_paged_list(
+                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+                    order_by: ValueObject::new(TaskOrderBy("title".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                }),
+                &FilteringParams::from(&payload),
+                &claims,
+                tasks_module.tasks_repo.clone(),
+            )
+            .await
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        )),
+    )
+        .into_response())
 }

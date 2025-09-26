@@ -18,10 +18,14 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::Currency;
+use crate::tenant::inventory::model::{Currency, Inventory};
+use crate::tenant::inventory::repository::InventoryRepository;
+use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use crate::tenant::products::model::Product;
 use crate::tenant::warehouses::model::Warehouse;
 use std::sync::Arc;
@@ -39,6 +43,8 @@ pub enum InventoryServiceError {
     InvalidState,
 }
 
+type InventoryServiceResult<T> = Result<T, InventoryServiceError>;
+
 pub struct InventoryService;
 
 impl InventoryService {
@@ -46,7 +52,7 @@ impl InventoryService {
         claims: &Claims,
         payload: &CreateInventory,
         inventory_module: Arc<InventoryModule>,
-    ) -> Result<(), InventoryServiceError> {
+    ) -> InventoryServiceResult<()> {
         let mut inventory = payload.clone();
         inventory.currency_id = if inventory.currency_id.is_some() {
             inventory.currency_id
@@ -86,7 +92,7 @@ impl InventoryService {
     pub async fn get_all_currencies(
         claims: &Claims,
         inventory_module: Arc<InventoryModule>,
-    ) -> Result<Vec<Currency>, InventoryServiceError> {
+    ) -> InventoryServiceResult<Vec<Currency>> {
         Ok(inventory_module
             .inventory_repo
             .get_all_currencies(
@@ -99,7 +105,7 @@ impl InventoryService {
     pub async fn get_all_products(
         claims: &Claims,
         inventory_module: Arc<InventoryModule>,
-    ) -> Result<Vec<Product>, InventoryServiceError> {
+    ) -> InventoryServiceResult<Vec<Product>> {
         Ok(inventory_module
             .products_repo
             .get_all(
@@ -112,10 +118,28 @@ impl InventoryService {
     pub async fn get_all_warehouses(
         claims: &Claims,
         inventory_module: Arc<InventoryModule>,
-    ) -> Result<Vec<Warehouse>, InventoryServiceError> {
+    ) -> InventoryServiceResult<Vec<Warehouse>> {
         Ok(inventory_module
             .warehouses_repo
             .get_all(
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<InventoryOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn InventoryRepository>,
+    ) -> InventoryServiceResult<PagedData<Vec<Inventory>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
                 claims
                     .active_tenant()
                     .ok_or(InventoryServiceError::Unauthorized)?,

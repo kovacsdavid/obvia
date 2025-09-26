@@ -18,8 +18,13 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
 use crate::tenant::projects::dto::CreateProject;
+use crate::tenant::projects::model::Project;
+use crate::tenant::projects::repository::ProjectsRepository;
+use crate::tenant::projects::types::project::ProjectOrderBy;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -32,6 +37,8 @@ pub enum ProjectsServiceError {
     Unauthorized,
 }
 
+type ProjectsServiceResult<T> = Result<T, ProjectsServiceError>;
+
 pub struct ProjectsService;
 
 impl ProjectsService {
@@ -39,7 +46,7 @@ impl ProjectsService {
         claims: &Claims,
         payload: &CreateProject,
         projects_module: Arc<ProjectsModule>,
-    ) -> Result<(), ProjectsServiceError> {
+    ) -> ProjectsServiceResult<()> {
         projects_module
             .projects_repo
             .insert(
@@ -51,5 +58,23 @@ impl ProjectsService {
             )
             .await?;
         Ok(())
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<ProjectOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn ProjectsRepository>,
+    ) -> ProjectsServiceResult<PagedData<Vec<Project>>> {
+        Ok(repo
+            .get_all_paged(
+                paginator,
+                ordering,
+                filtering,
+                claims
+                    .active_tenant()
+                    .ok_or(ProjectsServiceError::Unauthorized)?,
+            )
+            .await?)
     }
 }

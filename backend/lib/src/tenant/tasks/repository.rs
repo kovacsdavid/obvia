@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::dto::CreateTask;
 use crate::tenant::tasks::model::Task;
+use crate::tenant::tasks::types::task::TaskOrderBy;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
 #[cfg(test)]
@@ -31,22 +34,69 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TasksRepository: Send + Sync {
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<TaskOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Task>>>;
     async fn insert(
         &self,
         task: CreateTask,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Task, RepositoryError>;
+    ) -> RepositoryResult<Task>;
 }
 
 #[async_trait]
 impl TasksRepository for PoolManagerWrapper {
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<TaskOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Task>>> {
+        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
+            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY tasks.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM tasks
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let tasks = sqlx::query_as::<_, Task>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: tasks,
+        })
+    }
     async fn insert(
         &self,
         task: CreateTask,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Task, RepositoryError> {
+    ) -> RepositoryResult<Task> {
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(

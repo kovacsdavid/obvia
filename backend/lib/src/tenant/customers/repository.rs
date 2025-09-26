@@ -33,7 +33,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CustomersRespository: Send + Sync {
-    async fn get_all(
+    async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<CustomerOrderBy>,
@@ -50,7 +50,7 @@ pub trait CustomersRespository: Send + Sync {
 
 #[async_trait]
 impl CustomersRespository for PoolManagerWrapper {
-    async fn get_all(
+    async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<CustomerOrderBy>,

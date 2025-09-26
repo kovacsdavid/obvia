@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::dto::CreateWarehouse;
 use crate::tenant::warehouses::model::Warehouse;
+use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -31,6 +34,13 @@ use uuid::Uuid;
 #[async_trait]
 pub trait WarehousesRepository: Send + Sync {
     async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Warehouse>, RepositoryError>;
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<WarehouseOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Warehouse>>>;
     async fn insert(
         &self,
         warehouse: CreateWarehouse,
@@ -47,6 +57,47 @@ impl WarehousesRepository for PoolManagerWrapper {
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+    async fn get_all_paged(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<WarehouseOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Warehouse>>> {
+        let total: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
+                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .await?;
+
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY warehouses.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM warehouses
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let warehouses = sqlx::query_as::<_, Warehouse>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: warehouses,
+        })
     }
     async fn insert(
         &self,

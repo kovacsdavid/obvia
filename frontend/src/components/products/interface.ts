@@ -18,7 +18,13 @@
  */
 
 
-import {type CommonResponse, isCommonResponse, isSimpleError, type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  type CommonResponse,
+  isCommonResponse, isPaginatedDataResponse,
+  isSimpleError,
+  type PaginatedDataResponse,
+  type SimpeError
+} from "@/lib/interfaces/common.ts";
 
 export interface CreateProduct {
   name: string
@@ -79,6 +85,13 @@ export function isProductListResponse(data: unknown): data is CommonResponse<Pro
     data,
     isProductList,
     isSimpleError,
+  )
+}
+
+export function isPaginatedProductListResponse(data: unknown): data is PaginatedDataResponse<ProductList> {
+  return isPaginatedDataResponse(
+    data,
+    isProductList
   )
 }
 

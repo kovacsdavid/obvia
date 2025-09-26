@@ -18,9 +18,11 @@
  */
 
 pub(crate) mod cost;
+pub(crate) mod order_by;
 pub(crate) mod price;
 pub(crate) mod quantity;
 
 pub(crate) use cost::Cost as InventoryCost;
+pub(crate) use order_by::OrderBy as InventoryOrderBy;
 pub(crate) use price::Price as InventoryPrice;
 pub(crate) use quantity::Quantity as InventoryQuantity;

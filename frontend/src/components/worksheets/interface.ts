@@ -18,7 +18,13 @@
  */
 
 
-import {type CommonResponse, isCommonResponse, isSimpleError, type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  type CommonResponse,
+  isCommonResponse, isPaginatedDataResponse,
+  isSimpleError,
+  type PaginatedDataResponse,
+  type SimpeError
+} from "@/lib/interfaces/common.ts";
 
 export interface CreateWorksheet {
   name: string
@@ -78,5 +84,12 @@ export function isWorksheetListResponse(data: unknown): data is CommonResponse<W
     data,
     isWorksheetList,
     isSimpleError,
+  )
+}
+
+export function isPaginatedWorksheetListResponse(data: unknown): data is PaginatedDataResponse<WorksheetList> {
+  return isPaginatedDataResponse(
+    data,
+    isWorksheetList,
   )
 }

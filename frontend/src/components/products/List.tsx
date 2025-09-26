@@ -18,8 +18,8 @@
  */
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Funnel, Plus, SquarePen} from "lucide-react";
+import {Button, GlobalError, Input, Label, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
+import {Funnel, Pencil, Plus} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,10 +35,12 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/products/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
+import {isPaginatedProductListResponse, type ProductList} from "@/components/products/interface.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
+  const [data, setData] = React.useState<ProductList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -60,11 +62,39 @@ export default function List() {
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
+  const unexpectedError = () => {
+    setErrors({
+      global: "Váratlan hiba történt a feldolgozás során!",
+    });
+  };
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
-      console.log(response)
-      setErrors({global: "Not implemented yet!"})
+      if (response.meta.requestStatus === "fulfilled") {
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200: {
+              if (isPaginatedProductListResponse(responseData)) {
+                if (typeof responseData.data !== "undefined") {
+                  setPage(responseData.data.page);
+                  setLimit(responseData.data.limit);
+                  setTotal(responseData.data.total);
+                  setData(responseData.data.data);
+                }
+              } else {
+                unexpectedError();
+              }
+              break;
+            }
+            default:
+              unexpectedError();
+          }
+        } catch {
+          unexpectedError();
+        }
+      }
     });
   }, [
     searchParams,
@@ -136,22 +166,25 @@ export default function List() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow>
-            <TableCell>
-              Placeholder
-            </TableCell>
-            <TableCell>
-              2025-08-31T13:52:49.213086+02:00
-            </TableCell>
-            <TableCell>
-              2025-08-31T13:52:49.213086+02:00
-            </TableCell>
-            <TableCell>
-              <Button style={{cursor: "pointer"}} variant={"outline"}>
-                <SquarePen color={"green"}/>
-              </Button>
-            </TableCell>
-          </TableRow>
+          {data.map((item) => (
+            <TableRow key={item.id}>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>{item.created_at}</TableCell>
+              <TableCell>{item.updated_at}</TableCell>
+              <TableCell>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button style={{cursor: "pointer"}} variant={"outline"}>
+                      <Pencil color={"green"}/>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side={"left"}>
+                    <p>Szerkesztés</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
       <Paginator

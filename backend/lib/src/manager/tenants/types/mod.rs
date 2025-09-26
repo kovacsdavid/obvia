@@ -23,6 +23,7 @@ pub(crate) mod db_password;
 pub(crate) mod db_port;
 pub(crate) mod db_user;
 pub(crate) mod name;
+pub(crate) mod order_by;
 
 pub(crate) use db_host::DbHost;
 pub(crate) use db_name::DbName;
@@ -30,3 +31,4 @@ pub(crate) use db_password::DbPassword;
 pub(crate) use db_port::DbPort;
 pub(crate) use db_user::DbUser;
 pub(crate) use name::Name;
+pub(crate) use order_by::OrderBy as TenantsOrderBy;

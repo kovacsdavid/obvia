@@ -21,6 +21,7 @@ pub(crate) mod ddl_parameter;
 pub(crate) mod email;
 pub(crate) mod first_name;
 pub(crate) mod last_name;
+pub(crate) mod order;
 pub(crate) mod password;
 pub(crate) mod value_object;
 

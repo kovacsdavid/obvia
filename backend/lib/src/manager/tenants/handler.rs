@@ -23,11 +23,14 @@ use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::common::dto::{
     OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
 };
+use crate::manager::common::types::order::Order;
+use crate::manager::common::types::value_object::ValueObject;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
 use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
+use crate::manager::tenants::types::TenantsOrderBy;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -139,8 +142,12 @@ pub async fn list(
             TenantsService::get_paged_list(
                 &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
                 &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-                    order_by: "name".to_string(),
-                    order: "asc".to_string(),
+                    order_by: ValueObject::new(TenantsOrderBy("name".to_string())).map_err(
+                        |e| FriendlyError::internal(file!(), e.to_string()).into_response(),
+                    )?,
+                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
                 }),
                 &FilteringParams::from(&payload),
                 &claims,

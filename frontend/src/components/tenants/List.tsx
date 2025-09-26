@@ -46,13 +46,13 @@ import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
   isActiveTenantResponse,
   isPaginatedTenantListResponse,
-  type Tenant
+  type TenantList
 } from "@/components/tenants/interface.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
-  const [data, setData] = React.useState<Tenant[]>([]);
+  const [data, setData] = React.useState<TenantList>([]);
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
 
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {

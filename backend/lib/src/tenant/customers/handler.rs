@@ -20,10 +20,16 @@
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::{OkResponse, QueryParam, SimpleMessageResponse};
+use crate::manager::common::dto::{
+    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+};
+use crate::manager::common::types::order::Order;
+use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CreateCustomer, CreateCustomerHelper};
 use crate::tenant::customers::service::{CustomersService, CustomersServiceError};
+use crate::tenant::customers::types::customer::CustomerOrderBy;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -46,22 +52,24 @@ pub async fn create(
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CreateCustomer, CreateCustomerHelper>,
 ) -> Result<Response, Response> {
-    CustomersService::try_create(&claims, &user_input, customers_module)
-        .await
-        .map_err(|e| {
-            match e {
-                CustomersServiceError::Repository(_) => {
-                    FriendlyError::internal(file!(), e.to_string())
-                }
-                CustomersServiceError::Unauthorized => FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hozzáférés megtagadva!",
-                ),
-            }
-            .into_response()
-        })?;
+    CustomersService::try_create(
+        &claims,
+        &user_input,
+        customers_module.customers_repo.clone(),
+    )
+    .await
+    .map_err(|e| {
+        match e {
+            CustomersServiceError::Repository(_) => FriendlyError::internal(file!(), e.to_string()),
+            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                "Hozzáférés megtagadva!",
+            ),
+        }
+        .into_response()
+    })?;
     Ok((
         StatusCode::CREATED,
         Json(OkResponse::new(SimpleMessageResponse {
@@ -94,6 +102,27 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
     Query(payload): Query<QueryParam>,
-) -> Response {
-    todo!()
+) -> Result<Response, Response> {
+    Ok((
+        StatusCode::OK,
+        Json(OkResponse::new(
+            CustomersService::get_paged_list(
+                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+                    order_by: ValueObject::new(CustomerOrderBy("name".to_string())).map_err(
+                        |e| FriendlyError::internal(file!(), e.to_string()).into_response(),
+                    )?,
+                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                }),
+                &FilteringParams::from(&payload),
+                &claims,
+                customers_module.customers_repo.clone(),
+            )
+            .await
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        )),
+    )
+        .into_response())
 }

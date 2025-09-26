@@ -20,7 +20,7 @@
 use crate::common::error::RepositoryError;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::common::dto::{OrderingParams, PagedResult, PaginatorParams};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::services::generate_string_csprng;
 use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::TenantsModule;
@@ -28,6 +28,7 @@ use crate::manager::tenants::dto::{
     CreateTenant, FilteringParams, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::repository::TenantsRepository;
+use crate::manager::tenants::types::TenantsOrderBy;
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -279,11 +280,11 @@ impl TenantsService {
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,
-        ordering: &OrderingParams,
+        ordering: &OrderingParams<TenantsOrderBy>,
         filtering: &FilteringParams,
         claims: &Claims,
-        repo: Arc<dyn TenantsRepository + Send + Sync>,
-    ) -> Result<PagedResult<Vec<PublicTenant>>, TenantsServiceError> {
+        repo: Arc<dyn TenantsRepository>,
+    ) -> Result<PagedData<Vec<PublicTenant>>, TenantsServiceError> {
         let res = repo
             .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
             .await?;
@@ -291,7 +292,7 @@ impl TenantsService {
         for tenant in res.data {
             public_tenants.push(PublicTenant::from(tenant))
         }
-        Ok(PagedResult {
+        Ok(PagedData {
             page: res.page,
             limit: res.limit,
             total: res.total,
@@ -302,7 +303,7 @@ impl TenantsService {
     pub async fn activate(
         payload: &TenantActivateRequest,
         claims: &Claims,
-        repo: Arc<dyn TenantsRepository + Send + Sync>,
+        repo: Arc<dyn TenantsRepository>,
         config: Arc<AppConfig>,
     ) -> Result<String, TenantsServiceError> {
         let user_tenant = repo

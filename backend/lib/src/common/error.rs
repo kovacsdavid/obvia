@@ -269,3 +269,5 @@ pub enum RepositoryError {
     #[error("Tenant pool not found")]
     TenantPoolNotFound,
 }
+
+pub type RepositoryResult<T> = Result<T, RepositoryError>;

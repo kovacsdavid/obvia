@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::value_object::ValueObjectable;
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
 use crate::tenant::customers::model::Customer;
+use crate::tenant::customers::types::customer::CustomerOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -30,6 +33,13 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CustomersRespository: Send + Sync {
+    async fn get_all(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<CustomerOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Customer>>>;
     async fn insert(
         &self,
         customer: CreateCustomer,
@@ -40,6 +50,47 @@ pub trait CustomersRespository: Send + Sync {
 
 #[async_trait]
 impl CustomersRespository for PoolManagerWrapper {
+    async fn get_all(
+        &self,
+        paginator_params: &PaginatorParams,
+        ordering_params: &OrderingParams<CustomerOrderBy>,
+        filtering_params: &FilteringParams,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<PagedData<Vec<Customer>>> {
+        let total: (i64,) =
+            sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
+                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .await?;
+
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY customers.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
+        let sql = format!(
+            r#"
+            SELECT *
+            FROM customers
+            WHERE deleted_at IS NULL
+            {order_by_clause}
+            LIMIT $1
+            OFFSET $2
+            "#
+        );
+
+        let customers = sqlx::query_as::<_, Customer>(&sql)
+            .bind(paginator_params.limit)
+            .bind(paginator_params.offset())
+            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .await?;
+
+        Ok(PagedData {
+            page: paginator_params.page,
+            limit: paginator_params.limit,
+            total: total.0,
+            data: customers,
+        })
+    }
     async fn insert(
         &self,
         customer: CreateCustomer,

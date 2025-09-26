@@ -20,7 +20,7 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse, isFormError, isSimpleMessageData,
+  isCommonResponse, isFormError, isPaginatedDataResponse, isSimpleMessageData, type PaginatedDataResponse,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
@@ -34,7 +34,59 @@ export interface CreateCustomer {
 }
 
 export interface Customer {
-  id: string // TODO
+  id: string,
+  name: string,
+  contact_name: string | null,
+  email: string,
+  phone_number: string | null,
+  status: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type CustomerList = Customer[];
+
+export function isCustomer(data: unknown): data is Customer {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "contact_name" in data &&
+    (data.contact_name === null || typeof data.contact_name === "string") &&
+    "email" in data &&
+    typeof data.email === "string" &&
+    "phone_number" in data &&
+    (data.phone_number === null || typeof data.phone_number === "string") &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isCustomerList(data: unknown): data is CustomerList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isCustomer(item))
+  );
+}
+
+export function isPaginatedCustomerListResponse(data: unknown): data is PaginatedDataResponse<CustomerList> {
+  return isPaginatedDataResponse(
+    data,
+    isCustomerList
+  );
 }
 
 export function isCreateCustomerResponse(data: unknown): data is CommonResponse<SimpleMessageData, FormError> {

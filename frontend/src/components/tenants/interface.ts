@@ -50,6 +50,8 @@ export interface Tenant {
   deleted_at: string | null;
 }
 
+export type TenantList = Tenant[];
+
 export function isTenant(data: unknown): data is Tenant {
   return (
     typeof data === "object" &&
@@ -88,7 +90,6 @@ export function isTenantList(data: unknown): data is TenantList {
   );
 }
 
-type TenantList = Tenant[];
 
 export function isPaginatedTenantListResponse(data: unknown): data is PaginatedDataResponse<TenantList> {
   return isPaginatedDataResponse(

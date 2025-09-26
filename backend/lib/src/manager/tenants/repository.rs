@@ -20,12 +20,13 @@
 use crate::common::error::RepositoryError;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::common::dto::{OrderingParams, PagedResult, PaginatorParams};
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::common::types::DdlParameter;
-use crate::manager::common::types::value_object::ValueObject;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::manager::tenants::model::{Tenant, UserTenant};
+use crate::manager::tenants::types::TenantsOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -188,9 +189,9 @@ pub trait TenantsRepository: Send + Sync {
         &self,
         user_uuid: Uuid,
         paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams,
+        ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError>;
+    ) -> Result<PagedData<Vec<Tenant>>, RepositoryError>;
     /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
@@ -304,9 +305,9 @@ impl TenantsRepository for PoolManagerWrapper {
         &self,
         user_uuid: Uuid,
         paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams,
+        ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<PagedResult<Vec<Tenant>>, RepositoryError> {
+    ) -> Result<PagedData<Vec<Tenant>>, RepositoryError> {
         let total: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM tenants
                 LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
@@ -320,12 +321,10 @@ impl TenantsRepository for PoolManagerWrapper {
         .fetch_one(&self.pool_manager.get_main_pool())
         .await?;
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "name" => format!("ORDER BY tenants.name {}", ordering_params.order),
-            "created_at" => format!("ORDER BY tenants.created_at {}", ordering_params.order),
-            "updated_at" => format!("ORDER BY tenants.updated_at {}", ordering_params.order),
-            _ => "".to_string(),
-        };
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY tenants.{order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
 
         let sql = format!(
             r#"
@@ -351,7 +350,7 @@ impl TenantsRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_main_pool())
             .await?;
 
-        Ok(PagedResult {
+        Ok(PagedData {
             page: paginator_params.page,
             limit: paginator_params.limit,
             total: total.0,

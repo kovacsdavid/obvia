@@ -18,8 +18,12 @@
  */
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
-use crate::tenant::customers::CustomersModule;
+use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
+use crate::tenant::customers::model::Customer;
+use crate::tenant::customers::repository::CustomersRespository;
+use crate::tenant::customers::types::customer::CustomerOrderBy;
 use std::sync::Arc;
 use thiserror::Error;
 
@@ -33,22 +37,40 @@ pub enum CustomersServiceError {
 }
 pub struct CustomersService;
 
+type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
+
 impl CustomersService {
     pub async fn try_create(
         claims: &Claims,
         payload: &CreateCustomer,
-        customers_module: Arc<CustomersModule>,
-    ) -> Result<(), CustomersServiceError> {
-        customers_module
-            .customers_repo
-            .insert(
-                payload.clone(),
-                claims.sub(),
+        repo: Arc<dyn CustomersRespository>,
+    ) -> CustomersServiceResult<()> {
+        repo.insert(
+            payload.clone(),
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(CustomersServiceError::Unauthorized)?,
+        )
+        .await?;
+        Ok(())
+    }
+    pub async fn get_paged_list(
+        paginator: &PaginatorParams,
+        ordering: &OrderingParams<CustomerOrderBy>,
+        filtering: &FilteringParams,
+        claims: &Claims,
+        repo: Arc<dyn CustomersRespository>,
+    ) -> CustomersServiceResult<PagedData<Vec<Customer>>> {
+        Ok(repo
+            .get_all(
+                paginator,
+                ordering,
+                filtering,
                 claims
                     .active_tenant()
                     .ok_or(CustomersServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
 }

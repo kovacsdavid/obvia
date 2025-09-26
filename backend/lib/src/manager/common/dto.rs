@@ -16,9 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::manager::common::types::order::Order;
+use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use thiserror::Error;
 
 /// A generic response struct used to represent a successful response, containing a success flag
@@ -169,7 +172,7 @@ impl Display for PaginatorError {
 }
 
 #[derive(Serialize)]
-pub struct PagedResult<T> {
+pub struct PagedData<T> {
     pub page: i32,
     pub limit: i32,
     pub total: i64,
@@ -218,42 +221,49 @@ impl TryFrom<&QueryParam> for PaginatorParams {
 
 #[derive(Error, Debug, PartialEq)]
 pub enum OrderingError {
+    #[error("Invalid order")]
     InvalidOrder,
+    #[error("Invalid order_by")]
+    InvalidOrderBy,
+    #[error("Missing parameter")]
     MissingParams,
 }
 
-impl Display for OrderingError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OrderingError::InvalidOrder => write!(f, "Invalid order!"),
-            OrderingError::MissingParams => write!(f, "Missing ordering params!"),
-        }
-    }
+pub struct OrderingParams<T>
+where
+    T: ValueObjectable<DataType = String>,
+{
+    pub order_by: ValueObject<T>,
+    pub order: ValueObject<Order>,
 }
 
-pub struct OrderingParams {
-    pub order_by: String,
-    pub order: String,
-}
-
-impl TryFrom<&QueryParam> for OrderingParams {
+impl<T> TryFrom<&QueryParam> for OrderingParams<T>
+where
+    T: ValueObjectable<DataType = String> + FromStr,
+{
     type Error = OrderingError;
     fn try_from(value: &QueryParam) -> Result<Self, Self::Error> {
         match value.as_hash_map() {
             Some(hmap) => {
-                let order_by = hmap
-                    .get("order_by")
-                    .ok_or(OrderingError::MissingParams)?
-                    .to_owned();
-                let order = hmap
-                    .get("order")
-                    .ok_or(OrderingError::MissingParams)?
-                    .to_owned();
-                if order == "asc" || order == "desc" {
-                    Ok(OrderingParams { order_by, order })
-                } else {
-                    Err(OrderingError::InvalidOrder)
-                }
+                let order_by = ValueObject::new(
+                    T::from_str(
+                        hmap.get("order_by")
+                            .ok_or(OrderingError::MissingParams)?
+                            .trim(),
+                    )
+                    .map_err(|_| OrderingError::InvalidOrderBy)?,
+                )
+                .map_err(|_| OrderingError::InvalidOrderBy)?;
+                let order = ValueObject::new(
+                    Order::from_str(
+                        hmap.get("order")
+                            .ok_or(OrderingError::MissingParams)?
+                            .trim(),
+                    )
+                    .map_err(|_| OrderingError::InvalidOrder)?,
+                )
+                .map_err(|_| OrderingError::InvalidOrder)?;
+                Ok(OrderingParams { order_by, order })
             }
             None => Err(OrderingError::MissingParams),
         }

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
@@ -40,7 +40,7 @@ pub trait WarehousesRepository: Send + Sync {
         ordering_params: &OrderingParams<WarehouseOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Warehouse>>>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Warehouse>)>;
     async fn insert(
         &self,
         warehouse: CreateWarehouse,
@@ -64,7 +64,7 @@ impl WarehousesRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<WarehouseOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Warehouse>>> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Warehouse>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -92,12 +92,14 @@ impl WarehousesRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
 
-        Ok(PagedData {
-            page: paginator_params.page,
-            limit: paginator_params.limit,
-            total: total.0,
-            data: warehouses,
-        })
+        Ok((
+            PaginatorMeta {
+                page: paginator_params.page,
+                limit: paginator_params.limit,
+                total: total.0,
+            },
+            warehouses,
+        ))
     }
     async fn insert(
         &self,

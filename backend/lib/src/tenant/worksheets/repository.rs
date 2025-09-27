@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
@@ -40,7 +40,7 @@ pub trait WorksheetsRepository: Send + Sync {
         ordering_params: &OrderingParams<WorksheetOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Worksheet>>>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Worksheet>)>;
     async fn insert(
         &self,
         worksheet: CreateWorksheet,
@@ -64,7 +64,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<WorksheetOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Worksheet>>> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Worksheet>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -92,12 +92,14 @@ impl WorksheetsRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
 
-        Ok(PagedData {
-            page: paginator_params.page,
-            limit: paginator_params.limit,
-            total: total.0,
-            data: worksheets,
-        })
+        Ok((
+            PaginatorMeta {
+                page: paginator_params.page,
+                limit: paginator_params.limit,
+                total: total.0,
+            },
+            worksheets,
+        ))
     }
     async fn insert(
         &self,

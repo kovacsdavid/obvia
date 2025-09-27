@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
@@ -25,16 +25,34 @@ use crate::tenant::projects::dto::CreateProject;
 use crate::tenant::projects::model::Project;
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::projects::types::project::ProjectOrderBy;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum ProjectsServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Unauthorized")]
+    #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+}
+
+impl IntoResponse for ProjectsServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            ProjectsServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                ProjectsServiceError::Unauthorized.to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 type ProjectsServiceResult<T> = Result<T, ProjectsServiceError>;
@@ -65,7 +83,7 @@ impl ProjectsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn ProjectsRepository>,
-    ) -> ProjectsServiceResult<PagedData<Vec<Project>>> {
+    ) -> ProjectsServiceResult<(PaginatorMeta, Vec<Project>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

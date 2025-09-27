@@ -16,8 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::error::{BuilderError, BuilderResult};
 use crate::common::types::order::Order;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use axum::Json;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
@@ -34,62 +38,101 @@ use thiserror::Error;
 /// * `success` - A boolean flag indicating whether the response represents a success. Always true for this struct.
 /// * `data` - The actual data payload of the response. Its type is determined by the generic parameter `T`.
 #[derive(Serialize)]
-pub struct OkResponse<T: Serialize> {
-    pub success: bool,
-    pub data: T,
+pub struct SuccessResponse<M, D>
+where
+    M: Serialize,
+    D: Serialize,
+{
+    #[serde(skip_serializing)]
+    pub status_code: StatusCode,
+    pub meta: Option<M>,
+    pub data: Option<D>,
 }
 
-impl<T: Serialize> OkResponse<T> {
-    /// Creates a new instance of the struct.
-    ///
-    /// This function initializes a new object of the struct with the given data
-    /// and sets the `success` field to `true`.
-    ///
-    /// # Parameters
-    /// - `data`: The value of type `T` to initialize the struct with.
-    ///
-    /// # Returns
-    /// A new instance of the struct containing the specified `data` and
-    /// with `success` set to `true`.
-    pub fn new(data: T) -> Self {
-        Self {
-            success: true,
-            data,
-        }
+impl<M, D> IntoResponse for SuccessResponse<M, D>
+where
+    M: Serialize,
+    D: Serialize,
+{
+    fn into_response(self) -> Response {
+        (self.status_code, Json(self)).into_response()
     }
 }
 
-/// A generic struct representing an error response, used to convey error details in API responses.
-///
-/// This struct is designed to be serializable for use in JSON or other formats.
-///
-/// # Type Parameters
-/// * `T` - The type of the additional data or context associated with the error body. This type must implement the `Serialize` trait.
-///
-/// # Fields
-/// * `success` - A boolean indicating the success status of the operation. For an error response, this is always expected to be `false`.
-/// * `error` - An instance of `ErrorBody` containing detailed information about the error, along with any associated context or data.
+pub struct SuccessResponseBuilder<M, D>
+where
+    M: Serialize,
+    D: Serialize,
+{
+    pub status_code: Option<StatusCode>,
+    pub meta: Option<M>,
+    pub data: Option<D>,
+}
+
+impl<M, D> SuccessResponseBuilder<M, D>
+where
+    M: Serialize,
+    D: Serialize,
+{
+    pub fn new() -> Self {
+        Self {
+            status_code: None,
+            meta: None,
+            data: None,
+        }
+    }
+    pub fn status_code(mut self, status_code: StatusCode) -> Self {
+        self.status_code = Some(status_code);
+        self
+    }
+    pub fn meta(mut self, meta: M) -> Self {
+        self.meta = Some(meta);
+        self
+    }
+    pub fn data(mut self, data: D) -> Self {
+        self.data = Some(data);
+        self
+    }
+    pub fn build(self) -> BuilderResult<SuccessResponse<M, D>> {
+        Ok(SuccessResponse {
+            status_code: self
+                .status_code
+                .ok_or(BuilderError::MissingRequired("status_code"))?,
+            meta: self.meta,
+            data: self.data,
+        })
+    }
+}
+
 #[derive(Serialize)]
-pub struct ErrorResponse<T: Serialize> {
-    pub success: bool,
-    pub error: ErrorBody<T>,
-}
+pub struct EmptyType;
 
-impl<T: Serialize> ErrorResponse<T> {
-    /// Constructs a new instance of the struct with the provided error information.
-    ///
-    /// # Parameters
-    /// - `error`: An `ErrorBody<T>` that contains details about the error.
-    ///
-    /// # Returns
-    /// A new instance of the struct with `success` set to `false` and the provided `error` value.
-    pub fn new(error: ErrorBody<T>) -> Self {
-        Self {
-            success: false,
-            error,
-        }
+impl Display for EmptyType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "EmptyType")
     }
 }
+
+#[derive(Serialize)]
+pub struct ErrorResponse<E>
+where
+    E: Serialize,
+{
+    #[serde(skip_serializing)]
+    pub status_code: StatusCode,
+    pub error: E,
+}
+
+impl<E> IntoResponse for ErrorResponse<E>
+where
+    E: Serialize,
+{
+    fn into_response(self) -> Response {
+        (self.status_code, Json(self)).into_response()
+    }
+}
+
+pub type HandlerResult = Result<Response, Response>;
 
 /// A generic struct representing the body of an error response.
 ///
@@ -109,9 +152,36 @@ impl<T: Serialize> ErrorResponse<T> {
 ///   Optional field-level error details. Can be used to provide additional context for specific fields
 ///   when the error is related to input validation or similar cases.
 #[derive(Serialize)]
-pub struct ErrorBody<T: Serialize> {
-    pub global: String,
-    pub fields: Option<T>,
+pub struct FormError<T>
+where
+    T: Serialize + Display,
+{
+    pub message: String,
+    pub fields: T,
+}
+
+impl<T> Display for FormError<T>
+where
+    T: Serialize + Display,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "FormError: message: {}, fields: {}",
+            self.message, self.fields
+        )
+    }
+}
+
+#[derive(Serialize)]
+pub struct GeneralError {
+    pub message: String,
+}
+
+impl Display for GeneralError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "FormError: message: {}", self.message)
+    }
 }
 
 /// A struct representing a simple message response.
@@ -124,6 +194,14 @@ pub struct ErrorBody<T: Serialize> {
 #[derive(Serialize)]
 pub struct SimpleMessageResponse {
     pub message: String,
+}
+
+impl SimpleMessageResponse {
+    pub fn new(message: &str) -> Self {
+        Self {
+            message: String::from(message),
+        }
+    }
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -172,11 +250,10 @@ impl Display for PaginatorError {
 }
 
 #[derive(Serialize)]
-pub struct PagedData<T> {
+pub struct PaginatorMeta {
     pub page: i32,
     pub limit: i32,
     pub total: i64,
-    pub data: T,
 }
 
 #[allow(dead_code)]

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
@@ -41,7 +41,7 @@ pub trait ProjectsRepository: Send + Sync {
         ordering_params: &OrderingParams<ProjectOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Project>>>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Project>)>;
     async fn insert(
         &self,
         project: CreateProject,
@@ -66,7 +66,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<ProjectOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Project>>> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Project>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM projects WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -94,12 +94,14 @@ impl ProjectsRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
 
-        Ok(PagedData {
-            page: paginator_params.page,
-            limit: paginator_params.limit,
-            total: total.0,
-            data: projects,
-        })
+        Ok((
+            PaginatorMeta {
+                page: paginator_params.page,
+                limit: paginator_params.limit,
+                total: total.0,
+            },
+            projects,
+        ))
     }
 
     async fn insert(

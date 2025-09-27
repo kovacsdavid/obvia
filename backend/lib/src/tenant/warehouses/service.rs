@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
@@ -26,16 +26,34 @@ use crate::tenant::warehouses::dto::CreateWarehouse;
 use crate::tenant::warehouses::model::Warehouse;
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum WarehousesServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Unauthorized")]
+    #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+}
+
+impl IntoResponse for WarehousesServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                WarehousesServiceError::Unauthorized.to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
@@ -66,7 +84,7 @@ impl WarehousesService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<PagedData<Vec<Warehouse>>> {
+    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<Warehouse>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

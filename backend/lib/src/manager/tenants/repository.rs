@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::RepositoryError;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::DdlParameter;
@@ -191,7 +191,7 @@ pub trait TenantsRepository: Send + Sync {
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<PagedData<Vec<Tenant>>, RepositoryError>;
+    ) -> Result<(PaginatorMeta, Vec<Tenant>), RepositoryError>;
     /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
@@ -307,7 +307,7 @@ impl TenantsRepository for PoolManagerWrapper {
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<PagedData<Vec<Tenant>>, RepositoryError> {
+    ) -> Result<(PaginatorMeta, Vec<Tenant>), RepositoryError> {
         let total: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM tenants
                 LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
@@ -350,12 +350,14 @@ impl TenantsRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_main_pool())
             .await?;
 
-        Ok(PagedData {
-            page: paginator_params.page,
-            limit: paginator_params.limit,
-            total: total.0,
-            data: tenants,
-        })
+        Ok((
+            PaginatorMeta {
+                page: paginator_params.page,
+                limit: paginator_params.limit,
+                total: total.0,
+            },
+            tenants,
+        ))
     }
 
     async fn get_all(&self) -> Result<Vec<Tenant>, RepositoryError> {

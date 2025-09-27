@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
@@ -38,7 +38,7 @@ pub trait InventoryRepository: Send + Sync {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Inventory>>>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Inventory>)>;
     async fn insert(
         &self,
         inventory: CreateInventory,
@@ -65,7 +65,7 @@ impl InventoryRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<PagedData<Vec<Inventory>>> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Inventory>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -93,12 +93,14 @@ impl InventoryRepository for PoolManagerWrapper {
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
 
-        Ok(PagedData {
-            page: paginator_params.page,
-            limit: paginator_params.limit,
-            total: total.0,
-            data: inventory,
-        })
+        Ok((
+            PaginatorMeta {
+                page: paginator_params.page,
+                limit: paginator_params.limit,
+                total: total.0,
+            },
+            inventory,
+        ))
     }
     async fn insert(
         &self,

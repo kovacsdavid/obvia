@@ -16,16 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use std::fmt::Display;
 use thiserror::Error;
 
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::dto::{ErrorResponse, FormError, GeneralError};
 use axum::{
-    Json,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use serde::Serialize;
 use sqlx::migrate::MigrateError;
 use tracing::Level;
+use tracing::event;
 
 /// An enumeration representing different types of errors that can occur.
 /// This enum implements the `Debug`, `Error`, and `Clone` traits for debugging,
@@ -51,20 +53,26 @@ use tracing::Level;
 /// localized for end users' understanding. The `Internal` variant, however,
 /// uses a generic Hungarian error message: "Váratlan hiba történt a feldolgozás során!"
 #[derive(Debug, Error, Clone)]
-pub enum FriendlyError {
+pub enum FriendlyError<T>
+where
+    T: Serialize + Display,
+{
     #[error("{0}")]
-    UserFacing(StatusCode, String, String),
+    UserFacing(StatusCode, String, T),
     #[error("Váratlan hiba történt a feldolgozás során!")]
-    Internal(String, String),
+    Internal(String, T),
 }
 
-impl FriendlyError {
-    pub fn user_facing(severity: tracing::Level, status: StatusCode, loc: &str, msg: &str) -> Self {
-        Self::UserFacing(status, loc.to_string(), msg.to_string()).trace(severity)
+impl<T> FriendlyError<T>
+where
+    T: Serialize + Display,
+{
+    pub fn user_facing(severity: Level, status: StatusCode, loc: &str, body: T) -> Self {
+        Self::UserFacing(status, loc.to_string(), body).trace(severity)
     }
 
-    pub fn internal(loc: &str, msg: String) -> Self {
-        Self::Internal(loc.to_string(), msg).trace(Level::ERROR)
+    pub fn internal(loc: &str, body: T) -> Self {
+        Self::Internal(loc.to_string(), body).trace(Level::ERROR)
     }
 
     /// Logs the error information associated with the current `FriendlyError` instance
@@ -78,82 +86,79 @@ impl FriendlyError {
     /// - If the error is an `Internal` variant, it logs an event with the internal error message.
     ///
     /// # Parameters
-    /// - `severity`: The `tracing::Level` indicating the severity of the log entry (e.g., `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`).
+    /// - `severity`: The `Level` indicating the severity of the log entry (e.g., `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`).
     ///
     /// # Returns
     /// - `Self`: Returns the current instance of `FriendlyError` unchanged so that further
     ///   method chaining can be performed if necessary.
     ///
     /// # Behavior
-    /// - For each severity level, the appropriate log entry is generated using the `tracing::event!` macro.
+    /// - For each severity level, the appropriate log entry is generated using the `event!` macro.
     ///   The severity level determines the priority of the log entry.
     ///
     /// # Note
     /// - Make sure that the `tracing` subscriber is properly initialized, otherwise the logs
     ///   emitted may not be recorded or displayed.
-    fn trace(self, severity: tracing::Level) -> Self {
+    fn trace(self, severity: Level) -> Self {
         match &self {
-            FriendlyError::UserFacing(status, loc, msg) => match severity {
-                tracing::Level::ERROR => {
-                    tracing::event!(
-                        tracing::Level::ERROR,
-                        "User-facing error: http-status={status} location={loc}, message={msg}",
+            FriendlyError::UserFacing(status, loc, body) => match severity {
+                Level::ERROR => {
+                    event!(
+                        Level::ERROR,
+                        "User-facing error: http-status={status} location={loc}, message={body}",
                     );
                 }
-                tracing::Level::WARN => {
-                    tracing::event!(
-                        tracing::Level::WARN,
-                        "User-facing error: http-status={status} location={loc}, message={msg}",
+                Level::WARN => {
+                    event!(
+                        Level::WARN,
+                        "User-facing error: http-status={status} location={loc}, message={body}",
                     );
                 }
-                tracing::Level::INFO => {
-                    tracing::event!(
-                        tracing::Level::INFO,
-                        "User-facing error: http-status={status} location={loc}, message={msg}",
+                Level::INFO => {
+                    event!(
+                        Level::INFO,
+                        "User-facing error: http-status={status} location={loc}, message={body}",
                     );
                 }
-                tracing::Level::DEBUG => {
-                    tracing::event!(
-                        tracing::Level::DEBUG,
-                        "User-facing error: http-status={status} location={loc}, message={msg}",
+                Level::DEBUG => {
+                    event!(
+                        Level::DEBUG,
+                        "User-facing error: http-status={status} location={loc}, message={body}",
                     );
                 }
-                tracing::Level::TRACE => {
-                    tracing::event!(
-                        tracing::Level::TRACE,
-                        "User-facing error: http-status={status} location={loc}, message={msg}",
+                Level::TRACE => {
+                    event!(
+                        Level::TRACE,
+                        "User-facing error: http-status={status} location={loc}, message={body}",
                     );
                 }
             },
-            FriendlyError::Internal(msg, loc) => match severity {
-                tracing::Level::ERROR => {
-                    tracing::event!(
-                        tracing::Level::ERROR,
-                        "Internal error: location={loc} message={msg}"
+            FriendlyError::Internal(body, loc) => match severity {
+                Level::ERROR => {
+                    event!(
+                        Level::ERROR,
+                        "Internal error: location={loc} message={body}"
                     );
                 }
-                tracing::Level::WARN => {
-                    tracing::event!(
-                        tracing::Level::WARN,
-                        "Internal error: location={loc} message={msg}"
+                Level::WARN => {
+                    event!(Level::WARN, "Internal error: location={loc} message={body}");
+                }
+                Level::INFO => {
+                    event!(
+                        Level::INFO,
+                        "Internal error:  location={loc} message={body}"
                     );
                 }
-                tracing::Level::INFO => {
-                    tracing::event!(
-                        tracing::Level::INFO,
-                        "Internal error:  location={loc} message={msg}"
+                Level::DEBUG => {
+                    event!(
+                        Level::DEBUG,
+                        "Internal error: location={loc} message={body}"
                     );
                 }
-                tracing::Level::DEBUG => {
-                    tracing::event!(
-                        tracing::Level::DEBUG,
-                        "Internal error: location={loc} message={msg}"
-                    );
-                }
-                tracing::Level::TRACE => {
-                    tracing::event!(
-                        tracing::Level::TRACE,
-                        "Internal error: location={loc} message={msg}"
+                Level::TRACE => {
+                    event!(
+                        Level::TRACE,
+                        "Internal error: location={loc} message={body}"
                     );
                 }
             },
@@ -162,73 +167,49 @@ impl FriendlyError {
     }
 }
 
-impl IntoResponse for FriendlyError {
-    /// Converts a `FriendlyError` instance into an HTTP response.
-    ///
-    /// This method translates an application-level error represented by the
-    /// `FriendlyError` enum into an HTTP response that can be sent back to the client.
-    /// It supports two types of errors:
-    /// - `UserFacing`: Represents errors intended for the client with a specific status code,
-    ///   error code, and descriptive message.
-    /// - `Internal`: Represents unexpected internal server errors, which are always
-    ///   translated into a generic message for the client
-    ///
-    /// # Variants
-    ///
-    /// * `FriendlyError::UserFacing`:
-    ///     - `status`: The HTTP `StatusCode` to be returned.
-    ///     - `code`: Application-specific error code.
-    ///     - `message`: A friendly error message intended for the end-user.
-    ///
-    /// * `FriendlyError::Internal`:
-    ///     - Always returns `StatusCode::INTERNAL_SERVER_ERROR`.
-    ///     - Uses a default application-specific error code (`"INTERNAL"`).
-    ///     - Sends a generic error message to the client: "Váratlan hiba történt a feldolgozás során!".
-    ///
-    /// # Response Body
-    ///
-    /// The response body is serialized as a JSON object following the `ErrorResponse` structure,
-    /// with the following fields:
-    /// - `reference`: Contains the internal error code (a string identifying the error).
-    /// - `global`: Contains the error message (may be user-facing or generic, depending on the error variant).
-    /// - `fields`: Always `None` in this implementation, reserved for future use to report field-specific issues.
-    ///
-    /// # Returns
-    ///
-    /// An `axum::response::Response` object containing the HTTP status code and a JSON payload in
-    /// the following structure:
-    ///
-    /// ```json
-    /// {
-    ///   "reference": "<error code>",
-    ///   "global": "<error message>",
-    ///   "fields": null
-    /// }
-    /// ```
-    ///
-    /// # Notes
-    ///
-    /// - The function ensures that sensitive information about internal server errors is not exposed
-    ///   to the client.
-    /// - It uses the `ErrorResponse` and `ErrorBody` structures to ensure consistent error formatting.
-    /// - If you want to propagate the fields use a specific error struct
-    ///   and implement axum `IntoResponse` on it (ex.: crate::tenants::dto::TenantCreateRequestError)
+impl<T> IntoResponse for FriendlyError<T>
+where
+    T: Serialize + Display,
+{
     fn into_response(self) -> Response {
-        let msg_for_internal = "Váratlan hiba történt a feldolgozás során!".to_string();
-        let (status, _, message) = match self {
-            FriendlyError::UserFacing(status, loc, msg) => (status, loc, msg),
-            FriendlyError::Internal(_, _) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "INTERNAL".to_string(),
-                msg_for_internal,
-            ),
-        };
-        let body = ErrorResponse::<String>::new(ErrorBody {
-            global: message,
-            fields: None,
-        });
+        match self {
+            FriendlyError::UserFacing(status, _, body) => ErrorResponse {
+                status_code: status,
+                error: body,
+            }
+            .into_response(),
+            FriendlyError::Internal(_, _) => ErrorResponse {
+                status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                error: GeneralError {
+                    message: String::from("Váratlan hiba történt a feldolgozás során"),
+                },
+            }
+            .into_response(),
+        }
+    }
+}
 
-        (status, Json(body)).into_response()
+pub trait FormErrorResponse: Serialize + Display {
+    fn global_message(&self) -> String {
+        "Kérjük ellenőrizze a hibás mezőket!".to_string()
+    }
+    fn status_code(&self) -> StatusCode {
+        StatusCode::UNPROCESSABLE_ENTITY
+    }
+    fn log_level(&self) -> Level {
+        Level::DEBUG
+    }
+    fn get_error_response(&self) -> Response {
+        FriendlyError::user_facing(
+            self.log_level(),
+            self.status_code(),
+            file!(),
+            FormError {
+                message: self.global_message(),
+                fields: self,
+            },
+        )
+        .into_response()
     }
 }
 
@@ -271,3 +252,17 @@ pub enum RepositoryError {
 }
 
 pub type RepositoryResult<T> = Result<T, RepositoryError>;
+
+#[derive(Debug, Error)]
+pub enum BuilderError {
+    #[error("{0} is required")]
+    MissingRequired(&'static str),
+}
+
+impl IntoResponse for BuilderError {
+    fn into_response(self) -> Response {
+        FriendlyError::internal(file!(), self.to_string()).into_response()
+    }
+}
+
+pub type BuilderResult<T> = Result<T, BuilderError>;

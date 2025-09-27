@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::services::generate_string_csprng;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
@@ -29,9 +29,12 @@ use crate::manager::tenants::dto::{
 };
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::TenantsOrderBy;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Debug, Error)]
@@ -42,11 +45,26 @@ pub enum TenantsServiceError {
     #[error("Config error: {0}")]
     Config(String),
 
-    #[error("Access denied")]
+    #[error("Hozzáférés megtagadva!")]
     AccessDenied,
 
     #[error("Token error: {0}")]
     Token(String),
+}
+
+impl IntoResponse for TenantsServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            TenantsServiceError::AccessDenied => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                TenantsServiceError::AccessDenied.to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 pub struct TenantsService;
@@ -284,20 +302,15 @@ impl TenantsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
-    ) -> Result<PagedData<Vec<PublicTenant>>, TenantsServiceError> {
-        let res = repo
+    ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
+        let (meta, data) = repo
             .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
             .await?;
         let mut public_tenants = vec![];
-        for tenant in res.data {
+        for tenant in data {
             public_tenants.push(PublicTenant::from(tenant))
         }
-        Ok(PagedData {
-            page: res.page,
-            limit: res.limit,
-            total: res.total,
-            data: public_tenants,
-        })
+        Ok((meta, public_tenants))
     }
 
     pub async fn activate(

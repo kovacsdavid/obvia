@@ -18,7 +18,8 @@
  */
 
 use crate::common::dto::{
-    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    SuccessResponseBuilder,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
@@ -29,15 +30,14 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
 };
-use crate::manager::tenants::service::{TenantsService, TenantsServiceError};
+use crate::manager::tenants::service::TenantsService;
 use crate::manager::tenants::types::TenantsOrderBy;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
-use axum::{Json, debug_handler};
 use std::sync::Arc;
-use tracing::Level;
 
 /// Handles the creation of a tenant.
 ///
@@ -74,17 +74,18 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
-) -> Result<Response, Response> {
+) -> HandlerResult {
     TenantsService::try_create(&claims, &user_input, tenants_module)
         .await
-        .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?;
+        .map_err(|e| e.into_response())?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
-        })),
-    )
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(SimpleMessageResponse::new(
+            "Szervezeti egység létrehozása sikeresen megtörtént!",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 
@@ -135,28 +136,28 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     Query(payload): Query<QueryParam>,
-) -> Result<Response, Response> {
-    Ok((
-        StatusCode::OK,
-        Json(OkResponse::new(
-            TenantsService::get_paged_list(
-                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-                    order_by: ValueObject::new(TenantsOrderBy("name".to_string())).map_err(
-                        |e| FriendlyError::internal(file!(), e.to_string()).into_response(),
-                    )?,
-                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
-                        FriendlyError::internal(file!(), e.to_string()).into_response()
-                    })?,
-                }),
-                &FilteringParams::from(&payload),
-                &claims,
-                tenants_module.tenants_repo.clone(),
-            )
-            .await
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        )),
+) -> HandlerResult {
+    let (meta, data) = TenantsService::get_paged_list(
+        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+            order_by: ValueObject::new(TenantsOrderBy("name".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+            order: ValueObject::new(Order("asc".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        }),
+        &FilteringParams::from(&payload),
+        &claims,
+        tenants_module.tenants_repo.clone(),
     )
+    .await
+    .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?;
+
+    Ok(SuccessResponseBuilder::new()
+        .status_code(StatusCode::OK)
+        .meta(meta)
+        .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 
@@ -198,10 +199,10 @@ pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<TenantsModule>>,
     ValidJson(payload): ValidJson<TenantActivateRequest>,
-) -> Result<Response, Response> {
-    Ok((
-        StatusCode::OK,
-        Json(OkResponse::new(
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
             TenantsService::activate(
                 &payload,
                 &claims,
@@ -209,27 +210,17 @@ pub async fn activate(
                 tenants_module.config.clone(),
             )
             .await
-            .map_err(|e| {
-                match e {
-                    TenantsServiceError::AccessDenied => FriendlyError::user_facing(
-                        Level::DEBUG,
-                        StatusCode::UNAUTHORIZED,
-                        file!(),
-                        "Hozzáférés megtagadva",
-                    ),
-                    _ => FriendlyError::internal(file!(), e.to_string()),
-                }
-                .into_response()
-            })?,
-        )),
-    )
+            .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::dto::{OkResponse, SimpleMessageResponse};
+    use crate::common::dto::SimpleMessageResponse;
     use crate::manager::app::config::{
         AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
@@ -398,9 +389,15 @@ mod tests {
             .await
             .unwrap();
 
-        let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
-            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
-        }))
+        let expected_response = serde_json::to_string(
+            &SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(SimpleMessageResponse::new(
+                    "Szervezeti egység létrehozása sikeresen megtörtént!",
+                ))
+                .build()
+                .unwrap(),
+        )
         .unwrap();
 
         assert_eq!(&body[..], expected_response.as_bytes());
@@ -669,9 +666,15 @@ mod tests {
             .await
             .unwrap();
 
-        let expected_response = serde_json::to_string(&OkResponse::new(SimpleMessageResponse {
-            message: String::from("Szervezeti egység létrehozása sikeresen megtörtént!"),
-        }))
+        let expected_response = serde_json::to_string(
+            &SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(SimpleMessageResponse::new(
+                    "Szervezeti egység létrehozása sikeresen megtörtént!",
+                ))
+                .build()
+                .unwrap(),
+        )
         .unwrap();
 
         assert_eq!(&body[..], expected_response.as_bytes());
@@ -769,11 +772,17 @@ mod tests {
             .clone()
             .set_active_tenant(Some(active_tenant_id2));
 
-        let expected_response = serde_json::to_string(&OkResponse::new(
-            claims_new
-                .to_token(config.auth().jwt_secret().as_bytes())
+        let expected_response = serde_json::to_string(
+            &SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(
+                    claims_new
+                        .to_token(config.auth().jwt_secret().as_bytes())
+                        .unwrap(),
+                )
+                .build()
                 .unwrap(),
-        ))
+        )
         .unwrap();
 
         assert_eq!(&body[..], expected_response.as_bytes());

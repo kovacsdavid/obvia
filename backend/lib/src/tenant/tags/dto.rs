@@ -16,13 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::tags::types::tag::{TagDescription, TagName};
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -43,16 +42,20 @@ impl CreateTagError {
     }
 }
 
+impl Display for CreateTagError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "CreateTagError: {}", json),
+            Err(e) => write!(f, "CreateTagError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for CreateTagError {}
+
 impl IntoResponse for CreateTagError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

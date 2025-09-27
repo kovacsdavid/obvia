@@ -18,7 +18,8 @@
  */
 
 use crate::common::dto::{
-    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    SuccessResponseBuilder,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
@@ -28,7 +29,7 @@ use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CreateCustomer, CreateCustomerHelper};
-use crate::tenant::customers::service::{CustomersService, CustomersServiceError};
+use crate::tenant::customers::service::CustomersService;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
@@ -36,7 +37,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::sync::Arc;
-use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -51,31 +51,21 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CreateCustomer, CreateCustomerHelper>,
-) -> Result<Response, Response> {
+) -> HandlerResult {
     CustomersService::try_create(
         &claims,
         &user_input,
         customers_module.customers_repo.clone(),
     )
     .await
-    .map_err(|e| {
-        match e {
-            CustomersServiceError::Repository(_) => FriendlyError::internal(file!(), e.to_string()),
-            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                "Hozzáférés megtagadva!",
-            ),
-        }
-        .into_response()
-    })?;
-    Ok((
-        StatusCode::CREATED,
-        Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("A vevő létrehozása sikeresen megtörétnt"),
-        })),
-    )
+    .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(SimpleMessageResponse::new(
+            "A vevő létrehozása sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 
@@ -102,27 +92,26 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
     Query(payload): Query<QueryParam>,
-) -> Result<Response, Response> {
-    Ok((
-        StatusCode::OK,
-        Json(OkResponse::new(
-            CustomersService::get_paged_list(
-                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-                    order_by: ValueObject::new(CustomerOrderBy("name".to_string())).map_err(
-                        |e| FriendlyError::internal(file!(), e.to_string()).into_response(),
-                    )?,
-                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
-                        FriendlyError::internal(file!(), e.to_string()).into_response()
-                    })?,
-                }),
-                &FilteringParams::from(&payload),
-                &claims,
-                customers_module.customers_repo.clone(),
-            )
-            .await
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        )),
+) -> HandlerResult {
+    let (meta, data) = CustomersService::get_paged_list(
+        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+            order_by: ValueObject::new(CustomerOrderBy("name".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+            order: ValueObject::new(Order("asc".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        }),
+        &FilteringParams::from(&payload),
+        &claims,
+        customers_module.customers_repo.clone(),
     )
+    .await
+    .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::new()
+        .status_code(StatusCode::OK)
+        .meta(meta)
+        .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }

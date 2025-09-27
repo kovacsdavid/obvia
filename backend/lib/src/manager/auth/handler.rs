@@ -18,20 +18,13 @@
  */
 
 use super::AuthModule;
-use crate::common::dto::{OkResponse, SimpleMessageResponse};
-use crate::common::error::FriendlyError;
+use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::auth::service::{AuthService, AuthServiceError};
-use axum::{
-    Json, debug_handler,
-    extract::State,
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
+use crate::manager::auth::service::AuthService;
+use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
-use tracing::Level;
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -57,22 +50,16 @@ use tracing::Level;
 pub async fn login(
     State(auth_module): State<Arc<AuthModule>>,
     Json(payload): Json<LoginRequest>,
-) -> Response {
-    match AuthService::try_login(auth_module.clone(), payload).await {
-        Ok(res) => (StatusCode::OK, Json(OkResponse::new(res))).into_response(),
-        Err(e) => match e {
-            AuthServiceError::UserNotFound | AuthServiceError::InvalidPassword => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hibás e-mail cím vagy jelszó",
-                )
-            }
-            _ => FriendlyError::internal(file!(), e.to_string()),
-        }
-        .into_response(),
-    }
+) -> HandlerResult {
+    let res = AuthService::try_login(auth_module.clone(), payload)
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(res)
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 /// Handles user registration requests.
@@ -107,25 +94,17 @@ pub async fn login(
 pub async fn register(
     State(auth_module): State<Arc<AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
-) -> Result<Response, Response> {
+) -> HandlerResult {
     AuthService::try_register(auth_module.auth_repo.clone(), user_input)
         .await
-        .map_err(|e| match e {
-            AuthServiceError::UserExists => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::CONFLICT,
-                file!(),
-                "A megadott e-mail cím már foglalt!",
-            )
-            .into_response(),
-            _ => FriendlyError::internal(file!(), e.to_string()).into_response(),
-        })?;
-    Ok((
-        StatusCode::CREATED,
-        Json(OkResponse::new(SimpleMessageResponse {
-            message: "A felhasználó sikeresen létrehozva".to_string(),
-        })),
-    )
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(SimpleMessageResponse::new(
+            "A felhasználó sikeresen létrehozva",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 

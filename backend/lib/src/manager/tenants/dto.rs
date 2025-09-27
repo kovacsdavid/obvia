@@ -16,15 +16,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{ErrorBody, ErrorResponse, QueryParam};
+use crate::common::dto::QueryParam;
+use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::ValueObject;
 use crate::manager::app::config::TenantDatabaseConfig;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 /// A structure that represents a helper for creating a request with optional database configuration details.
@@ -98,31 +98,20 @@ impl CreateTenantError {
     }
 }
 
+impl Display for CreateTenantError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "CreateTenantError: {}", json),
+            Err(e) => write!(f, "CreateTenantError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for CreateTenantError {}
+
 impl IntoResponse for CreateTenantError {
-    /// Converts the given error details into an HTTP response.
-    ///
-    /// This function constructs a response with a status code of `422 Unprocessable Entity`
-    /// and a JSON body containing error details. It utilizes the `ErrorResponse` and `ErrorBody`
-    /// types to format the error information in a structured way.
-    ///
-    /// # Returns
-    ///
-    /// A `Response` object representing the error response.
-    ///
-    /// The response body includes:
-    /// - A reference string indicating the context of the error (`"ORGANIZATIONAL_UNITS/DTO/CREATE"`).
-    /// - A generic global error message (`"Kérjük, ellenőrizze a hibás mezőket"`),
-    ///   which translates to "Please check the incorrect fields".
-    /// - A `fields` object containing specific details of the error.
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

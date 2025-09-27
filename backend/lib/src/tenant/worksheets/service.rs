@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::model::Project;
@@ -26,16 +26,34 @@ use crate::tenant::worksheets::dto::CreateWorksheet;
 use crate::tenant::worksheets::model::Worksheet;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum WorksheetsServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Unauthorized")]
+    #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+}
+
+impl IntoResponse for WorksheetsServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            WorksheetsServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                WorksheetsServiceError::Unauthorized.to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
@@ -79,7 +97,7 @@ impl WorksheetsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn WorksheetsRepository>,
-    ) -> WorksheetsServiceResult<PagedData<Vec<Worksheet>>> {
+    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<Worksheet>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

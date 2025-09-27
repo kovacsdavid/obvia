@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::dto::{
-    OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
+    SuccessResponseBuilder,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
@@ -27,7 +28,7 @@ use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::{CreateTask, CreateTaskHelper};
-use crate::tenant::tasks::service::{TasksService, TasksServiceError};
+use crate::tenant::tasks::service::TasksService;
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::{Query, State};
@@ -51,27 +52,17 @@ pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<CreateTask, CreateTaskHelper>,
-) -> Result<Response, Response> {
+) -> HandlerResult {
     TasksService::create(&claims, &user_input, tasks_module)
         .await
-        .map_err(|e| {
-            match e {
-                TasksServiceError::Unauthorized => FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    "Hozzáférés megtagadva!",
-                ),
-                _ => FriendlyError::internal(file!(), e.to_string()),
-            }
-            .into_response()
-        })?;
-    Ok((
-        StatusCode::CREATED,
-        Json(OkResponse::new(SimpleMessageResponse {
-            message: String::from("A feladat létrehozása sikeresen megtörtént"),
-        })),
-    )
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(SimpleMessageResponse::new(
+            "A feladat létrehozása sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }
 
@@ -79,7 +70,7 @@ pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     Query(payload): Query<HashMap<String, String>>,
-) -> Result<Response, Response> {
+) -> HandlerResult {
     let invalid_request = || {
         FriendlyError::user_facing(
             Level::DEBUG,
@@ -92,14 +83,15 @@ pub async fn select_list(
     let list_type = payload.get("list").ok_or(invalid_request())?;
 
     match list_type.as_str() {
-        "worksheets" => Ok((
-            StatusCode::OK,
-            Json(OkResponse::new(
+        "worksheets" => Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(
                 TasksService::get_all_worksheets(&claims, tasks_module)
                     .await
-                    .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            )),
-        )
+                    .map_err(|e| e.into_response())?,
+            )
+            .build()
+            .map_err(|e| e.into_response())?
             .into_response()),
         _ => Err(invalid_request()),
     }
@@ -128,27 +120,27 @@ pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     Query(payload): Query<QueryParam>,
-) -> Result<Response, Response> {
-    Ok((
-        StatusCode::OK,
-        Json(OkResponse::new(
-            TasksService::get_paged_list(
-                &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-                &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-                    order_by: ValueObject::new(TaskOrderBy("title".to_string())).map_err(|e| {
-                        FriendlyError::internal(file!(), e.to_string()).into_response()
-                    })?,
-                    order: ValueObject::new(Order("asc".to_string())).map_err(|e| {
-                        FriendlyError::internal(file!(), e.to_string()).into_response()
-                    })?,
-                }),
-                &FilteringParams::from(&payload),
-                &claims,
-                tasks_module.tasks_repo.clone(),
-            )
-            .await
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        )),
+) -> HandlerResult {
+    let (meta, data) = TasksService::get_paged_list(
+        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
+        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
+            order_by: ValueObject::new(TaskOrderBy("title".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+            order: ValueObject::new(Order("asc".to_string()))
+                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        }),
+        &FilteringParams::from(&payload),
+        &claims,
+        tasks_module.tasks_repo.clone(),
     )
+    .await
+    .map_err(|e| e.into_response())?;
+
+    Ok(SuccessResponseBuilder::new()
+        .status_code(StatusCode::OK)
+        .meta(meta)
+        .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
         .into_response())
 }

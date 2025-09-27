@@ -16,18 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::error::FormErrorResponse;
 use crate::common::types::Email;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,
 };
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Deserialize)]
 pub struct CreateCustomerHelper {
@@ -60,16 +58,20 @@ impl CreateCustomerError {
     }
 }
 
+impl Display for CreateCustomerError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "CreateCustomerError: {}", json),
+            Err(e) => write!(f, "CreateCustomerError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for CreateCustomerError {}
+
 impl IntoResponse for CreateCustomerError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

@@ -22,7 +22,7 @@ use super::{
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
-use crate::common::error::RepositoryError;
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use anyhow::Result;
@@ -30,11 +30,14 @@ use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use sqlx::Error;
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Debug, Error)]
@@ -56,6 +59,29 @@ pub enum AuthServiceError {
 
     #[error("Token generation: {0}")]
     Token(String),
+}
+
+impl IntoResponse for AuthServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            AuthServiceError::UserNotFound | AuthServiceError::InvalidPassword => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    "Hibás e-mail cím vagy jelszó".to_string(),
+                )
+            }
+            AuthServiceError::UserExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                "A megadott e-mail cím már foglalt!".to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 pub struct AuthService;

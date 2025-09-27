@@ -16,17 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::tasks::types::task::{
     TaskDescription, TaskDueDate, TaskPriority, TaskStatus, TaskTitle,
 };
 use crate::validate_optional_string;
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -60,16 +59,20 @@ impl CreateTaskError {
     }
 }
 
+impl Display for CreateTaskError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "CreateTaskError: {}", json),
+            Err(e) => write!(f, "CreateTaskError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for CreateTaskError {}
+
 impl IntoResponse for CreateTaskError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

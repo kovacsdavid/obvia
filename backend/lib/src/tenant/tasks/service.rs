@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
@@ -26,19 +26,37 @@ use crate::tenant::tasks::model::Task;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use crate::tenant::worksheets::model::Worksheet;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum TasksServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Unauthorized")]
+    #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
     #[error("Invalid state")]
     InvalidState,
+}
+
+impl IntoResponse for TasksServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            TasksServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                TasksServiceError::Unauthorized.to_string(),
+            ),
+            e => FriendlyError::internal(file!(), e.to_string()),
+        }
+        .into_response()
+    }
 }
 
 type TasksServiceResult<T> = Result<T, TasksServiceError>;
@@ -82,7 +100,7 @@ impl TasksService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<PagedData<Vec<Task>>> {
+    ) -> TasksServiceResult<(PaginatorMeta, Vec<Task>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

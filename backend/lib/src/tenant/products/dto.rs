@@ -16,16 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
 use crate::validate_optional_string;
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -55,16 +53,20 @@ impl CreateProductError {
     }
 }
 
+impl Display for CreateProductError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "CreateInventoryError: {}", json),
+            Err(e) => write!(f, "CreateInventoryError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for CreateProductError {}
+
 impl IntoResponse for CreateProductError {
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: String::from("Kérjük, ellenőrizze a hibás mezőket"),
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

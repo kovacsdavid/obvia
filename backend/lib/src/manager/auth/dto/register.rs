@@ -16,15 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::common::types::{Email, FirstName, LastName, Password};
 use ::serde::Serialize;
-use axum::Json;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
+use std::fmt::{Display, Formatter};
 
 /// This is a helper struct for registration requests.
 ///
@@ -102,52 +100,20 @@ impl RegisterRequestError {
     }
 }
 
+impl Display for RegisterRequestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "RegisterRequestError: {}", json),
+            Err(e) => write!(f, "RegisterRequestError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for RegisterRequestError {}
+
 impl IntoResponse for RegisterRequestError {
-    /// Converts the `RegisterRequestError` into an HTTP response.  
-    ///
-    /// This function is specifically designed to handle validation errors, returning
-    /// an `UNPROCESSABLE_ENTITY` (HTTP 422) status code along with a detailed JSON response
-    /// that contains information about the validation issues.  
-    ///
-    /// # Returns
-    ///
-    /// A `Response` object representing the HTTP response. The body of the response is a
-    /// JSON object that includes:
-    /// - A `reference` indicating the source or context of the error.
-    /// - A `global` message describing the general issue.
-    /// - A `fields` object (if available) that maps individual field names to their respective errors.
-    ///
-    /// # Usage
-    /// This method is typically used in scenarios where user-input validation has failed,
-    /// and you want to provide detailed feedback to the client about the specific errors found.
-    ///
-    /// # Example Response
-    /// ```json
-    /// {
-    ///   "reference": "AUTH/DTO/REGISTER",
-    ///   "global": "Kérjük ellenőrizze a hibás mezőket",
-    ///   "fields": {
-    ///     "username": "A username mező nem lehet üres",
-    ///     "password": "A jelszó túl rövid"
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// # Note
-    /// The returned `fields` object may be `null` if no field-specific errors are present.
-    ///
-    /// # Hungarian Message
-    /// The `global` message is hardcoded in Hungarian: "Kérjük ellenőrizze a hibás mezőket,"
-    /// which translates to "Please check the erroneous fields."
     fn into_response(self) -> Response {
-        (
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Json(ErrorResponse::new(ErrorBody {
-                global: "Kérjük ellenőrizze a hibás mezőket".to_string(), // TODO: i18n?
-                fields: Some(self),
-            })),
-        )
-            .into_response()
+        self.get_error_response()
     }
 }
 

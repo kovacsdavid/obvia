@@ -16,25 +16,44 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::common::error::RepositoryError;
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
 use crate::tenant::customers::model::Customer;
 use crate::tenant::customers::repository::CustomersRespository;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
+use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
+use tracing::Level;
 
 #[derive(Debug, Error)]
 pub enum CustomersServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Unauthorized")]
+    #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 }
+
+impl IntoResponse for CustomersServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            CustomersServiceError::Repository(e) => FriendlyError::internal(file!(), e.to_string()),
+            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                CustomersServiceError::Unauthorized.to_string(),
+            ),
+        }
+        .into_response()
+    }
+}
+
 pub struct CustomersService;
 
 type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
@@ -61,7 +80,7 @@ impl CustomersService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn CustomersRespository>,
-    ) -> CustomersServiceResult<PagedData<Vec<Customer>>> {
+    ) -> CustomersServiceResult<(PaginatorMeta, Vec<Customer>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

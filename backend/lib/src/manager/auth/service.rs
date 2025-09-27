@@ -39,6 +39,7 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
+use crate::common::dto::GeneralError;
 
 #[derive(Debug, Error)]
 pub enum AuthServiceError {
@@ -69,18 +70,17 @@ impl IntoResponse for AuthServiceError {
                     Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
                     file!(),
-                    "Hibás e-mail cím vagy jelszó".to_string(),
-                )
+                    GeneralError{message: "Hibás e-mail cím vagy jelszó".to_string()},
+                ).into_response()
             }
             AuthServiceError::UserExists => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
                 "A megadott e-mail cím már foglalt!".to_string(),
-            ),
-            e => FriendlyError::internal(file!(), e.to_string()),
+            ).into_response(),
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
-        .into_response()
     }
 }
 

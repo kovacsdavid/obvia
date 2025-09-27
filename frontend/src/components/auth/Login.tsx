@@ -70,21 +70,19 @@ export default function Login() {
               break;
             }
             case 401: {
-              if (isLoginResponse(responseData)) {
-                setEmail("");
-                setPassword("");
-                const message = responseData?.error?.message;
-                if (typeof message !== "undefined") {
-                  setErrors({
-                    message,
-                    fields: {}
-                  });
-                } else {
-                  setErrors({
-                    message: "Váratlan hiba történt a feldolgozás során!",
-                    fields: {}
-                  });
-                }
+              setEmail("");
+              setPassword("");
+              const message = responseData?.error?.message;
+              if (typeof message !== "undefined") {
+                setErrors({
+                  message,
+                  fields: {}
+                });
+              } else {
+                setErrors({
+                  message: "Váratlan hiba történt a feldolgozás során!",
+                  fields: {}
+                });
               }
             }
           }

@@ -19,7 +19,7 @@
 
 import {
   type CommonResponse,
-  isCommonResponse, isPaginatedDataResponse, isSimpleError, isSimpleMessageData, type PaginatedDataResponse,
+  isCommonResponse, isPaginatedDataResponse, isSimpleError, type PaginatedDataResponse,
   type SimpeError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
@@ -98,10 +98,16 @@ export function isPaginatedTenantListResponse(data: unknown): data is PaginatedD
   );
 }
 
+export type NewTokenResponse = string;
+
+export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
+  return typeof data === "string"
+}
+
 export function isActiveTenantResponse(data: unknown): data is CommonResponse<SimpleMessageData, SimpeError> {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isNewTokenResponse,
     isSimpleError
   )
 }

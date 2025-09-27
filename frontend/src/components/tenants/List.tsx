@@ -124,14 +124,32 @@ export default function List() {
   ]);
 
   const handleActivate = async (new_tenant_id: string) => {
-    dispatch(activate(new_tenant_id)).then((response) => {
+    dispatch(activate(new_tenant_id)).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
-        if (isActiveTenantResponse(response.payload)) {
-          dispatch(updateToken(response.payload.data))
+        const payload = response.payload as Response;
+        try {
+          const responseData = await payload.json();
+          switch (payload.status) {
+            case 200: {
+              console.log(responseData);
+              if (isActiveTenantResponse(responseData)) {
+                console.log(responseData);
+                dispatch(updateToken(responseData.data))
+              } else {
+                unexpectedError();
+              }
+              break;
+            }
+            default: {
+              unexpectedError();
+            }
+          }
+        } catch {
+          unexpectedError();
         }
       }
     })
-  }
+  };
 
   return (
     <>

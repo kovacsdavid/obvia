@@ -19,10 +19,10 @@
 
 use std::sync::Arc;
 
+use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
 use crate::manager::auth::repository::AuthRepository;
-use crate::manager::common::repository::PoolManagerWrapper;
 
 pub(crate) mod dto;
 mod handler;

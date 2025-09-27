@@ -18,9 +18,9 @@
  */
 
 use crate::common::error::RepositoryError;
+use crate::common::repository::PoolManagerWrapper;
+use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::register::RegisterRequest;
-use crate::manager::common::repository::PoolManagerWrapper;
-use crate::manager::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;

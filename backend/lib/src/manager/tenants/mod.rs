@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::{
     ConnectionTester, DatabaseMigrator, PgConnectionTester, PgDatabaseMigrator, PgPoolManagerTrait,
 };
-use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
 use crate::tenant::users::repository::UsersRepository as TenantUserRepository;

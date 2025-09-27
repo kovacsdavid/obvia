@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
-use crate::manager::common::repository::PoolManagerWrapper;
-use crate::manager::common::types::value_object::ValueObjectable;
+use crate::common::repository::PoolManagerWrapper;
+use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::CreateProduct;
 use crate::tenant::products::model::{Product, UnitOfMeasure};

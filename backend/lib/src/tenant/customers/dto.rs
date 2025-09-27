@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::Email;
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::Email;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,

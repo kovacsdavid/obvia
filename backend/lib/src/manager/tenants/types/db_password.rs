@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

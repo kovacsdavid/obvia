@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::common::types::value_object::ValueObject;
+use crate::common::types::value_object::ValueObject;
 use crate::tenant::address::types::address::street_address::StreetAddress;
 use crate::tenant::address::types::city::CityName;
 use crate::tenant::address::types::postal_code::postal_code::PostalCode;

@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::common::types::order::Order;
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::order::Order;
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};

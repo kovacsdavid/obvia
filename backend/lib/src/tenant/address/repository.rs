@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::common::repository::PoolManagerWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;

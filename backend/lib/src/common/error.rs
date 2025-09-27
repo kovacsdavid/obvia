@@ -18,7 +18,7 @@
  */
 use thiserror::Error;
 
-use crate::manager::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::dto::{ErrorBody, ErrorResponse};
 use axum::{
     Json,
     http::StatusCode,

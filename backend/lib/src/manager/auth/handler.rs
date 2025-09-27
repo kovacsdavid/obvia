@@ -18,12 +18,12 @@
  */
 
 use super::AuthModule;
+use crate::common::dto::{OkResponse, SimpleMessageResponse};
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::service::{AuthService, AuthServiceError};
-use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
 use axum::{
     Json, debug_handler,
     extract::State,
@@ -146,11 +146,11 @@ mod tests {
     use uuid::Uuid;
 
     use crate::common::error::RepositoryError;
+    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
-    use crate::manager::common::types::value_object::ValueObject;
-    use crate::manager::common::types::{Email, FirstName, LastName, Password};
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
         auth,

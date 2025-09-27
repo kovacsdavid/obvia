@@ -23,8 +23,8 @@ use super::{
     repository::AuthRepository,
 };
 use crate::common::error::RepositoryError;
+use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::common::types::value_object::ValueObjectable;
 use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,

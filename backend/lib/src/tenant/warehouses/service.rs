@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::common::error::RepositoryError;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::common::dto::{OrderingParams, PagedData, PaginatorParams};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::CreateWarehouse;

@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
-use crate::manager::common::repository::PoolManagerWrapper;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;

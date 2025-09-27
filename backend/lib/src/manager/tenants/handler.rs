@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FriendlyError;
-use crate::common::extractors::{UserInput, ValidJson};
-use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::{
+use crate::common::dto::{
     OkResponse, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
 };
-use crate::manager::common::types::order::Order;
-use crate::manager::common::types::value_object::ValueObject;
+use crate::common::error::FriendlyError;
+use crate::common::extractors::{UserInput, ValidJson};
+use crate::common::types::order::Order;
+use crate::common::types::value_object::ValueObject;
+use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
@@ -229,6 +229,7 @@ pub async fn activate(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::manager::app::config::{
         AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
@@ -236,7 +237,6 @@ mod tests {
         MockConnectionTester, MockDatabaseMigrator, MockPgPoolManagerTrait,
     };
     use crate::manager::auth::dto::claims::Claims;
-    use crate::manager::common::dto::{OkResponse, SimpleMessageResponse};
     use crate::manager::tenants;
     use crate::manager::tenants::TenantsModuleBuilder;
     use crate::manager::tenants::model::{Tenant, UserTenant};

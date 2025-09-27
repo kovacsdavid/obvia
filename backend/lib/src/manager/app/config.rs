@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
 use serde::Deserialize;

@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::BasicDatabaseConfig;
 use crate::manager::app::database::{DatabaseMigrator, PgDatabaseMigrator, PgPoolManagerTrait};
-use crate::manager::common::repository::PoolManagerWrapper;
 use crate::manager::tenants::repository::TenantsRepository;
 use sqlx::PgPool;
 use std::sync::Arc;

@@ -18,7 +18,7 @@
  */
 
 use crate::common::error::RepositoryError;
-use crate::manager::common::repository::PoolManagerWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]

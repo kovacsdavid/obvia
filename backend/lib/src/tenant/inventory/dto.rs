@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::ValueObject;
-use crate::manager::common::types::value_object::ValueObjectable;
+use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::value_object::ValueObject;
+use crate::common::types::value_object::ValueObjectable;
 use crate::tenant::inventory::types::currency::currency::Currency;
 use crate::tenant::inventory::types::inventory::quantity::Quantity;
 use crate::tenant::inventory::types::inventory::{

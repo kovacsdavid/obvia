@@ -16,41 +16,48 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::fmt::Display;
+use std::str::FromStr;
 
-/// A struct representing a password as a simple wrapper around a `String`.
-///
-/// The `Password` struct encapsulates a single `String` value representing a password,
-/// providing additional type safety and semantic clarity in code.
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Password(pub String);
+pub struct Order(pub String);
 
-impl ValueObjectable for Password {
+impl ValueObjectable for Order {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        let len_ok = self.0.len() >= 8 && self.0.len() <= 128;
-        let has_letter = self.0.chars().any(|c| c.is_alphabetic());
-        let has_digit = self.0.chars().any(|c| c.is_ascii_digit());
-        let result = len_ok && has_letter && has_digit;
-        match result {
-            true => Ok(()),
-            false => Err("A jelszónak legalább 8 karakter hosszúnak kell lennie és tartalmaznia kell betűket és számokat".to_string())
+        match self.0.trim() {
+            "asc" | "desc" => Ok(()),
+            _ => Err("Hibás sorrend formátum".to_string()),
         }
     }
 
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Password> {
+impl FromStr for Order {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Order(s.to_string()))
+    }
+}
+
+impl<'de> Deserialize<'de> for ValueObject<Order> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Password` and validates it by calling `ValueObject::new`.
+    /// It then wraps the string in a `Email` and validates it by calling `ValueObject::new`.
     /// If the validation fails, a custom deserialization error is returned.
     ///
     /// # Type Parameters
@@ -73,11 +80,11 @@ impl<'de> Deserialize<'de> for ValueObject<Password> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Password(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Order(s)).map_err(serde::de::Error::custom)
     }
 }
 
-impl Display for Password {
+impl Display for Order {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -89,38 +96,9 @@ impl Display for Password {
     /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
     ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "********")
+        write!(f, "{}", self.0)
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use serde_json;
-
-    #[test]
-    fn test_valid_password() {
-        let pw: ValueObject<Password> = serde_json::from_str(r#""abc12345""#).unwrap();
-        assert_eq!(pw.extract().get_value(), "abc12345");
-        let pw: ValueObject<Password> = serde_json::from_str(r#""Password1""#).unwrap();
-        assert_eq!(pw.extract().get_value(), "Password1");
-    }
-
-    #[test]
-    fn test_invalid_password() {
-        // Too short
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""a1b2c3""#).is_err());
-        // No digit
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""abcdefgh""#).is_err());
-        // No letter
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""12345678""#).is_err());
-        // Empty
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""""#).is_err());
-    }
-
-    #[test]
-    fn test_display_masks_password() {
-        let pw: Password = Password(String::from("abc12345"));
-        assert_eq!(format!("{pw}"), "********");
-    }
-}
+mod tests {}

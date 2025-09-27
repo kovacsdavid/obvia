@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::dto::QueryParam;
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::common::dto::QueryParam;
 use crate::tenant::address::AddressModule;
 use crate::tenant::address::dto::CreateAddress;
 use axum::extract::rejection::JsonRejection;

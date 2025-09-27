@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::dto::{ErrorBody, ErrorResponse, QueryParam};
+use crate::common::types::value_object::ValueObject;
 use crate::manager::app::config::TenantDatabaseConfig;
-use crate::manager::common::dto::{ErrorBody, ErrorResponse, QueryParam};
-use crate::manager::common::types::value_object::ValueObject;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
 use axum::Json;

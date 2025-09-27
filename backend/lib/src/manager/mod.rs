@@ -19,6 +19,5 @@
 
 pub mod app;
 pub mod auth;
-pub mod common;
 pub mod tenants;
 pub mod users;

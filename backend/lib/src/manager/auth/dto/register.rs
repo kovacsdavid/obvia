@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
-use crate::manager::common::types::{Email, FirstName, LastName, Password};
+use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{Email, FirstName, LastName, Password};
 use ::serde::Serialize;
 use axum::Json;
 use axum::http::StatusCode;

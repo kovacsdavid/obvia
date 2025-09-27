@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::common::dto::{ErrorBody, ErrorResponse};
-use crate::manager::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::dto::{ErrorBody, ErrorResponse};
+use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
 use crate::validate_optional_string;

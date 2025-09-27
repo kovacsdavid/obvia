@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::RepositoryError;
-use crate::manager::common::repository::PoolManagerWrapper;
+use crate::common::repository::PoolManagerWrapper;
 use crate::tenant::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]

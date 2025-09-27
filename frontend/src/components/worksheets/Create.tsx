@@ -56,20 +56,20 @@ export default function Create() {
                 setProjectsList(responseData.data);
               } else {
                 setErrors({
-                  global: "Váratlan hiba történt a feldolgozás során!",
+                  message: "Váratlan hiba történt a feldolgozás során!",
                   fields: {}
                 });
               }
               break;
             default:
               setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
+                message: "Váratlan hiba történt a feldolgozás során!",
                 fields: {}
               });
           }
         } catch {
           setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
+            message: "Váratlan hiba történt a feldolgozás során!",
             fields: {}
           });
         }
@@ -99,13 +99,13 @@ export default function Create() {
               break;
             default:
               setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
+                message: "Váratlan hiba történt a feldolgozás során!",
                 fields: {}
               });
           }
         } catch {
           setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
+            message: "Váratlan hiba történt a feldolgozás során!",
             fields: {}
           });
         }

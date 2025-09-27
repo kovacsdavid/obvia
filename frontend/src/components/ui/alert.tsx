@@ -84,17 +84,17 @@ function AlertDescription({
 }
 
 interface GlobalErrorProps {
-  error: { global: string | null | undefined } | null
+  error: { message: string | null | undefined } | null
 }
 
 function GlobalError({error}: GlobalErrorProps) {
   return (
     <>
-      {typeof error?.global === "string" ? (
+      {typeof error?.message === "string" ? (
         <Alert className={"mb-5"} variant="destructive">
           <AlertCircle/>
           <AlertDescription>
-            {error.global}
+            {error.message}
           </AlertDescription>
         </Alert>
       ) : null}

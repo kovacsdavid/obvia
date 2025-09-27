@@ -18,16 +18,15 @@
  */
 
 export interface SimpeError {
-  global: string | null | undefined
+  message: string | null | undefined
 }
 
 export interface FormError {
-  global: string | null | undefined
+  message: string | null | undefined
   fields: Record<string, string> | null | undefined
 }
 
 export interface CommonResponse<T, E> {
-  success: boolean,
   data?: T,
   error?: E
 }
@@ -61,9 +60,7 @@ export function isCommonResponse<T, E>(
 ): data is CommonResponse<T, E> {
   if (
     typeof data !== "object" ||
-    data === null ||
-    !("success" in data) ||
-    typeof data.success !== "boolean"
+    data === null
   ) {
     return false;
   }
@@ -93,13 +90,12 @@ export function isSimpleMessageData(data: unknown): data is SimpleMessageData {
 }
 
 export interface PaginatedDataResponse<T> {
-  success: boolean,
-  data: {
+  meta: {
     page: number,
     limit: number,
-    total: number
-    data: T
+    total: number,
   }
+  data: T,
 }
 
 export function isPaginatedDataResponse<T>(
@@ -109,19 +105,17 @@ export function isPaginatedDataResponse<T>(
   return (
     typeof data === "object" &&
     data !== null &&
-    "success" in data &&
-    typeof data.success === "boolean" &&
+    "meta" in data &&
+    typeof data.meta === "object" &&
+    data.meta !== null &&
+    "page" in data.meta &&
+    typeof data.meta.page === "number" &&
+    "limit" in data.meta &&
+    typeof data.meta.limit === "number" &&
+    "total" in data.meta &&
+    typeof data.meta.total === "number" &&
     "data" in data &&
-    typeof data.data === "object" &&
-    data.data !== null &&
-    "page" in data.data &&
-    typeof data.data.page === "number" &&
-    "limit" in data.data &&
-    typeof data.data.limit === "number" &&
-    "total" in data.data &&
-    typeof data.data.total === "number" &&
-    "data" in data.data &&
-    isT(data.data.data)
+    isT(data.data)
   );
 }
 

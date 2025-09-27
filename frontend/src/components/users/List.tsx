@@ -64,7 +64,7 @@ export default function List() {
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       console.log(response)
-      setErrors({global: "Not implemented yet!"})
+      setErrors({message: "Not implemented yet!"})
     });
   }, [
     searchParams,

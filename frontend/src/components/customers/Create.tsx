@@ -53,7 +53,7 @@ export default function Create() {
     })).then(async (response) => {
       const unexpectedError = () => {
         setErrors({
-          global: "Váratlan hiba történt a feldolgozás során!",
+          message: "Váratlan hiba történt a feldolgozás során!",
           fields: {}
         });
       }

@@ -60,13 +60,13 @@ export default function Register() {
               break;
             default:
               setErrors({
-                global: "Váratlan hiba történt a feldolgozás során!",
+                message: "Váratlan hiba történt a feldolgozás során!",
                 fields: {}
               });
           }
         } catch {
           setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
+            message: "Váratlan hiba történt a feldolgozás során!",
             fields: {}
           });
         }

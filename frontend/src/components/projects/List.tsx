@@ -64,7 +64,7 @@ export default function List() {
 
   const unexpectedError = () => {
     setErrors({
-      global: "Váratlan hiba történt a feldolgozás során!",
+      message: "Váratlan hiba történt a feldolgozás során!",
     });
   };
 
@@ -78,10 +78,10 @@ export default function List() {
             case 200: {
               if (isPaginatedProjectListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
-                  setPage(responseData.data.page);
-                  setLimit(responseData.data.limit);
-                  setTotal(responseData.data.total);
-                  setData(responseData.data.data);
+                  setPage(responseData.meta.page);
+                  setLimit(responseData.meta.limit);
+                  setTotal(responseData.meta.total);
+                  setData(responseData.data);
                 }
               } else {
                 unexpectedError();

@@ -24,18 +24,10 @@ import type {CreateTag} from "@/components/tags/interface.ts";
 
 interface TagsState {
   status: "idle" | "loading" | "succeeded" | "failed",
-  error: {
-    global: string | null,
-    fields: Record<string, string | null>
-  }
 }
 
 const initialState: TagsState = {
   status: "idle",
-  error: {
-    global: null,
-    fields: {}
-  }
 }
 
 export const create = createAsyncThunk(

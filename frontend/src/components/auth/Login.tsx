@@ -62,7 +62,7 @@ export default function Login() {
                   navigate('/szervezeti_egyseg/uj');
                 } else {
                   setErrors({
-                    global: "Váratlan hiba történt a feldolgozás során!",
+                    message: "Váratlan hiba történt a feldolgozás során!",
                     fields: {}
                   });
                 }
@@ -73,15 +73,15 @@ export default function Login() {
               if (isLoginResponse(responseData)) {
                 setEmail("");
                 setPassword("");
-                const global = responseData?.error?.global;
-                if (typeof global !== "undefined") {
+                const message = responseData?.error?.message;
+                if (typeof message !== "undefined") {
                   setErrors({
-                    global,
+                    message,
                     fields: {}
                   });
                 } else {
                   setErrors({
-                    global: "Váratlan hiba történt a feldolgozás során!",
+                    message: "Váratlan hiba történt a feldolgozás során!",
                     fields: {}
                   });
                 }
@@ -90,7 +90,7 @@ export default function Login() {
           }
         } catch {
           setErrors({
-            global: "Váratlan hiba történt a feldolgozás során!",
+            message: "Váratlan hiba történt a feldolgozás során!",
             fields: {}
           });
         }

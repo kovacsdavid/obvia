@@ -33,6 +33,8 @@ import {
 import {create} from "@/components/tenants/slice.ts";
 import {AlertCircle, Terminal} from "lucide-react";
 import { type FormError } from "@/lib/interfaces/common.ts";
+import {isTenantResponse} from "@/components/tenants/interface.ts";
+import {useActivateTenant} from "@/hooks/activate_tenant.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -44,6 +46,15 @@ export default function Create() {
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<FormError | null>(null);
+
+  const activateTenant = useActivateTenant();
+
+  const unexpectedError = () => {
+    setErrors({
+      message: "Váratlan hiba történt a feldolgozás során!",
+      fields: {},
+    });
+  };
 
   React.useEffect(() => {
     setDbHost("");
@@ -71,22 +82,27 @@ export default function Create() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 201:
-              window.location.href = "/szervezeti_egyseg/lista";
+              if (
+                isTenantResponse(responseData)
+                && typeof responseData.data !== "undefined"
+              ) {
+                activateTenant(responseData.data.id).then((isOk) => {
+                  if (isOk) {
+                    window.location.href = "/szervezeti_egyseg/lista";
+                  } else {
+                    unexpectedError();
+                  }
+                })
+              }
               break;
             case 422:
               setErrors(responseData.error);
               break;
             default:
-              setErrors({
-                message: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
+              unexpectedError();
           }
         } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+          unexpectedError()
         }
       }
     });

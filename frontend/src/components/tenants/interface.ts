@@ -18,8 +18,8 @@
  */
 
 import {
-  type CommonResponse,
-  isCommonResponse, isPaginatedDataResponse, isSimpleError, type PaginatedDataResponse,
+  type CommonResponse, type FormError,
+  isCommonResponse, isFormError, isPaginatedDataResponse, isSimpleError, type PaginatedDataResponse,
   type SimpeError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
@@ -90,6 +90,13 @@ export function isTenantList(data: unknown): data is TenantList {
   );
 }
 
+export function isTenantResponse(data: unknown): data is CommonResponse<Tenant, FormError> {
+  return isCommonResponse(
+    data,
+    isTenant,
+    isFormError,
+  )
+}
 
 export function isPaginatedTenantListResponse(data: unknown): data is PaginatedDataResponse<TenantList> {
   return isPaginatedDataResponse(

@@ -18,8 +18,7 @@
  */
 
 use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder,
+    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SuccessResponseBuilder,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
@@ -28,7 +27,7 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, CreateTenantHelper, FilteringParams, TenantActivateRequest,
+    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::service::TenantsService;
 use crate::manager::tenants::types::TenantsOrderBy;
@@ -75,14 +74,12 @@ pub async fn create(
     State(tenants_module): State<Arc<TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    TenantsService::try_create(&claims, &user_input, tenants_module)
-        .await
-        .map_err(|e| e.into_response())?;
-
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "Szervezeti egység létrehozása sikeresen megtörtént!",
+        .data(PublicTenant::from(
+            TenantsService::try_create(&claims, &user_input, tenants_module)
+                .await
+                .map_err(|e| e.into_response())?,
         ))
         .build()
         .map_err(|e| e.into_response())?

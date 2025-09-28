@@ -22,6 +22,7 @@ use super::{
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
+use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
@@ -39,7 +40,6 @@ use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
-use crate::common::dto::GeneralError;
 
 #[derive(Debug, Error)]
 pub enum AuthServiceError {
@@ -70,15 +70,19 @@ impl IntoResponse for AuthServiceError {
                     Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
                     file!(),
-                    GeneralError{message: "Hibás e-mail cím vagy jelszó".to_string()},
-                ).into_response()
+                    GeneralError {
+                        message: "Hibás e-mail cím vagy jelszó".to_string(),
+                    },
+                )
+                .into_response()
             }
             AuthServiceError::UserExists => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
                 "A megadott e-mail cím már foglalt!".to_string(),
-            ).into_response(),
+            )
+            .into_response(),
             e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
     }

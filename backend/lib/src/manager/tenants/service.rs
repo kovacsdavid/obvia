@@ -27,6 +27,7 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, FilteringParams, PublicTenant, TenantActivateRequest,
 };
+use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::TenantsOrderBy;
 use axum::http::StatusCode;
@@ -107,7 +108,7 @@ impl TenantsService {
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), TenantsServiceError> {
+    ) -> Result<Tenant, TenantsServiceError> {
         let config: TenantDatabaseConfig = payload
             .clone()
             .try_into()
@@ -155,7 +156,7 @@ impl TenantsService {
             .insert_from_manager(manager_user.into(), tenant.id)
             .await?;
 
-        Ok(())
+        Ok(tenant)
     }
 
     /// Asynchronously manages the creation and setup of a tenant, including
@@ -203,7 +204,7 @@ impl TenantsService {
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), TenantsServiceError> {
+    ) -> Result<Tenant, TenantsServiceError> {
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
             host: tenants_module.config.default_tenant_database().host.clone(),
@@ -251,7 +252,7 @@ impl TenantsService {
             .insert_from_manager(manager_user.into(), tenant.id)
             .await?;
 
-        Ok(())
+        Ok(tenant)
     }
 
     /// Attempts to create a tenant based on the provided payload, handling both self-hosted
@@ -289,7 +290,7 @@ impl TenantsService {
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
-    ) -> Result<(), TenantsServiceError> {
+    ) -> Result<Tenant, TenantsServiceError> {
         if payload.is_self_hosted() {
             Self::self_hosted(claims, payload, tenants_module).await
         } else {

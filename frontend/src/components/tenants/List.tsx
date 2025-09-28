@@ -19,7 +19,7 @@
 
 import {Link} from "react-router-dom";
 import React, {useCallback, useEffect} from "react";
-import {activate, list} from "@/components/tenants/slice.ts";
+import {list} from "@/components/tenants/slice.ts";
 import { useAppDispatch } from "@/store/hooks";
 import {
   Table,
@@ -40,14 +40,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
-import {updateToken} from "@/components/auth/slice.ts";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
-  isActiveTenantResponse,
   isPaginatedTenantListResponse,
   type TenantList
 } from "@/components/tenants/interface.ts";
+import {useActivateTenant} from "@/hooks/activate_tenant.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -83,6 +82,8 @@ export default function List() {
     filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
+
+  const activateTenant = useActivateTenant();
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
@@ -124,31 +125,7 @@ export default function List() {
   ]);
 
   const handleActivate = async (new_tenant_id: string) => {
-    dispatch(activate(new_tenant_id)).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200: {
-              console.log(responseData);
-              if (isActiveTenantResponse(responseData)) {
-                console.log(responseData);
-                dispatch(updateToken(responseData.data))
-              } else {
-                unexpectedError();
-              }
-              break;
-            }
-            default: {
-              unexpectedError();
-            }
-          }
-        } catch {
-          unexpectedError();
-        }
-      }
-    })
+    await activateTenant(new_tenant_id);
   };
 
   return (

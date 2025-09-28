@@ -35,13 +35,16 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/inventory/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {type InventoryList, isPaginatedInventoryListResponse} from "@/components/inventory/interface.ts";
+import {
+  isPaginatedResolvedInventoryListResponse,
+  type ResolvedInventoryList
+} from "@/components/inventory/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<InventoryList>([]);
+  const [data, setData] = React.useState<ResolvedInventoryList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -77,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedInventoryListResponse(responseData)) {
+              if (isPaginatedResolvedInventoryListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -153,7 +156,25 @@ export default function List() {
         <TableHeader>
           <TableRow>
             <TableHead>
-              Név
+              Termék
+            </TableHead>
+            <TableHead>
+              Raktár
+            </TableHead>
+            <TableHead>
+              Mennyiség
+            </TableHead>
+            <TableHead>
+              Fogyasztói ár
+            </TableHead>
+            <TableHead>
+              Bekerülési költség
+            </TableHead>
+            <TableHead>
+              Currency
+            </TableHead>
+            <TableHead>
+              Létrehozta
             </TableHead>
             <TableHead>
               Létrehozva
@@ -169,7 +190,13 @@ export default function List() {
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
-              <TableCell>{item.product_id}</TableCell>
+              <TableCell>{item.product}</TableCell>
+              <TableCell>{item.warehouse}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{item.price}</TableCell>
+              <TableCell>{item.cost}</TableCell>
+              <TableCell>{item.currency}</TableCell>
+              <TableCell>{item.created_by_resolved}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>

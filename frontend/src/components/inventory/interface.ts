@@ -133,3 +133,74 @@ export function isPaginatedInventoryListResponse(data: unknown): data is Paginat
     isInventoryList
   )
 }
+
+export interface ResolvedInventory {
+  id: string,
+  product_id: string,
+  product: string,
+  warehouse_id: string,
+  warehouse: string,
+  quantity: number,
+  price: string | null,
+  cost: string | null,
+  currency_id: string,
+  currency: string,
+  created_by: string,
+  created_by_resolved: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type ResolvedInventoryList = ResolvedInventory[];
+
+export function isResolvedInventory(data: unknown): data is ResolvedInventory {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "product_id" in data &&
+    typeof data.product_id === "string" &&
+    "product" in data &&
+    typeof data.product === "string" &&
+    "warehouse_id" in data &&
+    typeof data.warehouse_id === "string" &&
+    "warehouse" in data &&
+    typeof data.warehouse === "string" &&
+    "quantity" in data &&
+    typeof data.quantity === "number" &&
+    "price" in data &&
+    (data.price === null || typeof data.price === "string") &&
+    "cost" in data &&
+    (data.cost === null || typeof data.cost === "string") &&
+    "currency_id" in data &&
+    typeof data.currency_id === "string" &&
+    "currency" in data &&
+    typeof data.currency === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_by_resolved" in data &&
+    typeof data.created_by_resolved === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isResolvedInventoryList(data: unknown): data is ResolvedInventoryList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isResolvedInventory(item))
+  );
+}
+
+export function isPaginatedResolvedInventoryListResponse(data: unknown): data is PaginatedDataResponse<ResolvedInventoryList> {
+  return isPaginatedDataResponse(
+    data,
+    isResolvedInventoryList
+  );
+}

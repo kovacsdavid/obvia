@@ -22,7 +22,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::{Currency, Inventory};
+use crate::tenant::inventory::model::{Currency, Inventory, ResolvedInventory};
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -38,7 +38,7 @@ pub trait InventoryRepository: Send + Sync {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Inventory>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ResolvedInventory>)>;
     async fn insert(
         &self,
         inventory: CreateInventory,
@@ -65,7 +65,7 @@ impl InventoryRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Inventory>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ResolvedInventory>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -78,16 +78,35 @@ impl InventoryRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                inventory.id as id,
+                products.id as product_id,
+                products.name as product,
+                warehouses.id as warehouse_id,
+                warehouses.name as warehouse,
+                inventory.quantity as quantity,
+                inventory.price as price,
+                inventory.cost as cost,
+                currencies.id as currency_id,
+                currencies.currency as currency,
+                users.id as created_by,
+                users.last_name || ' ' || users.first_name as created_by_resolved,
+                inventory.created_at as created_at,
+                inventory.updated_at as updated_at,
+                inventory.deleted_at as deleted_at
             FROM inventory
-            WHERE deleted_at IS NULL
+            LEFT JOIN products ON inventory.product_id = products.id
+            LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+            LEFT JOIN currencies ON inventory.currency_id = currencies.id
+            LEFT JOIN users ON inventory.created_by = users.id
+            WHERE inventory.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let inventory = sqlx::query_as::<_, Inventory>(&sql)
+        let inventory = sqlx::query_as::<_, ResolvedInventory>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)

@@ -65,6 +65,25 @@ pub struct Inventory {
     pub deleted_at: Option<DateTime<Local>>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ResolvedInventory {
+    pub id: Uuid,
+    pub product_id: Uuid,
+    pub product: String,
+    pub warehouse_id: Uuid,
+    pub warehouse: String,
+    pub quantity: i32,
+    pub price: Option<BigDecimal>,
+    pub cost: Option<BigDecimal>,
+    pub currency_id: Uuid,
+    pub currency: String,
+    pub created_by: Uuid,
+    pub created_by_resolved: String,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
 /// A struct representing a currency entity.
 ///
 /// The `Currency` struct is used to store and manipulate information about a currency, including

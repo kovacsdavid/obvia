@@ -23,7 +23,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::{Currency, Inventory};
+use crate::tenant::inventory::model::{Currency, ResolvedInventory};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use crate::tenant::products::model::Product;
@@ -152,7 +152,7 @@ impl InventoryService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<(PaginatorMeta, Vec<Inventory>)> {
+    ) -> InventoryServiceResult<(PaginatorMeta, Vec<ResolvedInventory>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

@@ -36,6 +36,7 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/warehouses/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {isPaginatedWarehouseListResponse, type WarehouseList} from "@/components/warehouses/interface.ts";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -168,8 +169,8 @@ export default function List() {
           {data.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
-              <TableCell>{item.created_at}</TableCell>
-              <TableCell>{item.updated_at}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>

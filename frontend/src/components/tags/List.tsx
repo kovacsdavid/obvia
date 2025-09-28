@@ -36,6 +36,7 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/tags/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {isPaginatedTagListResponse, type TagList} from "@/components/tags/interface.ts";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -166,7 +167,7 @@ export default function List() {
           {data.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
-              <TableCell>{item.created_at}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>

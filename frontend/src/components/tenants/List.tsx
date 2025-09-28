@@ -47,6 +47,7 @@ import {
   type TenantList
 } from "@/components/tenants/interface.ts";
 import {useActivateTenant} from "@/hooks/activate_tenant.ts";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -212,8 +213,8 @@ export default function List() {
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.db_host}:{item.db_port}</TableCell>
-              <TableCell>{item.created_at}</TableCell>
-              <TableCell>{item.updated_at}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>

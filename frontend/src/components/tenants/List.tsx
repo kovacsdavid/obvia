@@ -30,7 +30,7 @@ import {
   TableRow
 } from "@/components/ui/table.tsx";
 import { Paginator } from "@/components/ui/pagination.tsx";
-import {ArrowDownAZ, ArrowUpAZ, Funnel, PlugZap, Plus} from "lucide-react";
+import {ArrowDownAZ, ArrowUpAZ, Eye, Funnel, MoreHorizontal, Pencil, PlugZap, Plus, Trash} from "lucide-react";
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,7 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import {GlobalError, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
+import {GlobalError} from "@/components/ui";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
@@ -48,6 +48,13 @@ import {
 } from "@/components/tenants/interface.ts";
 import {useActivateTenant} from "@/hooks/activate_tenant.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -173,6 +180,7 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead />
             <TableHead
               style={{cursor: "pointer"}}
               onClick={() => orderSelect("name")}>
@@ -203,30 +211,41 @@ export default function List() {
                 : <ArrowUpAZ style={{display: "inline"}}/>
               : null}
             </TableHead>
-            <TableHead>
-              Műveletek
-            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Menü megnyitása</span>
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side={"bottom"} align="start">
+                    <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+                    <DropdownMenuItem>
+                      <Eye/> Részletek
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Pencil/> Szerkesztés
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleActivate(item.id)}>
+                      <PlugZap/> Aktiválás
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Trash/> Törlés
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
               <TableCell>{item.name}</TableCell>
               <TableCell>{item.db_host}:{item.db_port}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-              <TableCell>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button style={{cursor: "pointer"}} onClick={() => handleActivate(item.id)} variant={"outline"}>
-                      <PlugZap color={"green"}/>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side={"left"}>
-                    <p>Aktiválás</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

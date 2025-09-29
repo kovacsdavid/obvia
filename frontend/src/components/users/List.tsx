@@ -19,7 +19,7 @@
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
 import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Funnel, Plus, SquarePen} from "lucide-react";
+import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -35,6 +35,13 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/users/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -121,6 +128,7 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead />
             <TableHead>
               Név
             </TableHead>
@@ -130,13 +138,33 @@ export default function List() {
             <TableHead>
               Frissítve
             </TableHead>
-            <TableHead>
-              Műveletek
-            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow>
+            <TableCell>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Menü megnyitása</span>
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side={"bottom"} align="start">
+                  <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+                  <DropdownMenuItem>
+                    <Eye/> Részletek
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Pencil/> Szerkesztés
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Trash/> Törlés
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </TableCell>
             <TableCell>
               Placeholder
             </TableCell>
@@ -145,11 +173,6 @@ export default function List() {
             </TableCell>
             <TableCell>
               2025-08-31T13:52:49.213086+02:00
-            </TableCell>
-            <TableCell>
-              <Button style={{cursor: "pointer"}} variant={"outline"}>
-                <SquarePen color={"green"}/>
-              </Button>
             </TableCell>
           </TableRow>
         </TableBody>

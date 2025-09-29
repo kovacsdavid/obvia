@@ -18,8 +18,8 @@
  */
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, GlobalError, Input, Label, Tooltip, TooltipContent, TooltipTrigger} from "@/components/ui";
-import {Funnel, Pencil, Plus} from "lucide-react";
+import {Button, GlobalError, Input, Label} from "@/components/ui";
+import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -40,6 +40,13 @@ import {
   type TaskResolvedList
 } from "@/components/tasks/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -155,6 +162,7 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead />
             <TableHead>
               Megnevezés
             </TableHead>
@@ -182,14 +190,34 @@ export default function List() {
             <TableHead>
               Frissítve
             </TableHead>
-            <TableHead>
-              Műveletek
-            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                      <span className="sr-only">Menü megnyitása</span>
+                      <MoreHorizontal />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent side={"bottom"} align="start">
+                    <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+                    <DropdownMenuItem>
+                      <Eye/> Részletek
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Pencil/> Szerkesztés
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Trash/> Törlés
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
               <TableCell>{item.title}</TableCell>
               <TableCell>{item.description ? item.description : ''}</TableCell>
               <TableCell>{item.worksheet}</TableCell>
@@ -199,18 +227,6 @@ export default function List() {
               <TableCell>{item.created_by}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-              <TableCell>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button style={{cursor: "pointer"}} variant={"outline"}>
-                      <Pencil color={"green"}/>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side={"left"}>
-                    <p>Szerkesztés</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TableCell>
             </TableRow>
           ))}
         </TableBody>

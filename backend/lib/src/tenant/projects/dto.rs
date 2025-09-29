@@ -153,7 +153,7 @@ impl TryFrom<UpdateProjectHelper> for UpdateProject {
 pub struct CreateProjectAssignment {
     pub user_id: Uuid,
     pub project_id: Uuid,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

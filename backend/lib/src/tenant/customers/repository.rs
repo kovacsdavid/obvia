@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
-use crate::tenant::customers::model::Customer;
+use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -39,7 +39,7 @@ pub trait CustomersRespository: Send + Sync {
         ordering_params: &OrderingParams<CustomerOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Customer>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn insert(
         &self,
         customer: CreateCustomer,
@@ -56,7 +56,7 @@ impl CustomersRespository for PoolManagerWrapper {
         ordering_params: &OrderingParams<CustomerOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Customer>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -69,16 +69,28 @@ impl CustomersRespository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                customers.id as id,
+                customers.name as name,
+                customers.contact_name as contact_name,
+                customers.email as email,
+                customers.phone_number as phone_number,
+                customers.status as status,
+                customers.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                customers.created_at as created_at,
+                customers.updated_at as updated_at,
+                customers.deleted_at as deleted_at
             FROM customers
-            WHERE deleted_at IS NULL
+            LEFT JOIN users ON customers.created_by_id = users.id
+            WHERE customers.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let customers = sqlx::query_as::<_, Customer>(&sql)
+        let customers = sqlx::query_as::<_, CustomerResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -100,7 +112,7 @@ impl CustomersRespository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Customer, RepositoryError> {
         Ok(sqlx::query_as::<_, Customer>(
-            "INSERT INTO customers (name, contact_name, email, phone_number, status, type, created_by)
+            "INSERT INTO customers (name, contact_name, email, phone_number, status, type, created_by_id)
                  VALUES ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
         )
         .bind(customer.name.extract().get_value())

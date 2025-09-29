@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::dto::CreateWorksheet;
-use crate::tenant::worksheets::model::Worksheet;
+use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -40,7 +40,7 @@ pub trait WorksheetsRepository: Send + Sync {
         ordering_params: &OrderingParams<WorksheetOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Worksheet>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
     async fn insert(
         &self,
         worksheet: CreateWorksheet,
@@ -64,7 +64,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<WorksheetOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Worksheet>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -77,16 +77,29 @@ impl WorksheetsRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                worksheets.id as id,
+                worksheets.name as name,
+                worksheets.description as description,
+                worksheets.project_id as project_id,
+                projects.name as project,
+                worksheets.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                worksheets.status as status,
+                worksheets.created_at as created_at,
+                worksheets.updated_at as updated_at,
+                worksheets.deleted_at as deleted_at
             FROM worksheets
-            WHERE deleted_at IS NULL
+            LEFT JOIN projects ON worksheets.project_id = projects.id
+            LEFT JOIN users ON worksheets.created_by_id = users.id
+            WHERE worksheets.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let worksheets = sqlx::query_as::<_, Worksheet>(&sql)
+        let worksheets = sqlx::query_as::<_, WorksheetResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -108,7 +121,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
         Ok(sqlx::query_as::<_, Worksheet>(
-            "INSERT INTO worksheets (name, description, project_id, created_by, status)\
+            "INSERT INTO worksheets (name, description, project_id, created_by_id, status)\
              VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
         .bind(worksheet.name.extract().get_value())

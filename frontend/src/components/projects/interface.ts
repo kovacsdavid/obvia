@@ -41,7 +41,7 @@ export interface Project {
   id: string,
   name: string,
   description: string | null,
-  created_by: string,
+  created_by_id: string,
   status: string,
   start_date: string | null,
   end_date: string | null,
@@ -62,8 +62,8 @@ export function isProject(data: unknown): data is Project {
     typeof data.name === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "status" in data &&
     typeof data.status === "string" &&
     "start_date" in data &&
@@ -109,4 +109,63 @@ export function isCreateProjectResponse(data: unknown): data is CommonResponse<S
   )
 }
 
+export interface ProjectResolved {
+  id: string,
+  name: string,
+  description: string | null,
+  created_by_id: string,
+  created_by: string,
+  status: string,
+  start_date: string | null,
+  end_date: string | null,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
 
+export type ProjectResolvedList = ProjectResolved[];
+
+export function isProjectResolved(data: unknown): data is ProjectResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "start_date" in data &&
+    (data.start_date === null || typeof data.start_date === "string") &&
+    "end_date" in data &&
+    (data.end_date === null || typeof data.end_date === "string") &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isProjectResolvedList(data: unknown): data is ProjectResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isProjectResolved(item))
+  );
+}
+
+export function isPaginatedProjectResolvedListResponse(
+  data: unknown
+): data is PaginatedDataResponse<ProjectResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isProjectResolvedList,
+  )
+}

@@ -48,7 +48,22 @@ pub struct Project {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
+    pub status: String,
+    pub start_date: Option<DateTime<Local>>,
+    pub end_date: Option<DateTime<Local>>,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProjectResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub status: String,
     pub start_date: Option<DateTime<Local>>,
     pub end_date: Option<DateTime<Local>>,
@@ -82,7 +97,7 @@ pub struct ProjectAssignment {
     pub id: Uuid,
     pub user_id: Uuid,
     pub project_id: Uuid,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }

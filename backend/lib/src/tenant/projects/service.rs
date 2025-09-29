@@ -22,7 +22,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
 use crate::tenant::projects::dto::CreateProject;
-use crate::tenant::projects::model::Project;
+use crate::tenant::projects::model::ProjectResolved;
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::projects::types::project::ProjectOrderBy;
 use axum::http::StatusCode;
@@ -83,7 +83,7 @@ impl ProjectsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn ProjectsRepository>,
-    ) -> ProjectsServiceResult<(PaginatorMeta, Vec<Project>)> {
+    ) -> ProjectsServiceResult<(PaginatorMeta, Vec<ProjectResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

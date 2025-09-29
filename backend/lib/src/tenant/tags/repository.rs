@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::dto::CreateTag;
-use crate::tenant::tags::model::Tag;
+use crate::tenant::tags::model::{Tag, TagResolved};
 use crate::tenant::tags::types::tag::TagOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -39,7 +39,7 @@ pub trait TagsRepository: Send + Sync {
         ordering_params: &OrderingParams<TagOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Tag>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<TagResolved>)>;
     async fn insert(
         &self,
         tag: CreateTag,
@@ -56,7 +56,7 @@ impl TagsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<TagOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Tag>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<TagResolved>)> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tags WHERE deleted_at IS NULL")
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
@@ -68,16 +68,24 @@ impl TagsRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
-            FROM tags 
-            WHERE deleted_at IS NULL
+            SELECT
+                tags.id as id,
+                tags.name as name,
+                tags.description as description,
+                tags.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                tags.created_at as created_at,
+                tags.deleted_at as deleted_at
+            FROM tags
+            LEFT JOIN users ON tags.created_by_id = users.id
+            WHERE tags.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let tags = sqlx::query_as::<_, Tag>(&sql)
+        let tags = sqlx::query_as::<_, TagResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -99,7 +107,7 @@ impl TagsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Tag, RepositoryError> {
         Ok(sqlx::query_as::<_, Tag>(
-            "INSERT INTO tags (name, description, created_by) VALUES ($1, $2, $3) RETURNING *",
+            "INSERT INTO tags (name, description, created_by_id) VALUES ($1, $2, $3) RETURNING *",
         )
         .bind(tag.name.extract().get_value())
         .bind(tag.description.map(|v| v.extract().get_value().clone()))

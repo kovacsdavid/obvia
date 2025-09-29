@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::CreateProduct;
-use crate::tenant::products::model::{Product, UnitOfMeasure};
+use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
 use crate::tenant::products::types::product::ProductOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -40,7 +40,7 @@ pub trait ProductsRepository: Send + Sync {
         ordering_params: &OrderingParams<ProductOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Product>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
     async fn insert(
         &self,
         product: CreateProduct,
@@ -74,7 +74,7 @@ impl ProductsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<ProductOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Product>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -87,16 +87,29 @@ impl ProductsRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
-            FROM products 
-            WHERE deleted_at IS NULL
+            SELECT
+                products.id as id,
+                products.name as name,
+                products.description as description,
+                products.unit_of_measure_id as unit_of_measure_id,
+                units_of_measure.unit_of_measure as unit_of_measure,
+                products.status as status,
+                products.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                products.created_at as created_at,
+                products.updated_at as updated_at,
+                products.deleted_at as deleted_at
+            FROM products
+            LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
+            LEFT JOIN users ON products.created_by_id = users.id
+            WHERE products.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let products = sqlx::query_as::<_, Product>(&sql)
+        let products = sqlx::query_as::<_, ProductResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -118,7 +131,7 @@ impl ProductsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Product, RepositoryError> {
         Ok(sqlx::query_as::<_, Product>(
-            "INSERT INTO products (name, description, unit_of_measure_id, status, created_by)
+            "INSERT INTO products (name, description, unit_of_measure_id, status, created_by_id)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
         .bind(product.name.extract().get_value())
@@ -141,7 +154,7 @@ impl ProductsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<UnitOfMeasure, RepositoryError> {
         Ok(sqlx::query_as::<_, UnitOfMeasure>(
-            "INSERT INTO units_of_measure(unit_of_measure, created_by)
+            "INSERT INTO units_of_measure(unit_of_measure, created_by_id)
              VALUES ($1, $2) RETURNING *",
         )
         .bind(unit_of_measure.to_string().trim())

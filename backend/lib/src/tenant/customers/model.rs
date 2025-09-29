@@ -53,7 +53,22 @@ pub struct Customer {
     pub email: String,
     pub phone_number: Option<String>,
     pub status: String,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct CustomerResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub contact_name: Option<String>,
+    pub email: String,
+    pub phone_number: Option<String>,
+    pub status: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,

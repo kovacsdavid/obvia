@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::dto::CreateProject;
-use crate::tenant::projects::model::Project;
+use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::types::project::ProjectOrderBy;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
@@ -41,7 +41,7 @@ pub trait ProjectsRepository: Send + Sync {
         ordering_params: &OrderingParams<ProjectOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Project>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ProjectResolved>)>;
     async fn insert(
         &self,
         project: CreateProject,
@@ -66,7 +66,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<ProjectOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Project>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ProjectResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM projects WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -79,16 +79,28 @@ impl ProjectsRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                projects.id as id,
+                projects.name as name,
+                projects.description as description,
+                projects.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                projects.status as status,
+                projects.start_date as start_date,
+                projects.end_date as end_date,
+                projects.created_at as created_at,
+                projects.updated_at as updated_at,
+                projects.deleted_at as deleted_at
             FROM projects
-            WHERE deleted_at IS NULL
+            LEFT JOIN users ON projects.created_by_id = users.id
+            WHERE projects.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let projects = sqlx::query_as::<_, Project>(&sql)
+        let projects = sqlx::query_as::<_, ProjectResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -126,7 +138,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         };
 
         Ok(sqlx::query_as::<_, Project>(
-            "INSERT INTO projects (name, description, created_by, status, start_date, end_date)
+            "INSERT INTO projects (name, description, created_by_id, status, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(project.name.extract().get_value())

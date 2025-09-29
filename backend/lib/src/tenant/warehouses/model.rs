@@ -57,7 +57,21 @@ pub struct Warehouse {
     pub contact_name: Option<String>,
     pub contact_phone: Option<String>,
     pub status: String,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct WarehouseResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub contact_name: Option<String>,
+    pub contact_phone: Option<String>,
+    pub status: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,

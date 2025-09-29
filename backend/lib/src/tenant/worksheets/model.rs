@@ -58,7 +58,22 @@ pub struct Worksheet {
     pub name: String,
     pub description: Option<String>,
     pub project_id: Uuid,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
+    pub status: String,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct WorksheetResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub project_id: Uuid,
+    pub project: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub status: String,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,

@@ -38,7 +38,7 @@ export interface Worksheet {
   name: string,
   description: string | null,
   project_id: string,
-  created_by: string,
+  created_by_id: string,
   status: string,
   created_at: string,
   updated_at: string,
@@ -59,8 +59,8 @@ export function isWorksheet(data: unknown): data is Worksheet {
     (data.description === null || typeof data.description === "string") &&
     "project_id" in data &&
     typeof data.project_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "status" in data &&
     typeof data.status === "string" &&
     "created_at" in data &&
@@ -91,5 +91,65 @@ export function isPaginatedWorksheetListResponse(data: unknown): data is Paginat
   return isPaginatedDataResponse(
     data,
     isWorksheetList,
+  )
+}
+
+export interface WorksheetResolved {
+  id: string,
+  name: string,
+  description: string | null,
+  project_id: string,
+  project: string,
+  created_by_id: string,
+  created_by: string,
+  status: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type WorksheetResolvedList = WorksheetResolved[];
+
+export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "project_id" in data &&
+    typeof data.project_id === "string" &&
+    "project" in data &&
+    typeof data.project === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isWorksheetResolvedList(data: unknown): data is WorksheetResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isWorksheetResolved(item))
+  );
+}
+
+
+export function isPaginatedWorksheetResolvedListResponse(data: unknown): data is PaginatedDataResponse<WorksheetResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isWorksheetResolvedList,
   )
 }

@@ -60,7 +60,22 @@ pub struct Product {
     pub description: Option<String>,
     pub unit_of_measure_id: Uuid,
     pub status: String,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
+    pub created_at: Option<DateTime<Local>>,
+    pub updated_at: Option<DateTime<Local>>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ProductResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub unit_of_measure_id: Uuid,
+    pub unit_of_measure: String,
+    pub status: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub created_at: Option<DateTime<Local>>,
     pub updated_at: Option<DateTime<Local>>,
     pub deleted_at: Option<DateTime<Local>>,

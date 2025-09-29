@@ -23,7 +23,7 @@ use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::model::Project;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::CreateWorksheet;
-use crate::tenant::worksheets::model::Worksheet;
+use crate::tenant::worksheets::model::WorksheetResolved;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use axum::http::StatusCode;
@@ -97,7 +97,7 @@ impl WorksheetsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn WorksheetsRepository>,
-    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<Worksheet>)> {
+    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

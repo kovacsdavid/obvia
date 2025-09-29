@@ -35,13 +35,16 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/customers/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {type CustomerList, isPaginatedCustomerListResponse} from "@/components/customers/interface.ts";
+import {
+  type CustomerResolvedList,
+  isPaginatedCustomerResolvedListResponse
+} from "@/components/customers/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<CustomerList>([]);
+  const [data, setData] = React.useState<CustomerResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -77,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedCustomerListResponse(responseData)) {
+              if (isPaginatedCustomerResolvedListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -148,15 +151,29 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
-
-
-
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>
+              Műveletek
+            </TableHead>
+            <TableHead>
               Név
+            </TableHead>
+            <TableHead>
+              Kapcsolattartó neve
+            </TableHead>
+            <TableHead>
+              E-mail cím
+            </TableHead>
+            <TableHead>
+              Telefonszám
+            </TableHead>
+            <TableHead>
+              Státusz
+            </TableHead>
+            <TableHead>
+              Létrehozta
             </TableHead>
             <TableHead>
               Létrehozva
@@ -164,18 +181,11 @@ export default function List() {
             <TableHead>
               Frissítve
             </TableHead>
-            <TableHead>
-              Műveletek
-            </TableHead>
           </TableRow>
         </TableHeader>
-
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -188,6 +198,15 @@ export default function List() {
                   </TooltipContent>
                 </Tooltip>
               </TableCell>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>{item.contact_name ? item.contact_name : 'N/A'}</TableCell>
+              <TableCell>{item.email}</TableCell>
+              <TableCell>{item.phone_number ? item.phone_number : 'N/A'}</TableCell>
+              <TableCell>{item.status}</TableCell>
+              <TableCell>{item.created_by}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
+
             </TableRow>
           ))}
         </TableBody>

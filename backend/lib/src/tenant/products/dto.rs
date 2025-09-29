@@ -155,7 +155,7 @@ pub struct UpdateProduct {
     pub description: Option<String>,
     pub unit_of_measure: Uuid,
     pub is_active: bool,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
 }
 
 impl TryFrom<UpdateProductHelper> for UpdateProduct {

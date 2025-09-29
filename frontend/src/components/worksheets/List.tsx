@@ -35,13 +35,16 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/worksheets/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {isPaginatedWorksheetListResponse, type WorksheetList} from "@/components/worksheets/interface.ts";
+import {
+  isPaginatedWorksheetResolvedListResponse,
+  type WorksheetResolvedList
+} from "@/components/worksheets/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<WorksheetList>([]);
+  const [data, setData] = React.useState<WorksheetResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -77,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedWorksheetListResponse(responseData)) {
+              if (isPaginatedWorksheetResolvedListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -148,12 +151,17 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>
               Név
+            </TableHead>
+            <TableHead>
+              Leírás
+            </TableHead>
+            <TableHead>
+              Projekt
             </TableHead>
             <TableHead>
               Létrehozva
@@ -170,6 +178,9 @@ export default function List() {
           {data.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.name}</TableCell>
+              <TableCell>{item.description ? item.description : ''}</TableCell>
+              <TableCell>{item.project}</TableCell>
+              <TableCell>{item.created_by}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>

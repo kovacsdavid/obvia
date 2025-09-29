@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::dto::CreateWarehouse;
-use crate::tenant::warehouses::model::Warehouse;
+use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -40,7 +40,7 @@ pub trait WarehousesRepository: Send + Sync {
         ordering_params: &OrderingParams<WarehouseOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Warehouse>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
     async fn insert(
         &self,
         warehouse: CreateWarehouse,
@@ -64,7 +64,7 @@ impl WarehousesRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<WarehouseOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Warehouse>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -77,16 +77,27 @@ impl WarehousesRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                warehouses.id as id,
+                warehouses.name as name,
+                warehouses.contact_name as contact_name,
+                warehouses.contact_phone as contact_phone,
+                warehouses.status as status,
+                warehouses.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                warehouses.created_at as created_at,
+                warehouses.updated_at as updated_at,
+                warehouses.deleted_at as deleted_at
             FROM warehouses
-            WHERE deleted_at IS NULL
+            LEFT JOIN users ON warehouses.created_by_id = users.id
+            WHERE warehouses.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let warehouses = sqlx::query_as::<_, Warehouse>(&sql)
+        let warehouses = sqlx::query_as::<_, WarehouseResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -108,7 +119,7 @@ impl WarehousesRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Warehouse, RepositoryError> {
         Ok(sqlx::query_as::<_, Warehouse>(
-            "INSERT INTO warehouses (name, contact_name, contact_phone, status, created_by)\
+            "INSERT INTO warehouses (name, contact_name, contact_phone, status, created_by_id)\
              VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
         .bind(warehouse.name.extract().get_value())

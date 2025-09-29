@@ -21,7 +21,7 @@ use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
-use crate::tenant::customers::model::Customer;
+use crate::tenant::customers::model::CustomerResolved;
 use crate::tenant::customers::repository::CustomersRespository;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use axum::http::StatusCode;
@@ -80,7 +80,7 @@ impl CustomersService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn CustomersRespository>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<Customer>)> {
+    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

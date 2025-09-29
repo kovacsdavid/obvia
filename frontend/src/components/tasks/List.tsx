@@ -35,13 +35,16 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/tasks/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {isPaginatedTaskListResponse, type TaskList} from "@/components/tasks/interface.ts";
+import {
+  isPaginatedTaskResolvedListResponse,
+  type TaskResolvedList
+} from "@/components/tasks/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<TaskList>([]);
+  const [data, setData] = React.useState<TaskResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -77,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedTaskListResponse(responseData)) {
+              if (isPaginatedTaskResolvedListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -153,7 +156,25 @@ export default function List() {
         <TableHeader>
           <TableRow>
             <TableHead>
-              Név
+              Megnevezés
+            </TableHead>
+            <TableHead>
+              Leírás
+            </TableHead>
+            <TableHead>
+              Munkalap
+            </TableHead>
+            <TableHead>
+              Státusz
+            </TableHead>
+            <TableHead>
+              Prioritás
+            </TableHead>
+            <TableHead>
+              Határidő
+            </TableHead>
+            <TableHead>
+              Létrehozta
             </TableHead>
             <TableHead>
               Létrehozva
@@ -170,6 +191,12 @@ export default function List() {
           {data.map((item) => (
             <TableRow key={item.id}>
               <TableCell>{item.title}</TableCell>
+              <TableCell>{item.description ? item.description : ''}</TableCell>
+              <TableCell>{item.worksheet}</TableCell>
+              <TableCell>{item.status}</TableCell>
+              <TableCell>{item.priority ? item.priority : ''}</TableCell>
+              <TableCell>{item.due_date ? formatDateToYMDHMS(item.due_date) : 'N/A'}</TableCell>
+              <TableCell>{item.created_by}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>

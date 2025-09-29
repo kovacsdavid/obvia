@@ -23,7 +23,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::dto::CreateTask;
-use crate::tenant::tasks::model::Task;
+use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use async_trait::async_trait;
 use chrono::NaiveDateTime;
@@ -40,7 +40,7 @@ pub trait TasksRepository: Send + Sync {
         ordering_params: &OrderingParams<TaskOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Task>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
     async fn insert(
         &self,
         task: CreateTask,
@@ -57,7 +57,7 @@ impl TasksRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<TaskOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<Task>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?;
@@ -69,16 +69,31 @@ impl TasksRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT *
+            SELECT
+                tasks.id as id,
+                tasks.worksheet_id as worksheet_id,
+                worksheets.name as worksheet,
+                tasks.title as title,
+                tasks.description as description,
+                tasks.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                tasks.status as status,
+                tasks.priority as priority,
+                tasks.due_date as due_date,
+                tasks.created_at as created_at,
+                tasks.updated_at as updated_at,
+                tasks.deleted_at as deleted_at
             FROM tasks
-            WHERE deleted_at IS NULL
+            LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+            LEFT JOIN users ON tasks.created_by_id = users.id
+            WHERE tasks.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
             OFFSET $2
             "#
         );
 
-        let tasks = sqlx::query_as::<_, Task>(&sql)
+        let tasks = sqlx::query_as::<_, TaskResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -107,7 +122,7 @@ impl TasksRepository for PoolManagerWrapper {
             ),
         };
         Ok(sqlx::query_as::<_, Task>(
-            "INSERT INTO tasks (worksheet_id, title, description, created_by, status, priority, due_date)
+            "INSERT INTO tasks (worksheet_id, title, description, created_by_id, status, priority, due_date)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
             )
             .bind(task.worksheet_id)

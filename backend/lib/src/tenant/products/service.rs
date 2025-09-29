@@ -23,7 +23,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::CreateProduct;
-use crate::tenant::products::model::{Product, UnitOfMeasure};
+use crate::tenant::products::model::{ProductResolved, UnitOfMeasure};
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::ProductOrderBy;
 use axum::http::StatusCode;
@@ -126,7 +126,7 @@ impl ProductsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<(PaginatorMeta, Vec<Product>)> {
+    ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

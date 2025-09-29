@@ -40,7 +40,7 @@ export interface Product {
   description: string,
   unit_of_measure_id: string,
   status: string,
-  created_by: string,
+  created_by_id: string,
   created_at: string,
   updated_at: string,
   deleted_at: string | null
@@ -62,8 +62,8 @@ export function isProduct(data: unknown): data is Product {
     typeof data.unit_of_measure_id === "string" &&
     "status" in data &&
     typeof data.status === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "updated_at" in data &&
@@ -134,3 +134,61 @@ export function isUnitsOfMeasureListResponse(data: unknown): data is CommonRespo
   );
 }
 
+export interface ProductResolved {
+  id: string,
+  name: string,
+  description: string | null,
+  unit_of_measure_id: string,
+  unit_of_measure: string,
+  status: string,
+  created_by_id: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type ProductResolvedList = ProductResolved[];
+
+export function isProductResolved(data: unknown): data is ProductResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "unit_of_measure_id" in data &&
+    typeof data.unit_of_measure_id === "string" &&
+    "unit_of_measure" in data &&
+    typeof data.unit_of_measure === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isProductResolvedList(data: unknown): data is ProductResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isProductResolved(item))
+  );
+}
+
+export function isPaginatedProductResolvedListResponse(data: unknown): data is PaginatedDataResponse<ProductResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isProductResolvedList
+  )
+}

@@ -83,7 +83,7 @@ export interface Inventory {
   price: string,
   cost: string,
   currency_id: string,
-  created_by: string,
+  created_by_id: string,
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
@@ -109,8 +109,8 @@ export function isInventory(data: unknown): data is Inventory {
     typeof data.cost === "string" &&
     "currency_id" in data &&
     typeof data.currency_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "updated_at" in data &&
@@ -134,7 +134,7 @@ export function isPaginatedInventoryListResponse(data: unknown): data is Paginat
   )
 }
 
-export interface ResolvedInventory {
+export interface InventoryResolved {
   id: string,
   product_id: string,
   product: string,
@@ -145,16 +145,16 @@ export interface ResolvedInventory {
   cost: string | null,
   currency_id: string,
   currency: string,
+  created_by_id: string,
   created_by: string,
-  created_by_resolved: string,
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
 }
 
-export type ResolvedInventoryList = ResolvedInventory[];
+export type InventoryResolvedList = InventoryResolved[];
 
-export function isResolvedInventory(data: unknown): data is ResolvedInventory {
+export function isResolvedInventory(data: unknown): data is InventoryResolved {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -178,10 +178,10 @@ export function isResolvedInventory(data: unknown): data is ResolvedInventory {
     typeof data.currency_id === "string" &&
     "currency" in data &&
     typeof data.currency === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_by" in data &&
     typeof data.created_by === "string" &&
-    "created_by_resolved" in data &&
-    typeof data.created_by_resolved === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "updated_at" in data &&
@@ -191,16 +191,16 @@ export function isResolvedInventory(data: unknown): data is ResolvedInventory {
   );
 }
 
-export function isResolvedInventoryList(data: unknown): data is ResolvedInventoryList {
+export function isInventoryResolvedList(data: unknown): data is InventoryResolvedList {
   return (
     Array.isArray(data) &&
     data.every(item => isResolvedInventory(item))
   );
 }
 
-export function isPaginatedResolvedInventoryListResponse(data: unknown): data is PaginatedDataResponse<ResolvedInventoryList> {
+export function isPaginatedInventoryResolvedListResponse(data: unknown): data is PaginatedDataResponse<InventoryResolvedList> {
   return isPaginatedDataResponse(
     data,
-    isResolvedInventoryList
+    isInventoryResolvedList
   );
 }

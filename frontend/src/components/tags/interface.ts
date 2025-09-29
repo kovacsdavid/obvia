@@ -27,7 +27,8 @@ export interface CreateTag {
 export interface Tag {
   id: string,
   name: string,
-  created_by: string,
+  description: string | null,
+  created_by_id: string,
   created_at: string,
   deleted_at: string | null,
 }
@@ -42,8 +43,10 @@ export function isTag(data: unknown): data is Tag {
     typeof data.id === "string" &&
     "name" in data &&
     typeof data.name === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "deleted_at" in data &&
@@ -62,5 +65,51 @@ export function isPaginatedTagListResponse(data: unknown): data is PaginatedData
   return isPaginatedDataResponse(
     data,
     isTagList
+  )
+}
+
+export interface TagResolved {
+  id: string,
+  name: string,
+  description: string | null,
+  created_by_id: string,
+  created_by: string,
+  created_at: string,
+  deleted_at: string | null,
+}
+
+export type TagResolvedList = TagResolved[];
+
+export function isTagResolved(data: unknown): data is TagResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isTagResolvedList(data: unknown): data is TagResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isTagResolved(item))
+  );
+}
+export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedDataResponse<TagResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isTagResolvedList
   )
 }

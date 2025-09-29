@@ -35,13 +35,16 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/tags/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {isPaginatedTagListResponse, type TagList} from "@/components/tags/interface.ts";
+import {
+  isPaginatedTagResolvedListResponse,
+  type TagResolvedList
+} from "@/components/tags/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<TagList>([]);
+  const [data, setData] = React.useState<TagResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -77,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedTagListResponse(responseData)) {
+              if (isPaginatedTagResolvedListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -148,26 +151,29 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>
+              Műveletek
+            </TableHead>
+            <TableHead>
               Név
             </TableHead>
             <TableHead>
-              Létrehozva
+              Leírás
             </TableHead>
             <TableHead>
-              Műveletek
+              Létrehozta
+            </TableHead>
+            <TableHead>
+              Létrehozva
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -180,6 +186,10 @@ export default function List() {
                   </TooltipContent>
                 </Tooltip>
               </TableCell>
+              <TableCell>{item.name}</TableCell>
+              <TableCell>{item.description ? item.description : ''}</TableCell>
+              <TableCell>{item.created_by}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

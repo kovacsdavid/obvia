@@ -160,7 +160,7 @@ impl TryFrom<UpdateTaskHelper> for UpdateTask {
 pub struct CreateTaskAssignment {
     pub user_id: Uuid,
     pub task_id: Uuid,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

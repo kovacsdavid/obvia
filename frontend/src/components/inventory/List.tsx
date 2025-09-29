@@ -36,15 +36,15 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import {list} from "@/components/inventory/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
-  isPaginatedResolvedInventoryListResponse,
-  type ResolvedInventoryList
+  isPaginatedInventoryResolvedListResponse,
+  type InventoryResolvedList
 } from "@/components/inventory/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpeError | null>(null);
-  const [data, setData] = React.useState<ResolvedInventoryList>([]);
+  const [data, setData] = React.useState<InventoryResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -80,7 +80,7 @@ export default function List() {
           const responseData = await payload.json();
           switch (payload.status) {
             case 200: {
-              if (isPaginatedResolvedInventoryListResponse(responseData)) {
+              if (isPaginatedInventoryResolvedListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
                   setPage(responseData.meta.page);
                   setLimit(responseData.meta.limit);
@@ -151,7 +151,6 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
@@ -190,15 +189,6 @@ export default function List() {
         <TableBody>
           {data.map((item) => (
             <TableRow key={item.id}>
-              <TableCell>{item.product}</TableCell>
-              <TableCell>{item.warehouse}</TableCell>
-              <TableCell>{item.quantity}</TableCell>
-              <TableCell>{item.price}</TableCell>
-              <TableCell>{item.cost}</TableCell>
-              <TableCell>{item.currency}</TableCell>
-              <TableCell>{item.created_by_resolved}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
               <TableCell>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -211,6 +201,15 @@ export default function List() {
                   </TooltipContent>
                 </Tooltip>
               </TableCell>
+              <TableCell>{item.product}</TableCell>
+              <TableCell>{item.warehouse}</TableCell>
+              <TableCell>{item.quantity}</TableCell>
+              <TableCell>{item.price}</TableCell>
+              <TableCell>{item.cost}</TableCell>
+              <TableCell>{item.currency}</TableCell>
+              <TableCell>{item.created_by}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
             </TableRow>
           ))}
         </TableBody>

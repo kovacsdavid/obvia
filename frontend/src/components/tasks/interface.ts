@@ -33,7 +33,7 @@ export interface Task {
   worksheet_id: string,
   title: string,
   description: string | null,
-  created_by: string,
+  created_by_id: string,
   status: string,
   priority: string | null,
   due_date: string | null,
@@ -56,8 +56,8 @@ export function isTask(data: unknown): data is Task {
     typeof data.title === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "status" in data &&
     typeof data.status === "string" &&
     "priority" in data &&
@@ -86,4 +86,70 @@ export function isPaginatedTaskListResponse(data: unknown): data is PaginatedDat
     isTaskList,
   )
 }
+
+export interface TaskResolved {
+  id: string,
+  worksheet_id: string,
+  worksheet: string,
+  title: string,
+  description: string | null,
+  created_by_id: string,
+  created_by: string,
+  status: string,
+  priority: string | null,
+  due_date: string | null,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type TaskResolvedList = TaskResolved[];
+
+export function isTaskResolved(data: unknown): data is TaskResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "worksheet_id" in data &&
+    typeof data.worksheet_id === "string" &&
+    "worksheet" in data &&
+    typeof data.worksheet === "string" &&
+    "title" in data &&
+    typeof data.title === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "priority" in data &&
+    (data.priority === null || typeof data.priority === "string") &&
+    "due_date" in data &&
+    (data.due_date === null || typeof data.due_date === "string") &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isTaskResolvedList(data: unknown): data is TaskResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isTaskResolved(item))
+  );
+}
+
+export function isPaginatedTaskResolvedListResponse(data: unknown): data is PaginatedDataResponse<TaskResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isTaskResolvedList,
+  )
+}
+
 

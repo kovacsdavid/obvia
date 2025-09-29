@@ -22,7 +22,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::CreateTask;
-use crate::tenant::tasks::model::Task;
+use crate::tenant::tasks::model::TaskResolved;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use crate::tenant::worksheets::model::Worksheet;
@@ -100,7 +100,7 @@ impl TasksService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<(PaginatorMeta, Vec<Task>)> {
+    ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

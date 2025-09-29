@@ -43,7 +43,19 @@ use uuid::Uuid;
 pub struct Tag {
     pub id: Uuid,
     pub name: String,
-    pub created_by: Uuid,
+    pub description: String,
+    pub created_by_id: Uuid,
+    pub created_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct TagResolved {
+    pub id: Uuid,
+    pub name: String,
+    pub description: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
@@ -77,7 +89,7 @@ pub struct TagConnect {
     pub taggable_id: Uuid,
     pub taggable_type: String,
     pub tag_id: Option<Uuid>,
-    pub created_by: Uuid,
+    pub created_by_id: Uuid,
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }

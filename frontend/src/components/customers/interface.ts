@@ -40,7 +40,7 @@ export interface Customer {
   email: string,
   phone_number: string | null,
   status: string,
-  created_by: string,
+  created_by_id: string,
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
@@ -64,8 +64,8 @@ export function isCustomer(data: unknown): data is Customer {
     (data.phone_number === null || typeof data.phone_number === "string") &&
     "status" in data &&
     typeof data.status === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "updated_at" in data &&
@@ -97,3 +97,63 @@ export function isCreateCustomerResponse(data: unknown): data is CommonResponse<
   )
 }
 
+export interface CustomerResolved {
+  id: string,
+  name: string,
+  contact_name: string | null,
+  email: string,
+  phone_number: string | null,
+  status: string,
+  created_by_id: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
+
+export type CustomerResolvedList = CustomerResolved[];
+
+export function isCustomerResolved(data: unknown): data is CustomerResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "contact_name" in data &&
+    (data.contact_name === null || typeof data.contact_name === "string") &&
+    "email" in data &&
+    typeof data.email === "string" &&
+    "phone_number" in data &&
+    (data.phone_number === null || typeof data.phone_number === "string") &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isCustomerResolvedList(data: unknown): data is CustomerResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isCustomerResolved(item))
+  );
+}
+
+export function isPaginatedCustomerResolvedListResponse(
+  data: unknown
+): data is PaginatedDataResponse<CustomerResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isCustomerResolvedList
+  );
+}

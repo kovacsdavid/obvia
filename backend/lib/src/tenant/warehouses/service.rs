@@ -23,7 +23,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::CreateWarehouse;
-use crate::tenant::warehouses::model::Warehouse;
+use crate::tenant::warehouses::model::WarehouseResolved;
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
 use axum::http::StatusCode;
@@ -84,7 +84,7 @@ impl WarehousesService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<Warehouse>)> {
+    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         Ok(repo
             .get_all_paged(
                 paginator,

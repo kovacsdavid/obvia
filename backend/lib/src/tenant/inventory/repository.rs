@@ -22,7 +22,7 @@ use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::{Currency, Inventory, ResolvedInventory};
+use crate::tenant::inventory::model::{Currency, Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -38,7 +38,7 @@ pub trait InventoryRepository: Send + Sync {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<ResolvedInventory>)>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
     async fn insert(
         &self,
         inventory: CreateInventory,
@@ -65,7 +65,7 @@ impl InventoryRepository for PoolManagerWrapper {
         ordering_params: &OrderingParams<InventoryOrderBy>,
         filtering_params: &FilteringParams,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<ResolvedInventory>)> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
                 .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -80,17 +80,17 @@ impl InventoryRepository for PoolManagerWrapper {
             r#"
             SELECT
                 inventory.id as id,
-                products.id as product_id,
+                inventory.product_id as product_id,
                 products.name as product,
-                warehouses.id as warehouse_id,
+                inventory.warehouse_id as warehouse_id,
                 warehouses.name as warehouse,
                 inventory.quantity as quantity,
                 inventory.price as price,
                 inventory.cost as cost,
-                currencies.id as currency_id,
+                inventory.currency_id as currency_id,
                 currencies.currency as currency,
-                users.id as created_by,
-                users.last_name || ' ' || users.first_name as created_by_resolved,
+                inventory.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
                 inventory.created_at as created_at,
                 inventory.updated_at as updated_at,
                 inventory.deleted_at as deleted_at
@@ -98,7 +98,7 @@ impl InventoryRepository for PoolManagerWrapper {
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
             LEFT JOIN currencies ON inventory.currency_id = currencies.id
-            LEFT JOIN users ON inventory.created_by = users.id
+            LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
@@ -106,7 +106,7 @@ impl InventoryRepository for PoolManagerWrapper {
             "#
         );
 
-        let inventory = sqlx::query_as::<_, ResolvedInventory>(&sql)
+        let inventory = sqlx::query_as::<_, InventoryResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -147,7 +147,7 @@ impl InventoryRepository for PoolManagerWrapper {
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
-            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, cost, currency_id, created_by)\
+            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, cost, currency_id, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
             .bind(inventory.product_id)
@@ -176,7 +176,7 @@ impl InventoryRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Currency, RepositoryError> {
         Ok(sqlx::query_as::<_, Currency>(
-            "INSERT INTO currencies(currency, created_by)
+            "INSERT INTO currencies(currency, created_by_id)
              VALUES ($1, $2) RETURNING *",
         )
         .bind(currency.to_string().trim().to_uppercase())

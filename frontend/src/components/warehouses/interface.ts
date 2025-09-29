@@ -39,7 +39,7 @@ export interface Warehouse {
   contact_name: string,
   contact_phone: string,
   status: string,
-  created_by: string,
+  created_by_id: string,
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
@@ -61,8 +61,8 @@ export function isWarehouse(data: unknown): data is Warehouse {
     typeof data.contact_phone === "string" &&
     "status" in data &&
     typeof data.status === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
     "updated_at" in data &&
@@ -94,4 +94,59 @@ export function isPaginatedWarehouseListResponse(data: unknown): data is Paginat
   )
 }
 
+export interface WarehouseResolved {
+  id: string,
+  name: string,
+  contact_name: string | null,
+  contact_phone: string | null,
+  status: string,
+  created_by_id: string,
+  created_by: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
+}
 
+export type WarehouseResolvedList = WarehouseResolved[];
+
+export function isWarehouseResolved(data: unknown): data is WarehouseResolved {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "contact_name" in data &&
+    (data.contact_name === null || typeof data.contact_name === "string") &&
+    "contact_phone" in data &&
+    (data.contact_phone === null || typeof data.contact_phone === "string") &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
+  );
+}
+
+export function isWarehouseResolvedList(data: unknown): data is WarehouseResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every(item => isWarehouseResolved(item))
+  );
+}
+
+
+export function isPaginatedWarehouseResolvedListResponse(data: unknown): data is PaginatedDataResponse<WarehouseResolvedList> {
+  return isPaginatedDataResponse(
+    data,
+    isWarehouseResolvedList,
+  )
+}

@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use thiserror::Error;
+use uuid::Uuid;
 
 /// A generic response struct used to represent a successful response, containing a success flag
 /// and some associated data. The data field is generic and must implement the `Serialize` trait.
@@ -345,6 +346,11 @@ where
             None => Err(OrderingError::MissingParams),
         }
     }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct UuidParam {
+    pub uuid: Uuid,
 }
 
 #[cfg(test)]

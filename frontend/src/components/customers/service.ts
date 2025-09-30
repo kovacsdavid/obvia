@@ -57,3 +57,14 @@ export async function list(query: string | null, token: string | null): Promise<
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }
+
+export async function get_resolved(uuid: string, token: string | null): Promise<Response> {
+  return await fetch(`/api/customers/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}

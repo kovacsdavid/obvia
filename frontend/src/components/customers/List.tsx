@@ -201,9 +201,11 @@ export default function List() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side={"bottom"} align="start">
                     <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <DropdownMenuItem>
-                      <Eye/> Részletek
-                    </DropdownMenuItem>
+                    <Link to={`/vevo/reszletek/${item.id}`}>
+                      <DropdownMenuItem>
+                        <Eye/> Részletek
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem>
                       <Pencil/> Szerkesztés
                     </DropdownMenuItem>
@@ -222,7 +224,6 @@ export default function List() {
               <TableCell>{item.created_by}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-
             </TableRow>
           ))}
         </TableBody>

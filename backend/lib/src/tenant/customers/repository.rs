@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
-use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::error::RepositoryResult;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -33,6 +33,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CustomersRespository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<CustomerResolved>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -45,11 +50,43 @@ pub trait CustomersRespository: Send + Sync {
         customer: CreateCustomer,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Customer, RepositoryError>;
+    ) -> RepositoryResult<Customer>;
+    async fn update(&self, customer: Customer, active_tenant: Uuid) -> RepositoryResult<Customer>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl CustomersRespository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<CustomerResolved> {
+        Ok(sqlx::query_as::<_, CustomerResolved>(
+            r#"
+            SELECT
+                customers.id as id,
+                customers.name as name,
+                customers.contact_name as contact_name,
+                customers.email as email,
+                customers.phone_number as phone_number,
+                customers.status as status,
+                customers.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                customers.created_at as created_at,
+                customers.updated_at as updated_at,
+                customers.deleted_at as deleted_at
+            FROM customers
+            LEFT JOIN users ON customers.created_by_id = users.id
+            WHERE customers.deleted_at IS NULL
+                AND customers.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -110,7 +147,7 @@ impl CustomersRespository for PoolManagerWrapper {
         customer: CreateCustomer,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Customer, RepositoryError> {
+    ) -> RepositoryResult<Customer> {
         Ok(sqlx::query_as::<_, Customer>(
             "INSERT INTO customers (name, contact_name, email, phone_number, status, type, created_by_id)
                  VALUES ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
@@ -132,5 +169,13 @@ impl CustomersRespository for PoolManagerWrapper {
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn update(&self, customer: Customer, active_tenant: Uuid) -> RepositoryResult<Customer> {
+        todo!()
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        todo!()
     }
 }

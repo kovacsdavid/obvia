@@ -21,6 +21,7 @@ import {
   type CommonResponse,
   type FormError,
   isCommonResponse, isFormError, isPaginatedDataResponse, isSimpleMessageData, type PaginatedDataResponse,
+  type SimpeError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
@@ -140,6 +141,13 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
     "deleted_at" in data &&
     (data.deleted_at === null || typeof data.deleted_at === "string")
   );
+}
+
+export function isCustomerResolvedResponse(data: unknown): data is CommonResponse<CustomerResolved, SimpeError> {
+  return isCommonResponse(
+    data,
+    isCustomerResolved
+  )
 }
 
 export function isCustomerResolvedList(data: unknown): data is CustomerResolvedList {

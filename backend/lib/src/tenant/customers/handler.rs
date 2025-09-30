@@ -19,7 +19,7 @@
 
 use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder,
+    SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
@@ -42,8 +42,22 @@ use std::sync::Arc;
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
-) -> Response {
-    todo!()
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            CustomersService::get_resolved_by_id(
+                &claims,
+                &payload,
+                customers_module.customers_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 #[debug_handler]
@@ -52,7 +66,7 @@ pub async fn create(
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CreateCustomer, CreateCustomerHelper>,
 ) -> HandlerResult {
-    CustomersService::try_create(
+    CustomersService::create(
         &claims,
         &user_input,
         customers_module.customers_repo.clone(),

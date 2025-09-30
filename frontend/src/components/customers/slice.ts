@@ -56,6 +56,19 @@ export const list = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "customers/get",
+  async (uuid: string, {rejectWithValue, getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    try {
+      return await customersApi.get_resolved(uuid, token)
+    } catch (error: unknown) {
+      return rejectWithValue(error)
+    }
+  }
+)
+
 const customersSlice = createSlice({
   name: "customers",
   initialState,

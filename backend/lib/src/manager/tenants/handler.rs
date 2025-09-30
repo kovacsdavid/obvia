@@ -27,7 +27,8 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenant, TenantActivateRequest,
+    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenantManaged, PublicTenantSelfHosted,
+    TenantActivateRequest,
 };
 use crate::manager::tenants::service::TenantsService;
 use crate::manager::tenants::types::TenantsOrderBy;
@@ -74,16 +75,29 @@ pub async fn create(
     State(tenants_module): State<Arc<TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(PublicTenant::from(
-            TenantsService::try_create(&claims, &user_input, tenants_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        ))
-        .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    if user_input.is_self_hosted() {
+        Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(PublicTenantSelfHosted::from(
+                TenantsService::create_self_hosted(&claims, &user_input, tenants_module)
+                    .await
+                    .map_err(|e| e.into_response())?,
+            ))
+            .build()
+            .map_err(|e| e.into_response())?
+            .into_response())
+    } else {
+        Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(PublicTenantManaged::from(
+                TenantsService::create_managed(&claims, &user_input, tenants_module)
+                    .await
+                    .map_err(|e| e.into_response())?,
+            ))
+            .build()
+            .map_err(|e| e.into_response())?
+            .into_response())
+    }
 }
 
 /// Handles the HTTP GET request for a tenant
@@ -217,7 +231,6 @@ pub async fn activate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::dto::SimpleMessageResponse;
     use crate::manager::app::config::{
         AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
@@ -261,14 +274,17 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
+        let new_tenant_id = Uuid::new_v4();
+        let now = Local::now();
+
         let mut tenants_repo = MockTenantsRepository::new();
         tenants_repo
             .expect_setup_managed()
             .times(1)
             .withf(|_, name, _, _, _| name == "test")
-            .returning(|uuid: Uuid, _, _, _, _| {
+            .returning(move |_, _, _, _, _| {
                 Ok(Tenant {
-                    id: uuid,
+                    id: new_tenant_id,
                     name: "test".to_string(),
                     is_self_hosted: false,
                     db_host: "localhost".to_string(),
@@ -278,8 +294,8 @@ mod tests {
                     db_password: "password".to_string(),
                     db_max_pool_size: 5,
                     db_ssl_mode: "disable".to_string(),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    created_at: now,
+                    updated_at: now,
                     deleted_at: None,
                 })
             });
@@ -389,9 +405,21 @@ mod tests {
         let expected_response = serde_json::to_string(
             &SuccessResponseBuilder::<EmptyType, _>::new()
                 .status_code(StatusCode::CREATED)
-                .data(SimpleMessageResponse::new(
-                    "Szervezeti egység létrehozása sikeresen megtörtént!",
-                ))
+                .data(PublicTenantSelfHosted {
+                    id: new_tenant_id,
+                    name: "test".to_string(),
+                    is_self_hosted: false,
+                    db_host: "[MANAGED]".to_string(),
+                    db_port: 0,
+                    db_name: "[MANAGED]".to_string(),
+                    db_user: "[MANAGED]".to_string(),
+                    db_password: "[REDACTED]".to_string(),
+                    db_max_pool_size: 5,
+                    db_ssl_mode: "disable".to_string(),
+                    created_at: now,
+                    updated_at: now,
+                    deleted_at: None,
+                })
                 .build()
                 .unwrap(),
         )
@@ -522,14 +550,17 @@ mod tests {
             });
         let pool_manager_mock = Arc::new(pool_manager_mock);
 
+        let new_tenant_id = Uuid::new_v4();
+        let now = Local::now();
+
         let mut tenants_repo = MockTenantsRepository::new();
         tenants_repo
             .expect_setup_self_hosted()
             .times(1)
             .withf(|name, _, _| name == "test")
-            .returning(|_, _, _| {
+            .returning(move |_, _, _| {
                 Ok(Tenant {
-                    id: Uuid::new_v4(),
+                    id: new_tenant_id,
                     name: "test".to_string(),
                     is_self_hosted: true,
                     db_host: "example.com".to_string(),
@@ -539,8 +570,8 @@ mod tests {
                     db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
                     db_max_pool_size: 5,
                     db_ssl_mode: "verify-full".to_string(),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    created_at: now,
+                    updated_at: now,
                     deleted_at: None,
                 })
             });
@@ -666,9 +697,21 @@ mod tests {
         let expected_response = serde_json::to_string(
             &SuccessResponseBuilder::<EmptyType, _>::new()
                 .status_code(StatusCode::CREATED)
-                .data(SimpleMessageResponse::new(
-                    "Szervezeti egység létrehozása sikeresen megtörtént!",
-                ))
+                .data(PublicTenantSelfHosted {
+                    id: new_tenant_id,
+                    name: "test".to_string(),
+                    is_self_hosted: true,
+                    db_host: "example.com".to_string(),
+                    db_port: 5432,
+                    db_name: "tenant_1234567890".to_string(),
+                    db_user: "tenant_1234567890".to_string(),
+                    db_password: "[REDACTED]".to_string(),
+                    db_max_pool_size: 5,
+                    db_ssl_mode: "verify-full".to_string(),
+                    created_at: now,
+                    updated_at: now,
+                    deleted_at: None,
+                })
                 .build()
                 .unwrap(),
         )

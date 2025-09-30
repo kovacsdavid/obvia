@@ -306,7 +306,7 @@ pub struct UserTenantConnect {
 }
 
 #[derive(Serialize, Debug, Clone, Default)]
-pub struct PublicTenant {
+pub struct PublicTenantSelfHosted {
     pub id: Uuid,
     pub name: String,
     pub is_self_hosted: bool,
@@ -322,7 +322,7 @@ pub struct PublicTenant {
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
 }
 
-impl From<Tenant> for PublicTenant {
+impl From<Tenant> for PublicTenantSelfHosted {
     fn from(value: Tenant) -> Self {
         Self {
             id: value.id,
@@ -332,6 +332,43 @@ impl From<Tenant> for PublicTenant {
             db_port: value.db_port,
             db_name: value.db_name,
             db_user: value.db_user,
+            db_password: "[REDACTED]".to_string(),
+            db_max_pool_size: value.db_max_pool_size,
+            db_ssl_mode: value.db_ssl_mode,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            deleted_at: value.deleted_at,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Clone, Default)]
+pub struct PublicTenantManaged {
+    pub id: Uuid,
+    pub name: String,
+    pub is_self_hosted: bool,
+    pub db_host: String,
+    pub db_port: i32,
+    pub db_name: String,
+    pub db_user: String,
+    pub db_password: String,
+    pub db_max_pool_size: i32,
+    pub db_ssl_mode: String,
+    pub created_at: chrono::DateTime<chrono::Local>,
+    pub updated_at: chrono::DateTime<chrono::Local>,
+    pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
+}
+
+impl From<Tenant> for PublicTenantManaged {
+    fn from(value: Tenant) -> Self {
+        Self {
+            id: value.id,
+            name: value.name,
+            is_self_hosted: value.is_self_hosted,
+            db_host: "[MANAGED]".to_string(),
+            db_port: 0,
+            db_name: "[MANAGED]".to_string(),
+            db_user: "[MANAGED]".to_string(),
             db_password: "[REDACTED]".to_string(),
             db_max_pool_size: value.db_max_pool_size,
             db_ssl_mode: value.db_ssl_mode,

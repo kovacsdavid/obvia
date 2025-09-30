@@ -25,7 +25,7 @@ use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabase
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, FilteringParams, PublicTenant, TenantActivateRequest,
+    CreateTenant, FilteringParams, PublicTenantSelfHosted, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
@@ -104,7 +104,7 @@ impl TenantsService {
     ///
     /// # Panics
     /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
-    async fn self_hosted(
+    pub async fn create_self_hosted(
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
@@ -200,7 +200,7 @@ impl TenantsService {
     /// # Localization
     /// * The success message, "Szervezeti egység létrehozása sikeresen megtörtént!", is hardcoded
     ///   in Hungarian. Modify it if localization is necessary for other languages.
-    async fn managed(
+    pub async fn create_managed(
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<TenantsModule>,
@@ -255,61 +255,19 @@ impl TenantsService {
         Ok(tenant)
     }
 
-    /// Attempts to create a tenant based on the provided payload, handling both self-hosted
-    /// and managed scenarios asynchronously.
-    ///
-    /// # Arguments
-    /// * `repo` - A mutable reference to an object implementing the `TenantsRepository` trait,
-    ///   which allows for interaction with the underlying tenants data store. Must be `Send` and `Sync`.
-    ///
-    /// * `claims` - The authentication and authorization claims for the current user or process,
-    ///   used to validate permissions for the requested operation.
-    ///
-    /// * `payload` - The `CreateRequest` object containing the necessary data to create the tenant. The `payload` determines whether the creation is for a self-hosted or managed unit.
-    ///
-    /// * `tenants_module` - An `Arc` reference to the `TenantsModule`,
-    ///   which encapsulates logic and dependencies for tenants functionality.
-    ///
-    /// # Returns
-    /// Returns a `Result`:
-    /// * `Ok(OkResponse<SimpleMessageResponse>)` - Indicates a successful creation operation, with a response
-    ///   message encapsulated in a `SimpleMessageResponse`.
-    /// * `Err(FriendlyError)` - Indicates a failure during the creation process, returning a user-friendly error.
-    ///
-    /// # Behavior
-    /// This function evaluates whether the `payload` specifies a self-hosted or managed tenant:
-    /// * If `payload.is_self_hosted()` evaluates to true, the `self_hosted` function is invoked.
-    /// * If false, the `managed` function is invoked.
-    ///
-    /// Both `self_hosted` and `managed` perform the creation logic for their respective scenarios asynchronously.
-    ///
-    /// # Errors
-    /// If the creation fails, a `FriendlyError` is returned, which provides a user-comprehensible description
-    /// of the error for better clarity and user experience.
-    pub async fn try_create(
-        claims: &Claims,
-        payload: &CreateTenant,
-        tenants_module: Arc<TenantsModule>,
-    ) -> Result<Tenant, TenantsServiceError> {
-        if payload.is_self_hosted() {
-            Self::self_hosted(claims, payload, tenants_module).await
-        } else {
-            Self::managed(claims, payload, tenants_module).await
-        }
-    }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,
         ordering: &OrderingParams<TenantsOrderBy>,
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
-    ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
+    ) -> Result<(PaginatorMeta, Vec<PublicTenantSelfHosted>), TenantsServiceError> {
         let (meta, data) = repo
             .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
             .await?;
         let mut public_tenants = vec![];
         for tenant in data {
-            public_tenants.push(PublicTenant::from(tenant))
+            public_tenants.push(PublicTenantSelfHosted::from(tenant))
         }
         Ok((meta, public_tenants))
     }

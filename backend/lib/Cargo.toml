@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 axum = { version = "0.8.4" , features = ["macros"]}
 axum-extra = { version = "0.10.1", features = ["cookie", "cookie-key-expansion", "cookie-private", "cookie-signed", "typed-header"] }
-jsonwebtoken = { version = "9.3.1", features = ["use_pem"] }
+jsonwebtoken = { version = "10.0.0", features = ["aws_lc_rs"] }
 serde = { version = "1.0.219", features = ["derive"]}
 serde_json = "1.0.140"
 tokio = { version = "1.45.1", features = ["full"] }

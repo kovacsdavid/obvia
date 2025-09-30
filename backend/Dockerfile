@@ -16,7 +16,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPL
     cp target/release/backend_bin /opt; \
     fi
 
-FROM debian:bookworm-slim
+FROM ubuntu:24.04
 WORKDIR /opt
 EXPOSE 3000
 COPY --from=builder /opt/migrations /opt/migrations

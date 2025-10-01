@@ -17,8 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {LoginRequest, RegisterRequest} from "@/components/auth/interface.ts";
+import {globalRequestTimeout, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  isRegisterResponse,
+  type LoginRequest,
+  type RegisterRequest,
+  type RegisterResponse
+} from "@/components/auth/interface.ts";
+import type {ResponseWrapper} from "@/lib/interfaces/common.ts";
 
 export async function login({email, password}: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
@@ -37,7 +43,7 @@ export async function register({
                                  email,
                                  password,
                                  passwordConfirm
-                               }: RegisterRequest): Promise<Response> {
+                               }: RegisterRequest): Promise<ResponseWrapper<RegisterResponse>> {
   return await fetch(`/api/auth/register`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -49,5 +55,19 @@ export async function register({
       password_confirm: passwordConfirm
     }),
     signal: AbortSignal.timeout(globalRequestTimeout)
+  }).then(async (response: Response) => {
+    try {
+      const jsonData = await response.json();
+      if (isRegisterResponse(jsonData)) {
+        console.log("register_response");
+        return {
+          statusCode: response.status,
+          jsonData
+        };
+      }
+    } catch {
+      return unexpectedFormError;
+    }
+    return unexpectedFormError;
   });
 }

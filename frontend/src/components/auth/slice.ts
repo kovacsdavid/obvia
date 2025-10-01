@@ -56,12 +56,8 @@ const initialState: AuthState = {
 
 export const registerUserRequest = createAsyncThunk(
   "auth/registerUserRequest",
-  async (userData: RegisterRequest, {rejectWithValue}) => {
-    try {
-      return await authApi.register(userData);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+  async (userData: RegisterRequest) => {
+    return await authApi.register(userData);
   }
 );
 

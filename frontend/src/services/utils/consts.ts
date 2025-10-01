@@ -18,3 +18,22 @@
  */
 
 export const globalRequestTimeout = 3000;
+
+export const unexpectedFormError = {
+  statusCode: 500,
+  jsonData: {
+    error: {
+      message: "Váratlan hiba történt a feldolgozás során!",
+      fields: {},
+    }
+  },
+};
+
+export const unexpectedError = {
+  statusCode: 500,
+  jsonData: {
+    error: {
+      message: "Váratlan hiba történt a feldolgozás során!",
+    }
+  },
+};

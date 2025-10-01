@@ -22,8 +22,8 @@ import {Button, FieldError, GlobalError, Input, Label,} from "@/components/ui";
 import {registerUserRequest} from "@/components/auth/slice.ts";
 import {useAppDispatch} from "@/store/hooks";
 import {useNavigate} from "react-router-dom";
-import {type FormError} from "@/lib/interfaces/common.ts";
-import {isRegisterResponse} from "@/components/auth/interface.ts";
+import {type FormError, type ResponseWrapper} from "@/lib/interfaces/common.ts";
+import {type RegisterResponse} from "@/components/auth/interface.ts";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -35,39 +35,27 @@ export default function Register() {
   const navigate = useNavigate();
   const [errors, setErrors] = useState<FormError | null>(null);
 
+  const handleRegistrationResponse = async (response: ResponseWrapper<RegisterResponse>) => {
+    switch (response.statusCode) {
+      case 201: {
+        navigate("/login");
+        break;
+      }
+      default: {
+        if (typeof response.jsonData?.error !== "undefined") {
+          setErrors(response.jsonData.error);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    dispatch(registerUserRequest({firstName, lastName, email, password, passwordConfirm})).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201: {
-              if (isRegisterResponse(responseData)) {
-                navigate("/login");
-              }
-              break;
-            }
-            case 409:
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              setErrors({
-                message: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
-          }
-        } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
-        }
-      }
-    });
+    const response = await dispatch(registerUserRequest({firstName, lastName, email, password, passwordConfirm}));
+    if (registerUserRequest.fulfilled.match(response)) {
+      await handleRegistrationResponse(response.payload);
+    }
   };
 
   return (

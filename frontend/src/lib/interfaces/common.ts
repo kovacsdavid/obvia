@@ -21,9 +21,37 @@ export interface SimpeError {
   message: string | null | undefined
 }
 
+export type FormErrorFields = Record<string, string | null>;
+
+export function isFormErrorFields(data: unknown): data is FormErrorFields {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    Object.values(data as Record<string, unknown>).every(value =>
+      value === null || typeof value === "string"
+    )
+  );
+}
+
 export interface FormError {
   message: string | null | undefined
-  fields: Record<string, string> | null | undefined
+  fields: FormErrorFields
+}
+
+export function isFormError(data: unknown): data is FormError {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    (data.message === null || data.message === undefined || typeof data.message === "string") &&
+    "fields" in data &&
+    isFormErrorFields(data.fields)
+  );
+}
+
+export interface ResponseWrapper<T> {
+  statusCode: number,
+  jsonData: T
 }
 
 export interface CommonResponse<T, E> {
@@ -39,18 +67,9 @@ export function isSimpleError(data: unknown): data is SimpeError {
   return (
     typeof data === "object" &&
     data !== null &&
-    "global" in data &&
-    (data.global === null || data.global === undefined || typeof data.global === "string")
+    "message" in data &&
+    (data.message === null || data.message === undefined || typeof data.message === "string")
   );
-}
-
-export function isFormError(data: unknown): data is FormError {
-  return (typeof data === "object" &&
-    data !== null &&
-    "global" in data &&
-    (data.global === null || data.global === undefined || typeof data.global === "string") &&
-    "fields" in data && (data.fields === null ||
-      data.fields === undefined || (typeof data.fields === "object" && true && Object.values(data.fields).every(value => typeof value === "string"))));
 }
 
 export function isCommonResponse<T, E>(

@@ -76,7 +76,9 @@ export function isLoginData(data: unknown): data is LoginData {
   );
 }
 
-export function isLoginResponse(data: unknown): data is CommonResponse<LoginData, FormError> {
+export type LoginResponse = CommonResponse<LoginData, FormError>;
+
+export function isLoginResponse(data: unknown): data is LoginResponse {
   return isCommonResponse<LoginData, FormError>(
     data,
     isLoginData,
@@ -92,7 +94,9 @@ export interface RegisterRequest {
   passwordConfirm: string,
 }
 
-export function isRegisterResponse(data: unknown): data is CommonResponse<SimpleMessageData, FormError> {
+export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
+
+export function isRegisterResponse(data: unknown): data is RegisterResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,

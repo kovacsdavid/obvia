@@ -20,16 +20,9 @@
 import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/components/worksheets/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {select_list} from "@/components/worksheets/slice.ts";
+import {create, select_list} from "@/components/worksheets/slice.ts";
+import {type FormError} from "@/lib/interfaces/common.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import {isProjectListResponse, type ProjectList} from "@/components/projects/interface.ts";
 
 export default function Create() {

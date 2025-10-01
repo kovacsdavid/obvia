@@ -21,14 +21,8 @@ import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/inventory/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import {type FormError} from "@/lib/interfaces/common.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {isProductListResponse, type ProductList} from "@/components/products/interface.ts";
 import {isWarehouseListResponse, type WarehouseList} from "@/components/warehouses/interface.ts";
 import {type CurrencyList, isCurrencyListResponse} from "@/components/inventory/interface.ts";

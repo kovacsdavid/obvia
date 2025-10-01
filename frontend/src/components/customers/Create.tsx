@@ -21,14 +21,8 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/components/customers/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import {type FormError} from "@/lib/interfaces/common.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {isCreateCustomerResponse} from "@/components/customers/interface.ts";
 
 export default function Create() {
@@ -37,7 +31,7 @@ export default function Create() {
   const [contactName, setContactName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [status, setStatus] = React.useState<string| undefined>("active");
+  const [status, setStatus] = React.useState<string | undefined>("active");
   const dispatch = useAppDispatch();
   const [errors, setErrors] = useState<FormError | null>(null);
 

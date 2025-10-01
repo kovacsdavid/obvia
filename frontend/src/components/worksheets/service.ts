@@ -21,11 +21,11 @@ import {globalRequestTimeout} from "@/services/utils/consts.ts";
 import type {CreateWorksheet} from "@/components/worksheets/interface.ts";
 
 export async function create({
-                         name,
-                         description,
-                         projectId,
-                         status
-                       }: CreateWorksheet, token: string | null): Promise<Response> {
+                               name,
+                               description,
+                               projectId,
+                               status
+                             }: CreateWorksheet, token: string | null): Promise<Response> {
   return await fetch(`/api/worksheets/create`, {
     method: "POST",
     headers: {

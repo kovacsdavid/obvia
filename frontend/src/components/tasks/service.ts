@@ -27,8 +27,7 @@ export async function create({
                                status,
                                priority,
                                dueDate
-                             }: CreateTask, token: string | null): Promise<Response>
-{
+                             }: CreateTask, token: string | null): Promise<Response> {
   return await fetch(`/api/tasks/create`, {
     method: "POST",
     headers: {

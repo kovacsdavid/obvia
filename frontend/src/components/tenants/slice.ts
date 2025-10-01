@@ -37,7 +37,7 @@ export const create = createAsyncThunk(
     const token = rootState.auth.login.token;
     try {
       return await tenantsApi.create(requestData, token);
-    } catch (error: unknown ){
+    } catch (error: unknown) {
       return rejectWithValue(error);
     }
   }

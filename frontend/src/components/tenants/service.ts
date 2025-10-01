@@ -46,7 +46,7 @@ export async function create({
       db_user: dbUser,
       db_password: dbPassword
     }),
-    signal: AbortSignal.timeout(globalRequestTimeout),  
+    signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }
 

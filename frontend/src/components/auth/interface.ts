@@ -21,7 +21,8 @@ import {
   type CommonResponse,
   type FormError,
   isCommonResponse,
-  isFormError, isSimpleMessageData,
+  isFormError,
+  isSimpleMessageData,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 

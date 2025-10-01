@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Route, Routes, Navigate } from "react-router-dom";
+import {Navigate, Route, Routes} from "react-router-dom";
 import React from "react";
 import Login from "@/components/auth/Login";
 import Register from "@/components/auth/Register";
 import Dashboard from "@/components/dashboard/Dashboard";
-import { useSelector } from "react-redux";
-import type { RootState } from "./store";
-import { Layout } from "@/components/layout/Layout";
+import {useSelector} from "react-redux";
+import type {RootState} from "./store";
+import {Layout} from "@/components/layout/Layout";
 import {default as CustomerCreate} from "@/components/customers/Create.tsx";
 import {default as CustomerList} from "@/components/customers/List.tsx";
 import {default as CustomerView} from "@/components/customers/View.tsx";
@@ -45,11 +45,11 @@ import {default as WarehousesList} from "@/components/warehouses/List.tsx";
 import {default as WorksheetsCreate} from "@/components/worksheets/Create.tsx";
 import {default as WorksheetsList} from "@/components/worksheets/List.tsx";
 import {default as TenantsCreate} from "@/components/tenants/Create.tsx";
-import {default as TenantsList}  from "@/components/tenants/List.tsx";
+import {default as TenantsList} from "@/components/tenants/List.tsx";
 
-function PrivateRoute({ children }: { children: React.JSX.Element }) {
+function PrivateRoute({children}: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);
-  return user ? children : <Navigate to="/bejelentkezes" replace />;
+  return user ? children : <Navigate to="/bejelentkezes" replace/>;
 }
 
 export default function App() {

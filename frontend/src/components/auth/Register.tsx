@@ -17,16 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
-import {
-  Button, FieldError, GlobalError,
-  Input,
-  Label,
-} from "@/components/ui";
-import { registerUserRequest } from "@/components/auth/slice.ts";
-import { useAppDispatch } from "@/store/hooks";
-import { useNavigate } from "react-router-dom";
-import { type FormError } from "@/lib/interfaces/common.ts";
+import React, {useState} from "react";
+import {Button, FieldError, GlobalError, Input, Label,} from "@/components/ui";
+import {registerUserRequest} from "@/components/auth/slice.ts";
+import {useAppDispatch} from "@/store/hooks";
+import {useNavigate} from "react-router-dom";
+import {type FormError} from "@/lib/interfaces/common.ts";
 import {isRegisterResponse} from "@/components/auth/interface.ts";
 
 export default function Register() {
@@ -42,7 +38,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    dispatch(registerUserRequest({ firstName, lastName, email, password, passwordConfirm })).then(async (response) => {
+    dispatch(registerUserRequest({firstName, lastName, email, password, passwordConfirm})).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
         const payload = response.payload as Response;
         try {

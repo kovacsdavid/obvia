@@ -18,8 +18,13 @@
  */
 
 import {
-  type CommonResponse, type FormError,
-  isCommonResponse, isFormError, isPaginatedDataResponse, isSimpleError, type PaginatedDataResponse,
+  type CommonResponse,
+  type FormError,
+  isCommonResponse,
+  isFormError,
+  isPaginatedDataResponse,
+  isSimpleError,
+  type PaginatedDataResponse,
   type SimpeError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";

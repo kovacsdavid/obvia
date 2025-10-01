@@ -17,19 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
+import React, {useState} from "react";
 import {useAppDispatch, useAppSelector} from "@/store/hooks";
-import type  { RootState } from "@/store";
-import {
-  Button, GlobalError,
-  Input,
-  Label
-} from "@/components/ui";
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from "@/context/AuthContext";
+import type {RootState} from "@/store";
+import {Button, GlobalError, Input, Label} from "@/components/ui";
+import {useNavigate} from 'react-router-dom'
+import {useAuth} from "@/context/AuthContext";
 import {isLoginResponse} from "@/components/auth/interface.ts";
 import {loginUser} from "@/components/auth/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
+import {type FormError} from "@/lib/interfaces/common.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -37,13 +33,13 @@ export default function Login() {
   const status = useAppSelector((state: RootState) => state.auth.login.status);
   const [errors, setErrors] = useState<FormError | null>(null);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const {login} = useAuth();
   const dispatch = useAppDispatch();
   const loading = status === "loading";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login( email, password ).then(async (response) => {
+    login(email, password).then(async (response) => {
       if (response?.meta?.requestStatus === "fulfilled") {
         // TODO: redirect here only if the user doesn't have any tenants yet!
         const payload = response.payload as Response;

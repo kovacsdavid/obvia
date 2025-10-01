@@ -20,13 +20,13 @@
 import {globalRequestTimeout} from "@/services/utils/consts.ts";
 import type {LoginRequest, RegisterRequest} from "@/components/auth/interface.ts";
 
-export async function login({ email, password }: LoginRequest): Promise<Response> {
+export async function login({email, password}: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({email, password}),
     signal: AbortSignal.timeout(globalRequestTimeout),
   });
 }

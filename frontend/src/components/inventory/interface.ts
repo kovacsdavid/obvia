@@ -19,7 +19,8 @@
 
 import {
   type CommonResponse,
-  isCommonResponse, isPaginatedDataResponse,
+  isCommonResponse,
+  isPaginatedDataResponse,
   isSimpleError,
   type PaginatedDataResponse,
   type SimpeError

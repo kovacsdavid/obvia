@@ -21,7 +21,6 @@ import {globalRequestTimeout} from "@/services/utils/consts.ts";
 import type {CreateProject} from "@/components/projects/interface.ts";
 
 
-
 export async function create({
                                name,
                                description,

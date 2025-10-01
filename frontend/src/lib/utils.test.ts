@@ -22,10 +22,10 @@ import {query_encoder, query_parser} from "@/lib/utils.ts";
 
 describe("query_parser", () => {
   it("should parse valid query", () => {
-     const input = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
-     const result = query_parser(input);
-     const expected_result = {page: 1, limit: 25, name: 'éáűú'};
-     expect(result).toEqual(expected_result);
+    const input = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+    const result = query_parser(input);
+    const expected_result = {page: 1, limit: 25, name: 'éáűú'};
+    expect(result).toEqual(expected_result);
   });
   it("should skip empty values", () => {
     const input = "page%7Climit%3A%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
@@ -49,11 +49,11 @@ describe("query_parser", () => {
 
 describe("query_encoder", () => {
   it("should convert to valid query", () => {
-      const input = {page: 1, limit: 25, name: 'éáűú'};
-      const result = query_encoder(input);
-      const expected_result = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+    const input = {page: 1, limit: 25, name: 'éáűú'};
+    const result = query_encoder(input);
+    const expected_result = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
 
-      expect(result).toEqual(expected_result);
+    expect(result).toEqual(expected_result);
   });
   it("should trim string values", () => {
     const input = {page: 1, limit: 25, name: '   éáűú   '};

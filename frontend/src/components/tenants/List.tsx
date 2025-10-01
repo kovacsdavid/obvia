@@ -20,39 +20,26 @@
 import {Link} from "react-router-dom";
 import React, {useCallback, useEffect} from "react";
 import {list} from "@/components/tenants/slice.ts";
-import { useAppDispatch } from "@/store/hooks";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table.tsx";
-import { Paginator } from "@/components/ui/pagination.tsx";
+import {useAppDispatch} from "@/store/hooks";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
+import {Paginator} from "@/components/ui/pagination.tsx";
 import {ArrowDownAZ, ArrowUpAZ, Eye, Funnel, MoreHorizontal, Pencil, PlugZap, Plus, Trash} from "lucide-react";
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+import {Button} from "@/components/ui/button"
+import {Input} from "@/components/ui/input"
+import {Label} from "@/components/ui/label"
+import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover"
 import {GlobalError} from "@/components/ui";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {
-  isPaginatedTenantListResponse,
-  type TenantList
-} from "@/components/tenants/interface.ts";
+import {isPaginatedTenantListResponse, type TenantList} from "@/components/tenants/interface.ts";
 import {useActivateTenant} from "@/hooks/activate_tenant.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
@@ -103,11 +90,11 @@ export default function List() {
             case 200: {
               if (isPaginatedTenantListResponse(responseData)) {
                 if (typeof responseData.data !== "undefined") {
-                setPage(responseData.meta.page);
-                setLimit(responseData.meta.limit);
-                setTotal(responseData.meta.total);
-                setData(responseData.data);
-              }
+                  setPage(responseData.meta.page);
+                  setLimit(responseData.meta.limit);
+                  setTotal(responseData.meta.total);
+                  setData(responseData.data);
+                }
               } else {
                 unexpectedError();
               }
@@ -138,7 +125,7 @@ export default function List() {
 
   return (
     <>
-      <GlobalError error={errors} />
+      <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/szervezeti_egyseg/uj"}>
@@ -180,7 +167,7 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead />
+            <TableHead/>
             <TableHead
               style={{cursor: "pointer"}}
               onClick={() => orderSelect("name")}>
@@ -221,7 +208,7 @@ export default function List() {
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" className="h-8 w-8 p-0">
                       <span className="sr-only">Menü megnyitása</span>
-                      <MoreHorizontal />
+                      <MoreHorizontal/>
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side={"bottom"} align="start">
@@ -235,7 +222,7 @@ export default function List() {
                     <DropdownMenuItem onClick={() => handleActivate(item.id)}>
                       <PlugZap/> Aktiválás
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator/>
                     <DropdownMenuItem>
                       <Trash/> Törlés
                     </DropdownMenuItem>

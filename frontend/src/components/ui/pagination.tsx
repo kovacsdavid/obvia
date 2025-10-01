@@ -18,16 +18,12 @@
  */
 
 import * as React from "react"
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  MoreHorizontalIcon,
-} from "lucide-react"
+import {ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon,} from "lucide-react"
 
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+import {cn} from "@/lib/utils"
+import {Button, buttonVariants} from "@/components/ui/button"
 
-function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
+function Pagination({className, ...props}: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
@@ -40,9 +36,9 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
 }
 
 function PaginationContent({
-  className,
-  ...props
-}: React.ComponentProps<"ul">) {
+                             className,
+                             ...props
+                           }: React.ComponentProps<"ul">) {
   return (
     <ul
       data-slot="pagination-content"
@@ -52,7 +48,7 @@ function PaginationContent({
   )
 }
 
-function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+function PaginationItem({...props}: React.ComponentProps<"li">) {
   return <li data-slot="pagination-item" {...props} />
 }
 
@@ -62,11 +58,11 @@ type PaginationLinkProps = {
   React.ComponentProps<"a">
 
 function PaginationLink({
-  className,
-  isActive,
-  size = "icon",
-  ...props
-}: PaginationLinkProps) {
+                          className,
+                          isActive,
+                          size = "icon",
+                          ...props
+                        }: PaginationLinkProps) {
   return (
     <a
       aria-current={isActive ? "page" : undefined}
@@ -85,24 +81,6 @@ function PaginationLink({
 }
 
 function PaginationPrevious({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
-  return (
-    <PaginationLink
-      aria-label="Go to previous page"
-      size="default"
-      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
-      {...props}
-    >
-      <ChevronLeftIcon />
-      <span className="hidden sm:block">Előző</span>
-    </PaginationLink>
-  )
-}
-
-
-function PaginationFirst({
                               className,
                               ...props
                             }: React.ComponentProps<typeof PaginationLink>) {
@@ -113,17 +91,35 @@ function PaginationFirst({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
+      <ChevronLeftIcon/>
+      <span className="hidden sm:block">Előző</span>
+    </PaginationLink>
+  )
+}
+
+
+function PaginationFirst({
+                           className,
+                           ...props
+                         }: React.ComponentProps<typeof PaginationLink>) {
+  return (
+    <PaginationLink
+      aria-label="Go to previous page"
+      size="default"
+      className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
+      {...props}
+    >
       <ChevronLeftIcon style={{marginRight: "-12px"}}/>
-      <ChevronLeftIcon />
+      <ChevronLeftIcon/>
       <span className="hidden sm:block">Első</span>
     </PaginationLink>
   )
 }
 
 function PaginationNext({
-  className,
-  ...props
-}: React.ComponentProps<typeof PaginationLink>) {
+                          className,
+                          ...props
+                        }: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -132,7 +128,7 @@ function PaginationNext({
       {...props}
     >
       <span className="hidden sm:block">Következő</span>
-      <ChevronRightIcon />
+      <ChevronRightIcon/>
     </PaginationLink>
   )
 }
@@ -150,15 +146,15 @@ function PaginationLast({
     >
       <span className="hidden sm:block">Utolsó</span>
       <ChevronRightIcon style={{marginRight: "-12px"}}/>
-      <ChevronRightIcon />
+      <ChevronRightIcon/>
     </PaginationLink>
   )
 }
 
 function PaginationEllipsis({
-  className,
-  ...props
-}: React.ComponentProps<"span">) {
+                              className,
+                              ...props
+                            }: React.ComponentProps<"span">) {
   return (
     <span
       aria-hidden
@@ -166,7 +162,7 @@ function PaginationEllipsis({
       className={cn("flex size-9 items-center justify-center", className)}
       {...props}
     >
-      <MoreHorizontalIcon className="size-4" />
+      <MoreHorizontalIcon className="size-4"/>
       <span className="sr-only">More pages</span>
     </span>
   )
@@ -179,8 +175,8 @@ interface PaginatorProps {
   onPageChange: (page: number) => void;
 }
 
-function Paginator ({ page, totalPages, onPageChange }: PaginatorProps) {
-  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+function Paginator({page, totalPages, onPageChange}: PaginatorProps) {
+  const pages = Array.from({length: totalPages}, (_, i) => i + 1);
 
   return (
     <Pagination style={{marginTop: "50px"}}>
@@ -197,7 +193,7 @@ function Paginator ({ page, totalPages, onPageChange }: PaginatorProps) {
             </PaginationItem>
             <PaginationItem>
               <PaginationPrevious
-                style={{ cursor: 'pointer' }}
+                style={{cursor: 'pointer'}}
                 onClick={() => onPageChange(page - 1)}
               />
             </PaginationItem>
@@ -209,10 +205,16 @@ function Paginator ({ page, totalPages, onPageChange }: PaginatorProps) {
             </PaginationItem>)
           : null}
         {pages.map((pageNumber) => {
-          if (pageNumber < page + 3 && pageNumber > page -3) {
+          if (pageNumber < page + 3 && pageNumber > page - 3) {
             return (<PaginationItem key={pageNumber}>
                 <PaginationLink
-                  style={{cursor: 'pointer', ...(page === pageNumber ? {cursor: 'default', fontWeight: "bolder", backgroundColor: "lightgray"} : {})}}
+                  style={{
+                    cursor: 'pointer', ...(page === pageNumber ? {
+                      cursor: 'default',
+                      fontWeight: "bolder",
+                      backgroundColor: "lightgray"
+                    } : {})
+                  }}
                   onClick={() => onPageChange(pageNumber)}
                 >
                   {pageNumber}

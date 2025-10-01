@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { ReactNode } from "react";
-import { createContext, useContext } from "react";
-import { useSelector } from "react-redux";
-import type { RootState } from "@/store";
-import { useAppDispatch } from "@/store/hooks";
-import { loginUserRequest, logoutUser } from "@/components/auth/slice.ts";
+import type {ReactNode} from "react";
+import {createContext, useContext} from "react";
+import {useSelector} from "react-redux";
+import type {RootState} from "@/store";
+import {useAppDispatch} from "@/store/hooks";
+import {loginUserRequest, logoutUser} from "@/components/auth/slice.ts";
 import type {PayloadAction} from "@reduxjs/toolkit";
 
 type AuthContextType = {
@@ -33,19 +33,19 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({children}: { children: ReactNode }) {
   const dispach = useAppDispatch();
   const isLoggedIn = useSelector((state: RootState) => state.auth.login.isLoggedIn);
 
   const login = (email: string, password: string) => {
-    return dispach(loginUserRequest({ email, password }));
+    return dispach(loginUserRequest({email, password}));
   };
   const logout = () => {
     dispach(logoutUser());
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+    <AuthContext.Provider value={{isLoggedIn, login, logout}}>
       {children}
     </AuthContext.Provider>
   );

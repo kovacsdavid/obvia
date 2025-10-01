@@ -19,7 +19,7 @@
 
 import * as React from "react"
 
-import { UserData } from "@/components/user-data.tsx"
+import {UserData} from "@/components/user-data.tsx"
 import {
   Sidebar,
   SidebarContent,
@@ -30,23 +30,28 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail, useSidebar,
+  SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
-import { useAuth } from "@/context/AuthContext";
+import {useAuth} from "@/context/AuthContext";
 import {logoutUser} from "@/components/auth/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";
 import {
+  Boxes,
+  FolderOpen,
+  Group,
   KeyRound,
+  ListTodo,
   LogOut,
   NotebookPen,
-  Boxes,
-  UsersRound,
-  UserCog,
+  NotebookText,
+  Package,
   Tag,
-  FolderOpen,
-  NotebookText, ListTodo, Package, Warehouse, Group
+  UserCog,
+  UsersRound,
+  Warehouse
 } from "lucide-react";
 
 interface NavigationItem {
@@ -68,6 +73,7 @@ interface NavigationSection {
 interface NavigationData {
   navMain: NavigationSection[];
 }
+
 export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const location = useLocation();
@@ -75,12 +81,12 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const handleLogout = () => {
     dispatch(logoutUser());
   }
-  const { toggleSidebar, isMobile } = useSidebar();
+  const {toggleSidebar, isMobile} = useSidebar();
 
   const mobileCloseOnClick = () => {
-      if (isMobile) {
-        toggleSidebar();
-      }
+    if (isMobile) {
+      toggleSidebar();
+    }
   };
   const data: NavigationData = {
     navMain: [
@@ -92,35 +98,35 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Szerzvezeti egységek",
             url: "/szervezeti_egyseg/lista",
             private: true,
-            icon: <Group />,
+            icon: <Group/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Felhasználók",
             url: "/felhasznalo/lista",
             private: true,
-            icon: <UserCog />,
+            icon: <UserCog/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Vevők",
             url: "/vevo/lista",
             private: true,
-            icon: <UsersRound />,
+            icon: <UsersRound/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Címkék",
             url: "/cimke/lista",
             private: true,
-            icon: <Tag />,
+            icon: <Tag/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Raktárak",
             url: "/raktar/lista",
             private: true,
-            icon: <Warehouse />,
+            icon: <Warehouse/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
         ]
@@ -133,14 +139,14 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Termékek",
             url: "/termek/lista",
             private: true,
-            icon: <Package />,
+            icon: <Package/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Leltár",
             url: "/leltar/lista",
             private: true,
-            icon: <Boxes />,
+            icon: <Boxes/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
         ]
@@ -154,21 +160,21 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Projektek",
             url: "/projekt/lista",
             private: true,
-            icon: <FolderOpen />,
+            icon: <FolderOpen/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Munkalapok",
             url: "/munkalap/lista",
             private: true,
-            icon: <NotebookText />,
+            icon: <NotebookText/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
           {
             title: "Feladatok",
             url: "/feladat/lista",
             private: true,
-            icon: <ListTodo />,
+            icon: <ListTodo/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
         ]
@@ -181,20 +187,20 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Bejelentkezes",
             url: "/bejelentkezes",
             publicOnly: true,
-            icon: <KeyRound />,
+            icon: <KeyRound/>,
             isActive: location.pathname.includes("/bejelentkezes"),
           },
           {
             title: "Regisztráció",
             url: "/regisztracio",
-            icon: <NotebookPen />,
+            icon: <NotebookPen/>,
             publicOnly: true,
             isActive: location.pathname.includes("/regisztracio"),
           },
           {
             title: "Kijelentkezés",
             click: handleLogout,
-            icon: <LogOut />,
+            icon: <LogOut/>,
             private: true,
             isActive: false,
           },
@@ -203,59 +209,60 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
     ],
   }
   return (
-      <Sidebar {...props}>
-        <SidebarHeader>
-          {isLoggedIn ? <UserData /> : null}
-        </SidebarHeader>
-        <SidebarContent>
-          {data.navMain.map((item) => {
-            const filteredItems = item.items.filter((item) => (
-              !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
-            ));
-            return (
-              filteredItems.length === 0 ? null :
-                  <SidebarGroup key={item.title}>
-                    <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {filteredItems.map((item) => (
-                            <SidebarMenuItem key={item.title}>
-                              <SidebarMenuButton asChild isActive={item.isActive}>
-                                {
-                                  item.url
-                                      ? <Link onClick={mobileCloseOnClick} to={item.url} key={item.title}>
-                                        { item.icon ? item.icon : "" }
-                                        {item.title}
-                                      </Link>
-                                      : typeof item.click === "function"
-                                        ? <Button
-                                              key={item.title}
-                                              onClick={() => {
-                                                mobileCloseOnClick();
-                                                // TODO: figure out why this if needed for ts
-                                                if (typeof item.click === "function") {
-                                                  item.click();
-                                                }
-                                              }}
-                                              asChild
-                                              variant={"ghost"}
-                                          >
-                                            <div className="justify-start cursor-pointer">
-                                              {item.title}
-                                              { item.icon ? item.icon : "" }
-                                            </div>
-                                          </Button> :  (
-                                              <span key={item.title}>{item.title}</span>
-                                          )}
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-          )})}
-        </SidebarContent>
-        <SidebarRail/>
-      </Sidebar>
+    <Sidebar {...props}>
+      <SidebarHeader>
+        {isLoggedIn ? <UserData/> : null}
+      </SidebarHeader>
+      <SidebarContent>
+        {data.navMain.map((item) => {
+          const filteredItems = item.items.filter((item) => (
+            !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
+          ));
+          return (
+            filteredItems.length === 0 ? null :
+              <SidebarGroup key={item.title}>
+                <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {filteredItems.map((item) => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild isActive={item.isActive}>
+                          {
+                            item.url
+                              ? <Link onClick={mobileCloseOnClick} to={item.url} key={item.title}>
+                                {item.icon ? item.icon : ""}
+                                {item.title}
+                              </Link>
+                              : typeof item.click === "function"
+                                ? <Button
+                                  key={item.title}
+                                  onClick={() => {
+                                    mobileCloseOnClick();
+                                    // TODO: figure out why this if needed for ts
+                                    if (typeof item.click === "function") {
+                                      item.click();
+                                    }
+                                  }}
+                                  asChild
+                                  variant={"ghost"}
+                                >
+                                  <div className="justify-start cursor-pointer">
+                                    {item.title}
+                                    {item.icon ? item.icon : ""}
+                                  </div>
+                                </Button> : (
+                                  <span key={item.title}>{item.title}</span>
+                                )}
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+          )
+        })}
+      </SidebarContent>
+      <SidebarRail/>
+    </Sidebar>
   )
 }

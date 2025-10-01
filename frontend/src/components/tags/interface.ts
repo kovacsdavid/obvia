@@ -107,6 +107,7 @@ export function isTagResolvedList(data: unknown): data is TagResolvedList {
     data.every(item => isTagResolved(item))
   );
 }
+
 export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedDataResponse<TagResolvedList> {
   return isPaginatedDataResponse(
     data,

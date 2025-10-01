@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createSlice, createAsyncThunk, type PayloadAction} from "@reduxjs/toolkit";
+import {createAsyncThunk, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import * as authApi from "@/components/auth/service.ts";
 import type {LoginRequest, RegisterRequest} from "@/components/auth/interface.ts";
 
@@ -56,7 +56,7 @@ const initialState: AuthState = {
 
 export const registerUserRequest = createAsyncThunk(
   "auth/registerUserRequest",
-  async (userData: RegisterRequest, { rejectWithValue }) => {
+  async (userData: RegisterRequest, {rejectWithValue}) => {
     try {
       return await authApi.register(userData);
     } catch (error: unknown) {
@@ -67,7 +67,7 @@ export const registerUserRequest = createAsyncThunk(
 
 export const loginUserRequest = createAsyncThunk(
   "auth/loginUserRequest",
-  async (credentials: LoginRequest, { rejectWithValue }) => {
+  async (credentials: LoginRequest, {rejectWithValue}) => {
     try {
       return await authApi.login(credentials);
     } catch (error: unknown) {
@@ -124,5 +124,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logoutUser, updateToken, loginUser } = authSlice.actions;
+export const {logoutUser, updateToken, loginUser} = authSlice.actions;
 export default authSlice.reducer;

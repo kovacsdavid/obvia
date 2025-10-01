@@ -19,13 +19,13 @@
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { Provider } from "react-redux";
-import { BrowserRouter } from "react-router-dom";
-import { store, persistor } from "./store";
+import {Provider} from "react-redux";
+import {BrowserRouter} from "react-router-dom";
+import {persistor, store} from "./store";
 import App from "./App";
 import "./index.css";
-import { PersistGate } from "redux-persist/integration/react";
-import { AuthProvider } from "./context/AuthContext";
+import {PersistGate} from "redux-persist/integration/react";
+import {AuthProvider} from "./context/AuthContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -33,7 +33,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
       <PersistGate loading={null} persistor={persistor}>
         <BrowserRouter>
           <AuthProvider>
-            <App />
+            <App/>
           </AuthProvider>
         </BrowserRouter>
       </PersistGate>

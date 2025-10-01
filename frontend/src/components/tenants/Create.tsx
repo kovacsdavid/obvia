@@ -20,19 +20,19 @@
 import React from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {
-  Button,
-  Input,
-  Label,
-  Checkbox,
   Alert,
-  AlertTitle,
   AlertDescription,
+  AlertTitle,
+  Button,
+  Checkbox,
   FieldError,
-  GlobalError
+  GlobalError,
+  Input,
+  Label
 } from "@/components/ui";
 import {create} from "@/components/tenants/slice.ts";
 import {AlertCircle, Terminal} from "lucide-react";
-import { type FormError } from "@/lib/interfaces/common.ts";
+import {type FormError} from "@/lib/interfaces/common.ts";
 import {isTenantResponse} from "@/components/tenants/interface.ts";
 import {useActivateTenant} from "@/hooks/activate_tenant.ts";
 
@@ -110,7 +110,7 @@ export default function Create() {
 
   return (
     <>
-      <GlobalError error={errors} />
+      <GlobalError error={errors}/>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
         <Label htmlFor="name">Szervezeti egység neve</Label>
         <Input

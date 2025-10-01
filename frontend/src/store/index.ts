@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { configureStore } from "@reduxjs/toolkit";
-import { combineReducers } from "redux";
+import {configureStore} from "@reduxjs/toolkit";
+import {combineReducers} from "redux";
 import authReducer from "@/components/auth/slice.ts";
 import tenantsReducer from "@/components/tenants/slice.ts";
 import customersReducer from "@/components/customers/slice.ts";
@@ -31,10 +31,10 @@ import usersReducer from "@/components/users/slice.ts";
 import warehousesReducer from "@/components/warehouses/slice.ts";
 import worksheetsReducer from "@/components/worksheets/slice.ts";
 import storage from "redux-persist/lib/storage";
-import { persistStore, persistReducer } from "redux-persist";
+import {persistReducer, persistStore} from "redux-persist";
 import authMiddleware from "@/store/middleware/authMiddleware.ts";
 
-const rootReducer = combineReducers ({
+const rootReducer = combineReducers({
   auth: authReducer,
   tenants: tenantsReducer,
   customers: customersReducer,

@@ -21,14 +21,8 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/components/projects/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import {type FormError} from "@/lib/interfaces/common.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 
 export default function Create() {
   const [name, setName] = React.useState("");

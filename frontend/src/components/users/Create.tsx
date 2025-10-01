@@ -21,7 +21,7 @@ import React, {useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/components/users/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
+import {type FormError} from "@/lib/interfaces/common.ts";
 
 export default function Create() {
   const [email, setEmail] = React.useState("");

@@ -21,14 +21,8 @@ import React, {useEffect, useState} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/products/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import {type FormError} from "@/lib/interfaces/common.ts";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import {isUnitsOfMeasureListResponse, type UnitsOfMeasureList} from "@/components/products/interface.ts";
 
 export default function Create() {
@@ -107,7 +101,7 @@ export default function Create() {
 
   return (
     <>
-      <GlobalError error={errors} />
+      <GlobalError error={errors}/>
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
         <Label htmlFor="name">Név</Label>
         <Input
@@ -135,7 +129,8 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {unitsOfMeasureList.map(unit_of_measure => {
-              return <SelectItem key={unit_of_measure.id} value={unit_of_measure.id}>{unit_of_measure.unit_of_measure}</SelectItem>
+              return <SelectItem key={unit_of_measure.id}
+                                 value={unit_of_measure.id}>{unit_of_measure.unit_of_measure}</SelectItem>
             })}
             <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>

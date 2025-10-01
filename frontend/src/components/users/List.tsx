@@ -20,26 +20,20 @@
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
 import {Button, GlobalError, Input, Label} from "@/components/ui";
 import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table.tsx";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
 import {Link} from "react-router-dom";
 import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import { Paginator } from "@/components/ui/pagination.tsx";
+import {Paginator} from "@/components/ui/pagination.tsx";
 import {list} from "@/components/users/slice.ts";
 import {type SimpeError} from "@/lib/interfaces/common.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
@@ -86,7 +80,7 @@ export default function List() {
 
   return (
     <>
-      <GlobalError error={errors} />
+      <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/felhasznalo/uj"}>
@@ -128,7 +122,7 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead />
+            <TableHead/>
             <TableHead>
               Név
             </TableHead>
@@ -147,7 +141,7 @@ export default function List() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
                     <span className="sr-only">Menü megnyitása</span>
-                    <MoreHorizontal />
+                    <MoreHorizontal/>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side={"bottom"} align="start">
@@ -158,7 +152,7 @@ export default function List() {
                   <DropdownMenuItem>
                     <Pencil/> Szerkesztés
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
+                  <DropdownMenuSeparator/>
                   <DropdownMenuItem>
                     <Trash/> Törlés
                   </DropdownMenuItem>

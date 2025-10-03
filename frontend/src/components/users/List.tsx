@@ -27,7 +27,7 @@ import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
 import {list} from "@/components/users/slice.ts";
-import {type SimpeError} from "@/lib/interfaces/common.ts";
+import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ import {
 
 export default function List() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<SimpeError | null>(null);
+  const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);

@@ -17,15 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateWarehouse} from "@/components/warehouses/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateWarehouse,
+  type CreateWarehouseResponse,
+  isCreateWarehouseResponse,
+  isPaginatedWarehouseResolvedListResponse,
+  type PaginatedWarehouseResolvedListResponse
+} from "@/components/warehouses/interface.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
                                contactName,
                                contactPhone,
                                status
-                             }: CreateWarehouse, token: string | null): Promise<Response> {
+                             }: CreateWarehouse, token: string | null): Promise<ProcessedResponse<CreateWarehouseResponse>> {
   return await fetch(`/api/warehouses/create`, {
     method: "POST",
     headers: {
@@ -39,10 +46,15 @@ export async function create({
       contact_phone: contactPhone,
       status
     })
-  })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateWarehouseResponse
+    ) ?? unexpectedFormError;
+  });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedWarehouseResolvedListResponse>> {
   const uri = query === null ? `/api/warehouses/list` : `/api/warehouses/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -51,5 +63,10 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedWarehouseResolvedListResponse
+    ) ?? unexpectedError;
   });
 }

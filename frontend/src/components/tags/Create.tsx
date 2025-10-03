@@ -17,24 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/components/tags/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import {useNavigate} from "react-router-dom";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {}
-    });
-  };
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,24 +37,16 @@ export default function Create() {
       name,
       description,
     })).then(async (response) => {
-      console.log(response)
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              window.location.href = "/cimke/lista";
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError()
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/cimke/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };

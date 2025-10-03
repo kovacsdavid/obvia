@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dto;
-pub(crate) mod error;
-pub(crate) mod extractors;
-pub(crate) mod macros;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod services;
-pub(crate) mod types;
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct SelectOption {
+    pub value: String,
+    pub title: String,
+}

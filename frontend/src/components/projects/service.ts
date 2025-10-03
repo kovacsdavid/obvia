@@ -17,9 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateProject} from "@/components/projects/interface.ts";
-
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateProject,
+  type CreateProjectResponse,
+  isCreateProjectResponse,
+  isPaginatedProjectResolvedListResponse,
+  type PaginatedProjectResolvedListResponse
+} from "@/components/projects/interface.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
@@ -27,7 +33,7 @@ export async function create({
                                status,
                                startDate,
                                endDate
-                             }: CreateProject, token: string | null): Promise<Response> {
+                             }: CreateProject, token: string | null): Promise<ProcessedResponse<CreateProjectResponse>> {
   return await fetch(`/api/projects/create`, {
     method: "POST",
     headers: {
@@ -42,10 +48,15 @@ export async function create({
       start_date: startDate,
       end_date: endDate
     }),
-  })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateProjectResponse
+    ) ?? unexpectedFormError;
+  });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedProjectResolvedListResponse>> {
   const uri = query === null ? `/api/projects/list` : `/api/projects/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -54,5 +65,10 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedProjectResolvedListResponse
+    ) ?? unexpectedError;
   });
 }

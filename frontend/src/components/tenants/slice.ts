@@ -32,40 +32,28 @@ const initialState: TenantsState = {
 
 export const create = createAsyncThunk(
   "tenants/create",
-  async (requestData: CreateTenant, {rejectWithValue, getState}) => {
+  async (requestData: CreateTenant, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await tenantsApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return await tenantsApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "tenants/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await tenantsApi.list(query, token);
-    } catch (error: unknown) {
-      rejectWithValue(error)
-    }
+    return await tenantsApi.list(query, token);
   }
 )
 
 export const activate = createAsyncThunk(
   "tenants/activate",
-  async (new_tenant_id: string, {rejectWithValue, getState}) => {
+  async (new_tenant_id: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await tenantsApi.activate(new_tenant_id, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await tenantsApi.activate(new_tenant_id, token);
   }
 )
 
@@ -73,42 +61,6 @@ const tenantsSlice = createSlice({
   name: "tenants",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-    builder
-      .addCase(activate.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(activate.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(activate.rejected, (state) => {
-        state.status = "failed";
-      })
-  }
 });
 
 export default tenantsSlice.reducer;

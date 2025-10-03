@@ -32,9 +32,9 @@ import {
 } from "@/components/ui";
 import {create} from "@/components/tenants/slice.ts";
 import {AlertCircle, Terminal} from "lucide-react";
-import {type FormError} from "@/lib/interfaces/common.ts";
-import {isTenantResponse} from "@/components/tenants/interface.ts";
-import {useActivateTenant} from "@/hooks/activate_tenant.ts";
+import {useActivateTenant} from "@/hooks/use_activate_tenant.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import {useNavigate} from "react-router-dom";
 
 export default function Create() {
   const [name, setName] = React.useState("");
@@ -45,16 +45,10 @@ export default function Create() {
   const [dbUser, setDbUser] = React.useState("");
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<FormError | null>(null);
+  const navigate = useNavigate();
+  const {errors, setErrors, unexpectedError} = useFormError();
 
   const activateTenant = useActivateTenant();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {},
-    });
-  };
 
   React.useEffect(() => {
     setDbHost("");
@@ -76,34 +70,24 @@ export default function Create() {
       dbUser,
       dbPassword
     })).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              if (
-                isTenantResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                activateTenant(responseData.data.id).then((isOk) => {
-                  if (isOk) {
-                    window.location.href = "/szervezeti_egyseg/lista";
-                  } else {
-                    unexpectedError();
-                  }
-                })
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          if (typeof response.payload.jsonData.data !== "undefined") {
+            activateTenant(response.payload.jsonData.data.id).then((isOk) => {
+              if (isOk) {
+                navigate("/szervezeti_egyseg/lista");
+              } else {
+                unexpectedError();
               }
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              unexpectedError();
+            })
           }
-        } catch {
-          unexpectedError()
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };

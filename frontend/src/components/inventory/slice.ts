@@ -32,40 +32,28 @@ const initialState: InventoryState = {
 
 export const create = createAsyncThunk(
   "inventory/create",
-  async (requestData: CreateInventory, {rejectWithValue, getState}) => {
+  async (requestData: CreateInventory, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await inventoryApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return await inventoryApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "inventory/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await inventoryApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return await inventoryApi.list(query, token);
   }
 )
 
 export const select_list = createAsyncThunk(
   "inventory/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
+  async (list: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await inventoryApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await inventoryApi.select_list(list, token);
   }
 )
 
@@ -73,32 +61,6 @@ const inventorySlice = createSlice({
   name: "inventory",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default inventorySlice.reducer;

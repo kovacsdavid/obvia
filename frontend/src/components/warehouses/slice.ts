@@ -32,27 +32,19 @@ const initialState: WarehousesState = {
 
 export const create = createAsyncThunk(
   "warehouses/create",
-  async (requestData: CreateWarehouse, {rejectWithValue, getState}) => {
+  async (requestData: CreateWarehouse, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return warehousesApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return warehousesApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "warehouses/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return warehousesApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return warehousesApi.list(query, token);
   }
 )
 
@@ -60,32 +52,6 @@ const warehousesSlice = createSlice({
   name: "warehouses",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default warehousesSlice.reducer;

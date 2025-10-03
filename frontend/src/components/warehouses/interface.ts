@@ -20,11 +20,14 @@
 
 import {
   type CommonResponse,
+  type FormError,
   isCommonResponse,
+  isFormError,
   isPaginatedDataResponse,
-  isSimpleError,
+  isSimpleMessageData,
   type PaginatedDataResponse,
-  type SimpeError
+  type SimpleError,
+  type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
 export interface CreateWarehouse {
@@ -34,64 +37,13 @@ export interface CreateWarehouse {
   status: string
 }
 
-export interface Warehouse {
-  id: string,
-  name: string,
-  contact_name: string,
-  contact_phone: string,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
-}
+export type CreateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
 
-export type WarehouseList = Warehouse[];
-
-export function isWarehouse(data: unknown): data is Warehouse {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    typeof data.contact_name === "string" &&
-    "contact_phone" in data &&
-    typeof data.contact_phone === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isWarehouseList(data: unknown): data is WarehouseList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isWarehouse(item))
-  );
-}
-
-export function isWarehouseListResponse(data: unknown): data is CommonResponse<WarehouseList, SimpeError> {
+export function isCreateWarehouseResponse(data: unknown): data is CreateWarehouseResponse {
   return isCommonResponse(
     data,
-    isWarehouseList,
-    isSimpleError,
-  )
-}
-
-export function isPaginatedWarehouseListResponse(data: unknown): data is PaginatedDataResponse<WarehouseList> {
-  return isPaginatedDataResponse(
-    data,
-    isWarehouseList,
+    isSimpleMessageData,
+    isFormError,
   )
 }
 
@@ -144,8 +96,9 @@ export function isWarehouseResolvedList(data: unknown): data is WarehouseResolve
   );
 }
 
+export type PaginatedWarehouseResolvedListResponse = PaginatedDataResponse<WarehouseResolvedList, SimpleError>;
 
-export function isPaginatedWarehouseResolvedListResponse(data: unknown): data is PaginatedDataResponse<WarehouseResolvedList> {
+export function isPaginatedWarehouseResolvedListResponse(data: unknown): data is PaginatedWarehouseResolvedListResponse {
   return isPaginatedDataResponse(
     data,
     isWarehouseResolvedList,

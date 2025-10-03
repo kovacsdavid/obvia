@@ -17,8 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateTenant} from "@/components/tenants/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type ActiveTenantResponse,
+  type CreateTenant,
+  type CreateTenantResponse,
+  isActiveTenantResponse,
+  isCreateTenantResponse,
+  isPaginatedTenantListResponse,
+  type PaginatedTenantListResponse
+} from "@/components/tenants/interface.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
@@ -28,8 +37,7 @@ export async function create({
                                dbName,
                                dbUser,
                                dbPassword
-
-                             }: CreateTenant, token: string | null): Promise<Response> {
+                             }: CreateTenant, token: string | null): Promise<ProcessedResponse<CreateTenantResponse>> {
   return await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {
@@ -47,11 +55,16 @@ export async function create({
       db_password: dbPassword
     }),
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateTenantResponse
+    ) ?? unexpectedFormError;
   });
 }
 
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedTenantListResponse>> {
   const uri = query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`
   return await fetch(uri, {
     method: "GET",
@@ -60,10 +73,15 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedTenantListResponse
+    ) ?? unexpectedFormError;
   });
 }
 
-export async function activate(new_tenant_id: string | null, token: string | null) {
+export async function activate(new_tenant_id: string | null, token: string | null): Promise<ProcessedResponse<ActiveTenantResponse>> {
   return await fetch(`/api/tenants/activate`, {
     method: "POST",
     headers: {
@@ -74,5 +92,10 @@ export async function activate(new_tenant_id: string | null, token: string | nul
       new_tenant_id
     }),
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isActiveTenantResponse
+    ) ?? unexpectedError;
   });
 }

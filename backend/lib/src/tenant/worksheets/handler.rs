@@ -37,7 +37,6 @@ use axum::response::{IntoResponse, Response};
 use axum::{Json, debug_handler};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tracing::Level;
 
 #[debug_handler]
 pub async fn get(
@@ -71,30 +70,20 @@ pub async fn select_list(
     State(worksheets_module): State<Arc<WorksheetsModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let invalid_request = || {
-        FriendlyError::user_facing(
-            Level::DEBUG,
-            StatusCode::BAD_REQUEST,
-            file!(),
-            "Invalid request",
+    let list_type = payload
+        .get("list")
+        .cloned()
+        .unwrap_or(String::from("missing_list"));
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            WorksheetsService::get_select_list_items(&list_type, &claims, worksheets_module)
+                .await
+                .map_err(|e| e.into_response())?,
         )
-        .into_response()
-    };
-    let list_type = payload.get("list").ok_or(invalid_request())?;
-
-    match list_type.as_str() {
-        "projects" => Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-            .status_code(StatusCode::OK)
-            .data(
-                WorksheetsService::get_all_projects(&claims, worksheets_module)
-                    .await
-                    .map_err(|e| e.into_response())?,
-            )
-            .build()
-            .map_err(|e| e.into_response())?
-            .into_response()),
-        _ => Err(invalid_request()),
-    }
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 #[debug_handler]

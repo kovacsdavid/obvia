@@ -18,6 +18,7 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
@@ -25,9 +26,9 @@ use crate::tenant::tasks::dto::CreateTask;
 use crate::tenant::tasks::model::TaskResolved;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::TaskOrderBy;
-use crate::tenant::worksheets::model::Worksheet;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -42,6 +43,9 @@ pub enum TasksServiceError {
 
     #[error("Invalid state")]
     InvalidState,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for TasksServiceError {
@@ -60,6 +64,21 @@ impl IntoResponse for TasksServiceError {
 }
 
 type TasksServiceResult<T> = Result<T, TasksServiceError>;
+
+pub enum TasksSelectLists {
+    Worksheets,
+}
+
+impl FromStr for TasksSelectLists {
+    type Err = TasksServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "worksheets" => Ok(Self::Worksheets),
+            _ => Err(Self::Err::InvalidSelectList),
+        }
+    }
+}
 
 pub struct TasksService;
 
@@ -81,18 +100,21 @@ impl TasksService {
             .await?;
         Ok(())
     }
-    pub async fn get_all_worksheets(
+    pub async fn get_select_list_items(
+        select_list: &str,
         claims: &Claims,
         tasks_module: Arc<TasksModule>,
-    ) -> TasksServiceResult<Vec<Worksheet>> {
-        Ok(tasks_module
-            .worksheets_repo
-            .get_all(
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+    ) -> TasksServiceResult<Vec<SelectOption>> {
+        match TasksSelectLists::from_str(select_list)? {
+            TasksSelectLists::Worksheets => Ok(tasks_module
+                .worksheets_repo
+                .get_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(TasksServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,

@@ -17,13 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/tasks/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {isWorksheetListResponse, type WorksheetList} from "@/components/worksheets/interface.ts";
+import {useNavigate} from "react-router-dom";
+import {useSelectList} from "@/hooks/use_select_list.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 
 export default function Create() {
   const [worksheetId, setWorksheetId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
@@ -32,43 +34,21 @@ export default function Create() {
   const [status, setStatus] = React.useState("active");
   const [priority, setPriority] = React.useState("normal");
   const [dueDate, setDueDate] = React.useState("");
-  const [worksheetList, setWorksheetList] = React.useState<WorksheetList>([]);
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const [worksheetList, setWorksheetList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {}
-    });
-  };
+  const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
+  const {errors, setErrors, unexpectedError} = useFormError();
 
   useEffect(() => {
     dispatch(select_list("worksheets")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (
-                isWorksheetListResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                setWorksheetList(responseData.data);
-              } else {
-                unexpectedError();
-              }
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError()
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setWorksheetList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
-  }, [dispatch]);
+  }, [dispatch, setListResponse, setErrors, unexpectedError]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,24 +61,16 @@ export default function Create() {
       priority,
       dueDate
     })).then(async (response) => {
-      console.log(response)
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              window.location.href = "/feladat/lista";
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              unexpectedError()
-          }
-        } catch {
-          unexpectedError()
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/feladat/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };
@@ -116,8 +88,8 @@ export default function Create() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            {worksheetList.map(worksheet => {
-              return <SelectItem key={worksheet.id} value={worksheet.id}>{worksheet.name}</SelectItem>
+            {worksheetList.map((worksheet) => {
+              return <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
             })}
           </SelectContent>
         </Select>

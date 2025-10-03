@@ -17,8 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateProduct} from "@/components/products/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateProduct,
+  type CreateProductResponse,
+  isCreateProductResponse,
+  isPaginatedProductResolvedListResponse,
+  type PaginatedProductResolvedListResponse,
+} from "@/components/products/interface.ts";
+import {
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
@@ -27,7 +39,7 @@ export async function create({
                                newUnitOfMeasure,
 
                                status
-                             }: CreateProduct, token: string | null): Promise<Response> {
+                             }: CreateProduct, token: string | null): Promise<ProcessedResponse<CreateProductResponse>> {
   return await fetch(`/api/products/create`, {
     method: "POST",
     headers: {
@@ -42,10 +54,15 @@ export async function create({
       new_unit_of_measure: newUnitOfMeasure,
       status
     })
-  })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateProductResponse
+    ) ?? unexpectedFormError;
+  });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedProductResolvedListResponse>> {
   const uri = query === null ? `/api/products/list` : `/api/products/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -54,10 +71,15 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedProductResolvedListResponse
+    ) ?? unexpectedError;
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<Response> {
+export async function select_list(list: string, token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/products/select_list?list=${list}`, {
     method: "GET",
     headers: {
@@ -65,5 +87,10 @@ export async function select_list(list: string, token: string | null): Promise<R
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
+    ) ?? unexpectedError;
   });
 }

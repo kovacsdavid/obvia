@@ -32,27 +32,19 @@ const initialState: TagsState = {
 
 export const create = createAsyncThunk(
   "tags/create",
-  async (requestData: CreateTag, {rejectWithValue, getState}) => {
+  async (requestData: CreateTag, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return tagsApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return tagsApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "tags/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return tagsApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return tagsApi.list(query, token);
   }
 )
 
@@ -60,32 +52,6 @@ const tagsSlice = createSlice({
   name: "tags",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default tagsSlice.reducer;

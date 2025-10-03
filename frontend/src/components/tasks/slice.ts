@@ -32,40 +32,28 @@ const initialState: TasksState = {
 
 export const create = createAsyncThunk(
   "tasks/create",
-  async (requestData: CreateTask, {rejectWithValue, getState}) => {
+  async (requestData: CreateTask, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return tasksApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return tasksApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "tasks/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return tasksApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return tasksApi.list(query, token);
   }
 )
 
 export const select_list = createAsyncThunk(
   "tasks/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
+  async (list: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await tasksApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await tasksApi.select_list(list, token);
   }
 )
 
@@ -73,32 +61,6 @@ const tasksSlice = createSlice({
   name: "tasks",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default tasksSlice.reducer;

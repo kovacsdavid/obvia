@@ -32,40 +32,28 @@ const initialState: CustomersState = {
 
 export const create = createAsyncThunk(
   "customers/create",
-  async (requestData: CreateCustomer, {rejectWithValue, getState}) => {
+  async (requestData: CreateCustomer, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await customersApi.create(requestData, token)
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await customersApi.create(requestData, token)
   }
 )
 
 export const list = createAsyncThunk(
   "customers/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await customersApi.list(query, token)
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await customersApi.list(query, token)
   }
 )
 
 export const get = createAsyncThunk(
   "customers/get",
-  async (uuid: string, {rejectWithValue, getState}) => {
+  async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await customersApi.get_resolved(uuid, token)
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await customersApi.get_resolved(uuid, token)
   }
 )
 
@@ -73,32 +61,6 @@ const customersSlice = createSlice({
   name: "customers",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default customersSlice.reducer;

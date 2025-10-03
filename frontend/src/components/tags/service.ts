@@ -17,13 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateTag} from "@/components/tags/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateTag,
+  type CreateTagResponse,
+  isCreateTagResponse,
+  isPaginatedTagResolvedListResponse,
+  type PaginatedTagResolvedListResponse
+} from "@/components/tags/interface.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
                                description
-                             }: CreateTag, token: string | null): Promise<Response> {
+                             }: CreateTag, token: string | null): Promise<ProcessedResponse<CreateTagResponse>> {
   return await fetch(`/api/tags/create`, {
     method: "POST",
     headers: {
@@ -35,10 +42,15 @@ export async function create({
       name,
       description
     })
-  })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateTagResponse
+    ) ?? unexpectedFormError;
+  });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedTagResolvedListResponse>> {
   const uri = query === null ? `/api/tags/list` : `/api/tags/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -47,5 +59,10 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedTagResolvedListResponse
+    ) ?? unexpectedError;
   });
 }

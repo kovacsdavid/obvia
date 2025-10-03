@@ -20,12 +20,16 @@
 
 import {
   type CommonResponse,
+  type FormError,
   isCommonResponse,
+  isFormError,
   isPaginatedDataResponse,
-  isSimpleError,
+  isSimpleMessageData,
   type PaginatedDataResponse,
-  type SimpeError
+  type SimpleError,
+  type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
+import type {CreateProjectResponse} from "@/components/projects/interface.ts";
 
 export interface CreateProduct {
   name: string
@@ -35,104 +39,14 @@ export interface CreateProduct {
   status: string
 }
 
-export interface Product {
-  id: string,
-  name: string,
-  description: string,
-  unit_of_measure_id: string,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null
-}
+export type CreateProductResponse = CommonResponse<SimpleMessageData, FormError>;
 
-export type ProductList = Product[];
-
-export function isProduct(data: unknown): data is Product {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    typeof data.description === "string" &&
-    "unit_of_measure_id" in data &&
-    typeof data.unit_of_measure_id === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isProductList(data: unknown): data is ProductList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isProduct(item))
-  );
-}
-
-export function isProductListResponse(data: unknown): data is CommonResponse<ProductList, SimpeError> {
+export function isCreateProductResponse(data: unknown): data is CreateProjectResponse {
   return isCommonResponse(
     data,
-    isProductList,
-    isSimpleError,
+    isSimpleMessageData,
+    isFormError,
   )
-}
-
-export function isPaginatedProductListResponse(data: unknown): data is PaginatedDataResponse<ProductList> {
-  return isPaginatedDataResponse(
-    data,
-    isProductList
-  )
-}
-
-export interface UnitOfMeasure {
-  id: string,
-  unit_of_measure: string,
-  created_at: string,
-  deleted_at: string | null
-}
-
-export type UnitsOfMeasureList = UnitOfMeasure[];
-
-export function isUnitOfMeasure(data: unknown): data is UnitOfMeasure {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "unit_of_measure" in data &&
-    typeof data.unit_of_measure === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isUnitsOfMeasureList(data: unknown): data is UnitsOfMeasureList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isUnitOfMeasure(item))
-  );
-}
-
-export function isUnitsOfMeasureListResponse(data: unknown): data is CommonResponse<UnitsOfMeasureList, SimpeError> {
-  return isCommonResponse(
-    data,
-    isUnitsOfMeasureList,
-    isSimpleError,
-  );
 }
 
 export interface ProductResolved {
@@ -187,7 +101,9 @@ export function isProductResolvedList(data: unknown): data is ProductResolvedLis
   );
 }
 
-export function isPaginatedProductResolvedListResponse(data: unknown): data is PaginatedDataResponse<ProductResolvedList> {
+export type PaginatedProductResolvedListResponse = PaginatedDataResponse<ProductResolvedList, SimpleError>;
+
+export function isPaginatedProductResolvedListResponse(data: unknown): data is PaginatedProductResolvedListResponse {
   return isPaginatedDataResponse(
     data,
     isProductResolvedList

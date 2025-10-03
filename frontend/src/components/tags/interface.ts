@@ -17,54 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {isPaginatedDataResponse, type PaginatedDataResponse} from "@/lib/interfaces/common.ts";
+import {
+  type CommonResponse,
+  type FormError,
+  isCommonResponse,
+  isFormError,
+  isPaginatedDataResponse,
+  isSimpleMessageData,
+  type PaginatedDataResponse,
+  type SimpleError,
+  type SimpleMessageData
+} from "@/lib/interfaces/common.ts";
 
 export interface CreateTag {
   name: string;
   description: string
 }
 
-export interface Tag {
-  id: string,
-  name: string,
-  description: string | null,
-  created_by_id: string,
-  created_at: string,
-  deleted_at: string | null,
-}
+export type CreateTagResponse = CommonResponse<SimpleMessageData, FormError>;
 
-export type TagList = Tag[];
-
-export function isTag(data: unknown): data is Tag {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isTagList(data: unknown): data is TagList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isTag(item))
-  );
-}
-
-export function isPaginatedTagListResponse(data: unknown): data is PaginatedDataResponse<TagList> {
-  return isPaginatedDataResponse(
+export function isCreateTagResponse(data: unknown): data is CreateTagResponse {
+  return isCommonResponse(
     data,
-    isTagList
+    isSimpleMessageData,
+    isFormError,
   )
 }
 
@@ -108,7 +84,9 @@ export function isTagResolvedList(data: unknown): data is TagResolvedList {
   );
 }
 
-export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedDataResponse<TagResolvedList> {
+export type PaginatedTagResolvedListResponse = PaginatedDataResponse<TagResolvedList, SimpleError>;
+
+export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedTagResolvedListResponse {
   return isPaginatedDataResponse(
     data,
     isTagResolvedList

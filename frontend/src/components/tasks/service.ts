@@ -17,8 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateTask} from "@/components/tasks/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateTask,
+  type CreateTaskResponse,
+  isCreateTaskResponse,
+  isPaginatedTaskResolvedListResponse,
+  type PaginatedTaskResolvedListResponse
+} from "@/components/tasks/interface.ts";
+import {
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                worksheetId,
@@ -27,7 +39,7 @@ export async function create({
                                status,
                                priority,
                                dueDate
-                             }: CreateTask, token: string | null): Promise<Response> {
+                             }: CreateTask, token: string | null): Promise<ProcessedResponse<CreateTaskResponse>> {
   return await fetch(`/api/tasks/create`, {
     method: "POST",
     headers: {
@@ -43,10 +55,15 @@ export async function create({
       priority,
       due_date: dueDate
     })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateTaskResponse
+    ) ?? unexpectedFormError;
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedTaskResolvedListResponse>> {
   const uri = query === null ? `/api/tasks/list` : `/api/tasks/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -55,10 +72,15 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedTaskResolvedListResponse
+    ) ?? unexpectedError;
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<Response> {
+export async function select_list(list: string, token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/tasks/select_list?list=${list}`, {
     method: "GET",
     headers: {
@@ -66,5 +88,10 @@ export async function select_list(list: string, token: string | null): Promise<R
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
+    ) ?? unexpectedError;
   });
 }

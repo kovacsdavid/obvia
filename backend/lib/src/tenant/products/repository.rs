@@ -19,6 +19,7 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
@@ -33,7 +34,10 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProductsRepository: Send + Sync {
-    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Product>, RepositoryError>;
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -53,17 +57,20 @@ pub trait ProductsRepository: Send + Sync {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<UnitOfMeasure>;
-    async fn get_all_units_of_measure(
+    async fn get_units_of_measure_select_list(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<UnitOfMeasure>>;
+    ) -> RepositoryResult<Vec<SelectOption>>;
 }
 
 #[async_trait]
 impl ProductsRepository for PoolManagerWrapper {
-    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Product>, RepositoryError> {
-        Ok(sqlx::query_as::<_, Product>(
-            "SELECT * FROM products WHERE deleted_at IS NULL ORDER BY name",
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            "SELECT products.id::VARCHAR as value, products.name as title FROM products WHERE deleted_at IS NULL ORDER BY name",
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
@@ -163,12 +170,12 @@ impl ProductsRepository for PoolManagerWrapper {
         .await?)
     }
 
-    async fn get_all_units_of_measure(
+    async fn get_units_of_measure_select_list(
         &self,
         active_tenant: Uuid,
-    ) -> Result<Vec<UnitOfMeasure>, RepositoryError> {
-        Ok(sqlx::query_as::<_, UnitOfMeasure>(
-            "SELECT * FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
+    ) -> Result<Vec<SelectOption>, RepositoryError> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            "SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

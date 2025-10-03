@@ -17,58 +17,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/worksheets/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
+import {type SelectOptionList} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {isProjectListResponse, type ProjectList} from "@/components/projects/interface.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import {useSelectList} from "@/hooks/use_select_list.ts";
+import {useNavigate} from "react-router-dom";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [status, setStatus] = React.useState("active");
-  const [projectsList, setProjectsList] = React.useState<ProjectList>([]);
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
+  const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
+
 
   useEffect(() => {
     dispatch(select_list("projects")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (
-                isProjectListResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                setProjectsList(responseData.data);
-              } else {
-                setErrors({
-                  message: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
-                });
-              }
-              break;
-            default:
-              setErrors({
-                message: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
-          }
-        } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setProjectsList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
-  }, [dispatch]);
+  }, [dispatch, setListResponse, setErrors, unexpectedError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,30 +57,16 @@ export default function Create() {
       projectId,
       status,
     })).then(async (response) => {
-      console.log(response)
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              window.location.href = "/munkalap/lista";
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              setErrors({
-                message: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
-          }
-        } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/munkalap/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };
@@ -136,7 +101,7 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {projectsList.map(project => {
-              return <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+              return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
             })}
           </SelectContent>
         </Select>

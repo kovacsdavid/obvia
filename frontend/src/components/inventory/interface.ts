@@ -19,11 +19,14 @@
 
 import {
   type CommonResponse,
+  type FormError,
   isCommonResponse,
+  isFormError,
   isPaginatedDataResponse,
-  isSimpleError,
+  isSimpleMessageData,
   type PaginatedDataResponse,
-  type SimpeError
+  type SimpleError,
+  type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
 export interface CreateInventory {
@@ -36,102 +39,13 @@ export interface CreateInventory {
   newCurrency: string
 }
 
-export interface Currency {
-  id: string,
-  currency: string,
-  created_at: string,
-  deleted_at: string | null
-}
+export type CreateInventoryResponse = CommonResponse<SimpleMessageData, FormError>;
 
-export type CurrencyList = Currency[];
-
-export function isCurrency(data: unknown): data is Currency {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "currency" in data &&
-    typeof data.currency === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isCurrencyList(data: unknown): data is CurrencyList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isCurrency(item))
-  );
-}
-
-
-export function isCurrencyListResponse(data: unknown): data is CommonResponse<CurrencyList, SimpeError> {
+export function isCreateInventoryResponse(data: unknown): data is CreateInventoryResponse {
   return isCommonResponse(
     data,
-    isCurrencyList,
-    isSimpleError
-  )
-}
-
-export interface Inventory {
-  id: string,
-  product_id: string,
-  warehouse_id: string,
-  quantity: number,
-  price: string,
-  cost: string,
-  currency_id: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
-}
-
-export type InventoryList = Inventory[];
-
-export function isInventory(data: unknown): data is Inventory {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "product_id" in data &&
-    typeof data.product_id === "string" &&
-    "warehouse_id" in data &&
-    typeof data.warehouse_id === "string" &&
-    "quantity" in data &&
-    typeof data.quantity === "number" &&
-    "price" in data &&
-    typeof data.price === "string" &&
-    "cost" in data &&
-    typeof data.cost === "string" &&
-    "currency_id" in data &&
-    typeof data.currency_id === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isInventoryList(data: unknown): data is InventoryList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isInventory(item))
-  );
-}
-
-export function isPaginatedInventoryListResponse(data: unknown): data is PaginatedDataResponse<InventoryList> {
-  return isPaginatedDataResponse(
-    data,
-    isInventoryList
+    isSimpleMessageData,
+    isFormError,
   )
 }
 
@@ -199,7 +113,9 @@ export function isInventoryResolvedList(data: unknown): data is InventoryResolve
   );
 }
 
-export function isPaginatedInventoryResolvedListResponse(data: unknown): data is PaginatedDataResponse<InventoryResolvedList> {
+export type PaginatedInventoryResolvedListResponse = PaginatedDataResponse<InventoryResolvedList, SimpleError>;
+
+export function isPaginatedInventoryResolvedListResponse(data: unknown): data is PaginatedInventoryResolvedListResponse {
   return isPaginatedDataResponse(
     data,
     isInventoryResolvedList

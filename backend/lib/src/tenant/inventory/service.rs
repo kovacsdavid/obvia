@@ -18,18 +18,18 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::{Currency, InventoryResolved};
+use crate::tenant::inventory::model::InventoryResolved;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
-use crate::tenant::products::model::Product;
-use crate::tenant::warehouses::model::Warehouse;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -44,6 +44,9 @@ pub enum InventoryServiceError {
 
     #[error("Invalid state")]
     InvalidState,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for InventoryServiceError {
@@ -62,6 +65,25 @@ impl IntoResponse for InventoryServiceError {
 }
 
 pub type InventoryServiceResult<T> = Result<T, InventoryServiceError>;
+
+pub enum InventorySelectLists {
+    Products,
+    Currencies,
+    Warehouses,
+}
+
+impl FromStr for InventorySelectLists {
+    type Err = InventoryServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "products" => Ok(Self::Products),
+            "currencies" => Ok(Self::Currencies),
+            "warehouses" => Ok(Self::Warehouses),
+            _ => Err(InventoryServiceError::InvalidSelectList),
+        }
+    }
+}
 
 pub struct InventoryService;
 
@@ -107,44 +129,37 @@ impl InventoryService {
             .await?;
         Ok(())
     }
-    pub async fn get_all_currencies(
+    pub async fn get_select_list_items(
+        select_list: &str,
         claims: &Claims,
         inventory_module: Arc<InventoryModule>,
-    ) -> InventoryServiceResult<Vec<Currency>> {
-        Ok(inventory_module
-            .inventory_repo
-            .get_all_currencies(
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_all_products(
-        claims: &Claims,
-        inventory_module: Arc<InventoryModule>,
-    ) -> InventoryServiceResult<Vec<Product>> {
-        Ok(inventory_module
-            .products_repo
-            .get_all(
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_all_warehouses(
-        claims: &Claims,
-        inventory_module: Arc<InventoryModule>,
-    ) -> InventoryServiceResult<Vec<Warehouse>> {
-        Ok(inventory_module
-            .warehouses_repo
-            .get_all(
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
+    ) -> InventoryServiceResult<Vec<SelectOption>> {
+        match InventorySelectLists::from_str(select_list)? {
+            InventorySelectLists::Products => Ok(inventory_module
+                .products_repo
+                .get_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(InventoryServiceError::Unauthorized)?,
+                )
+                .await?),
+            InventorySelectLists::Currencies => Ok(inventory_module
+                .inventory_repo
+                .get_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(InventoryServiceError::Unauthorized)?,
+                )
+                .await?),
+            InventorySelectLists::Warehouses => Ok(inventory_module
+                .warehouses_repo
+                .get_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(InventoryServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,

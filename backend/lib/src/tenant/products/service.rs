@@ -18,16 +18,18 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::CreateProduct;
-use crate::tenant::products::model::{ProductResolved, UnitOfMeasure};
+use crate::tenant::products::model::ProductResolved;
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::ProductOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -42,6 +44,9 @@ pub enum ProductsServiceError {
 
     #[error("Invalid state")]
     InvalidState,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for ProductsServiceError {
@@ -60,6 +65,21 @@ impl IntoResponse for ProductsServiceError {
 }
 
 type ProductsServiceResult<T> = Result<T, ProductsServiceError>;
+
+pub enum ProductsSelectLists {
+    UnitsOfMeasure,
+}
+
+impl FromStr for ProductsSelectLists {
+    type Err = ProductsServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "units_of_measure" => Ok(Self::UnitsOfMeasure),
+            _ => Err(Self::Err::InvalidSelectList),
+        }
+    }
+}
 
 pub struct ProductsService;
 
@@ -107,18 +127,21 @@ impl ProductsService {
             .await?;
         Ok(())
     }
-    pub async fn get_all_units_of_measure(
+    pub async fn get_select_list_items(
+        select_list: &str,
         claims: &Claims,
         products_module: Arc<ProductsModule>,
-    ) -> ProductsServiceResult<Vec<UnitOfMeasure>> {
-        Ok(products_module
-            .products_repo
-            .get_all_units_of_measure(
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
+    ) -> ProductsServiceResult<Vec<SelectOption>> {
+        match ProductsSelectLists::from_str(select_list)? {
+            ProductsSelectLists::UnitsOfMeasure => Ok(products_module
+                .products_repo
+                .get_units_of_measure_select_list(
+                    claims
+                        .active_tenant()
+                        .ok_or(ProductsServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,

@@ -32,40 +32,28 @@ const initialState: ProductsState = {
 
 export const create = createAsyncThunk(
   "products/create",
-  async (requestData: CreateProduct, {rejectWithValue, getState}) => {
+  async (requestData: CreateProduct, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await productsApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await productsApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "products/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await productsApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await productsApi.list(query, token);
   }
 )
 
 export const select_list = createAsyncThunk(
   "products/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
+  async (list: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await productsApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await productsApi.select_list(list, token);
   }
 )
 
@@ -73,32 +61,6 @@ const productsSlice = createSlice({
   name: "products",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default productsSlice.reducer;

@@ -22,8 +22,9 @@ import {Button, FieldError, GlobalError, Input, Label,} from "@/components/ui";
 import {registerUserRequest} from "@/components/auth/slice.ts";
 import {useAppDispatch} from "@/store/hooks";
 import {useNavigate} from "react-router-dom";
-import {type FormError, type ResponseWrapper} from "@/lib/interfaces/common.ts";
+import {type ProcessedResponse} from "@/lib/interfaces/common.ts";
 import {type RegisterResponse} from "@/components/auth/interface.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -33,19 +34,15 @@ export default function Register() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const {errors, setErrors, unexpectedError} = useFormError();
 
-  const handleRegistrationResponse = async (response: ResponseWrapper<RegisterResponse>) => {
-    switch (response.statusCode) {
-      case 201: {
-        navigate("/login");
-        break;
-      }
-      default: {
-        if (typeof response.jsonData?.error !== "undefined") {
-          setErrors(response.jsonData.error);
-        }
-      }
+  const handleRegistrationResponse = async (response: ProcessedResponse<RegisterResponse>) => {
+    if (response.statusCode === 201) {
+      navigate("/login");
+    } else if (typeof response.jsonData?.error !== "undefined") {
+      setErrors(response.jsonData.error)
+    } else {
+      unexpectedError();
     }
   };
 
@@ -55,6 +52,8 @@ export default function Register() {
     const response = await dispatch(registerUserRequest({firstName, lastName, email, password, passwordConfirm}));
     if (registerUserRequest.fulfilled.match(response)) {
       await handleRegistrationResponse(response.payload);
+    } else {
+      unexpectedError();
     }
   };
 

@@ -17,11 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dto;
-pub(crate) mod error;
-pub(crate) mod extractors;
-pub(crate) mod macros;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod services;
-pub(crate) mod types;
+import {useCallback, useState} from "react";
+import type {FormError} from "@/lib/interfaces/common.ts";
+
+export function useFormError() {
+  const [errors, setErrors] = useState<FormError | null>(null);
+
+  const unexpectedError = useCallback(() => {
+    setErrors({
+      message: "Váratlan hiba történt a feldolgozás során!",
+      fields: {}
+    });
+  }, []);
+
+  return {
+    errors,
+    setErrors,
+    unexpectedError
+  }
+}

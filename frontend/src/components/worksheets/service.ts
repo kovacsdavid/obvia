@@ -17,15 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateWorksheet} from "@/components/worksheets/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateWorksheet,
+  type CreateWorksheetResponse,
+  isCreateWorksheetResponse,
+  isPaginatedWorksheetResolvedListResponse,
+  type PaginatedWorksheetResolvedListResponse,
+} from "@/components/worksheets/interface.ts";
+import {
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
                                description,
                                projectId,
                                status
-                             }: CreateWorksheet, token: string | null): Promise<Response> {
+                             }: CreateWorksheet, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
   return await fetch(`/api/worksheets/create`, {
     method: "POST",
     headers: {
@@ -39,10 +51,15 @@ export async function create({
       project_id: projectId,
       status
     })
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateWorksheetResponse
+    ) ?? unexpectedFormError;
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedWorksheetResolvedListResponse>> {
   const uri = query === null ? `/api/worksheets/list` : `/api/worksheets/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -51,10 +68,15 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedWorksheetResolvedListResponse
+    ) ?? unexpectedError;
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<Response> {
+export async function select_list(list: string, token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/worksheets/select_list?list=${list}`, {
     method: "GET",
     headers: {
@@ -62,5 +84,10 @@ export async function select_list(list: string, token: string | null): Promise<R
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
+    ) ?? unexpectedError;
   });
 }

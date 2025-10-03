@@ -25,7 +25,7 @@ import {
   isPaginatedDataResponse,
   isSimpleError,
   type PaginatedDataResponse,
-  type SimpeError,
+  type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
@@ -39,6 +39,15 @@ export interface CreateTenant {
   dbPassword: string;
 }
 
+export type CreateTenantResponse = CommonResponse<Tenant, FormError>;
+
+export function isCreateTenantResponse(data: unknown): data is CreateTenantResponse {
+  return isCommonResponse(
+    data,
+    isTenant,
+    isFormError,
+  )
+}
 
 export interface Tenant {
   id: string;
@@ -95,15 +104,9 @@ export function isTenantList(data: unknown): data is TenantList {
   );
 }
 
-export function isTenantResponse(data: unknown): data is CommonResponse<Tenant, FormError> {
-  return isCommonResponse(
-    data,
-    isTenant,
-    isFormError,
-  )
-}
+export type PaginatedTenantListResponse = PaginatedDataResponse<TenantList, SimpleError>;
 
-export function isPaginatedTenantListResponse(data: unknown): data is PaginatedDataResponse<TenantList> {
+export function isPaginatedTenantListResponse(data: unknown): data is PaginatedTenantListResponse {
   return isPaginatedDataResponse(
     data,
     isTenantList
@@ -116,7 +119,9 @@ export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
   return typeof data === "string"
 }
 
-export function isActiveTenantResponse(data: unknown): data is CommonResponse<SimpleMessageData, SimpeError> {
+export type ActiveTenantResponse = CommonResponse<SimpleMessageData, SimpleError>;
+
+export function isActiveTenantResponse(data: unknown): data is ActiveTenantResponse {
   return isCommonResponse(
     data,
     isNewTokenResponse,

@@ -32,27 +32,19 @@ const initialState: ProjectsState = {
 
 export const create = createAsyncThunk(
   "projects/create",
-  async (requestData: CreateProject, {rejectWithValue, getState}) => {
+  async (requestData: CreateProject, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return projectsApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return projectsApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
   "projects/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return projectsApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return projectsApi.list(query, token);
   }
 )
 
@@ -60,32 +52,6 @@ const projectsSlice = createSlice({
   name: "projects",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default projectsSlice.reducer;

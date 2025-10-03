@@ -18,9 +18,9 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::projects::model::Project;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::CreateWorksheet;
 use crate::tenant::worksheets::model::WorksheetResolved;
@@ -28,6 +28,7 @@ use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -39,6 +40,9 @@ pub enum WorksheetsServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for WorksheetsServiceError {
@@ -57,6 +61,21 @@ impl IntoResponse for WorksheetsServiceError {
 }
 
 type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
+
+pub enum WorksheetsSelectLists {
+    Projects,
+}
+
+impl FromStr for WorksheetsSelectLists {
+    type Err = WorksheetsServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "projects" => Ok(Self::Projects),
+            _ => Err(Self::Err::InvalidSelectList),
+        }
+    }
+}
 
 pub struct WorksheetsService;
 
@@ -78,18 +97,21 @@ impl WorksheetsService {
             .await?;
         Ok(())
     }
-    pub async fn get_all_projects(
+    pub async fn get_select_list_items(
+        select_list: &str,
         claims: &Claims,
         worksheets_module: Arc<WorksheetsModule>,
-    ) -> WorksheetsServiceResult<Vec<Project>> {
-        Ok(worksheets_module
-            .projects_repo
-            .get_all(
-                claims
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+    ) -> WorksheetsServiceResult<Vec<SelectOption>> {
+        match WorksheetsSelectLists::from_str(select_list)? {
+            WorksheetsSelectLists::Projects => Ok(worksheets_module
+                .projects_repo
+                .get_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(WorksheetsServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,

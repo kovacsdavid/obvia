@@ -32,40 +32,28 @@ const initialState: WorksheetsState = {
 
 export const create = createAsyncThunk(
   "worksheets/create",
-  async (requestData: CreateWorksheet, {rejectWithValue, getState}) => {
+  async (requestData: CreateWorksheet, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return worksheetsApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return worksheetsApi.create(requestData, token);
   }
 )
 
 export const select_list = createAsyncThunk(
   "worksheets/select_list",
-  async (list: string, {rejectWithValue, getState}) => {
+  async (list: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return await worksheetsApi.select_list(list, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error)
-    }
+    return await worksheetsApi.select_list(list, token);
   }
 )
 
 export const list = createAsyncThunk(
   "worksheets/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    try {
-      return worksheetsApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+    return worksheetsApi.list(query, token);
   }
 )
 
@@ -73,32 +61,6 @@ const worksheetsSlice = createSlice({
   name: "worksheets",
   initialState,
   reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      })
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  }
 });
 
 export default worksheetsSlice.reducer;

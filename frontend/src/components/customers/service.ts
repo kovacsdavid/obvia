@@ -17,8 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateCustomer} from "@/components/customers/interface.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  type CreateCustomer,
+  type CreateCustomerResponse,
+  isCreateCustomerResponse,
+  isPaginatedCustomerResolvedListResponse,
+  type PaginatedCustomerResolvedListResponse
+} from "@/components/customers/interface.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
                                name,
@@ -27,7 +34,7 @@ export async function create({
                                phoneNumber,
                                status,
                                customerType,
-                             }: CreateCustomer, token: string | null): Promise<Response> {
+                             }: CreateCustomer, token: string | null): Promise<ProcessedResponse<CreateCustomerResponse>> {
   return await fetch(`/api/customers/create`, {
     method: "POST",
     headers: {
@@ -43,10 +50,15 @@ export async function create({
       status: typeof status === "undefined" ? null : status,
       customer_type: typeof customerType === "undefined" ? null : customerType,
     }),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isCreateCustomerResponse
+    ) ?? unexpectedFormError;
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedCustomerResolvedListResponse>> {
   const uri = query === null ? `/api/customers/list` : `/api/customers/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
@@ -55,10 +67,15 @@ export async function list(query: string | null, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedCustomerResolvedListResponse
+    ) ?? unexpectedError;
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<Response> {
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<PaginatedCustomerResolvedListResponse>> {
   return await fetch(`/api/customers/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
@@ -66,5 +83,10 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
       ...(token ? {"Authorization": `Bearer ${token}`} : {})
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isPaginatedCustomerResolvedListResponse
+    ) ?? unexpectedError;
   });
 }

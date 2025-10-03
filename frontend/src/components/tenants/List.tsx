@@ -30,9 +30,9 @@ import {Label} from "@/components/ui/label"
 import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover"
 import {GlobalError} from "@/components/ui";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import {type SimpeError} from "@/lib/interfaces/common.ts";
-import {isPaginatedTenantListResponse, type TenantList} from "@/components/tenants/interface.ts";
-import {useActivateTenant} from "@/hooks/activate_tenant.ts";
+import {type SimpleError} from "@/lib/interfaces/common.ts";
+import {type TenantList} from "@/components/tenants/interface.ts";
+import {useActivateTenant} from "@/hooks/use_activate_tenant.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
@@ -47,7 +47,7 @@ export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<TenantList>([]);
-  const [errors, setErrors] = React.useState<SimpeError | null>(null);
+  const [errors, setErrors] = React.useState<SimpleError | null>(null);
 
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     if ("name" in parsedQuery) {
@@ -82,30 +82,24 @@ export default function List() {
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
-      if (response.meta.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200: {
-              if (isPaginatedTenantListResponse(responseData)) {
-                if (typeof responseData.data !== "undefined") {
-                  setPage(responseData.meta.page);
-                  setLimit(responseData.meta.limit);
-                  setTotal(responseData.meta.total);
-                  setData(responseData.data);
-                }
-              } else {
-                unexpectedError();
-              }
-              break;
-            }
-            default:
-              unexpectedError();
+      if (list.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          if (
+            typeof response.payload.jsonData.data !== "undefined"
+            && typeof response.payload.jsonData.meta !== "undefined"
+          ) {
+            setPage(response.payload.jsonData.meta.page);
+            setLimit(response.payload.jsonData.meta.limit);
+            setTotal(response.payload.jsonData.meta.total);
+            setData(response.payload.jsonData.data);
           }
-        } catch {
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
           unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     })
   }, [

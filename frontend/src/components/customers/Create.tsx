@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
+import React from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create} from "@/components/customers/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
-import {isCreateCustomerResponse} from "@/components/customers/interface.ts";
+import {useNavigate} from "react-router-dom";
+import {useFormError} from "@/hooks/use_form_error.ts";
 
 export default function Create() {
   const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
@@ -33,7 +33,8 @@ export default function Create() {
   const [phoneNumber, setPhoneNumber] = React.useState("");
   const [status, setStatus] = React.useState<string | undefined>("active");
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const navigate = useNavigate();
+  const {errors, setErrors, unexpectedError} = useFormError();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,34 +46,16 @@ export default function Create() {
       status,
       customerType,
     })).then(async (response) => {
-      const unexpectedError = () => {
-        setErrors({
-          message: "Váratlan hiba történt a feldolgozás során!",
-          fields: {}
-        });
-      }
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              if (isCreateCustomerResponse(responseData)) {
-                window.location.href = "/vevo/lista";
-              } else {
-                unexpectedError();
-              }
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              unexpectedError();
-
-          }
-        } catch {
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/vevo/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
           unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };

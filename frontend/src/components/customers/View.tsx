@@ -22,7 +22,7 @@ import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {get} from "@/components/customers/slice.ts";
 import {type CustomerResolved, isCustomerResolvedResponse} from "@/components/customers/interface.ts";
-import type {SimpeError} from "@/lib/interfaces/common.ts";
+import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
@@ -31,7 +31,7 @@ import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function View() {
   const [data, setData] = React.useState<CustomerResolved | null>(null);
-  const [errors, setErrors] = React.useState<SimpeError | null>(null);
+  const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
 

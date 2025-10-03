@@ -27,10 +27,9 @@ import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
 import {list} from "@/components/inventory/slice.ts";
-import {type SimpeError} from "@/lib/interfaces/common.ts";
+import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {
   type InventoryResolvedList,
-  isPaginatedInventoryResolvedListResponse
 } from "@/components/inventory/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
@@ -44,7 +43,7 @@ import {
 
 export default function List() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<SimpeError | null>(null);
+  const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const [data, setData] = React.useState<InventoryResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
@@ -75,30 +74,24 @@ export default function List() {
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
-      if (response.meta.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200: {
-              if (isPaginatedInventoryResolvedListResponse(responseData)) {
-                if (typeof responseData.data !== "undefined") {
-                  setPage(responseData.meta.page);
-                  setLimit(responseData.meta.limit);
-                  setTotal(responseData.meta.total);
-                  setData(responseData.data);
-                }
-              } else {
-                unexpectedError();
-              }
-              break;
-            }
-            default:
-              unexpectedError();
+      if (list.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          if (
+            typeof response.payload.jsonData.data !== "undefined"
+            && typeof response.payload.jsonData.meta !== "undefined"
+          ) {
+            setPage(response.payload.jsonData.meta.page);
+            setLimit(response.payload.jsonData.meta.limit);
+            setTotal(response.payload.jsonData.meta.total);
+            setData(response.payload.jsonData.data);
           }
-        } catch {
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
           unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   }, [

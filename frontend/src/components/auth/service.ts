@@ -24,7 +24,7 @@ import {
   type RegisterRequest,
   type RegisterResponse
 } from "@/components/auth/interface.ts";
-import type {ResponseWrapper} from "@/lib/interfaces/common.ts";
+import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function login({email, password}: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
@@ -43,7 +43,7 @@ export async function register({
                                  email,
                                  password,
                                  passwordConfirm
-                               }: RegisterRequest): Promise<ResponseWrapper<RegisterResponse>> {
+                               }: RegisterRequest): Promise<ProcessedResponse<RegisterResponse>> {
   return await fetch(`/api/auth/register`, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -56,18 +56,9 @@ export async function register({
     }),
     signal: AbortSignal.timeout(globalRequestTimeout)
   }).then(async (response: Response) => {
-    try {
-      const jsonData = await response.json();
-      if (isRegisterResponse(jsonData)) {
-        console.log("register_response");
-        return {
-          statusCode: response.status,
-          jsonData
-        };
-      }
-    } catch {
-      return unexpectedFormError;
-    }
-    return unexpectedFormError;
+    return await ProcessResponse(
+      response,
+      isRegisterResponse
+    ) ?? unexpectedFormError;
   });
 }

@@ -25,7 +25,7 @@ import {
   isPaginatedDataResponse,
   isSimpleMessageData,
   type PaginatedDataResponse,
-  type SimpeError,
+  type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
@@ -38,63 +38,9 @@ export interface CreateCustomer {
   customerType: string | undefined,
 }
 
-export interface Customer {
-  id: string,
-  name: string,
-  contact_name: string | null,
-  email: string,
-  phone_number: string | null,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
-}
+export type CreateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
 
-export type CustomerList = Customer[];
-
-export function isCustomer(data: unknown): data is Customer {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    (data.contact_name === null || typeof data.contact_name === "string") &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "phone_number" in data &&
-    (data.phone_number === null || typeof data.phone_number === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isCustomerList(data: unknown): data is CustomerList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isCustomer(item))
-  );
-}
-
-export function isPaginatedCustomerListResponse(data: unknown): data is PaginatedDataResponse<CustomerList> {
-  return isPaginatedDataResponse(
-    data,
-    isCustomerList
-  );
-}
-
-export function isCreateCustomerResponse(data: unknown): data is CommonResponse<SimpleMessageData, FormError> {
+export function isCreateCustomerResponse(data: unknown): data is CreateCustomerResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,
@@ -147,7 +93,9 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
   );
 }
 
-export function isCustomerResolvedResponse(data: unknown): data is CommonResponse<CustomerResolved, SimpeError> {
+export type CustomerResolvedResponse = CommonResponse<CustomerResolved, SimpleError>;
+
+export function isCustomerResolvedResponse(data: unknown): data is CustomerResolvedResponse {
   return isCommonResponse(
     data,
     isCustomerResolved
@@ -161,9 +109,11 @@ export function isCustomerResolvedList(data: unknown): data is CustomerResolvedL
   );
 }
 
+export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<CustomerResolvedList, SimpleError>
+
 export function isPaginatedCustomerResolvedListResponse(
   data: unknown
-): data is PaginatedDataResponse<CustomerResolvedList> {
+): data is PaginatedCustomerResolvedListResponse {
   return isPaginatedDataResponse(
     data,
     isCustomerResolvedList

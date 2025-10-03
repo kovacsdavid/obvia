@@ -18,6 +18,7 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -44,17 +45,17 @@ pub trait InventoryRepository: Send + Sync {
         inventory: CreateInventory,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Inventory, RepositoryError>;
+    ) -> RepositoryResult<Inventory>;
     async fn insert_currency(
         &self,
         currency: &str,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Currency, RepositoryError>;
-    async fn get_all_currencies(
+    ) -> RepositoryResult<Currency>;
+    async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> Result<Vec<Currency>, RepositoryError>;
+    ) -> RepositoryResult<Vec<SelectOption>>;
 }
 
 #[async_trait]
@@ -126,7 +127,7 @@ impl InventoryRepository for PoolManagerWrapper {
         inventory: CreateInventory,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Inventory, RepositoryError> {
+    ) -> RepositoryResult<Inventory> {
         let price = match &inventory.price {
             None => None,
             Some(v) => Some(
@@ -174,7 +175,7 @@ impl InventoryRepository for PoolManagerWrapper {
         currency: &str,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> Result<Currency, RepositoryError> {
+    ) -> RepositoryResult<Currency> {
         Ok(sqlx::query_as::<_, Currency>(
             "INSERT INTO currencies(currency, created_by_id)
              VALUES ($1, $2) RETURNING *",
@@ -184,12 +185,12 @@ impl InventoryRepository for PoolManagerWrapper {
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
-    async fn get_all_currencies(
+    async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> Result<Vec<Currency>, RepositoryError> {
-        Ok(sqlx::query_as::<_, Currency>(
-            "SELECT * FROM currencies WHERE deleted_at IS NULL ORDER BY currency",
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            "SELECT currencies.id::VARCHAR as value, currencies.currency as title FROM currencies WHERE deleted_at IS NULL ORDER BY currency",
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

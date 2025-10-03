@@ -17,112 +17,60 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/inventory/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
+import {type SelectOptionList,} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
-import {isProductListResponse, type ProductList} from "@/components/products/interface.ts";
-import {isWarehouseListResponse, type WarehouseList} from "@/components/warehouses/interface.ts";
-import {type CurrencyList, isCurrencyListResponse} from "@/components/inventory/interface.ts";
+import {useSelectList} from "@/hooks/use_select_list.ts";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import {useNavigate} from "react-router-dom";
 
 export default function Create() {
-  const [productId, setProductId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
-  const [warehouseId, setWarehouseId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [productId, setProductId] = React.useState("");
+  const [warehouseId, setWarehouseId] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
   const [cost, setCost] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [currencyId, setCurrencyId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [currencyId, setCurrencyId] = React.useState("");
   const [newCurrency, setNewCurrecy] = React.useState("");
-  const [currencyList, setCurrencyList] = React.useState<CurrencyList>([]);
-  const [productList, setProductList] = React.useState<ProductList>([]);
-  const [warehouseList, setWarehouseList] = React.useState<WarehouseList>([]);
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
+  const [productList, setProductList] = React.useState<SelectOptionList>([]);
+  const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {}
-    });
-  };
+  const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
+  const {errors, setErrors, unexpectedError} = useFormError();
 
   useEffect(() => {
     dispatch(select_list("currencies")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (isCurrencyListResponse(responseData)) {
-                if (typeof responseData.data !== "undefined") {
-                  setCurrencyList(responseData.data);
-                } else {
-                  unexpectedError();
-                }
-              } else {
-                unexpectedError();
-              }
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError();
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setCurrencyList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
     dispatch(select_list("products")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (
-                isProductListResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                setProductList(responseData.data);
-              } else {
-                unexpectedError();
-              }
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError();
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setProductList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
     dispatch(select_list("warehouses")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (
-                isWarehouseListResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                setWarehouseList(responseData.data);
-              } else {
-                unexpectedError();
-              }
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError();
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setWarehouseList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
-  }, [dispatch]);
+  }, [
+    dispatch,
+    setErrors,
+    unexpectedError,
+    setListResponse
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,30 +83,16 @@ export default function Create() {
       currencyId,
       newCurrency,
     })).then(async (response) => {
-      console.log(response)
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              window.location.href = "/leltar/lista";
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              setErrors({
-                message: "Váratlan hiba történt a feldolgozás során!",
-                fields: {}
-              });
-          }
-        } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
-          });
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/leltar/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };
@@ -177,7 +111,7 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {productList.map(product => {
-              return <SelectItem key={product.id} value={product.id}>{product.name}</SelectItem>
+              return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
             })}
           </SelectContent>
         </Select>
@@ -193,7 +127,7 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {warehouseList.map(warehouse => {
-              return <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</SelectItem>
+              return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
             })}
           </SelectContent>
         </Select>
@@ -233,7 +167,7 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {currencyList.map(currency => {
-              return <SelectItem key={currency.id} value={currency.id}>{currency.currency}</SelectItem>
+              return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
             })}
             <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>

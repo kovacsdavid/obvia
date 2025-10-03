@@ -19,6 +19,7 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -34,7 +35,10 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProjectsRepository: Send + Sync {
-    async fn get_all(&self, active_tenant: Uuid) -> Result<Vec<Project>, RepositoryError>;
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -52,9 +56,12 @@ pub trait ProjectsRepository: Send + Sync {
 
 #[async_trait]
 impl ProjectsRepository for PoolManagerWrapper {
-    async fn get_all(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Project>> {
-        Ok(sqlx::query_as::<_, Project>(
-            "SELECT * FROM projects WHERE deleted_at IS NULL ORDER BY name",
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            "SELECT projects.id::VARCHAR as value, projects.name as title FROM projects WHERE deleted_at IS NULL ORDER BY name",
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

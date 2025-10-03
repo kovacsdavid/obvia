@@ -17,57 +17,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect, useState} from "react";
+import React, {useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, select_list} from "@/components/products/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
+import {type SelectOptionList} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import {isUnitsOfMeasureListResponse, type UnitsOfMeasureList} from "@/components/products/interface.ts";
+import {useNavigate} from "react-router-dom";
+import {useFormError} from "@/hooks/use_form_error.ts";
+import {useSelectList} from "@/hooks/use_select_list.ts";
 
 export default function Create() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
-  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<UnitsOfMeasureList>([]);
+  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<SelectOptionList>([]);
   const [status, setStatus] = React.useState("active");
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {}
-    });
-  }
+  const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
 
   useEffect(() => {
     dispatch(select_list("units_of_measure")).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200:
-              if (
-                isUnitsOfMeasureListResponse(responseData)
-                && typeof responseData.data !== "undefined"
-              ) {
-                setUnitsOfMeasureList(responseData.data);
-              } else {
-                unexpectedError();
-              }
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
-          unexpectedError();
-        }
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setUnitsOfMeasureList, setErrors);
+      } else {
+        unexpectedError();
       }
     });
-  }, [dispatch]);
+  }, [dispatch, setErrors, setListResponse, unexpectedError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,23 +58,16 @@ export default function Create() {
       newUnitOfMeasure,
       status
     })).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 201:
-              window.location.href = "/termek/lista";
-              break;
-            case 422:
-              setErrors(responseData.error);
-              break;
-            default:
-              unexpectedError();
-          }
-        } catch {
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/termek/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
           unexpectedError();
         }
+      } else {
+        unexpectedError();
       }
     });
   };
@@ -129,8 +102,8 @@ export default function Create() {
           </SelectTrigger>
           <SelectContent>
             {unitsOfMeasureList.map(unit_of_measure => {
-              return <SelectItem key={unit_of_measure.id}
-                                 value={unit_of_measure.id}>{unit_of_measure.unit_of_measure}</SelectItem>
+              return <SelectItem key={unit_of_measure.value}
+                                 value={unit_of_measure.value}>{unit_of_measure.title}</SelectItem>
             })}
             <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>

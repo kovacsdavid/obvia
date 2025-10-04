@@ -32,7 +32,7 @@ use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait CustomersRespository: Send + Sync {
+pub trait CustomersRepository: Send + Sync {
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -56,7 +56,7 @@ pub trait CustomersRespository: Send + Sync {
 }
 
 #[async_trait]
-impl CustomersRespository for PoolManagerWrapper {
+impl CustomersRepository for PoolManagerWrapper {
     async fn get_resolved_by_id(
         &self,
         id: Uuid,

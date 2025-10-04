@@ -34,6 +34,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait WorksheetsRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<WorksheetResolved>;
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
@@ -55,6 +60,36 @@ pub trait WorksheetsRepository: Send + Sync {
 
 #[async_trait]
 impl WorksheetsRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<WorksheetResolved> {
+        Ok(sqlx::query_as::<_, WorksheetResolved>(
+            r#"
+            SELECT
+                worksheets.id as id,
+                worksheets.name as name,
+                worksheets.description as description,
+                worksheets.project_id as project_id,
+                projects.name as project,
+                worksheets.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                worksheets.status as status,
+                worksheets.created_at as created_at,
+                worksheets.updated_at as updated_at,
+                worksheets.deleted_at as deleted_at
+            FROM worksheets
+            LEFT JOIN projects ON worksheets.project_id = projects.id
+            LEFT JOIN users ON worksheets.created_by_id = users.id
+            WHERE worksheets.deleted_at IS NULL
+                AND worksheets.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,

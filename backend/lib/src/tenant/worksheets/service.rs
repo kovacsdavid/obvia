@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
@@ -112,6 +112,20 @@ impl WorksheetsService {
                 )
                 .await?),
         }
+    }
+    pub async fn get_resolved_by_id(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn WorksheetsRepository>,
+    ) -> WorksheetsServiceResult<WorksheetResolved> {
+        Ok(repo
+            .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
     }
     pub async fn get_paged_list(
         paginator: &PaginatorParams,

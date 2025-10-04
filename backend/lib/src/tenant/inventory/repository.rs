@@ -33,6 +33,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait InventoryRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<InventoryResolved>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -60,6 +65,42 @@ pub trait InventoryRepository: Send + Sync {
 
 #[async_trait]
 impl InventoryRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<InventoryResolved> {
+        Ok(sqlx::query_as::<_, InventoryResolved>(
+            r#"
+            SELECT
+                inventory.id as id,
+                inventory.product_id as product_id,
+                products.name as product,
+                inventory.warehouse_id as warehouse_id,
+                warehouses.name as warehouse,
+                inventory.quantity as quantity,
+                inventory.price as price,
+                inventory.cost as cost,
+                inventory.currency_id as currency_id,
+                currencies.currency as currency,
+                inventory.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                inventory.created_at as created_at,
+                inventory.updated_at as updated_at,
+                inventory.deleted_at as deleted_at
+            FROM inventory
+            LEFT JOIN products ON inventory.product_id = products.id
+            LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+            LEFT JOIN currencies ON inventory.currency_id = currencies.id
+            LEFT JOIN users ON inventory.created_by_id = users.id
+            WHERE inventory.deleted_at IS NULL
+                AND inventory.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,

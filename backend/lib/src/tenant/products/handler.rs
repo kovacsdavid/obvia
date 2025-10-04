@@ -18,7 +18,7 @@
  */
 use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder,
+    SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
@@ -42,8 +42,22 @@ use std::sync::Arc;
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<ProductsModule>>,
-) -> Response {
-    todo!()
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            ProductsService::get_resolved_by_id(
+                &claims,
+                &payload,
+                products_module.products_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 #[debug_handler]

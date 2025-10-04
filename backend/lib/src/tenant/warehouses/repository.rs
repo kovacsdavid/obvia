@@ -34,6 +34,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait WarehousesRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<WarehouseResolved>;
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
@@ -55,6 +60,34 @@ pub trait WarehousesRepository: Send + Sync {
 
 #[async_trait]
 impl WarehousesRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<WarehouseResolved> {
+        Ok(sqlx::query_as::<_, WarehouseResolved>(
+            r#"
+            SELECT
+                warehouses.id as id,
+                warehouses.name as name,
+                warehouses.contact_name as contact_name,
+                warehouses.contact_phone as contact_phone,
+                warehouses.status as status,
+                warehouses.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                warehouses.created_at as created_at,
+                warehouses.updated_at as updated_at,
+                warehouses.deleted_at as deleted_at
+            FROM warehouses
+            LEFT JOIN users ON warehouses.created_by_id = users.id
+            WHERE warehouses.deleted_at IS NULL
+                AND warehouses.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,

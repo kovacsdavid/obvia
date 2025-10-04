@@ -34,6 +34,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProductsRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<ProductResolved>;
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
@@ -65,6 +70,36 @@ pub trait ProductsRepository: Send + Sync {
 
 #[async_trait]
 impl ProductsRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<ProductResolved> {
+        Ok(sqlx::query_as::<_, ProductResolved>(
+            r#"
+            SELECT
+                products.id as id,
+                products.name as name,
+                products.description as description,
+                products.unit_of_measure_id as unit_of_measure_id,
+                units_of_measure.unit_of_measure as unit_of_measure,
+                products.status as status,
+                products.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                products.created_at as created_at,
+                products.updated_at as updated_at,
+                products.deleted_at as deleted_at
+            FROM products
+            LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
+            LEFT JOIN users ON products.created_by_id = users.id
+            WHERE products.deleted_at IS NULL
+                AND products.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,

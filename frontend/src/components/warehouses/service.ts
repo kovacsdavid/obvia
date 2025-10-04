@@ -74,7 +74,7 @@ export async function list(query: string | null, token: string | null): Promise<
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
-  return await fetch(`/api/products/get?uuid=${uuid}`, {
+  return await fetch(`/api/warehouses/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

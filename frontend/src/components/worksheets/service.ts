@@ -95,7 +95,7 @@ export async function select_list(list: string, token: string | null): Promise<P
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WorksheetResolvedResponse>> {
-  return await fetch(`/api/products/get?uuid=${uuid}`, {
+  return await fetch(`/api/worksheets/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

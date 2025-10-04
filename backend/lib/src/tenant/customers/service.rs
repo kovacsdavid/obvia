@@ -22,7 +22,7 @@ use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CreateCustomer;
 use crate::tenant::customers::model::CustomerResolved;
-use crate::tenant::customers::repository::CustomersRespository;
+use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -62,7 +62,7 @@ impl CustomersService {
     pub async fn create(
         claims: &Claims,
         payload: &CreateCustomer,
-        repo: Arc<dyn CustomersRespository>,
+        repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<()> {
         repo.insert(
             payload.clone(),
@@ -77,7 +77,7 @@ impl CustomersService {
     pub async fn get_resolved_by_id(
         claims: &Claims,
         payload: &UuidParam,
-        repo: Arc<dyn CustomersRespository>,
+        repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<CustomerResolved> {
         Ok(repo
             .get_resolved_by_id(
@@ -93,7 +93,7 @@ impl CustomersService {
         ordering: &OrderingParams<CustomerOrderBy>,
         filtering: &FilteringParams,
         claims: &Claims,
-        repo: Arc<dyn CustomersRespository>,
+        repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         Ok(repo
             .get_all_paged(

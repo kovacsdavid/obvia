@@ -34,6 +34,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TasksRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<TaskResolved>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -51,6 +56,38 @@ pub trait TasksRepository: Send + Sync {
 
 #[async_trait]
 impl TasksRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<TaskResolved> {
+        Ok(sqlx::query_as::<_, TaskResolved>(
+            r#"
+            SELECT
+                tasks.id as id,
+                tasks.worksheet_id as worksheet_id,
+                worksheets.name as worksheet,
+                tasks.title as title,
+                tasks.description as description,
+                tasks.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                tasks.status as status,
+                tasks.priority as priority,
+                tasks.due_date as due_date,
+                tasks.created_at as created_at,
+                tasks.updated_at as updated_at,
+                tasks.deleted_at as deleted_at
+            FROM tasks
+            LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+            LEFT JOIN users ON tasks.created_by_id = users.id
+            WHERE tasks.deleted_at IS NULL
+                AND tasks.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,

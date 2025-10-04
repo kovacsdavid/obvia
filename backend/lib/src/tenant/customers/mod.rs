@@ -19,7 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
-use crate::tenant::customers::repository::CustomersRespository;
+use crate::tenant::customers::repository::CustomersRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -41,12 +41,12 @@ pub fn init_default_customers_module(
 
 pub struct CustomersModule {
     pub config: Arc<AppConfig>,
-    pub customers_repo: Arc<dyn CustomersRespository>,
+    pub customers_repo: Arc<dyn CustomersRepository>,
 }
 
 pub struct CustomersModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
-    pub customers_repo: Option<Arc<dyn CustomersRespository>>,
+    pub customers_repo: Option<Arc<dyn CustomersRepository>>,
 }
 
 impl CustomersModuleBuilder {
@@ -60,7 +60,7 @@ impl CustomersModuleBuilder {
         self.config = Some(config);
         self
     }
-    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRespository>) -> Self {
+    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRepository>) -> Self {
         self.customers_repo = Some(customers_repo);
         self
     }

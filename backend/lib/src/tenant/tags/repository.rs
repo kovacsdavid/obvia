@@ -33,6 +33,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TagsRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<TagResolved>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -50,6 +55,31 @@ pub trait TagsRepository: Send + Sync {
 
 #[async_trait]
 impl TagsRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<TagResolved> {
+        Ok(sqlx::query_as::<_, TagResolved>(
+            r#"
+            SELECT
+                tags.id as id,
+                tags.name as name,
+                tags.description as description,
+                tags.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                tags.created_at as created_at,
+                tags.deleted_at as deleted_at
+            FROM tags
+            LEFT JOIN users ON tags.created_by_id = users.id
+            WHERE tags.deleted_at IS NULL
+                AND tags.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,

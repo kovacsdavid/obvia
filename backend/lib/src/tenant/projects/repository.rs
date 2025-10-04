@@ -35,6 +35,11 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProjectsRepository: Send + Sync {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<ProjectResolved>;
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,
@@ -56,6 +61,35 @@ pub trait ProjectsRepository: Send + Sync {
 
 #[async_trait]
 impl ProjectsRepository for PoolManagerWrapper {
+    async fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<ProjectResolved> {
+        Ok(sqlx::query_as::<_, ProjectResolved>(
+            r#"
+            SELECT
+                projects.id as id,
+                projects.name as name,
+                projects.description as description,
+                projects.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                projects.status as status,
+                projects.start_date as start_date,
+                projects.end_date as end_date,
+                projects.created_at as created_at,
+                projects.updated_at as updated_at,
+                projects.deleted_at as deleted_at
+            FROM projects
+            LEFT JOIN users ON projects.created_by_id = users.id
+            WHERE projects.deleted_at IS NULL
+                AND projects.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_select_list_items(
         &self,
         active_tenant: Uuid,

@@ -57,6 +57,15 @@ export const activate = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "tenants/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tenantsApi.get_resolved(uuid, token);
+  }
+)
+
 const tenantsSlice = createSlice({
   name: "tenants",
   initialState,

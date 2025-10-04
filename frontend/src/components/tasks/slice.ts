@@ -57,6 +57,15 @@ export const select_list = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "tasks/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tasksApi.get_resolved(uuid, token);
+  }
+)
+
 const tasksSlice = createSlice({
   name: "tasks",
   initialState,

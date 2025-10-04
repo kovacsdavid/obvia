@@ -57,6 +57,15 @@ export const list = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "worksheets/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.get_resolved(uuid, token);
+  }
+)
+
 const worksheetsSlice = createSlice({
   name: "worksheets",
   initialState,

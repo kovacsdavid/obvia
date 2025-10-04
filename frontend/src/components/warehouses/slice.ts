@@ -48,6 +48,15 @@ export const list = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "warehouses/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await warehousesApi.get_resolved(uuid, token);
+  }
+)
+
 const warehousesSlice = createSlice({
   name: "warehouses",
   initialState,

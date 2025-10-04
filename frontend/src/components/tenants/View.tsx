@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/customers/slice.ts";
-import {type CustomerResolved} from "@/components/customers/interface.ts";
+import {get} from "@/components/tenants/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import type {Tenant} from "@/components/tenants/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
+  const [data, setData] = React.useState<Tenant | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Szervezeti egység</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -91,42 +91,26 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Kapcsolattartó neve
+                      Adatbázis kiszolgáló
                     </TableCell>
                     <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      E-mail cím
-                    </TableCell>
-                    <TableCell>
-                      {data.email}
+                      {data.db_host}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Telefonszám
+                      Adatbázis port
                     </TableCell>
                     <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Státusz
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
+                      {data.db_port}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Létrehozta
+                      Adatbázis név
                     </TableCell>
                     <TableCell>
-                      {data.created_by}
+                      {data.db_name}
                     </TableCell>
                   </TableRow>
                   <TableRow>

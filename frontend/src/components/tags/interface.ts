@@ -23,6 +23,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -52,6 +53,16 @@ export interface TagResolved {
   created_by: string,
   created_at: string,
   deleted_at: string | null,
+}
+
+export type TagResolvedResponse = CommonResponse<TagResolved, SimpleError>;
+
+export function isTagResolvedResponse(data: unknown): data is TagResolvedResponse {
+  return isCommonResponse(
+    data,
+    isTagResolved,
+    isSimpleError
+  )
 }
 
 export type TagResolvedList = TagResolved[];

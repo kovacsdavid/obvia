@@ -23,6 +23,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -69,7 +70,7 @@ export interface InventoryResolved {
 
 export type InventoryResolvedList = InventoryResolved[];
 
-export function isResolvedInventory(data: unknown): data is InventoryResolved {
+export function isInventoryResolved(data: unknown): data is InventoryResolved {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -106,10 +107,20 @@ export function isResolvedInventory(data: unknown): data is InventoryResolved {
   );
 }
 
+export type InventoryResolvedResponse = CommonResponse<InventoryResolved, SimpleError>;
+
+export function isInventoryResolvedResponse(data: unknown): data is InventoryResolvedResponse {
+  return isCommonResponse(
+    data,
+    isInventoryResolved,
+    isSimpleError
+  )
+}
+
 export function isInventoryResolvedList(data: unknown): data is InventoryResolvedList {
   return (
     Array.isArray(data) &&
-    data.every(item => isResolvedInventory(item))
+    data.every(item => isInventoryResolved(item))
   );
 }
 

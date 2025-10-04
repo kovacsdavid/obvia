@@ -24,6 +24,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -58,6 +59,16 @@ export interface WarehouseResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+}
+
+export type WarehouseResolvedResponse = CommonResponse<WarehouseResolved, SimpleError>;
+
+export function isWarehouseResolvedResponse(data: unknown): data is WarehouseResolvedResponse {
+  return isCommonResponse(
+    data,
+    isWarehouseResolved,
+    isSimpleError,
+  )
 }
 
 export type WarehouseResolvedList = WarehouseResolved[];

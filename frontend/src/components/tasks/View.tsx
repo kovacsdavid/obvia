@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/customers/slice.ts";
-import {type CustomerResolved} from "@/components/customers/interface.ts";
+import {get} from "@/components/tasks/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import type {TaskResolved} from "@/components/tasks/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
+  const [data, setData] = React.useState<TaskResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Feladat</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -83,34 +83,42 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Név
+                      Megnevezés
                     </TableCell>
                     <TableCell>
-                      {data.name}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Kapcsolattartó neve
-                    </TableCell>
-                    <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
+                      {data.title}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      E-mail cím
+                      Leírás
                     </TableCell>
                     <TableCell>
-                      {data.email}
+                      {data.description ?? ''}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Telefonszám
+                      Prioritás
                     </TableCell>
                     <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
+                      {data.priority ?? ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Határidő
+                    </TableCell>
+                    <TableCell>
+                      {formatDateToYMDHMS(data.due_date ?? '')}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Munkalap
+                    </TableCell>
+                    <TableCell>
+                      {data.worksheet} ({data.worksheet_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>

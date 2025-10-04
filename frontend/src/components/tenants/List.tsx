@@ -207,9 +207,11 @@ export default function List() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side={"bottom"} align="start">
                     <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <DropdownMenuItem>
-                      <Eye/> Részletek
-                    </DropdownMenuItem>
+                    <Link to={`/szervezeti_egyseg/reszletek/${item.id}`}>
+                      <DropdownMenuItem>
+                        <Eye/> Részletek
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem>
                       <Pencil/> Szerkesztés
                     </DropdownMenuItem>

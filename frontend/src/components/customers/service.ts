@@ -21,7 +21,9 @@ import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/serv
 import {
   type CreateCustomer,
   type CreateCustomerResponse,
+  type CustomerResolvedResponse,
   isCreateCustomerResponse,
+  isCustomerResolvedResponse,
   isPaginatedCustomerResolvedListResponse,
   type PaginatedCustomerResolvedListResponse
 } from "@/components/customers/interface.ts";
@@ -75,7 +77,7 @@ export async function list(query: string | null, token: string | null): Promise<
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<PaginatedCustomerResolvedListResponse>> {
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<CustomerResolvedResponse>> {
   return await fetch(`/api/customers/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
@@ -86,7 +88,7 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isPaginatedCustomerResolvedListResponse
+      isCustomerResolvedResponse
     ) ?? unexpectedError;
   });
 }

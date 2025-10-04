@@ -21,7 +21,9 @@ import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/serv
 import {
   type CreateInventory,
   type CreateInventoryResponse,
+  type InventoryResolvedResponse,
   isCreateInventoryResponse,
+  isInventoryResolvedResponse,
   isPaginatedInventoryResolvedListResponse,
   type PaginatedInventoryResolvedListResponse
 } from "@/components/inventory/interface.ts";
@@ -96,6 +98,22 @@ export async function select_list(
     return await ProcessResponse(
       response,
       isSelectOptionListResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryResolvedResponse>> {
+  return await fetch(`/api/inventory/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isInventoryResolvedResponse
     ) ?? unexpectedError;
   });
 }

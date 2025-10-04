@@ -28,9 +28,7 @@ import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
 import {list} from "@/components/worksheets/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {
-  type WorksheetResolvedList
-} from "@/components/worksheets/interface.ts";
+import {type WorksheetResolvedList} from "@/components/worksheets/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
@@ -179,9 +177,11 @@ export default function List() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side={"bottom"} align="start">
                     <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <DropdownMenuItem>
-                      <Eye/> Részletek
-                    </DropdownMenuItem>
+                    <Link to={`/munkalap/reszletek/${item.id}`}>
+                      <DropdownMenuItem>
+                        <Eye/> Részletek
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuItem>
                       <Pencil/> Szerkesztés
                     </DropdownMenuItem>

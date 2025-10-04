@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/customers/slice.ts";
-import {type CustomerResolved} from "@/components/customers/interface.ts";
+import {get} from "@/components/warehouses/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import type {WarehouseResolved} from "@/components/warehouses/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
+  const [data, setData] = React.useState<WarehouseResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Raktár</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -94,23 +94,15 @@ export default function View() {
                       Kapcsolattartó neve
                     </TableCell>
                     <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
+                      {data.contact_name ?? 'N/A'}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      E-mail cím
+                      Kapcsolattartó telefonszáma
                     </TableCell>
                     <TableCell>
-                      {data.email}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Telefonszám
-                    </TableCell>
-                    <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
+                      {data.contact_phone ?? 'N/A'}
                     </TableCell>
                   </TableRow>
                   <TableRow>

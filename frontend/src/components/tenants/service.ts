@@ -25,7 +25,9 @@ import {
   isActiveTenantResponse,
   isCreateTenantResponse,
   isPaginatedTenantListResponse,
-  type PaginatedTenantListResponse
+  isTenantResponse,
+  type PaginatedTenantListResponse,
+  type TenantResponse
 } from "@/components/tenants/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
@@ -96,6 +98,22 @@ export async function activate(new_tenant_id: string | null, token: string | nul
     return await ProcessResponse(
       response,
       isActiveTenantResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TenantResponse>> {
+  return await fetch(`/api/products/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isTenantResponse,
     ) ?? unexpectedError;
   });
 }

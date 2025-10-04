@@ -23,7 +23,9 @@ import {
   type CreateTagResponse,
   isCreateTagResponse,
   isPaginatedTagResolvedListResponse,
-  type PaginatedTagResolvedListResponse
+  isTagResolvedResponse,
+  type PaginatedTagResolvedListResponse,
+  type TagResolvedResponse
 } from "@/components/tags/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
@@ -63,6 +65,22 @@ export async function list(query: string | null, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isPaginatedTagResolvedListResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TagResolvedResponse>> {
+  return await fetch(`/api/products/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isTagResolvedResponse,
     ) ?? unexpectedError;
   });
 }

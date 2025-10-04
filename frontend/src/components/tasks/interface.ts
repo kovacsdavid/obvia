@@ -23,6 +23,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -62,6 +63,16 @@ export interface TaskResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+}
+
+export type TaskResolvedResponse = CommonResponse<TaskResolved, SimpleError>;
+
+export function isTaskResolvedResponse(data: unknown): data is TaskResolvedResponse {
+  return isCommonResponse(
+    data,
+    isTaskResolved,
+    isSimpleError
+  )
 }
 
 export type TaskResolvedList = TaskResolved[];

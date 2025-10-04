@@ -48,6 +48,15 @@ export const list = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "products/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await productsApi.get_resolved(uuid, token);
+  }
+)
+
 export const select_list = createAsyncThunk(
   "products/select_list",
   async (list: string, {getState}) => {

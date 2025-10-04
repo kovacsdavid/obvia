@@ -23,6 +23,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -98,7 +99,8 @@ export type CustomerResolvedResponse = CommonResponse<CustomerResolved, SimpleEr
 export function isCustomerResolvedResponse(data: unknown): data is CustomerResolvedResponse {
   return isCommonResponse(
     data,
-    isCustomerResolved
+    isCustomerResolved,
+    isSimpleError
   )
 }
 

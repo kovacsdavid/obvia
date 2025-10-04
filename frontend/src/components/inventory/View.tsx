@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/customers/slice.ts";
-import {type CustomerResolved} from "@/components/customers/interface.ts";
+import {get} from "@/components/inventory/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import type {InventoryResolved} from "@/components/inventory/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
+  const [data, setData] = React.useState<InventoryResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Leltár</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -83,42 +83,50 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Név
+                      Termék
                     </TableCell>
                     <TableCell>
-                      {data.name}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Kapcsolattartó neve
-                    </TableCell>
-                    <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
+                      {data.product} ({data.product_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      E-mail cím
+                      Raktár
                     </TableCell>
                     <TableCell>
-                      {data.email}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Telefonszám
-                    </TableCell>
-                    <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
+                      {data.warehouse} ({data.warehouse_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Státusz
+                      Mennyiség
                     </TableCell>
                     <TableCell>
-                      {data.status}
+                      {data.quantity}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Fogyasztói ár
+                    </TableCell>
+                    <TableCell>
+                      {data.price ?? 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Beszerzési ár
+                    </TableCell>
+                    <TableCell>
+                      {data.cost ?? 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Pénznem
+                    </TableCell>
+                    <TableCell>
+                      {data.currency}
                     </TableCell>
                   </TableRow>
                   <TableRow>

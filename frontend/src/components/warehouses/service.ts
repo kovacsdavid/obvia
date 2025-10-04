@@ -23,7 +23,9 @@ import {
   type CreateWarehouseResponse,
   isCreateWarehouseResponse,
   isPaginatedWarehouseResolvedListResponse,
-  type PaginatedWarehouseResolvedListResponse
+  isWarehouseResolvedResponse,
+  type PaginatedWarehouseResolvedListResponse,
+  type WarehouseResolvedResponse
 } from "@/components/warehouses/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
@@ -67,6 +69,22 @@ export async function list(query: string | null, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isPaginatedWarehouseResolvedListResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
+  return await fetch(`/api/products/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isWarehouseResolvedResponse,
     ) ?? unexpectedError;
   });
 }

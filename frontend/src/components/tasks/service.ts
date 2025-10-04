@@ -23,7 +23,9 @@ import {
   type CreateTaskResponse,
   isCreateTaskResponse,
   isPaginatedTaskResolvedListResponse,
-  type PaginatedTaskResolvedListResponse
+  isTaskResolvedResponse,
+  type PaginatedTaskResolvedListResponse,
+  type TaskResolvedResponse
 } from "@/components/tasks/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -92,6 +94,22 @@ export async function select_list(list: string, token: string | null): Promise<P
     return await ProcessResponse(
       response,
       isSelectOptionListResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TaskResolvedResponse>> {
+  return await fetch(`/api/products/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isTaskResolvedResponse,
     ) ?? unexpectedError;
   });
 }

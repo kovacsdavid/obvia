@@ -23,6 +23,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -59,6 +60,16 @@ export interface ProjectResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+}
+
+export type ProjectResolvedResponse = CommonResponse<ProjectResolved, SimpleError>;
+
+export function isProjectResolvedResponse(data: unknown): data is ProjectResolvedResponse {
+  return isCommonResponse(
+    data,
+    isProjectResolved,
+    isSimpleError,
+  )
 }
 
 export type ProjectResolvedList = ProjectResolved[];

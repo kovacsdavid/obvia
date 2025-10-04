@@ -64,6 +64,16 @@ export interface Tenant {
   deleted_at: string | null;
 }
 
+export type TenantResponse = CommonResponse<Tenant, SimpleError>;
+
+export function isTenantResponse(data: unknown): data is TenantResponse {
+  return isCommonResponse(
+    data,
+    isTenant,
+    isSimpleError
+  )
+}
+
 export type TenantList = Tenant[];
 
 export function isTenant(data: unknown): data is Tenant {

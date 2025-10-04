@@ -24,6 +24,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -59,6 +60,16 @@ export interface WorksheetResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+}
+
+export type WorksheetResolvedResponse = CommonResponse<WorksheetResolved, SimpleError>;
+
+export function isWorksheetResolvedResponse(data: unknown): data is WorksheetResolvedResponse {
+  return isCommonResponse(
+    data,
+    isWorksheetResolved,
+    isSimpleError,
+  )
 }
 
 export type WorksheetResolvedList = WorksheetResolved[];

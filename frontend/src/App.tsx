@@ -30,22 +30,30 @@ import {default as CustomerList} from "@/components/customers/List.tsx";
 import {default as CustomerView} from "@/components/customers/View.tsx";
 import {default as InventoryCreate} from "@/components/inventory/Create.tsx";
 import {default as InventoryList} from "@/components/inventory/List.tsx";
+import {default as InventoryView} from "@/components/inventory/View.tsx";
 import {default as ProductsCreate} from "@/components/products/Create.tsx";
 import {default as ProductsList} from "@/components/products/List.tsx";
+import {default as ProductsView} from "@/components/products/View.tsx";
 import {default as ProjectsCreate} from "@/components/projects/Create.tsx";
 import {default as ProjectsList} from "@/components/projects/List.tsx";
+import {default as ProjectsView} from "@/components/projects/View.tsx";
 import {default as TagsCreate} from "@/components/tags/Create.tsx";
 import {default as TagsList} from "@/components/tags/List.tsx";
+import {default as TagsView} from "@/components/tags/View.tsx";
 import {default as TasksCreate} from "@/components/tasks/Create.tsx";
 import {default as TasksList} from "@/components/tasks/List.tsx";
+import {default as TasksView} from "@/components/tasks/View.tsx";
 import {default as UsersCreate} from "@/components/users/Create.tsx";
 import {default as UsersList} from "@/components/users/List.tsx";
 import {default as WarehousesCreate} from "@/components/warehouses/Create.tsx";
 import {default as WarehousesList} from "@/components/warehouses/List.tsx";
+import {default as WarehousesView} from "@/components/warehouses/View.tsx";
 import {default as WorksheetsCreate} from "@/components/worksheets/Create.tsx";
 import {default as WorksheetsList} from "@/components/worksheets/List.tsx";
+import {default as WorksheetsView} from "@/components/worksheets/View.tsx";
 import {default as TenantsCreate} from "@/components/tenants/Create.tsx";
 import {default as TenantsList} from "@/components/tenants/List.tsx";
+import {default as TenantsView} from "@/components/tenants/View.tsx";
 
 function PrivateRoute({children}: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);
@@ -83,6 +91,15 @@ export default function App() {
           }
         />
         <Route
+          path="/szervezeti_egyseg/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <TenantsView/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/vevo/uj"
           element={
             <PrivateRoute>
@@ -106,6 +123,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
+
         <Route
           path="/leltar/uj"
           element={
@@ -123,6 +141,15 @@ export default function App() {
           }
         />
         <Route
+          path="/leltar/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <InventoryView/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/termek/uj"
           element={
             <PrivateRoute>
@@ -138,6 +165,15 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/termek/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <ProductsView/>
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/projekt/uj"
           element={
@@ -155,6 +191,15 @@ export default function App() {
           }
         />
         <Route
+          path="/projekt/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <ProjectsView/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/cimke/uj"
           element={
             <PrivateRoute>
@@ -171,6 +216,15 @@ export default function App() {
           }
         />
         <Route
+          path="/cimke/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <TagsView/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/feladat/uj"
           element={
             <PrivateRoute>
@@ -186,6 +240,15 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/feladat/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <TasksView/>
+            </PrivateRoute>
+          }
+        />
+
         <Route
           path="/felhasznalo/uj"
           element={
@@ -219,6 +282,15 @@ export default function App() {
           }
         />
         <Route
+          path="/raktar/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <WarehousesView/>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
           path="/munkalap/uj"
           element={
             <PrivateRoute>
@@ -234,6 +306,15 @@ export default function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/munkalap/reszletek/:id"
+          element={
+            <PrivateRoute>
+              <WorksheetsView/>
+            </PrivateRoute>
+          }
+        />
+
         <Route path="*" element={<Navigate to="/vezerlopult"/>}/>
       </Routes>
     </Layout>

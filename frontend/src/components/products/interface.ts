@@ -24,6 +24,7 @@ import {
   isCommonResponse,
   isFormError,
   isPaginatedDataResponse,
+  isSimpleError,
   isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
@@ -61,6 +62,16 @@ export interface ProductResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+}
+
+export type ProductResolvedResponse = CommonResponse<ProductResolved, SimpleError>;
+
+export function isProductResolvedResponse(data: unknown): data is ProductResolvedResponse {
+  return isCommonResponse(
+    data,
+    isProductResolved,
+    isSimpleError,
+  )
 }
 
 export type ProductResolvedList = ProductResolved[];

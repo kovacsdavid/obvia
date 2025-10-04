@@ -78,7 +78,7 @@ export default function Create() {
           onChange={e => setDescription(e.target.value)}
         />
         <FieldError error={errors} field={"description"}/>
-        <Label htmlFor="start_date">Kezdő dátum</Label>
+        <Label htmlFor="start_date">Kezdődátum</Label>
         <Input
           id="start_date"
           type="text"

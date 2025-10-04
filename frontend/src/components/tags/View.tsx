@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/customers/slice.ts";
-import {type CustomerResolved} from "@/components/customers/interface.ts";
+import {get} from "@/components/tags/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import type {TagResolved} from "@/components/tags/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
+  const [data, setData] = React.useState<TagResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Címke</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -91,34 +91,10 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Kapcsolattartó neve
+                      Leírás
                     </TableCell>
                     <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      E-mail cím
-                    </TableCell>
-                    <TableCell>
-                      {data.email}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Telefonszám
-                    </TableCell>
-                    <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Státusz
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
+                      {data.description ?? ''}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -135,14 +111,6 @@ export default function View() {
                     </TableCell>
                     <TableCell>
                       {formatDateToYMDHMS(data.created_at)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Frissítve
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.updated_at)}
                     </TableCell>
                   </TableRow>
                 </TableBody>

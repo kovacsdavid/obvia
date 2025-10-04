@@ -30,6 +30,15 @@ const initialState: InventoryState = {
   status: "idle",
 }
 
+export const get = createAsyncThunk(
+  "inventory/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await inventoryApi.get_resolved(uuid, token);
+  }
+)
+
 export const create = createAsyncThunk(
   "inventory/create",
   async (requestData: CreateInventory, {getState}) => {

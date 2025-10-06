@@ -175,7 +175,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 v.extract()
                     .get_value()
                     .parse::<f64>()
-                    .map_err(|_| RepositoryError::Parse("price".to_string()))?,
+                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
             ),
         };
         let cost = match &inventory.cost {
@@ -184,7 +184,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 v.extract()
                     .get_value()
                     .parse::<f64>()
-                    .map_err(|_| RepositoryError::Parse("cost".to_string()))?,
+                    .map_err(|_| RepositoryError::InvalidInput("cost".to_string()))?,
             ),
         };
 
@@ -201,11 +201,11 @@ impl InventoryRepository for PoolManagerWrapper {
                       .trim()
                       .replace(",", ".")
                       .parse::<i32>()
-                      .map_err(|_| RepositoryError::Parse("quantity".to_string()))?
+                      .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?
             )
             .bind(price)
             .bind(cost)
-            .bind(inventory.currency_id.ok_or(RepositoryError::Parse("currency_id".to_string()))?)
+            .bind(inventory.currency_id.ok_or(RepositoryError::InvalidInput("currency_id".to_string()))?)
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?

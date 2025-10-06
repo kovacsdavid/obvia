@@ -26,7 +26,7 @@ import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {list} from "@/components/customers/slice.ts";
+import {deleteCustomer, list} from "@/components/customers/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type CustomerResolvedList} from "@/components/customers/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
@@ -48,16 +48,16 @@ export default function List() {
   }, []);
 
   const {
-    searchParams,
+    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
     //orderBy,
-    setOrderBy,
+    //setOrderBy,
     //order,
-    setOrder,
+    //setOrder,
     paginatorSelect,
     //orderSelect,
     //filterSelect,
@@ -70,7 +70,7 @@ export default function List() {
     });
   };
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
@@ -92,15 +92,22 @@ export default function List() {
         unexpectedError();
       }
     })
+  }, [dispatch, rawQuery, setLimit, setPage, setTotal])
+
+  const handleDelete = (id: string) => {
+    dispatch(deleteCustomer(id)).then(async (response) => {
+      if (deleteCustomer.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          refresh();
+        }
+      }
+    });
+  }
+
+  useEffect(() => {
+    refresh();
   }, [
-    searchParams,
-    rawQuery,
-    dispatch,
-    setOrder,
-    setOrderBy,
-    setLimit,
-    setPage,
-    setTotal
+    refresh
   ]);
 
   return (
@@ -191,11 +198,13 @@ export default function List() {
                         <Eye/> Részletek
                       </DropdownMenuItem>
                     </Link>
+                    <Link to={`/vevo/uj/${item.id}`}>
                     <DropdownMenuItem>
                       <Pencil/> Szerkesztés
                     </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuSeparator/>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
                       <Trash/> Törlés
                     </DropdownMenuItem>
                   </DropdownMenuContent>

@@ -20,8 +20,8 @@ use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidPar
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::customers::dto::CreateCustomer;
-use crate::tenant::customers::model::CustomerResolved;
+use crate::tenant::customers::dto::CustomerUserInput;
+use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use axum::http::StatusCode;
@@ -61,7 +61,7 @@ type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
 impl CustomersService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateCustomer,
+        payload: &CustomerUserInput,
         repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<()> {
         repo.insert(
@@ -81,6 +81,48 @@ impl CustomersService {
     ) -> CustomersServiceResult<CustomerResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn CustomersRepository>,
+    ) -> CustomersServiceResult<Customer> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &CustomerUserInput,
+        repo: Arc<dyn CustomersRepository>,
+    ) -> CustomersServiceResult<Customer> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn CustomersRepository>,
+    ) -> CustomersServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

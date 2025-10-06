@@ -155,7 +155,7 @@ impl TasksRepository for PoolManagerWrapper {
             None => None,
             Some(v) => Some(
                 NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
-                    .map_err(|e| RepositoryError::Parse(e.to_string()))?,
+                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         Ok(sqlx::query_as::<_, Task>(

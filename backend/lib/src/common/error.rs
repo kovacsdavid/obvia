@@ -232,11 +232,8 @@ pub enum RepositoryError {
     #[error("Migrate error: {0}")]
     Migrate(#[from] MigrateError),
 
-    #[error("Parse error: {0}")]
-    Parse(String),
-
-    #[error("ValueObject error: {0}")]
-    ValueObject(String),
+    #[error("InvalidInput error: {0}")]
+    InvalidInput(String),
 
     #[error("Custom error: {0}")]
     Custom(String),

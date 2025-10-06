@@ -18,11 +18,11 @@
  */
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
-use crate::common::error::RepositoryResult;
+use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::customers::dto::CreateCustomer;
+use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::CustomerOrderBy;
 use async_trait::async_trait;
@@ -33,6 +33,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CustomersRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -47,16 +48,34 @@ pub trait CustomersRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn insert(
         &self,
-        customer: CreateCustomer,
+        customer: CustomerUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer>;
-    async fn update(&self, customer: Customer, active_tenant: Uuid) -> RepositoryResult<Customer>;
+    async fn update(
+        &self,
+        customer: CustomerUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Customer>;
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl CustomersRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer> {
+        Ok(sqlx::query_as::<_, Customer>(
+            r#"
+            SELECT * 
+            FROM customers
+            WHERE customers.deleted_at IS NULL
+                AND customers.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -71,6 +90,7 @@ impl CustomersRepository for PoolManagerWrapper {
                 customers.email as email,
                 customers.phone_number as phone_number,
                 customers.status as status,
+                customers.customer_type as customer_type,
                 customers.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 customers.created_at as created_at,
@@ -113,6 +133,7 @@ impl CustomersRepository for PoolManagerWrapper {
                 customers.email as email,
                 customers.phone_number as phone_number,
                 customers.status as status,
+                customers.customer_type as customer_type,
                 customers.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 customers.created_at as created_at,
@@ -144,13 +165,13 @@ impl CustomersRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        customer: CreateCustomer,
+        customer: CustomerUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer> {
         Ok(sqlx::query_as::<_, Customer>(
-            "INSERT INTO customers (name, contact_name, email, phone_number, status, type, created_by_id)
-                 VALUES ($1, $2, $3,$4, $5, $6, $7) RETURNING *",
+            "INSERT INTO customers (name, contact_name, email, phone_number, status, customer_type, created_by_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         )
         .bind(customer.name.extract().get_value())
         .bind(
@@ -171,11 +192,61 @@ impl CustomersRepository for PoolManagerWrapper {
         .await?)
     }
 
-    async fn update(&self, customer: Customer, active_tenant: Uuid) -> RepositoryResult<Customer> {
-        todo!()
+    async fn update(
+        &self,
+        customer: CustomerUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Customer> {
+        let id = customer
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        Ok(sqlx::query_as::<_, Customer>(
+            r#"
+            UPDATE customers 
+            SET name = $1,
+                contact_name = $2,
+                email = $3,
+                phone_number = $4,
+                status = $5,
+                customer_type = $6,
+                updated_at = NOW()
+            WHERE id = $7
+                AND deleted_at IS NULL 
+            RETURNING *
+            "#,
+        )
+        .bind(customer.name.extract().get_value())
+        .bind(
+            customer
+                .contact_name
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(customer.email.extract().get_value())
+        .bind(
+            customer
+                .phone_number
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(customer.status.extract().get_value())
+        .bind(customer.customer_type.extract().get_value())
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
     }
 
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
-        todo!()
+        sqlx::query(
+            r#"
+            UPDATE customers 
+            SET deleted_at = NOW()
+            WHERE id = $1 
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

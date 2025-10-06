@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as customersApi from "@/components/customers/service.ts";
 import type {RootState} from "@/store";
-import type {CreateCustomer} from "@/components/customers/interface.ts";
+import type {CustomerUserInput} from "@/components/customers/interface.ts";
 
 interface CustomersState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,10 +32,28 @@ const initialState: CustomersState = {
 
 export const create = createAsyncThunk(
   "customers/create",
-  async (requestData: CreateCustomer, {getState}) => {
+  async (requestData: CustomerUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await customersApi.create(requestData, token)
+    return await customersApi.create(requestData, token);
+  }
+)
+
+export const deleteCustomer = createAsyncThunk(
+  "customers/deleteCustomer",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await customersApi.deleteCustomer(uuid, token);
+  }
+);
+
+export const update = createAsyncThunk(
+  "customers/update",
+  async (requestData: CustomerUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await customersApi.update(requestData, token);
   }
 )
 
@@ -44,7 +62,7 @@ export const list = createAsyncThunk(
   async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await customersApi.list(query, token)
+    return await customersApi.list(query, token);
   }
 )
 
@@ -53,7 +71,16 @@ export const get = createAsyncThunk(
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await customersApi.get_resolved(uuid, token)
+    return await customersApi.get(uuid, token);
+  }
+)
+
+export const get_resolved = createAsyncThunk(
+  "customers/get_resolved",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await customersApi.get_resolved(uuid, token);
   }
 )
 

@@ -181,7 +181,9 @@ impl ProductsRepository for PoolManagerWrapper {
         .bind(
             product
                 .unit_of_measure_id
-                .ok_or(RepositoryError::Parse("unit_of_measure_id".to_string()))?,
+                .ok_or(RepositoryError::InvalidInput(
+                    "unit_of_measure_id".to_string(),
+                ))?,
         )
         .bind(product.status.extract().get_value())
         .bind(sub)

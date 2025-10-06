@@ -20,17 +20,13 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateCustomer {
+export interface CustomerUserInput {
+  id: string | null
   name: string
   contactName: string
   email: string
@@ -39,14 +35,18 @@ export interface CreateCustomer {
   customerType: string | undefined,
 }
 
-export type CreateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isCreateCustomerResponse(data: unknown): data is CreateCustomerResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError
-  )
+export interface Customer {
+  id: string,
+  name: string,
+  contact_name: string | null,
+  email: string,
+  phone_number: string | null,
+  status: string,
+  customer_type: string,
+  created_by_id: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
 }
 
 export interface CustomerResolved {
@@ -56,6 +56,7 @@ export interface CustomerResolved {
   email: string,
   phone_number: string | null,
   status: string,
+  customer_type: string,
   created_by_id: string,
   created_by: string,
   created_at: string,
@@ -63,61 +64,10 @@ export interface CustomerResolved {
   deleted_at: string | null,
 }
 
+export type CreateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
+export type UpdateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DeleteCustomerResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type CustomerResolvedList = CustomerResolved[];
-
-export function isCustomerResolved(data: unknown): data is CustomerResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    (data.contact_name === null || typeof data.contact_name === "string") &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "phone_number" in data &&
-    (data.phone_number === null || typeof data.phone_number === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
+export type CustomerResponse = CommonResponse<Customer, SimpleError>;
 export type CustomerResolvedResponse = CommonResponse<CustomerResolved, SimpleError>;
-
-export function isCustomerResolvedResponse(data: unknown): data is CustomerResolvedResponse {
-  return isCommonResponse(
-    data,
-    isCustomerResolved,
-    isSimpleError
-  )
-}
-
-export function isCustomerResolvedList(data: unknown): data is CustomerResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isCustomerResolved(item))
-  );
-}
-
 export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<CustomerResolvedList, SimpleError>
-
-export function isPaginatedCustomerResolvedListResponse(
-  data: unknown
-): data is PaginatedCustomerResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isCustomerResolvedList
-  );
-}

@@ -28,18 +28,17 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::CustomersModule;
-use crate::tenant::customers::dto::{CreateCustomer, CreateCustomerHelper};
+use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
 use crate::tenant::customers::service::CustomersService;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
-use axum::extract::rejection::JsonRejection;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Json, debug_handler};
+use axum::response::IntoResponse;
 use std::sync::Arc;
 
 #[debug_handler]
-pub async fn get(
+pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
     Query(payload): Query<UuidParam>,
@@ -61,10 +60,28 @@ pub async fn get(
 }
 
 #[debug_handler]
+pub async fn get(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(customers_module): State<Arc<CustomersModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            CustomersService::get(&claims, &payload, customers_module.customers_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
-    UserInput(user_input, _): UserInput<CreateCustomer, CreateCustomerHelper>,
+    UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
     CustomersService::create(
         &claims,
@@ -87,18 +104,42 @@ pub async fn create(
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
-    payload: Result<Json<CreateCustomer>, JsonRejection>,
-) -> Response {
-    todo!()
+    UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
+) -> HandlerResult {
+    CustomersService::update(
+        &claims,
+        &user_input,
+        customers_module.customers_repo.clone(),
+    )
+    .await
+    .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A vevő frissítése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<CustomersModule>>,
-    payload: Result<Json<CreateCustomer>, JsonRejection>,
-) -> Response {
-    todo!()
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    CustomersService::delete(&claims, &payload, customers_module.customers_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A vevő törlése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
 }
 
 #[debug_handler]

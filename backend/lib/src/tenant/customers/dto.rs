@@ -26,9 +26,11 @@ use crate::tenant::customers::types::customer::{
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateCustomerHelper {
+pub struct CustomerUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub contact_name: String,
     pub email: String,
@@ -38,7 +40,8 @@ pub struct CreateCustomerHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateCustomerError {
+pub struct CustomerUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub contact_name: Option<String>,
     pub email: Option<String>,
@@ -47,9 +50,10 @@ pub struct CreateCustomerError {
     pub customer_type: Option<String>,
 }
 
-impl CreateCustomerError {
+impl CustomerUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none()
+        self.id.is_none()
+            && self.name.is_none()
             && self.contact_name.is_none()
             && self.email.is_none()
             && self.phone_number.is_none()
@@ -58,7 +62,7 @@ impl CreateCustomerError {
     }
 }
 
-impl Display for CreateCustomerError {
+impl Display for CustomerUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateCustomerError: {}", json),
@@ -67,16 +71,17 @@ impl Display for CreateCustomerError {
     }
 }
 
-impl FormErrorResponse for CreateCustomerError {}
+impl FormErrorResponse for CustomerUserInputError {}
 
-impl IntoResponse for CreateCustomerError {
+impl IntoResponse for CustomerUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateCustomer {
+pub struct CustomerUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<CustomerName>,
     pub contact_name: Option<ValueObject<CustomerContactName>>,
     pub email: ValueObject<Email>,
@@ -85,10 +90,19 @@ pub struct CreateCustomer {
     pub customer_type: ValueObject<CustomerType>,
 }
 
-impl TryFrom<CreateCustomerHelper> for CreateCustomer {
-    type Error = CreateCustomerError;
-    fn try_from(value: CreateCustomerHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateCustomerError::default();
+impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
+    type Error = CustomerUserInputError;
+    fn try_from(value: CustomerUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = CustomerUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(CustomerName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -128,52 +142,17 @@ impl TryFrom<CreateCustomerHelper> for CreateCustomer {
         };
 
         if error.is_empty() {
-            Ok(CreateCustomer {
-                name: name.map_err(|_| CreateCustomerError::default())?,
+            Ok(CustomerUserInput {
+                id,
+                name: name.map_err(|_| CustomerUserInputError::default())?,
                 contact_name,
-                email: email.map_err(|_| CreateCustomerError::default())?,
-                phone_number: Some(phone_number.map_err(|_| CreateCustomerError::default())?),
-                status: status.map_err(|_| CreateCustomerError::default())?,
-                customer_type: customer_type.map_err(|_| CreateCustomerError::default())?,
+                email: email.map_err(|_| CustomerUserInputError::default())?,
+                phone_number: Some(phone_number.map_err(|_| CustomerUserInputError::default())?),
+                status: status.map_err(|_| CustomerUserInputError::default())?,
+                customer_type: customer_type.map_err(|_| CustomerUserInputError::default())?,
             })
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateCustomerHelper {
-    // TODO: fields
-}
-
-pub struct UpdateCustomerError {
-    // TODO: fields
-}
-
-impl UpdateCustomerError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateCustomerError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateCustomer {
-    pub name: ValueObject<CustomerName>,
-    pub contact_name: Option<ValueObject<CustomerContactName>>,
-    pub email: ValueObject<Email>,
-    pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
-    pub status: ValueObject<CustomerStatus>,
-}
-
-impl TryFrom<UpdateCustomerHelper> for UpdateCustomer {
-    type Error = UpdateCustomerError;
-    fn try_from(value: UpdateCustomerHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

@@ -17,15 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/components/customers/slice.ts";
+import {create, update} from "@/components/customers/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
+import {useParams} from "react-router";
+import {get} from "@/components/customers/slice.ts";
 
-export default function Create() {
+export default function Edit() {
   const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
@@ -35,10 +37,12 @@ export default function Create() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {errors, setErrors, unexpectedError} = useFormError();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const newCustomer = useCallback(() => {
     dispatch(create({
+      id,
       name,
       contactName,
       email,
@@ -58,6 +62,66 @@ export default function Create() {
         unexpectedError();
       }
     });
+  }, [contactName, customerType, dispatch, email, id, name, navigate, phoneNumber, setErrors, status, unexpectedError]);
+
+  const updateCustomer = useCallback(() => {
+    dispatch(update({
+      id,
+      name,
+      contactName,
+      email,
+      phoneNumber,
+      status,
+      customerType,
+    })).then(async (response) => {
+      if (update.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          navigate("/vevo/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [contactName, customerType, dispatch, email, id, name, navigate, phoneNumber, setErrors, status, unexpectedError]);
+
+  useEffect(() => {
+    if (typeof id === "string") {
+      dispatch(get(id)).then(async (response) => {
+        if (get.fulfilled.match(response)) {
+          if (response.payload.statusCode === 200) {
+            if (typeof response.payload.jsonData.data !== "undefined") {
+              const customer = response.payload.jsonData.data;
+              setCustomerType(customer.customer_type);
+              setName(customer.name);
+              setContactName(customer.contact_name ?? "");
+              setEmail(customer.email);
+              setPhoneNumber(customer.phone_number ?? "");
+              setStatus(customer.status);
+            }
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    }
+  }, [dispatch, id, setErrors, unexpectedError]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (typeof id === "string") {
+      updateCustomer();
+    } else {
+      newCustomer();
+    }
   };
 
   return (

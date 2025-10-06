@@ -18,34 +18,17 @@
  */
 
 import {activate} from "@/components/tenants/slice.ts";
-import {isActiveTenantResponse} from "@/components/tenants/interface.ts";
-import {updateToken} from "@/components/auth/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
+import {updateToken} from "@/components/auth/slice.ts";
 
 export function useActivateTenant() {
   const dispatch = useAppDispatch();
   return async (new_tenant_id: string): Promise<boolean> => {
     return dispatch(activate(new_tenant_id)).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200: {
-              console.log(responseData);
-              if (isActiveTenantResponse(responseData)) {
-                dispatch(updateToken(responseData.data))
-                return true
-              }
-              return false;
-            }
-            default: {
-              return false;
-            }
-          }
-        } catch {
-          return false;
-        }
+      if(activate.fulfilled.match(response)
+        && response.payload.statusCode === 200) {
+        dispatch(updateToken(response.payload.jsonData.data));
+        return true;
       }
       return false;
     })

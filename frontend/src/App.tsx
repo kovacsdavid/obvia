@@ -25,7 +25,7 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import {useSelector} from "react-redux";
 import type {RootState} from "./store";
 import {Layout} from "@/components/layout/Layout";
-import {default as CustomerCreate} from "@/components/customers/Create.tsx";
+import {default as CustomerEdit} from "@/components/customers/Edit.tsx";
 import {default as CustomerList} from "@/components/customers/List.tsx";
 import {default as CustomerView} from "@/components/customers/View.tsx";
 import {default as InventoryCreate} from "@/components/inventory/Create.tsx";
@@ -103,7 +103,15 @@ export default function App() {
           path="/vevo/uj"
           element={
             <PrivateRoute>
-              <CustomerCreate/>
+              <CustomerEdit/>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vevo/uj/:id"
+          element={
+            <PrivateRoute>
+              <CustomerEdit/>
             </PrivateRoute>
           }
         />

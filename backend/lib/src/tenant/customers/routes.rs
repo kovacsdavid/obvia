@@ -21,11 +21,11 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::handler::{
     create as customers_create, delete as customers_delete, get as customers_get,
-    list as customers_list, update as customers_update,
+    get_resolved as customers_get_resolved, list as customers_list, update as customers_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(customers_module: Arc<CustomersModule>) -> Router {
@@ -33,10 +33,11 @@ pub fn routes(customers_module: Arc<CustomersModule>) -> Router {
         "/customers",
         Router::new()
             .route("/get", get(customers_get))
+            .route("/get_resolved", get(customers_get_resolved))
             .route("/list", get(customers_list))
             .route("/create", post(customers_create))
-            .route("/update", post(customers_update))
-            .route("/delete", post(customers_delete))
+            .route("/update", put(customers_update))
+            .route("/delete", delete(customers_delete))
             .layer(from_fn_with_state(
                 customers_module.config.clone(),
                 require_auth,

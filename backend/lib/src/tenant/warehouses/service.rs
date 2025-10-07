@@ -22,8 +22,8 @@ use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::dto::CreateWarehouse;
-use crate::tenant::warehouses::model::WarehouseResolved;
+use crate::tenant::warehouses::dto::WarehouseUserInput;
+use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
 use axum::http::StatusCode;
@@ -63,7 +63,7 @@ pub struct WarehousesService;
 impl WarehousesService {
     pub async fn try_create(
         claims: &Claims,
-        payload: &CreateWarehouse,
+        payload: &WarehouseUserInput,
         warehouses_module: Arc<WarehousesModule>,
     ) -> WarehousesServiceResult<()> {
         warehouses_module
@@ -85,6 +85,48 @@ impl WarehousesService {
     ) -> WarehousesServiceResult<WarehouseResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn WarehousesRepository>,
+    ) -> WarehousesServiceResult<Warehouse> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &WarehouseUserInput,
+        repo: Arc<dyn WarehousesRepository>,
+    ) -> WarehousesServiceResult<Warehouse> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn WarehousesRepository>,
+    ) -> WarehousesServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

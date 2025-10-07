@@ -24,9 +24,11 @@ use crate::tenant::warehouses::types::warehouse::{
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateWarehouseHelper {
+pub struct WarehouseUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub contact_name: String,
     pub contact_phone: String,
@@ -34,23 +36,25 @@ pub struct CreateWarehouseHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateWarehouseError {
+pub struct WarehouseUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub contact_name: Option<String>,
     pub contact_phone: Option<String>,
     pub status: Option<String>,
 }
 
-impl CreateWarehouseError {
+impl WarehouseUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none()
+        self.id.is_none()
+            && self.name.is_none()
             && self.contact_name.is_none()
             && self.contact_phone.is_none()
             && self.status.is_none()
     }
 }
 
-impl Display for CreateWarehouseError {
+impl Display for WarehouseUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateWarehouseError: {}", json),
@@ -59,26 +63,36 @@ impl Display for CreateWarehouseError {
     }
 }
 
-impl FormErrorResponse for CreateWarehouseError {}
+impl FormErrorResponse for WarehouseUserInputError {}
 
-impl IntoResponse for CreateWarehouseError {
+impl IntoResponse for WarehouseUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateWarehouse {
+pub struct WarehouseUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<WarehouseName>,
     pub contact_name: Option<ValueObject<WarehouseContactName>>,
     pub contact_phone: Option<ValueObject<WarehouseContactPhone>>,
     pub status: ValueObject<WarehouseStatus>, // Will default to true if not provided
 }
 
-impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
-    type Error = CreateWarehouseError;
-    fn try_from(value: CreateWarehouseHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateWarehouseError::default();
+impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
+    type Error = WarehouseUserInputError;
+    fn try_from(value: WarehouseUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = WarehouseUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(WarehouseName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -114,49 +128,15 @@ impl TryFrom<CreateWarehouseHelper> for CreateWarehouse {
         });
 
         if error.is_empty() {
-            Ok(CreateWarehouse {
-                name: name.map_err(|_| CreateWarehouseError::default())?,
+            Ok(WarehouseUserInput {
+                id,
+                name: name.map_err(|_| WarehouseUserInputError::default())?,
                 contact_name,
                 contact_phone,
-                status: status.map_err(|_| CreateWarehouseError::default())?,
+                status: status.map_err(|_| WarehouseUserInputError::default())?,
             })
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateWarehouseHelper {
-    // TODO: fields
-}
-
-pub struct UpdateWarehouseError {
-    // TODO: fields
-}
-
-impl UpdateWarehouseError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateWarehouseError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateWarehouse {
-    pub name: ValueObject<WarehouseName>,
-    pub contact_name: ValueObject<WarehouseContactName>,
-    pub contact_phone: ValueObject<WarehouseContactPhone>,
-    pub is_active: bool,
-}
-
-impl TryFrom<UpdateWarehouseHelper> for UpdateWarehouse {
-    type Error = UpdateWarehouseError;
-    fn try_from(value: UpdateWarehouseHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

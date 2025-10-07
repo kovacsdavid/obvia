@@ -23,8 +23,8 @@ use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
-use crate::tenant::products::dto::CreateProduct;
-use crate::tenant::products::model::ProductResolved;
+use crate::tenant::products::dto::ProductUserInput;
+use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::ProductOrderBy;
 use axum::http::StatusCode;
@@ -86,7 +86,7 @@ pub struct ProductsService;
 impl ProductsService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateProduct,
+        payload: &ProductUserInput,
         products_module: Arc<ProductsModule>,
     ) -> Result<(), ProductsServiceError> {
         let mut product = payload.clone();
@@ -150,6 +150,48 @@ impl ProductsService {
     ) -> ProductsServiceResult<ProductResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn ProductsRepository>,
+    ) -> ProductsServiceResult<Product> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &ProductUserInput,
+        repo: Arc<dyn ProductsRepository>,
+    ) -> ProductsServiceResult<Product> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn ProductsRepository>,
+    ) -> ProductsServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

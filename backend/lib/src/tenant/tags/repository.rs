@@ -22,7 +22,7 @@ use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::tags::dto::CreateTag;
+use crate::tenant::tags::dto::TagUserInput;
 use crate::tenant::tags::model::{Tag, TagResolved};
 use crate::tenant::tags::types::tag::TagOrderBy;
 use async_trait::async_trait;
@@ -33,6 +33,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TagsRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Tag>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -47,14 +48,30 @@ pub trait TagsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<TagResolved>)>;
     async fn insert(
         &self,
-        tag: CreateTag,
+        tag: TagUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Tag, RepositoryError>;
+    async fn update(&self, tag: TagUserInput, active_tenant: Uuid) -> RepositoryResult<Tag>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl TagsRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Tag> {
+        Ok(sqlx::query_as::<_, Tag>(
+            r#"
+            SELECT *
+            FROM tags
+            WHERE tags.deleted_at IS NULL
+                AND tags.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -132,7 +149,7 @@ impl TagsRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        tag: CreateTag,
+        tag: TagUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Tag, RepositoryError> {
@@ -144,5 +161,42 @@ impl TagsRepository for PoolManagerWrapper {
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn update(&self, tag: TagUserInput, active_tenant: Uuid) -> RepositoryResult<Tag> {
+        let id = tag
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        Ok(sqlx::query_as::<_, Tag>(
+            r#"
+            UPDATE tags
+            SET name = $1,
+                description = $2
+            WHERE id = $3
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(tag.name.extract().get_value())
+        .bind(tag.description.map(|v| v.extract().get_value().clone()))
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE tags
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

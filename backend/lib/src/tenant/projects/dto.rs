@@ -23,13 +23,13 @@ use crate::tenant::projects::types::project::{
 };
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
-use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateProjectHelper {
+pub struct ProjectUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub description: String,
     pub status: String,
@@ -38,7 +38,8 @@ pub struct CreateProjectHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateProjectError {
+pub struct ProjectUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
     pub status: Option<String>,
@@ -46,9 +47,10 @@ pub struct CreateProjectError {
     pub end_date: Option<String>,
 }
 
-impl CreateProjectError {
+impl ProjectUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none()
+        self.id.is_none()
+            && self.name.is_none()
             && self.description.is_none()
             && self.status.is_none()
             && self.start_date.is_none()
@@ -56,7 +58,7 @@ impl CreateProjectError {
     }
 }
 
-impl Display for CreateProjectError {
+impl Display for ProjectUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateProjectError: {}", json),
@@ -65,16 +67,17 @@ impl Display for CreateProjectError {
     }
 }
 
-impl FormErrorResponse for CreateProjectError {}
+impl FormErrorResponse for ProjectUserInputError {}
 
-impl IntoResponse for CreateProjectError {
+impl IntoResponse for ProjectUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateProject {
+pub struct ProjectUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<ProjectName>,
     pub description: Option<ValueObject<ProjectDescription>>,
     pub status: ValueObject<ProjectStatus>,
@@ -82,10 +85,19 @@ pub struct CreateProject {
     pub end_date: Option<ValueObject<ProjectEndDate>>,
 }
 
-impl TryFrom<CreateProjectHelper> for CreateProject {
-    type Error = CreateProjectError;
-    fn try_from(value: CreateProjectHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateProjectError::default();
+impl TryFrom<ProjectUserInputHelper> for ProjectUserInput {
+    type Error = ProjectUserInputError;
+    fn try_from(value: ProjectUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = ProjectUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(ProjectName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -100,10 +112,11 @@ impl TryFrom<CreateProjectHelper> for CreateProject {
         let end_date = validate_optional_string!(ProjectEndDate(value.end_date), error.end_date);
 
         if error.is_empty() {
-            Ok(CreateProject {
-                name: name.map_err(|_| CreateProjectError::default())?,
+            Ok(ProjectUserInput {
+                id,
+                name: name.map_err(|_| ProjectUserInputError::default())?,
                 description,
-                status: status.map_err(|_| CreateProjectError::default())?,
+                status: status.map_err(|_| ProjectUserInputError::default())?,
                 start_date,
                 end_date,
             })
@@ -111,53 +124,4 @@ impl TryFrom<CreateProjectHelper> for CreateProject {
             Err(error)
         }
     }
-}
-
-pub struct UpdateProjectHelper {
-    // TODO: fields
-}
-
-pub struct UpdateProjectError {
-    // TODO: fields
-}
-
-impl UpdateProjectError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateProjectError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProject {
-    pub name: ValueObject<ProjectName>,
-    pub description: Option<String>,
-    pub status: ValueObject<ProjectStatus>,
-    pub start_date: Option<DateTime<Local>>,
-    pub end_date: Option<DateTime<Local>>,
-}
-
-impl TryFrom<UpdateProjectHelper> for UpdateProject {
-    type Error = UpdateProjectError;
-    fn try_from(value: UpdateProjectHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateProjectAssignment {
-    pub user_id: Uuid,
-    pub project_id: Uuid,
-    pub created_by_id: Uuid,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProjectAssignment {
-    pub user_id: Option<Uuid>,
-    pub project_id: Option<Uuid>,
 }

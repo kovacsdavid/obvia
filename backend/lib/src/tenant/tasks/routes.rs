@@ -20,8 +20,9 @@
 use crate::manager::auth::middleware::require_auth;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::handler::{
-    create as tasks_create, delete as tasks_delete, get as tasks_get, list as tasks_list,
-    select_list as tasks_select_list, update as tasks_update,
+    create as tasks_create, delete as tasks_delete, get as tasks_get,
+    get_resolved as tasks_get_resolved, list as tasks_list, select_list as tasks_select_list,
+    update as tasks_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -33,6 +34,7 @@ pub fn routes(tasks_module: Arc<TasksModule>) -> Router {
         "/tasks",
         Router::new()
             .route("/get", get(tasks_get))
+            .route("/get_resolved", get(tasks_get_resolved))
             .route("/list", get(tasks_list))
             .route("/select_list", get(tasks_select_list))
             .route("/create", post(tasks_create))

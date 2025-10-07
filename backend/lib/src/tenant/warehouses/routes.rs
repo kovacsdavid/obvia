@@ -21,7 +21,7 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::handler::{
     create as warehouses_create, delete as warehouses_delete, get as warehouses_get,
-    list as warehouses_list, update as warehouses_update,
+    get_resolved as warehouses_get_resolved, list as warehouses_list, update as warehouses_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -33,6 +33,7 @@ pub fn routes(warehouses_module: Arc<WarehousesModule>) -> Router {
         "/warehouses",
         Router::new()
             .route("/get", get(warehouses_get))
+            .route("/get_resolved", get(warehouses_get_resolved))
             .route("/list", get(warehouses_list))
             .route("/create", post(warehouses_create))
             .route("/update", post(warehouses_update))

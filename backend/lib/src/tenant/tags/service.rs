@@ -21,8 +21,8 @@ use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
-use crate::tenant::tags::dto::CreateTag;
-use crate::tenant::tags::model::TagResolved;
+use crate::tenant::tags::dto::TagUserInput;
+use crate::tenant::tags::model::{Tag, TagResolved};
 use crate::tenant::tags::repository::TagsRepository;
 use crate::tenant::tags::types::tag::TagOrderBy;
 use axum::http::StatusCode;
@@ -62,7 +62,7 @@ pub struct TagsService;
 impl TagsService {
     pub async fn try_create(
         claims: &Claims,
-        payload: &CreateTag,
+        payload: &TagUserInput,
         tags_module: Arc<TagsModule>,
     ) -> TagsServiceResult<()> {
         tags_module
@@ -84,6 +84,48 @@ impl TagsService {
     ) -> TagsServiceResult<TagResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(TagsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn TagsRepository>,
+    ) -> TagsServiceResult<Tag> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(TagsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &TagUserInput,
+        repo: Arc<dyn TagsRepository>,
+    ) -> TagsServiceResult<Tag> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(TagsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn TagsRepository>,
+    ) -> TagsServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

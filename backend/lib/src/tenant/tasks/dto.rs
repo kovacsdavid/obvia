@@ -23,13 +23,13 @@ use crate::tenant::tasks::types::task::{
 };
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
-use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateTaskHelper {
+pub struct TaskUserInputHelper {
+    pub id: Option<String>,
     pub worksheet_id: Uuid,
     pub title: String,
     pub description: String,
@@ -39,7 +39,8 @@ pub struct CreateTaskHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateTaskError {
+pub struct TaskUserInputError {
+    pub id: Option<String>,
     pub worksheet_id: Option<String>,
     pub title: Option<String>,
     pub description: Option<String>,
@@ -48,9 +49,10 @@ pub struct CreateTaskError {
     pub due_date: Option<String>,
 }
 
-impl CreateTaskError {
+impl TaskUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.worksheet_id.is_none()
+        self.id.is_none()
+            && self.worksheet_id.is_none()
             && self.title.is_none()
             && self.description.is_none()
             && self.status.is_none()
@@ -59,7 +61,7 @@ impl CreateTaskError {
     }
 }
 
-impl Display for CreateTaskError {
+impl Display for TaskUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateTaskError: {}", json),
@@ -68,16 +70,17 @@ impl Display for CreateTaskError {
     }
 }
 
-impl FormErrorResponse for CreateTaskError {}
+impl FormErrorResponse for TaskUserInputError {}
 
-impl IntoResponse for CreateTaskError {
+impl IntoResponse for TaskUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateTask {
+pub struct TaskUserInput {
+    pub id: Option<Uuid>,
     pub worksheet_id: Uuid,
     pub title: ValueObject<TaskTitle>,
     pub description: Option<ValueObject<TaskDescription>>,
@@ -86,10 +89,19 @@ pub struct CreateTask {
     pub due_date: Option<ValueObject<TaskDueDate>>,
 }
 
-impl TryFrom<CreateTaskHelper> for CreateTask {
-    type Error = CreateTaskError;
-    fn try_from(value: CreateTaskHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateTaskError::default();
+impl TryFrom<TaskUserInputHelper> for TaskUserInput {
+    type Error = TaskUserInputError;
+    fn try_from(value: TaskUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = TaskUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let title = ValueObject::new(TaskTitle(value.title)).inspect_err(|e| {
             error.title = Some(e.to_string());
@@ -105,66 +117,17 @@ impl TryFrom<CreateTaskHelper> for CreateTask {
         let due_date = validate_optional_string!(TaskDueDate(value.due_date), error.due_date);
 
         if error.is_empty() {
-            Ok(CreateTask {
+            Ok(TaskUserInput {
+                id,
                 worksheet_id: value.worksheet_id,
-                title: title.map_err(|_| CreateTaskError::default())?,
+                title: title.map_err(|_| TaskUserInputError::default())?,
                 description,
-                status: status.map_err(|_| CreateTaskError::default())?,
-                priority: priority.map_err(|_| CreateTaskError::default())?,
+                status: status.map_err(|_| TaskUserInputError::default())?,
+                priority: priority.map_err(|_| TaskUserInputError::default())?,
                 due_date,
             })
         } else {
             Err(error)
         }
     }
-}
-
-pub struct UpdateTaskHelper {
-    // TODO: fields
-}
-
-pub struct UpdateTaskError {
-    // TODO: fields
-}
-
-impl UpdateTaskError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateTaskError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateTask {
-    pub worksheet_id: Uuid,
-    pub title: ValueObject<TaskTitle>,
-    pub description: Option<String>,
-    pub status: ValueObject<TaskStatus>,
-    pub priority: ValueObject<TaskPriority>,
-    pub due_date: Option<DateTime<Local>>,
-}
-
-impl TryFrom<UpdateTaskHelper> for UpdateTask {
-    type Error = UpdateTaskError;
-    fn try_from(value: UpdateTaskHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateTaskAssignment {
-    pub user_id: Uuid,
-    pub task_id: Uuid,
-    pub created_by_id: Uuid,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateTaskAssignment {
-    pub user_id: Option<Uuid>,
-    pub task_id: Option<Uuid>,
 }

@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::projects::dto::CreateProject;
+use crate::tenant::projects::dto::ProjectUserInput;
 use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::types::project::ProjectOrderBy;
 use async_trait::async_trait;
@@ -35,6 +35,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProjectsRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Project>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -53,14 +54,34 @@ pub trait ProjectsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProjectResolved>)>;
     async fn insert(
         &self,
-        project: CreateProject,
+        project: ProjectUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Project>;
+    async fn update(
+        &self,
+        project: ProjectUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Project>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl ProjectsRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Project> {
+        Ok(sqlx::query_as::<_, Project>(
+            r#"
+            SELECT *
+            FROM projects
+            WHERE projects.deleted_at IS NULL
+                AND projects.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -159,7 +180,7 @@ impl ProjectsRepository for PoolManagerWrapper {
 
     async fn insert(
         &self,
-        project: CreateProject,
+        project: ProjectUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Project> {
@@ -190,5 +211,66 @@ impl ProjectsRepository for PoolManagerWrapper {
         .bind(end_date)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn update(
+        &self,
+        project: ProjectUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Project> {
+        let id = project
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let start_date = match project.start_date {
+            None => None,
+            Some(v) => Some(
+                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
+            ),
+        };
+        let end_date = match project.end_date {
+            None => None,
+            Some(v) => Some(
+                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
+            ),
+        };
+        Ok(sqlx::query_as::<_, Project>(
+            r#"
+            UPDATE projects
+            SET name = $1,
+                description = $2,
+                status = $3,
+                start_date = $4,
+                end_date = $5
+            WHERE id = $6
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(project.name.extract().get_value())
+        .bind(project.description.map(|v| v.extract().get_value().clone()))
+        .bind(project.status.extract().get_value())
+        .bind(start_date)
+        .bind(end_date)
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE projects
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

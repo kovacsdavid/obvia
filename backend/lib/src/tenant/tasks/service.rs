@@ -22,8 +22,8 @@ use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::CreateTask;
-use crate::tenant::tasks::model::TaskResolved;
+use crate::tenant::tasks::dto::TaskUserInput;
+use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use axum::http::StatusCode;
@@ -85,7 +85,7 @@ pub struct TasksService;
 impl TasksService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateTask,
+        payload: &TaskUserInput,
         tasks_module: Arc<TasksModule>,
     ) -> TasksServiceResult<()> {
         tasks_module
@@ -123,6 +123,48 @@ impl TasksService {
     ) -> TasksServiceResult<TaskResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn TasksRepository>,
+    ) -> TasksServiceResult<Task> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &TaskUserInput,
+        repo: Arc<dyn TasksRepository>,
+    ) -> TasksServiceResult<Task> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn TasksRepository>,
+    ) -> TasksServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

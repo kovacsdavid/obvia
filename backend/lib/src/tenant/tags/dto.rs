@@ -25,24 +25,26 @@ use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateTagHelper {
+pub struct TagUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub description: String,
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateTagError {
+pub struct TagUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
 }
 
-impl CreateTagError {
+impl TagUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none() && self.description.is_none()
+        self.id.is_none() && self.name.is_none() && self.description.is_none()
     }
 }
 
-impl Display for CreateTagError {
+impl Display for TagUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateTagError: {}", json),
@@ -51,24 +53,34 @@ impl Display for CreateTagError {
     }
 }
 
-impl FormErrorResponse for CreateTagError {}
+impl FormErrorResponse for TagUserInputError {}
 
-impl IntoResponse for CreateTagError {
+impl IntoResponse for TagUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateTag {
+pub struct TagUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<TagName>,
     pub description: Option<ValueObject<TagDescription>>,
 }
 
-impl TryFrom<CreateTagHelper> for CreateTag {
-    type Error = CreateTagError;
-    fn try_from(value: CreateTagHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateTagError::default();
+impl TryFrom<TagUserInputHelper> for TagUserInput {
+    type Error = TagUserInputError;
+    fn try_from(value: TagUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = TagUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(TagName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -88,58 +100,13 @@ impl TryFrom<CreateTagHelper> for CreateTag {
         };
 
         if error.is_empty() {
-            Ok(CreateTag {
-                name: name.map_err(|_| CreateTagError::default())?,
+            Ok(TagUserInput {
+                id,
+                name: name.map_err(|_| TagUserInputError::default())?,
                 description,
             })
         } else {
             Err(error)
         }
     }
-}
-
-pub struct UpdateTagHelper {
-    // TODO: fields
-}
-
-pub struct UpdateTagError {
-    // TODO: fields
-}
-
-impl UpdateTagError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateTagError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateTag {
-    pub name: ValueObject<TagName>,
-}
-
-impl TryFrom<UpdateTagHelper> for UpdateTag {
-    type Error = UpdateTagError;
-    fn try_from(value: UpdateTagHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateTagConnect {
-    pub taggable_id: Uuid,
-    pub taggable_type: String,
-    pub tag_id: Option<Uuid>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateTagConnect {
-    pub taggable_id: Option<Uuid>,
-    pub taggable_type: Option<String>,
-    pub tag_id: Option<Uuid>,
 }

@@ -27,19 +27,18 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::{CreateTask, CreateTaskHelper};
+use crate::tenant::tasks::dto::{TaskUserInput, TaskUserInputHelper};
 use crate::tenant::tasks::service::TasksService;
 use crate::tenant::tasks::types::task::TaskOrderBy;
-use axum::extract::rejection::JsonRejection;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Json, debug_handler};
+use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 #[debug_handler]
-pub async fn get(
+pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
     Query(payload): Query<UuidParam>,
@@ -57,10 +56,66 @@ pub async fn get(
 }
 
 #[debug_handler]
+pub async fn get(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tasks_module): State<Arc<TasksModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            TasksService::get(&claims, &payload, tasks_module.tasks_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn update(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tasks_module): State<Arc<TasksModule>>,
+    UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
+) -> HandlerResult {
+    TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A feladat frissítése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn delete(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tasks_module): State<Arc<TasksModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    TasksService::delete(&claims, &payload, tasks_module.tasks_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A feladat törlése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<TasksModule>>,
-    UserInput(user_input, _): UserInput<CreateTask, CreateTaskHelper>,
+    UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
     TasksService::create(&claims, &user_input, tasks_module)
         .await
@@ -94,24 +149,6 @@ pub async fn select_list(
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
-}
-
-#[debug_handler]
-pub async fn update(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
-    payload: Result<Json<CreateTask>, JsonRejection>,
-) -> Response {
-    todo!()
-}
-
-#[debug_handler]
-pub async fn delete(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
-    payload: Result<Json<CreateTask>, JsonRejection>,
-) -> Response {
-    todo!()
 }
 
 #[debug_handler]

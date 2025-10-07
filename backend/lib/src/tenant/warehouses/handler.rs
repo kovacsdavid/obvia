@@ -28,18 +28,17 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::dto::{CreateWarehouse, CreateWarehouseHelper};
+use crate::tenant::warehouses::dto::{WarehouseUserInput, WarehouseUserInputHelper};
 use crate::tenant::warehouses::service::WarehousesService;
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
-use axum::extract::rejection::JsonRejection;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Json, debug_handler};
+use axum::response::IntoResponse;
 use std::sync::Arc;
 
 #[debug_handler]
-pub async fn get(
+pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<WarehousesModule>>,
     Query(payload): Query<UuidParam>,
@@ -61,10 +60,70 @@ pub async fn get(
 }
 
 #[debug_handler]
+pub async fn get(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(warehouses_module): State<Arc<WarehousesModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            WarehousesService::get(&claims, &payload, warehouses_module.warehouses_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn update(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(warehouses_module): State<Arc<WarehousesModule>>,
+    UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
+) -> HandlerResult {
+    WarehousesService::update(
+        &claims,
+        &user_input,
+        warehouses_module.warehouses_repo.clone(),
+    )
+    .await
+    .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A raktár frissítése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn delete(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(warehouses_module): State<Arc<WarehousesModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    WarehousesService::delete(&claims, &payload, warehouses_module.warehouses_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A raktár törlése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<WarehousesModule>>,
-    UserInput(user_input, _): UserInput<CreateWarehouse, CreateWarehouseHelper>,
+    UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
     WarehousesService::try_create(&claims, &user_input, warehouses_module)
         .await
@@ -77,24 +136,6 @@ pub async fn create(
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
-}
-
-#[debug_handler]
-pub async fn update(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
-    payload: Result<Json<CreateWarehouse>, JsonRejection>,
-) -> Response {
-    todo!()
-}
-
-#[debug_handler]
-pub async fn delete(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
-    payload: Result<Json<CreateWarehouse>, JsonRejection>,
-) -> Response {
-    todo!()
 }
 
 #[debug_handler]

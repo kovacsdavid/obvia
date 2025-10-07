@@ -28,7 +28,8 @@ use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateWorksheetHelper {
+pub struct WorksheetUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub description: String,
     pub project_id: Uuid,
@@ -36,23 +37,25 @@ pub struct CreateWorksheetHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateWorksheetError {
+pub struct WorksheetUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
     pub project_id: Option<String>,
     pub status: Option<String>,
 }
 
-impl CreateWorksheetError {
+impl WorksheetUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none()
+        self.id.is_none()
+            && self.name.is_none()
             && self.description.is_none()
             && self.project_id.is_none()
             && self.status.is_none()
     }
 }
 
-impl Display for CreateWorksheetError {
+impl Display for WorksheetUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateWorksheetError: {}", json),
@@ -61,26 +64,36 @@ impl Display for CreateWorksheetError {
     }
 }
 
-impl FormErrorResponse for CreateWorksheetError {}
+impl FormErrorResponse for WorksheetUserInputError {}
 
-impl IntoResponse for CreateWorksheetError {
+impl IntoResponse for WorksheetUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateWorksheet {
+pub struct WorksheetUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<WorksheetName>,
     pub description: Option<ValueObject<WorksheetDescription>>,
     pub project_id: Uuid,
     pub status: ValueObject<WorksheetStatus>,
 }
 
-impl TryFrom<CreateWorksheetHelper> for CreateWorksheet {
-    type Error = CreateWorksheetError;
-    fn try_from(value: CreateWorksheetHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateWorksheetError::default();
+impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
+    type Error = WorksheetUserInputError;
+    fn try_from(value: WorksheetUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = WorksheetUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(WorksheetName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -92,49 +105,15 @@ impl TryFrom<CreateWorksheetHelper> for CreateWorksheet {
             validate_optional_string!(WorksheetDescription(value.description), error.description);
 
         if error.is_empty() {
-            Ok(CreateWorksheet {
-                name: name.map_err(|_| CreateWorksheetError::default())?,
+            Ok(WorksheetUserInput {
+                id,
+                name: name.map_err(|_| WorksheetUserInputError::default())?,
                 description,
                 project_id: value.project_id,
-                status: status.map_err(|_| CreateWorksheetError::default())?,
+                status: status.map_err(|_| WorksheetUserInputError::default())?,
             })
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateWorksheetHelper {
-    // TODO: fields
-}
-
-pub struct UpdateWorksheetError {
-    // TODO: fields
-}
-
-impl UpdateWorksheetError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateWorksheetError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateWorksheet {
-    pub name: ValueObject<WorksheetName>,
-    pub description: Option<String>,
-    pub project_id: Option<Uuid>,
-    pub status: Option<ValueObject<WorksheetStatus>>,
-}
-
-impl TryFrom<UpdateWorksheetHelper> for UpdateWorksheet {
-    type Error = UpdateWorksheetError;
-    fn try_from(value: UpdateWorksheetHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

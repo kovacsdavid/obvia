@@ -31,7 +31,8 @@ use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateInventoryHelper {
+pub struct InventoryUserInputHelper {
+    pub id: Option<String>,
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
     pub quantity: String,
@@ -42,7 +43,8 @@ pub struct CreateInventoryHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateInventoryError {
+pub struct InventoryUserInputError {
+    pub id: Option<String>,
     pub product_id: Option<String>,
     pub warehouse_id: Option<String>,
     pub quantity: Option<String>,
@@ -52,9 +54,10 @@ pub struct CreateInventoryError {
     pub new_currency: Option<String>,
 }
 
-impl CreateInventoryError {
+impl InventoryUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.product_id.is_none()
+        self.id.is_none()
+            && self.product_id.is_none()
             && self.warehouse_id.is_none()
             && self.quantity.is_none()
             && self.price.is_none()
@@ -63,7 +66,7 @@ impl CreateInventoryError {
     }
 }
 
-impl Display for CreateInventoryError {
+impl Display for InventoryUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateInventoryError: {}", json),
@@ -72,16 +75,17 @@ impl Display for CreateInventoryError {
     }
 }
 
-impl FormErrorResponse for CreateInventoryError {}
+impl FormErrorResponse for InventoryUserInputError {}
 
-impl IntoResponse for CreateInventoryError {
+impl IntoResponse for InventoryUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateInventory {
+pub struct InventoryUserInput {
+    pub id: Option<Uuid>,
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
     pub quantity: ValueObject<Quantity>,
@@ -91,10 +95,19 @@ pub struct CreateInventory {
     pub new_currency: Option<ValueObject<Currency>>,
 }
 
-impl TryFrom<CreateInventoryHelper> for CreateInventory {
-    type Error = CreateInventoryError;
-    fn try_from(value: CreateInventoryHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateInventoryError::default();
+impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
+    type Error = InventoryUserInputError;
+    fn try_from(value: InventoryUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = InventoryUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let quantity = ValueObject::new(InventoryQuantity(value.quantity)).inspect_err(|e| {
             error.quantity = Some(e.to_string());
@@ -124,10 +137,11 @@ impl TryFrom<CreateInventoryHelper> for CreateInventory {
         };
 
         if error.is_empty() {
-            Ok(CreateInventory {
+            Ok(InventoryUserInput {
+                id,
                 product_id: value.product_id,
                 warehouse_id: value.warehouse_id,
-                quantity: quantity.map_err(|_| CreateInventoryError::default())?,
+                quantity: quantity.map_err(|_| InventoryUserInputError::default())?,
                 price,
                 cost,
                 currency_id,
@@ -136,39 +150,5 @@ impl TryFrom<CreateInventoryHelper> for CreateInventory {
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateInventoryHelper {
-    // TODO: fields
-}
-
-pub struct UpdateInventoryError {
-    // TODO: fields
-}
-
-impl UpdateInventoryError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateInventoryError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateInventory {
-    pub product_id: Option<Uuid>,
-    pub warehouse_id: Option<Uuid>,
-    pub quantity: ValueObject<Quantity>,
-}
-
-impl TryFrom<UpdateInventoryHelper> for UpdateInventory {
-    type Error = UpdateInventoryError;
-    fn try_from(value: UpdateInventoryHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

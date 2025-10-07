@@ -28,18 +28,17 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
-use crate::tenant::tags::dto::{CreateTag, CreateTagHelper};
+use crate::tenant::tags::dto::{TagUserInput, TagUserInputHelper};
 use crate::tenant::tags::service::TagsService;
 use crate::tenant::tags::types::tag::TagOrderBy;
-use axum::extract::rejection::JsonRejection;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Json, debug_handler};
+use axum::response::IntoResponse;
 use std::sync::Arc;
 
 #[debug_handler]
-pub async fn get(
+pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
     Query(payload): Query<UuidParam>,
@@ -57,10 +56,66 @@ pub async fn get(
 }
 
 #[debug_handler]
+pub async fn get(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tags_module): State<Arc<TagsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            TagsService::get(&claims, &payload, tags_module.tags_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn update(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tags_module): State<Arc<TagsModule>>,
+    UserInput(user_input, _): UserInput<TagUserInput, TagUserInputHelper>,
+) -> HandlerResult {
+    TagsService::update(&claims, &user_input, tags_module.tags_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A címke frissítése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn delete(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tags_module): State<Arc<TagsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    TagsService::delete(&claims, &payload, tags_module.tags_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A címke törlése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tags_module): State<Arc<TagsModule>>,
-    UserInput(user_input, _): UserInput<CreateTag, CreateTagHelper>,
+    UserInput(user_input, _): UserInput<TagUserInput, TagUserInputHelper>,
 ) -> HandlerResult {
     TagsService::try_create(&claims, &user_input, tags_module)
         .await
@@ -73,24 +128,6 @@ pub async fn create(
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
-}
-
-#[debug_handler]
-pub async fn update(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(tags_module): State<Arc<TagsModule>>,
-    payload: Result<Json<CreateTag>, JsonRejection>,
-) -> Response {
-    todo!()
-}
-
-#[debug_handler]
-pub async fn delete(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(tags_module): State<Arc<TagsModule>>,
-    payload: Result<Json<CreateTag>, JsonRejection>,
-) -> Response {
-    todo!()
 }
 
 #[debug_handler]

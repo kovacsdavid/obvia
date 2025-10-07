@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::worksheets::dto::CreateWorksheet;
+use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use async_trait::async_trait;
@@ -34,6 +34,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait WorksheetsRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Worksheet>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -52,14 +53,34 @@ pub trait WorksheetsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
     async fn insert(
         &self,
-        worksheet: CreateWorksheet,
+        worksheet: WorksheetUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Worksheet>;
+    async fn update(
+        &self,
+        worksheet: WorksheetUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Worksheet>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl WorksheetsRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Worksheet> {
+        Ok(sqlx::query_as::<_, Worksheet>(
+            r#"
+            SELECT *
+            FROM worksheets
+            WHERE worksheets.deleted_at IS NULL
+                AND worksheets.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -158,7 +179,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        worksheet: CreateWorksheet,
+        worksheet: WorksheetUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
@@ -177,5 +198,54 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .bind(worksheet.status.extract().get_value())
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn update(
+        &self,
+        worksheet: WorksheetUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Worksheet> {
+        let id = worksheet
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        Ok(sqlx::query_as::<_, Worksheet>(
+            r#"
+            UPDATE worksheets
+            SET name = $1,
+                description = $2,
+                project_id = $3,
+                status = $4
+            WHERE id = $5
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(worksheet.name.extract().get_value())
+        .bind(
+            worksheet
+                .description
+                .map(|v| v.extract().get_value().clone()),
+        )
+        .bind(worksheet.project_id)
+        .bind(worksheet.status.extract().get_value())
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE worksheets
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

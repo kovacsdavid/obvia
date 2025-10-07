@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
-use crate::tenant::products::dto::CreateProduct;
+use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
 use crate::tenant::products::types::product::ProductOrderBy;
 use async_trait::async_trait;
@@ -34,6 +34,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ProductsRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Product>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -52,8 +53,13 @@ pub trait ProductsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
     async fn insert(
         &self,
-        product: CreateProduct,
+        product: ProductUserInput,
         sub: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Product>;
+    async fn update(
+        &self,
+        product: ProductUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Product>;
     async fn insert_unit_of_measure(
@@ -66,10 +72,25 @@ pub trait ProductsRepository: Send + Sync {
         &self,
         active_tenant: Uuid,
     ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl ProductsRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Product> {
+        Ok(sqlx::query_as::<_, Product>(
+            r#"
+            SELECT *
+            FROM products
+            WHERE products.deleted_at IS NULL
+                AND products.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -168,7 +189,7 @@ impl ProductsRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        product: CreateProduct,
+        product: ProductUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Product, RepositoryError> {
@@ -187,6 +208,41 @@ impl ProductsRepository for PoolManagerWrapper {
         )
         .bind(product.status.extract().get_value())
         .bind(sub)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn update(
+        &self,
+        product: ProductUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Product> {
+        let id = product
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        Ok(sqlx::query_as::<_, Product>(
+            r#"
+            UPDATE products
+            SET name = $1,
+                description = $2,
+                unit_of_measure_id = $3,
+                status = $4
+            WHERE id = $5
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(product.name.extract().get_value())
+        .bind(product.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            product
+                .unit_of_measure_id
+                .ok_or(RepositoryError::InvalidInput(
+                    "unit_of_measure_id".to_string(),
+                ))?,
+        )
+        .bind(product.status.extract().get_value())
+        .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
@@ -216,5 +272,21 @@ impl ProductsRepository for PoolManagerWrapper {
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE products 
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

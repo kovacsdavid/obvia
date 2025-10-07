@@ -27,7 +27,8 @@ use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
-pub struct CreateProductHelper {
+pub struct ProductUserInputHelper {
+    pub id: Option<String>,
     pub name: String,
     pub description: String,
     pub unit_of_measure_id: String,
@@ -36,7 +37,8 @@ pub struct CreateProductHelper {
 }
 
 #[derive(Debug, Serialize, Default)]
-pub struct CreateProductError {
+pub struct ProductUserInputError {
+    pub id: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
     pub unit_of_measure_id: Option<String>,
@@ -44,16 +46,17 @@ pub struct CreateProductError {
     pub status: Option<String>,
 }
 
-impl CreateProductError {
+impl ProductUserInputError {
     pub fn is_empty(&self) -> bool {
-        self.name.is_none()
+        self.id.is_none()
+            && self.name.is_none()
             && self.description.is_none()
             && self.unit_of_measure_id.is_none()
             && self.status.is_none()
     }
 }
 
-impl Display for CreateProductError {
+impl Display for ProductUserInputError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match serde_json::to_string(self) {
             Ok(json) => write!(f, "CreateInventoryError: {}", json),
@@ -62,16 +65,17 @@ impl Display for CreateProductError {
     }
 }
 
-impl FormErrorResponse for CreateProductError {}
+impl FormErrorResponse for ProductUserInputError {}
 
-impl IntoResponse for CreateProductError {
+impl IntoResponse for ProductUserInputError {
     fn into_response(self) -> Response {
         self.get_error_response()
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateProduct {
+pub struct ProductUserInput {
+    pub id: Option<Uuid>,
     pub name: ValueObject<ProductName>,
     pub description: Option<ValueObject<ProductDescription>>,
     pub unit_of_measure_id: Option<Uuid>,
@@ -79,11 +83,19 @@ pub struct CreateProduct {
     pub status: ValueObject<ProductStatus>,
 }
 
-impl TryFrom<CreateProductHelper> for CreateProduct {
-    type Error = CreateProductError;
+impl TryFrom<ProductUserInputHelper> for ProductUserInput {
+    type Error = ProductUserInputError;
+    fn try_from(value: ProductUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = ProductUserInputError::default();
 
-    fn try_from(value: CreateProductHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateProductError::default();
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
 
         let name = ValueObject::new(ProductName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
@@ -116,12 +128,13 @@ impl TryFrom<CreateProductHelper> for CreateProduct {
         };
 
         if error.is_empty() {
-            Ok(CreateProduct {
-                name: name.map_err(|_| CreateProductError::default())?,
+            Ok(ProductUserInput {
+                id,
+                name: name.map_err(|_| ProductUserInputError::default())?,
                 description,
                 unit_of_measure_id,
                 new_unit_of_measure,
-                status: status.map_err(|_| CreateProductError::default())?,
+                status: status.map_err(|_| ProductUserInputError::default())?,
             })
         } else {
             Err(error)

@@ -22,7 +22,7 @@ use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::inventory::dto::CreateInventory;
+use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Currency, Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use async_trait::async_trait;
@@ -33,6 +33,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait InventoryRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Inventory>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -47,8 +48,13 @@ pub trait InventoryRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
     async fn insert(
         &self,
-        inventory: CreateInventory,
+        inventory: InventoryUserInput,
         sub: Uuid,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Inventory>;
+    async fn update(
+        &self,
+        inventory: InventoryUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory>;
     async fn insert_currency(
@@ -61,10 +67,24 @@ pub trait InventoryRepository: Send + Sync {
         &self,
         active_tenant: Uuid,
     ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl InventoryRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Inventory> {
+        Ok(sqlx::query_as::<_, Inventory>(
+            r#"
+            SELECT *
+            FROM inventory
+            WHERE inventory.deleted_at IS NULL
+                AND inventory.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -165,7 +185,7 @@ impl InventoryRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        inventory: CreateInventory,
+        inventory: InventoryUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory> {
@@ -211,6 +231,71 @@ impl InventoryRepository for PoolManagerWrapper {
             .await?
         )
     }
+
+    async fn update(
+        &self,
+        inventory: InventoryUserInput,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Inventory> {
+        let id = inventory
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let price = match &inventory.price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
+            ),
+        };
+        let cost = match &inventory.cost {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("cost".to_string()))?,
+            ),
+        };
+        Ok(sqlx::query_as::<_, Inventory>(
+            r#"
+            UPDATE inventory
+            SET product_id = $1,
+                warehouse_id = $2,
+                quantity = $3,
+                price = $4,
+                cost = $5,
+                currency_id = $6
+            WHERE id = $7
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(inventory.product_id)
+        .bind(inventory.warehouse_id)
+        .bind(
+            inventory
+                .quantity
+                .extract()
+                .get_value()
+                .trim()
+                .replace(",", ".")
+                .parse::<i32>()
+                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
+        )
+        .bind(price)
+        .bind(cost)
+        .bind(
+            inventory
+                .currency_id
+                .ok_or(RepositoryError::InvalidInput("currency_id".to_string()))?,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn insert_currency(
         &self,
         currency: &str,
@@ -235,5 +320,21 @@ impl InventoryRepository for PoolManagerWrapper {
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE inventory
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

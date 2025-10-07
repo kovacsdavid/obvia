@@ -21,7 +21,7 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::projects::ProjectsModule;
 use crate::tenant::projects::handler::{
     create as projects_create, delete as projects_delete, get as projects_get,
-    list as projects_list, update as projects_update,
+    get_resolved as projects_get_resolved, list as projects_list, update as projects_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -33,6 +33,7 @@ pub fn routes(projects_module: Arc<ProjectsModule>) -> Router {
         "/projects",
         Router::new()
             .route("/get", get(projects_get))
+            .route("/get_resolved", get(projects_get_resolved))
             .route("/list", get(projects_list))
             .route("/create", post(projects_create))
             .route("/update", post(projects_update))

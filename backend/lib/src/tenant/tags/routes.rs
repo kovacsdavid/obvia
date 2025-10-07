@@ -20,8 +20,8 @@
 use crate::manager::auth::middleware::require_auth;
 use crate::tenant::tags::TagsModule;
 use crate::tenant::tags::handler::{
-    create as tags_create, delete as tags_delete, get as tags_get, list as tags_list,
-    update as tags_update,
+    create as tags_create, delete as tags_delete, get as tags_get,
+    get_resolved as tags_get_resolved, list as tags_list, update as tags_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -33,6 +33,7 @@ pub fn routes(tags_module: Arc<TagsModule>) -> Router {
         "/tags",
         Router::new()
             .route("/get", get(tags_get))
+            .route("/get_resolved", get(tags_get_resolved))
             .route("/list", get(tags_list))
             .route("/create", post(tags_create))
             .route("/update", post(tags_update))

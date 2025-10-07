@@ -208,8 +208,7 @@ impl CustomersRepository for PoolManagerWrapper {
                 email = $3,
                 phone_number = $4,
                 status = $5,
-                customer_type = $6,
-                updated_at = NOW()
+                customer_type = $6
             WHERE id = $7
                 AND deleted_at IS NULL 
             RETURNING *

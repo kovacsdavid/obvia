@@ -27,19 +27,18 @@ use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
-use crate::tenant::products::dto::{CreateProduct, CreateProductHelper};
+use crate::tenant::products::dto::{ProductUserInput, ProductUserInputHelper};
 use crate::tenant::products::service::ProductsService;
 use crate::tenant::products::types::product::ProductOrderBy;
-use axum::extract::rejection::JsonRejection;
+use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
-use axum::{Json, debug_handler};
+use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 #[debug_handler]
-pub async fn get(
+pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<ProductsModule>>,
     Query(payload): Query<UuidParam>,
@@ -61,10 +60,66 @@ pub async fn get(
 }
 
 #[debug_handler]
+pub async fn get(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(products_module): State<Arc<ProductsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            ProductsService::get(&claims, &payload, products_module.products_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn update(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(products_module): State<Arc<ProductsModule>>,
+    UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
+) -> HandlerResult {
+    ProductsService::update(&claims, &user_input, products_module.products_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A termék frissítése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
+pub async fn delete(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(products_module): State<Arc<ProductsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    ProductsService::delete(&claims, &payload, products_module.products_repo.clone())
+        .await
+        .map_err(|e| e.into_response())?;
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A termék törlése sikeresen megtörtént",
+        ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+#[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<ProductsModule>>,
-    UserInput(user_input, _): UserInput<CreateProduct, CreateProductHelper>,
+    UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     ProductsService::create(&claims, &user_input, products_module)
         .await
@@ -77,24 +132,6 @@ pub async fn create(
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
-}
-
-#[debug_handler]
-pub async fn update(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<ProductsModule>>,
-    payload: Result<Json<CreateProduct>, JsonRejection>,
-) -> Response {
-    todo!()
-}
-
-#[debug_handler]
-pub async fn delete(
-    AuthenticatedUser(claims): AuthenticatedUser,
-    State(products_module): State<Arc<ProductsModule>>,
-    payload: Result<Json<CreateProduct>, JsonRejection>,
-) -> Response {
-    todo!()
 }
 
 #[debug_handler]

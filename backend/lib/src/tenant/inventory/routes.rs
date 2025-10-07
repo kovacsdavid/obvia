@@ -21,11 +21,12 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::handler::{
     create as inventory_create, delete as inventory_delete, get as inventory_get,
-    list as inventory_list, select_list as inventory_select_list, update as inventory_update,
+    get_resolved as inventory_get_resolved, list as inventory_list,
+    select_list as inventory_select_list, update as inventory_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(inventory_module: Arc<InventoryModule>) -> Router {
@@ -33,11 +34,12 @@ pub fn routes(inventory_module: Arc<InventoryModule>) -> Router {
         "/inventory",
         Router::new()
             .route("/get", get(inventory_get))
+            .route("/get_resolved", get(inventory_get_resolved))
             .route("/list", get(inventory_list))
             .route("/select_list", get(inventory_select_list))
             .route("/create", post(inventory_create))
-            .route("/update", post(inventory_update))
-            .route("/delete", post(inventory_delete))
+            .route("/update", put(inventory_update))
+            .route("/delete", delete(inventory_delete))
             .layer(from_fn_with_state(
                 inventory_module.config.clone(),
                 require_auth,

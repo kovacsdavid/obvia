@@ -23,8 +23,8 @@ use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::InventoryModule;
-use crate::tenant::inventory::dto::CreateInventory;
-use crate::tenant::inventory::model::InventoryResolved;
+use crate::tenant::inventory::dto::InventoryUserInput;
+use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use axum::http::StatusCode;
@@ -90,7 +90,7 @@ pub struct InventoryService;
 impl InventoryService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateInventory,
+        payload: &InventoryUserInput,
         inventory_module: Arc<InventoryModule>,
     ) -> InventoryServiceResult<()> {
         let mut inventory = payload.clone();
@@ -168,6 +168,48 @@ impl InventoryService {
     ) -> InventoryServiceResult<InventoryResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn InventoryRepository>,
+    ) -> InventoryServiceResult<Inventory> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &InventoryUserInput,
+        repo: Arc<dyn InventoryRepository>,
+    ) -> InventoryServiceResult<Inventory> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn InventoryRepository>,
+    ) -> InventoryServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

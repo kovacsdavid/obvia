@@ -22,7 +22,7 @@ use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
-use crate::tenant::tasks::dto::CreateTask;
+use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use async_trait::async_trait;
@@ -34,6 +34,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TasksRepository: Send + Sync {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task>;
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -48,14 +49,30 @@ pub trait TasksRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
     async fn insert(
         &self,
-        task: CreateTask,
+        task: TaskUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task>;
+    async fn update(&self, task: TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task>;
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
 impl TasksRepository for PoolManagerWrapper {
+    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task> {
+        Ok(sqlx::query_as::<_, Task>(
+            r#"
+            SELECT *
+            FROM tasks
+            WHERE tasks.deleted_at IS NULL
+                AND tasks.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_resolved_by_id(
         &self,
         id: Uuid,
@@ -147,7 +164,7 @@ impl TasksRepository for PoolManagerWrapper {
     }
     async fn insert(
         &self,
-        task: CreateTask,
+        task: TaskUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task> {
@@ -172,5 +189,57 @@ impl TasksRepository for PoolManagerWrapper {
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?
         )
+    }
+
+    async fn update(&self, task: TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task> {
+        let id = task
+            .id
+            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let due_date = match task.due_date {
+            None => None,
+            Some(v) => Some(
+                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
+            ),
+        };
+        Ok(sqlx::query_as::<_, Task>(
+            r#"
+            UPDATE tasks
+            SET worksheet_id = $1,
+                title = $2,
+                description = $3,
+                status = $4,
+                priority = $5,
+                due_date = $6
+            WHERE id = $7
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(task.worksheet_id)
+        .bind(task.title.extract().get_value())
+        .bind(task.description.map(|v| v.extract().get_value().clone()))
+        .bind(task.status.extract().get_value())
+        .bind(task.priority.extract().get_value())
+        .bind(due_date)
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
+    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE tasks
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        Ok(())
     }
 }

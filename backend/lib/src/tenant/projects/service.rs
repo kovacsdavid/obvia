@@ -21,8 +21,8 @@ use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
-use crate::tenant::projects::dto::CreateProject;
-use crate::tenant::projects::model::ProjectResolved;
+use crate::tenant::projects::dto::ProjectUserInput;
+use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::projects::types::project::ProjectOrderBy;
 use axum::http::StatusCode;
@@ -62,7 +62,7 @@ pub struct ProjectsService;
 impl ProjectsService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateProject,
+        payload: &ProjectUserInput,
         projects_module: Arc<ProjectsModule>,
     ) -> ProjectsServiceResult<()> {
         projects_module
@@ -84,6 +84,48 @@ impl ProjectsService {
     ) -> ProjectsServiceResult<ProjectResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(ProjectsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn ProjectsRepository>,
+    ) -> ProjectsServiceResult<Project> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(ProjectsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &ProjectUserInput,
+        repo: Arc<dyn ProjectsRepository>,
+    ) -> ProjectsServiceResult<Project> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(ProjectsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn ProjectsRepository>,
+    ) -> ProjectsServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

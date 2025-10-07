@@ -22,8 +22,8 @@ use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::WorksheetsModule;
-use crate::tenant::worksheets::dto::CreateWorksheet;
-use crate::tenant::worksheets::model::WorksheetResolved;
+use crate::tenant::worksheets::dto::WorksheetUserInput;
+use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
 use axum::http::StatusCode;
@@ -82,7 +82,7 @@ pub struct WorksheetsService;
 impl WorksheetsService {
     pub async fn create(
         claims: &Claims,
-        payload: &CreateWorksheet,
+        payload: &WorksheetUserInput,
         worksheets_module: Arc<WorksheetsModule>,
     ) -> WorksheetsServiceResult<()> {
         worksheets_module
@@ -120,6 +120,48 @@ impl WorksheetsService {
     ) -> WorksheetsServiceResult<WorksheetResolved> {
         Ok(repo
             .get_resolved_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn get(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn WorksheetsRepository>,
+    ) -> WorksheetsServiceResult<Worksheet> {
+        Ok(repo
+            .get_by_id(
+                payload.uuid,
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn update(
+        claims: &Claims,
+        payload: &WorksheetUserInput,
+        repo: Arc<dyn WorksheetsRepository>,
+    ) -> WorksheetsServiceResult<Worksheet> {
+        Ok(repo
+            .update(
+                payload.clone(),
+                claims
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    pub async fn delete(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn WorksheetsRepository>,
+    ) -> WorksheetsServiceResult<()> {
+        Ok(repo
+            .delete_by_id(
                 payload.uuid,
                 claims
                     .active_tenant()

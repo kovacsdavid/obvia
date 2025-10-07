@@ -20,29 +20,24 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateTag {
-  name: string;
+export interface TagUserInput {
+  id: string | null
+  name: string
   description: string
 }
 
-export type CreateTagResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isCreateTagResponse(data: unknown): data is CreateTagResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  )
+export interface Tag {
+  id: string,
+  name: string,
+  description: string | null,
+  created_by_id: string,
+  created_at: string,
+  deleted_at: string | null,
 }
 
 export interface TagResolved {
@@ -55,51 +50,11 @@ export interface TagResolved {
   deleted_at: string | null,
 }
 
+export type CreateTagResponse = CommonResponse<SimpleMessageData, FormError>;
+export type UpdateTagResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DeleteTagResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type TagResponse = CommonResponse<Tag, SimpleError>;
 export type TagResolvedResponse = CommonResponse<TagResolved, SimpleError>;
-
-export function isTagResolvedResponse(data: unknown): data is TagResolvedResponse {
-  return isCommonResponse(
-    data,
-    isTagResolved,
-    isSimpleError
-  )
-}
-
 export type TagResolvedList = TagResolved[];
-
-export function isTagResolved(data: unknown): data is TagResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isTagResolvedList(data: unknown): data is TagResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isTagResolved(item))
-  );
-}
-
 export type PaginatedTagResolvedListResponse = PaginatedDataResponse<TagResolvedList, SimpleError>;
 
-export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedTagResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isTagResolvedList
-  )
-}

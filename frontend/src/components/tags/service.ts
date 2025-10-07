@@ -19,20 +19,23 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateTag,
+  type TagUserInput,
   type CreateTagResponse,
-  isCreateTagResponse,
-  isPaginatedTagResolvedListResponse,
-  isTagResolvedResponse,
   type PaginatedTagResolvedListResponse,
-  type TagResolvedResponse
+  type TagResolvedResponse, type UpdateTagResponse, type TagResponse, type DeleteTagResponse
 } from "@/components/tags/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  isCreateTagResponse, isDeleteTagResponse,
+  isPaginatedTagResolvedListResponse,
+  isTagResolvedResponse, isTagResponse, isUpdateTagResponse
+} from "@/components/tags/guards.ts";
 
 export async function create({
+                               id,
                                name,
                                description
-                             }: CreateTag, token: string | null): Promise<ProcessedResponse<CreateTagResponse>> {
+                             }: TagUserInput, token: string | null): Promise<ProcessedResponse<CreateTagResponse>> {
   return await fetch(`/api/tags/create`, {
     method: "POST",
     headers: {
@@ -41,6 +44,7 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
+      id,
       name,
       description
     })
@@ -81,6 +85,63 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isTagResolvedResponse,
+    ) ?? unexpectedError;
+  });
+}
+
+export async function update({
+                               id,
+                               name,
+                               description
+                             }: TagUserInput, token: string | null): Promise<ProcessedResponse<UpdateTagResponse>> {
+  return await fetch(`/api/tags/update`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      id,
+      name,
+      description
+    }),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isUpdateTagResponse
+    ) ?? unexpectedFormError;
+  });
+}
+
+export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<TagResponse>> {
+  return await fetch(`/api/tags/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isTagResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function deleteTag(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTagResponse>> {
+  return await fetch(`/api/tags/delete?uuid=${uuid}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isDeleteTagResponse
     ) ?? unexpectedError;
   });
 }

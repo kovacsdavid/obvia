@@ -20,17 +20,13 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateProject {
+export interface ProjectUserInput {
+  id: string | null
   name: string
   description: string
   status: string
@@ -38,14 +34,17 @@ export interface CreateProject {
   endDate: string
 }
 
-export type CreateProjectResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isCreateProjectResponse(data: unknown): data is CreateProjectResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isFormError
-  )
+export interface Project {
+  id: string,
+  name: string,
+  description: string | null,
+  created_by_id: string,
+  status: string,
+  start_date: string | null,
+  end_date: string | null,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
 }
 
 export interface ProjectResolved {
@@ -62,61 +61,10 @@ export interface ProjectResolved {
   deleted_at: string | null,
 }
 
+export type CreateProjectResponse = CommonResponse<SimpleMessageData, FormError>;
+export type UpdateProjectResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DeleteProjectResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type ProjectResponse = CommonResponse<Project, SimpleError>;
 export type ProjectResolvedResponse = CommonResponse<ProjectResolved, SimpleError>;
-
-export function isProjectResolvedResponse(data: unknown): data is ProjectResolvedResponse {
-  return isCommonResponse(
-    data,
-    isProjectResolved,
-    isSimpleError,
-  )
-}
-
 export type ProjectResolvedList = ProjectResolved[];
-
-export function isProjectResolved(data: unknown): data is ProjectResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "start_date" in data &&
-    (data.start_date === null || typeof data.start_date === "string") &&
-    "end_date" in data &&
-    (data.end_date === null || typeof data.end_date === "string") &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isProjectResolvedList(data: unknown): data is ProjectResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isProjectResolved(item))
-  );
-}
-
 export type PaginatedProjectResolvedListResponse = PaginatedDataResponse<ProjectResolvedList, SimpleError>;
-
-export function isPaginatedProjectResolvedListResponse(
-  data: unknown
-): data is PaginatedProjectResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isProjectResolvedList,
-  )
-}

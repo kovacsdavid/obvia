@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as productsApi from "@/components/products/service.ts";
 import type {RootState} from "@/store";
-import type {CreateProduct} from "@/components/products/interface.ts";
+import type {ProductUserInput} from "@/components/products/interface.ts";
 
 interface ProductsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: ProductsState = {
 
 export const create = createAsyncThunk(
   "products/create",
-  async (requestData: CreateProduct, {getState}) => {
+  async (requestData: ProductUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.create(requestData, token);
@@ -48,14 +48,41 @@ export const list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "products/get",
+export const get_resolved = createAsyncThunk(
+  "products/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "products/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await productsApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "products/update",
+  async (requestData: ProductUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await productsApi.update(requestData, token);
+  }
+)
+
+export const deleteProduct = createAsyncThunk(
+  "products/deleteProduct",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await productsApi.deleteProduct(uuid, token);
+  }
+);
 
 export const select_list = createAsyncThunk(
   "products/select_list",

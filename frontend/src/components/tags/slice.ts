@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as tagsApi from "@/components/tags/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTag} from "@/components/tags/interface.ts";
+import type {TagUserInput} from "@/components/tags/interface.ts";
 
 interface TagsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: TagsState = {
 
 export const create = createAsyncThunk(
   "tags/create",
-  async (requestData: CreateTag, {getState}) => {
+  async (requestData: TagUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return tagsApi.create(requestData, token);
@@ -48,14 +48,41 @@ export const list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "tags/get",
+export const get_resolved = createAsyncThunk(
+  "tags/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tagsApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "tags/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tagsApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "tags/update",
+  async (requestData: TagUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tagsApi.update(requestData, token);
+  }
+)
+
+export const deleteTag = createAsyncThunk(
+  "tags/deleteTag",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tagsApi.deleteTag(uuid, token);
+  }
+);
 
 const tagsSlice = createSlice({
   name: "tags",

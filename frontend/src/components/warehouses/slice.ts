@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as warehousesApi from "@/components/warehouses/service.ts";
 import type {RootState} from "@/store";
-import type {CreateWarehouse} from "@/components/warehouses/interface.ts";
+import type {WarehouseUserInput} from "@/components/warehouses/interface.ts";
 
 interface WarehousesState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: WarehousesState = {
 
 export const create = createAsyncThunk(
   "warehouses/create",
-  async (requestData: CreateWarehouse, {getState}) => {
+  async (requestData: WarehouseUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return warehousesApi.create(requestData, token);
@@ -48,14 +48,41 @@ export const list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "warehouses/get",
+export const get_resolved = createAsyncThunk(
+  "warehouses/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await warehousesApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "warehouses/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await warehousesApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "warehouses/update",
+  async (requestData: WarehouseUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await warehousesApi.update(requestData, token);
+  }
+)
+
+export const deleteWarehouse = createAsyncThunk(
+  "warehouses/deleteWarehouse",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await warehousesApi.deleteWarehouse(uuid, token);
+  }
+);
 
 const warehousesSlice = createSlice({
   name: "warehouses",

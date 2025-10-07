@@ -21,31 +21,29 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateWorksheet {
+export interface WorksheetUserInput {
+  id: string | null
   name: string
   description: string
   projectId: string
   status: string
 }
 
-export type CreateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isCreateWorksheetResponse(data: unknown): data is CreateWorksheetResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  )
+export interface Worksheet {
+  id: string,
+  name: string,
+  description: string | null,
+  project_id: string,
+  created_by_id: string,
+  status: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
 }
 
 export interface WorksheetResolved {
@@ -62,59 +60,11 @@ export interface WorksheetResolved {
   deleted_at: string | null,
 }
 
+export type CreateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
+export type UpdateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DeleteWorksheetResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type WorksheetResponse = CommonResponse<Worksheet, SimpleError>;
 export type WorksheetResolvedResponse = CommonResponse<WorksheetResolved, SimpleError>;
-
-export function isWorksheetResolvedResponse(data: unknown): data is WorksheetResolvedResponse {
-  return isCommonResponse(
-    data,
-    isWorksheetResolved,
-    isSimpleError,
-  )
-}
-
 export type WorksheetResolvedList = WorksheetResolved[];
-
-export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "project_id" in data &&
-    typeof data.project_id === "string" &&
-    "project" in data &&
-    typeof data.project === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isWorksheetResolvedList(data: unknown): data is WorksheetResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isWorksheetResolved(item))
-  );
-}
-
 export type PaginatedWorksheetResolvedListResponse = PaginatedDataResponse<WorksheetResolvedList, SimpleError>;
 
-export function isPaginatedWorksheetResolvedListResponse(data: unknown): data is PaginatedWorksheetResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isWorksheetResolvedList,
-  )
-}

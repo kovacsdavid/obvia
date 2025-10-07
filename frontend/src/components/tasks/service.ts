@@ -19,13 +19,10 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateTask,
+  type TaskUserInput,
   type CreateTaskResponse,
-  isCreateTaskResponse,
-  isPaginatedTaskResolvedListResponse,
-  isTaskResolvedResponse,
   type PaginatedTaskResolvedListResponse,
-  type TaskResolvedResponse
+  type TaskResolvedResponse, type UpdateTaskResponse, type TaskResponse, type DeleteTaskResponse
 } from "@/components/tasks/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -33,15 +30,21 @@ import {
   ProcessResponse,
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
+import {
+  isCreateTaskResponse, isDeleteTaskResponse,
+  isPaginatedTaskResolvedListResponse,
+  isTaskResolvedResponse, isTaskResponse, isUpdateTaskResponse
+} from "@/components/tasks/guards.ts";
 
 export async function create({
+                               id,
                                worksheetId,
                                title,
                                description,
                                status,
                                priority,
                                dueDate
-                             }: CreateTask, token: string | null): Promise<ProcessedResponse<CreateTaskResponse>> {
+                             }: TaskUserInput, token: string | null): Promise<ProcessedResponse<CreateTaskResponse>> {
   return await fetch(`/api/tasks/create`, {
     method: "POST",
     headers: {
@@ -50,6 +53,7 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
+      id,
       worksheet_id: worksheetId,
       title,
       description,
@@ -110,6 +114,71 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isTaskResolvedResponse,
+    ) ?? unexpectedError;
+  });
+}
+
+export async function update({
+                               id,
+                               worksheetId,
+                               title,
+                               description,
+                               status,
+                               priority,
+                               dueDate
+                             }: TaskUserInput, token: string | null): Promise<ProcessedResponse<UpdateTaskResponse>> {
+  return await fetch(`/api/tasks/update`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      id,
+      worksheet_id: worksheetId,
+      title,
+      description,
+      status,
+      priority,
+      due_date: dueDate
+    }),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isUpdateTaskResponse
+    ) ?? unexpectedFormError;
+  });
+}
+
+export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<TaskResponse>> {
+  return await fetch(`/api/tasks/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isTaskResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function deleteTask(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTaskResponse>> {
+  return await fetch(`/api/tasks/delete?uuid=${uuid}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isDeleteTaskResponse
     ) ?? unexpectedError;
   });
 }

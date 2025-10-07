@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as tasksApi from "@/components/tasks/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTask} from "@/components/tasks/interface.ts";
+import type {TaskUserInput} from "@/components/tasks/interface.ts";
 
 interface TasksState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: TasksState = {
 
 export const create = createAsyncThunk(
   "tasks/create",
-  async (requestData: CreateTask, {getState}) => {
+  async (requestData: TaskUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return tasksApi.create(requestData, token);
@@ -57,14 +57,41 @@ export const select_list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "tasks/get",
+export const get_resolved = createAsyncThunk(
+  "tasks/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "tasks/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tasksApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "tasks/update",
+  async (requestData: TaskUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tasksApi.update(requestData, token);
+  }
+)
+
+export const deleteTask = createAsyncThunk(
+  "tasks/deleteTask",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await tasksApi.deleteTask(uuid, token);
+  }
+);
 
 const tasksSlice = createSlice({
   name: "tasks",

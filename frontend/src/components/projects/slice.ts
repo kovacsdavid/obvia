@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as projectsApi from "@/components/projects/service.ts";
 import type {RootState} from "@/store";
-import type {CreateProject} from "@/components/projects/interface.ts";
+import type {ProjectUserInput} from "@/components/projects/interface.ts";
 
 interface ProjectsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: ProjectsState = {
 
 export const create = createAsyncThunk(
   "projects/create",
-  async (requestData: CreateProject, {getState}) => {
+  async (requestData: ProjectUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return projectsApi.create(requestData, token);
@@ -48,14 +48,41 @@ export const list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "projects/get",
+export const get_resolved = createAsyncThunk(
+  "projects/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await projectsApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "projects/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await projectsApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "projects/update",
+  async (requestData: ProjectUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await projectsApi.update(requestData, token);
+  }
+)
+
+export const deleteProject = createAsyncThunk(
+  "projects/deleteProject",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await projectsApi.deleteProject(uuid, token);
+  }
+);
 
 const projectsSlice = createSlice({
   name: "projects",

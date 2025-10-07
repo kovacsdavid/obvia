@@ -21,31 +21,29 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
   type PaginatedDataResponse,
   type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateWarehouse {
+export interface WarehouseUserInput {
+  id: string | null
   name: string
   contactName: string
   contactPhone: string
   status: string
 }
 
-export type CreateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isCreateWarehouseResponse(data: unknown): data is CreateWarehouseResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  )
+export interface Warehouse {
+  id: string,
+  name: string,
+  contact_name: string | null,
+  contact_phone: string | null,
+  status: string,
+  created_by_id: string,
+  created_at: string,
+  updated_at: string,
+  deleted_at: string | null,
 }
 
 export interface WarehouseResolved {
@@ -61,57 +59,10 @@ export interface WarehouseResolved {
   deleted_at: string | null,
 }
 
+export type CreateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
+export type UpdateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DeleteWarehouseResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type WarehouseResponse = CommonResponse<Warehouse, SimpleError>;
 export type WarehouseResolvedResponse = CommonResponse<WarehouseResolved, SimpleError>;
-
-export function isWarehouseResolvedResponse(data: unknown): data is WarehouseResolvedResponse {
-  return isCommonResponse(
-    data,
-    isWarehouseResolved,
-    isSimpleError,
-  )
-}
-
 export type WarehouseResolvedList = WarehouseResolved[];
-
-export function isWarehouseResolved(data: unknown): data is WarehouseResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    (data.contact_name === null || typeof data.contact_name === "string") &&
-    "contact_phone" in data &&
-    (data.contact_phone === null || typeof data.contact_phone === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
-}
-
-export function isWarehouseResolvedList(data: unknown): data is WarehouseResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isWarehouseResolved(item))
-  );
-}
-
 export type PaginatedWarehouseResolvedListResponse = PaginatedDataResponse<WarehouseResolvedList, SimpleError>;
-
-export function isPaginatedWarehouseResolvedListResponse(data: unknown): data is PaginatedWarehouseResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isWarehouseResolvedList,
-  )
-}

@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as worksheetsApi from "@/components/worksheets/service.ts";
 import type {RootState} from "@/store";
-import type {CreateWorksheet} from "@/components/worksheets/interface.ts";
+import type {WorksheetUserInput} from "@/components/worksheets/interface.ts";
 
 interface WorksheetsState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -32,7 +32,7 @@ const initialState: WorksheetsState = {
 
 export const create = createAsyncThunk(
   "worksheets/create",
-  async (requestData: CreateWorksheet, {getState}) => {
+  async (requestData: WorksheetUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return worksheetsApi.create(requestData, token);
@@ -57,14 +57,41 @@ export const list = createAsyncThunk(
   }
 )
 
-export const get = createAsyncThunk(
-  "worksheets/get",
+export const get_resolved = createAsyncThunk(
+  "worksheets/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.get_resolved(uuid, token);
   }
 )
+
+export const get = createAsyncThunk(
+  "worksheets/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "worksheets/update",
+  async (requestData: WorksheetUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.update(requestData, token);
+  }
+)
+
+export const deleteWorksheet = createAsyncThunk(
+  "worksheets/deleteWorksheet",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.deleteWorksheet(uuid, token);
+  }
+);
 
 const worksheetsSlice = createSlice({
   name: "worksheets",

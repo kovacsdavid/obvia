@@ -20,7 +20,7 @@
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
 import * as inventoryApi from "@/components/inventory/service.ts";
 import type {RootState} from "@/store";
-import type {CreateInventory} from "@/components/inventory/interface.ts";
+import type {InventoryUserInput} from "@/components/inventory/interface.ts";
 
 interface InventoryState {
   status: "idle" | "loading" | "succeeded" | "failed",
@@ -30,8 +30,8 @@ const initialState: InventoryState = {
   status: "idle",
 }
 
-export const get = createAsyncThunk(
-  "inventory/get",
+export const get_resolved = createAsyncThunk(
+  "inventory/get_resolved",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
@@ -39,9 +39,36 @@ export const get = createAsyncThunk(
   }
 )
 
+export const get = createAsyncThunk(
+  "inventory/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await inventoryApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "inventory/update",
+  async (requestData: InventoryUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await inventoryApi.update(requestData, token);
+  }
+)
+
+export const deleteInventory = createAsyncThunk(
+  "inventory/deleteInventory",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await inventoryApi.deleteInventory(uuid, token);
+  }
+);
+
 export const create = createAsyncThunk(
   "inventory/create",
-  async (requestData: CreateInventory, {getState}) => {
+  async (requestData: InventoryUserInput, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await inventoryApi.create(requestData, token);

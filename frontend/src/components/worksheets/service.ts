@@ -19,13 +19,10 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateWorksheet,
-  type CreateWorksheetResponse,
-  isCreateWorksheetResponse,
-  isPaginatedWorksheetResolvedListResponse,
-  isWorksheetResolvedResponse,
-  type PaginatedWorksheetResolvedListResponse,
-  type WorksheetResolvedResponse,
+  type CreateWorksheetResponse, type DeleteWorksheetResponse,
+  type PaginatedWorksheetResolvedListResponse, type UpdateWorksheetResponse,
+  type WorksheetResolvedResponse, type WorksheetResponse,
+  type WorksheetUserInput,
 } from "@/components/worksheets/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -33,13 +30,19 @@ import {
   ProcessResponse,
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
+import {
+  isCreateWorksheetResponse, isDeleteWorksheetResponse,
+  isPaginatedWorksheetResolvedListResponse, isUpdateWorksheetResponse,
+  isWorksheetResolvedResponse, isWorksheetResponse
+} from "@/components/worksheets/guards.ts";
 
 export async function create({
+                               id,
                                name,
                                description,
                                projectId,
                                status
-                             }: CreateWorksheet, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
+                             }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
   return await fetch(`/api/worksheets/create`, {
     method: "POST",
     headers: {
@@ -48,6 +51,7 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
+      id,
       name,
       description,
       project_id: projectId,
@@ -106,6 +110,67 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isWorksheetResolvedResponse,
+    ) ?? unexpectedError;
+  });
+}
+
+export async function update({
+                               id,
+                               name,
+                               description,
+                               projectId,
+                               status
+                             }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
+  return await fetch(`/api/worksheets/update`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      id,
+      name,
+      description,
+      project_id: projectId,
+      status
+    }),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isUpdateWorksheetResponse
+    ) ?? unexpectedFormError;
+  });
+}
+
+export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<WorksheetResponse>> {
+  return await fetch(`/api/worksheets/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isWorksheetResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function deleteWorksheet(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
+  return await fetch(`/api/worksheets/delete?uuid=${uuid}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isDeleteWorksheetResponse
     ) ?? unexpectedError;
   });
 }

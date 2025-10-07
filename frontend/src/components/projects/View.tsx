@@ -20,7 +20,7 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/projects/slice.ts";
+import {get_resolved} from "@/components/projects/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card"
@@ -43,8 +43,8 @@ export default function View() {
 
   useEffect(() => {
     if (typeof params["id"] === "string") {
-      dispatch(get(params["id"])).then(async (response) => {
-        if (get.fulfilled.match(response)) {
+      dispatch(get_resolved(params["id"])).then(async (response) => {
+        if (get_resolved.fulfilled.match(response)) {
           if (response.payload.statusCode === 200) {
             if (typeof response.payload.jsonData.data !== "undefined") {
               setData(response.payload.jsonData.data);

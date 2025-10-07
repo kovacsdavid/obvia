@@ -19,23 +19,26 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateProject,
+  type ProjectUserInput,
   type CreateProjectResponse,
-  isCreateProjectResponse,
-  isPaginatedProjectResolvedListResponse,
-  isProjectResolvedResponse,
   type PaginatedProjectResolvedListResponse,
-  type ProjectResolvedResponse
+  type ProjectResolvedResponse, type UpdateProjectResponse, type ProjectResponse, type DeleteProjectResponse
 } from "@/components/projects/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  isCreateProjectResponse, isDeleteProjectResponse,
+  isPaginatedProjectResolvedListResponse,
+  isProjectResolvedResponse, isProjectResponse, isUpdateProjectResponse
+} from "@/components/projects/guards.ts";
 
 export async function create({
+                               id,
                                name,
                                description,
                                status,
                                startDate,
                                endDate
-                             }: CreateProject, token: string | null): Promise<ProcessedResponse<CreateProjectResponse>> {
+                             }: ProjectUserInput, token: string | null): Promise<ProcessedResponse<CreateProjectResponse>> {
   return await fetch(`/api/projects/create`, {
     method: "POST",
     headers: {
@@ -44,6 +47,7 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
+      id,
       name,
       description,
       status,
@@ -87,6 +91,69 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
     return await ProcessResponse(
       response,
       isProjectResolvedResponse,
+    ) ?? unexpectedError;
+  });
+}
+
+export async function update({
+                               id,
+                               name,
+                               description,
+                               status,
+                               startDate,
+                               endDate
+                             }: ProjectUserInput, token: string | null): Promise<ProcessedResponse<UpdateProjectResponse>> {
+  return await fetch(`/api/projects/update`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+    body: JSON.stringify({
+      id,
+      name,
+      description,
+      status,
+      start_date: startDate,
+      end_date: endDate
+    }),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isUpdateProjectResponse
+    ) ?? unexpectedFormError;
+  });
+}
+
+export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<ProjectResponse>> {
+  return await fetch(`/api/projects/get?uuid=${uuid}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isProjectResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function deleteProject(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProjectResponse>> {
+  return await fetch(`/api/projects/delete?uuid=${uuid}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isDeleteProjectResponse
     ) ?? unexpectedError;
   });
 }

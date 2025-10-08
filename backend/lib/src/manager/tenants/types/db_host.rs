@@ -258,7 +258,7 @@ mod tests {
             r#"224c:ac51:1517:9700:fcec:3e03:0bb6:9e2e"#,
             r#"1e94:7af0:339b:2402:e58a:89c2:db5b:75a5"#,
             r#"2001:4860:4860::8888"#,
-            r#"2606:4700:4700::1111"#
+            r#"2606:4700:4700::1111"#,
         ];
         for host in valid_hosts {
             let db_host: ValueObject<DbHost> =
@@ -277,18 +277,15 @@ mod tests {
             r#"10.10.10.10"#,
             r#"172.16.0.1"#,
             r#"172.18.0.1"#,
-
             // Invalid special IPv4 addresses
             r#"255.255.255.255"#,
             r#"0.0.0.0"#,
             r#"127.0.0.1"#,
-
             // Invalid CIDR notations
             r#"0.0.0.0/0"#,
             r#"10.0.0.0/24"#,
             r#"172.16.0.0/24"#,
             r#"172.18.0.0/24"#,
-
             // Invalid domains
             r#"localhost"#,
             r#"anything.localhost"#,
@@ -299,7 +296,6 @@ mod tests {
             r#"-invalid-start.com"#,
             r#"invalid-end-.com"#,
             r#"too..many.dots"#,
-
             // Invalid IPv6 addresses
             r#"::"#,
             r#"::/128"#,
@@ -307,14 +303,13 @@ mod tests {
             r#"::1/128"#,
             r#"fe80::1"#,
             r#"fc00::1"#,
-
             // Invalid formatting
             r#":"#,
             r#""#,
             r#" "#,
             r#"     "#,
             r#"invalid@domain.com"#,
-            r#"domain with spaces.com"#
+            r#"domain with spaces.com"#,
         ];
         for host in invalid_hosts {
             let db_host: Result<ValueObject<DbHost>, _> =

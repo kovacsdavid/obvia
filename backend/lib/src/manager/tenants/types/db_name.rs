@@ -138,7 +138,7 @@ mod tests {
             "tenant_test123",
             "tenant_proddb",
             "tenant_dev",
-            "tenant_a1b2c3"
+            "tenant_a1b2c3",
         ];
 
         for name in valid_names {
@@ -162,7 +162,6 @@ mod tests {
             "tenant_\"",
             "tenant_;",
             "tenant_--",
-
             // Advanced SQL injection attempts
             "tenant_table';DROP TABLE users;--",
             "tenant_db' UNION SELECT * FROM information_schema.tables;--",
@@ -170,16 +169,13 @@ mod tests {
             "tenant_') OR ('1'='1",
             "tenant_; DELETE FROM users; --",
             "tenant_/**/UNION/**/SELECT/**/password/**/FROM/**/users",
-
             // Multi-line SQL injection attempts
             "tenant_db'\n DROP TABLE users;--",
             "tenant_test\n\rDROP DATABASE master;--",
-
             // Concatenated SQL injection attempts
             "tenant_'||'DROP",
             "tenant_'+'DROP",
             "tenant_' 'DROP",
-
             // Invalid formats
             "",
             " ",
@@ -190,8 +186,8 @@ mod tests {
             "tenant_my#db",
             "tenant_db!",
             "TENANT_db",
-            too_long.as_str(), // Too long
-            "tenant_с_кириллицей" // Non-ASCII chars
+            too_long.as_str(),     // Too long
+            "tenant_с_кириллицей", // Non-ASCII chars
         ];
 
         for name in invalid_names {

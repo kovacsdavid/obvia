@@ -123,7 +123,7 @@ mod tests {
             r#""12,34,56""#,
             r#""12a34""#,
             r#""$123""#,
-            r#""123.456.789""#
+            r#""123.456.789""#,
         ];
 
         for case in cases {
@@ -147,7 +147,7 @@ mod tests {
     #[test]
     fn test_validation() {
         assert!(Quantity("123".to_string()).validate().is_ok());
-        
+
         assert!(Quantity("".to_string()).validate().is_err());
         assert!(Quantity("  ".to_string()).validate().is_err());
         assert!(Quantity("abc".to_string()).validate().is_err());

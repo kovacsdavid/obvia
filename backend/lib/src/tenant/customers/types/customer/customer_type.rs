@@ -98,7 +98,8 @@ mod tests {
 
     #[test]
     fn test_valid_natural_customer_type() {
-        let customer_type: ValueObject<CustomerType> = serde_json::from_str(r#""natural""#).unwrap();
+        let customer_type: ValueObject<CustomerType> =
+            serde_json::from_str(r#""natural""#).unwrap();
         assert_eq!(customer_type.extract().get_value(), "natural");
     }
 
@@ -110,7 +111,8 @@ mod tests {
 
     #[test]
     fn test_invalid_customer_type() {
-        let customer_type: Result<ValueObject<CustomerType>, _> = serde_json::from_str(r#""invalid""#);
+        let customer_type: Result<ValueObject<CustomerType>, _> =
+            serde_json::from_str(r#""invalid""#);
         assert!(customer_type.is_err());
     }
 

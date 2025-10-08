@@ -119,13 +119,15 @@ mod tests {
 
     #[test]
     fn test_invalid_phone_number_too_long() {
-        let phone: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""+361234567890123456""#);
+        let phone: Result<ValueObject<PhoneNumber>, _> =
+            serde_json::from_str(r#""+361234567890123456""#);
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_number_special_chars() {
-        let phone: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""+36-30-123-4567""#);
+        let phone: Result<ValueObject<PhoneNumber>, _> =
+            serde_json::from_str(r#""+36-30-123-4567""#);
         assert!(phone.is_err());
     }
 

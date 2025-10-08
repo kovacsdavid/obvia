@@ -101,7 +101,8 @@ mod tests {
 
     #[test]
     fn test_valid_start_date() {
-        let date: ValueObject<StartDate> = serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
+        let date: ValueObject<StartDate> =
+            serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
         assert_eq!(date.extract().get_value(), "2023-12-25 10:30:00");
     }
 
@@ -119,7 +120,8 @@ mod tests {
 
     #[test]
     fn test_invalid_date_values() {
-        let date: Result<ValueObject<StartDate>, _> = serde_json::from_str(r#""2023-13-45 25:70:99""#);
+        let date: Result<ValueObject<StartDate>, _> =
+            serde_json::from_str(r#""2023-13-45 25:70:99""#);
         assert!(date.is_err());
     }
 
@@ -176,7 +178,8 @@ mod tests {
 
     #[test]
     fn test_date_deserialization() {
-        let date: ValueObject<StartDate> = serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
+        let date: ValueObject<StartDate> =
+            serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
         assert_eq!(date.extract().get_value(), "2023-12-25 10:30:00");
     }
 }

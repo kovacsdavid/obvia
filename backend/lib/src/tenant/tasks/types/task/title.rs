@@ -122,14 +122,16 @@ mod tests {
     #[test]
     fn test_title_too_long() {
         let long_title = "a".repeat(501);
-        let title: Result<ValueObject<Title>, _> = serde_json::from_str(&format!(r#""{}""#, long_title));
+        let title: Result<ValueObject<Title>, _> =
+            serde_json::from_str(&format!(r#""{}""#, long_title));
         assert!(title.is_err());
     }
 
     #[test]
     fn test_title_max_length() {
         let max_title = "a".repeat(500);
-        let title: ValueObject<Title> = serde_json::from_str(&format!(r#""{}""#, max_title)).unwrap();
+        let title: ValueObject<Title> =
+            serde_json::from_str(&format!(r#""{}""#, max_title)).unwrap();
         assert_eq!(title.extract().get_value().len(), 500);
     }
 

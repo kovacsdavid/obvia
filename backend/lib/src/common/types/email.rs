@@ -126,8 +126,8 @@ impl Display for Email {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
     use crate::common::types::value_object::ValueObject;
+    use serde_json;
 
     #[test]
     fn test_valid_email() {

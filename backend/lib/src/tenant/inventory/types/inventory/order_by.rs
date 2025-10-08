@@ -117,7 +117,7 @@ mod tests {
             r#""name""#,
             r#""price""#,
             r#""quantity""#,
-            r#""invalid_column""#
+            r#""invalid_column""#,
         ];
 
         for case in cases {

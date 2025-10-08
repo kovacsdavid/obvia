@@ -140,7 +140,8 @@ mod tests {
     #[test]
     fn test_long_tenant_name() {
         let long_str = "a".repeat(255);
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
+        let name: Result<ValueObject<Name>, _> =
+            serde_json::from_str(&format!(r#""{}""#, long_str));
         assert!(name.is_err());
     }
 

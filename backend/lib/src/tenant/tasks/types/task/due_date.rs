@@ -122,7 +122,7 @@ mod tests {
             r#""2024-01-32 12:00:00""#, // Invalid day
             r#""2024-01-01 25:00:00""#, // Invalid hour
             r#""2024-01-01 12:61:00""#, // Invalid minute
-            r#""2024-01-01 12:00:61""#  // Invalid second
+            r#""2024-01-01 12:00:61""#, // Invalid second
         ];
 
         for case in cases {
@@ -148,7 +148,7 @@ mod tests {
         let cases = vec![
             r#"" 2024-01-01 12:00:00""#,
             r#""2024-01-01 12:00:00 ""#,
-            r#"" 2024-01-01 12:00:00 ""#
+            r#"" 2024-01-01 12:00:00 ""#,
         ];
 
         for case in cases {

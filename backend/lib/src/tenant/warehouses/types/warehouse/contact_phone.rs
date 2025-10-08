@@ -142,13 +142,15 @@ mod tests {
 
     #[test]
     fn test_invalid_phone_with_spaces() {
-        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+36 30 123 4567""#);
+        let phone: Result<ValueObject<ContactPhone>, _> =
+            serde_json::from_str(r#""+36 30 123 4567""#);
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_with_special_chars() {
-        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+36-30-123-4567""#);
+        let phone: Result<ValueObject<ContactPhone>, _> =
+            serde_json::from_str(r#""+36-30-123-4567""#);
         assert!(phone.is_err());
     }
 

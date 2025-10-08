@@ -170,6 +170,11 @@ mod tests {
     #[test]
     fn test_deserialization_error_messages() {
         let invalid: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
-        assert!(invalid.unwrap_err().to_string().contains("Hibás sorrend formátum"));
+        assert!(
+            invalid
+                .unwrap_err()
+                .to_string()
+                .contains("Hibás sorrend formátum")
+        );
     }
 }

@@ -153,13 +153,7 @@ mod tests {
 
     #[test]
     fn test_deserialization_errors() {
-        let invalid_types = vec![
-            "null",
-            "123",
-            "true",
-            "[]",
-            "{}",
-        ];
+        let invalid_types = vec!["null", "123", "true", "[]", "{}"];
 
         for invalid in invalid_types {
             let result: Result<ValueObject<Currency>, _> = serde_json::from_str(invalid);

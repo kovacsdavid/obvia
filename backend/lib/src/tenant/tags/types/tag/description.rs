@@ -100,7 +100,8 @@ mod tests {
 
     #[test]
     fn test_valid_description() {
-        let desc: ValueObject<Description> = serde_json::from_str(r#""Valid description""#).unwrap();
+        let desc: ValueObject<Description> =
+            serde_json::from_str(r#""Valid description""#).unwrap();
         assert_eq!(desc.extract().get_value(), "Valid description");
     }
 
@@ -113,14 +114,16 @@ mod tests {
     #[test]
     fn test_max_length_description() {
         let desc = "a".repeat(3000);
-        let result: ValueObject<Description> = serde_json::from_str(&format!(r#""{}""#, desc)).unwrap();
+        let result: ValueObject<Description> =
+            serde_json::from_str(&format!(r#""{}""#, desc)).unwrap();
         assert_eq!(result.extract().get_value(), &desc);
     }
 
     #[test]
     fn test_too_long_description() {
         let desc = "a".repeat(3001);
-        let result: Result<ValueObject<Description>, _> = serde_json::from_str(&format!(r#""{}""#, desc));
+        let result: Result<ValueObject<Description>, _> =
+            serde_json::from_str(&format!(r#""{}""#, desc));
         assert!(result.is_err());
     }
 
@@ -161,7 +164,10 @@ mod tests {
     fn test_special_characters() {
         let special = r#""Test with !@#$%^&*()_+ and unicode 你好世界""#;
         let desc: ValueObject<Description> = serde_json::from_str(special).unwrap();
-        assert_eq!(desc.extract().get_value(), r#"Test with !@#$%^&*()_+ and unicode 你好世界"#);
+        assert_eq!(
+            desc.extract().get_value(),
+            r#"Test with !@#$%^&*()_+ and unicode 你好世界"#
+        );
     }
 
     #[test]

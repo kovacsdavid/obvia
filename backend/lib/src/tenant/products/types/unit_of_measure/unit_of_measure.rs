@@ -119,25 +119,22 @@ mod tests {
     #[test]
     fn test_too_long_unit_of_measure() {
         let long_str = "a".repeat(51);
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> =
+            serde_json::from_str(&format!(r#""{}""#, long_str));
         assert!(uom.is_err());
     }
 
     #[test]
     fn test_max_length_unit_of_measure() {
         let max_str = "a".repeat(50);
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(&format!(r#""{}""#, max_str));
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> =
+            serde_json::from_str(&format!(r#""{}""#, max_str));
         assert!(uom.is_ok());
     }
 
     #[test]
     fn test_special_characters() {
-        let cases = vec![
-            r#""kg/m²""#,
-            r#""°C""#,
-            r#""m³""#,
-            r#""μm""#
-        ];
+        let cases = vec![r#""kg/m²""#, r#""°C""#, r#""m³""#, r#""μm""#];
         for case in cases {
             let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(case);
             assert!(uom.is_ok());

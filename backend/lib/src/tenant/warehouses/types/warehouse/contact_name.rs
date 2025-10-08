@@ -106,19 +106,22 @@ mod tests {
 
     #[test]
     fn test_contact_name_with_special_chars() {
-        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John @ Doe!""#).unwrap();
+        let contact_name: ValueObject<ContactName> =
+            serde_json::from_str(r#""John @ Doe!""#).unwrap();
         assert_eq!(contact_name.extract().get_value(), "John @ Doe!");
     }
 
     #[test]
     fn test_contact_name_with_numbers() {
-        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John Doe 123""#).unwrap();
+        let contact_name: ValueObject<ContactName> =
+            serde_json::from_str(r#""John Doe 123""#).unwrap();
         assert_eq!(contact_name.extract().get_value(), "John Doe 123");
     }
 
     #[test]
     fn test_contact_name_unicode() {
-        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""János Kovács""#).unwrap();
+        let contact_name: ValueObject<ContactName> =
+            serde_json::from_str(r#""János Kovács""#).unwrap();
         assert_eq!(contact_name.extract().get_value(), "János Kovács");
     }
 

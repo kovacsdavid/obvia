@@ -149,7 +149,8 @@ mod tests {
     #[test]
     fn test_invalid_ddl_parameter_too_long() {
         let long_str = "a".repeat(256);
-        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
+        let param: Result<ValueObject<DdlParameter>, _> =
+            serde_json::from_str(&format!(r#""{}""#, long_str));
         assert!(param.is_err());
     }
 
@@ -185,12 +186,7 @@ mod tests {
 
     #[test]
     fn test_sql_injection_comments() {
-        let cases = vec![
-            r#""users--"#,
-            r#""users/*"#,
-            r#""users*/"#,
-            r#""users#"#,
-        ];
+        let cases = vec![r#""users--"#, r#""users/*"#, r#""users*/"#, r#""users#"#];
         for case in cases {
             let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(case);
             assert!(param.is_err());
@@ -204,4 +200,3 @@ mod tests {
         assert!(param.is_err());
     }
 }
-

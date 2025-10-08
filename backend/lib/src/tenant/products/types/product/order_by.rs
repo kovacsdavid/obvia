@@ -140,11 +140,7 @@ mod tests {
 
     #[test]
     fn test_case_sensitivity() {
-        let cases = vec![
-            r#""NAME""#,
-            r#""Name""#,
-            r#""nAmE""#,
-        ];
+        let cases = vec![r#""NAME""#, r#""Name""#, r#""nAmE""#];
 
         for case in cases {
             let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);

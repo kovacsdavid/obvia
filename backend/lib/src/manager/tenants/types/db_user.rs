@@ -184,7 +184,7 @@ mod tests {
             r#""tenant_1' OR '1'='1""#,
             r#""tenant_1 UNION SELECT * FROM passwords""#,
             r#""tenant_1); DELETE FROM users; --""#,
-            r#""tenant_1/**/UNION/**/SELECT/**/password/**/FROM/**/users""#
+            r#""tenant_1/**/UNION/**/SELECT/**/password/**/FROM/**/users""#,
         ];
 
         for attempt in sql_injection_attempts {
@@ -204,6 +204,9 @@ mod tests {
     fn test_uuid_conversion() {
         let uuid = Uuid::new_v4();
         let user = ValueObject::<DbUser>::try_from(uuid);
-        assert!(user.is_err(), "UUID should not be valid since it doesn't start with tenant_");
+        assert!(
+            user.is_err(),
+            "UUID should not be valid since it doesn't start with tenant_"
+        );
     }
 }

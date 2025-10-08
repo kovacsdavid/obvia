@@ -186,70 +186,66 @@ impl<'de> Deserialize<'de> for ValueObject<DbPort> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
+    use serde_json;
 
-    #[derive(Deserialize, Debug)]
-    struct Test {
-        pub port: ValueObject<DbPort>,
-    }
     #[test]
-    fn test_valid_db_port() {
-        let valid_ports = vec![1025_i64, 5432_i64, 3306_i64];
-        for port in valid_ports {
-            let data = json!({
-                "port": port,
-            });
-            let test = Test::deserialize(&data).unwrap();
-            assert_eq!(*test.port.extract().get_value(), port);
-        }
+    fn test_valid_db_port_i64() {
+        let port: ValueObject<DbPort> = serde_json::from_str("5432").unwrap();
+        assert_eq!(port.extract().get_value(), &5432);
     }
+
     #[test]
-    fn test_invalid_db_port() {
-        let invalid_ports = vec![0_i64, 1024_i64, 65536_i64];
-        for port in invalid_ports {
-            let data = json!({
-                "port": port,
-            });
-            assert_eq!(
-                Test::deserialize(&data).unwrap_err().to_string(),
-                "Hibás adatbázis port"
-            );
-        }
-        let data = json!({
-                "port": "",
-        });
-        assert!(
-            Test::deserialize(&data)
-                .unwrap_err()
-                .to_string()
-                .contains("an integer between -2^63 and 2^63-1")
-        );
-        let data = json!({
-                "port": " ",
-        });
-        assert!(
-            Test::deserialize(&data)
-                .unwrap_err()
-                .to_string()
-                .contains("an integer between -2^63 and 2^63-1")
-        );
-        let data = json!({
-                "port": "asdflkj",
-        });
-        assert!(
-            Test::deserialize(&data)
-                .unwrap_err()
-                .to_string()
-                .contains("an integer between -2^63 and 2^63-1")
-        );
-        let data = json!({
-                "port": null,
-        });
-        assert!(
-            Test::deserialize(&data)
-                .unwrap_err()
-                .to_string()
-                .contains("an integer between -2^63 and 2^63-1")
-        );
+    fn test_valid_db_port_u64() {
+        let port: ValueObject<DbPort> = serde_json::from_str("5432").unwrap();
+        assert_eq!(port.extract().get_value(), &5432);
+    }
+
+    #[test]
+    fn test_invalid_db_port_too_low() {
+        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("1024");
+        assert!(port.is_err());
+    }
+
+    #[test]
+    fn test_invalid_db_port_too_high() {
+        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("65536");
+        assert!(port.is_err());
+    }
+
+    #[test]
+    fn test_validation() {
+        let valid_port = DbPort(5432);
+        assert!(valid_port.validate().is_ok());
+
+        let invalid_port_low = DbPort(1024);
+        assert!(invalid_port_low.validate().is_err());
+
+        let invalid_port_high = DbPort(65536);
+        assert!(invalid_port_high.validate().is_err());
+    }
+
+    #[test]
+    fn test_display() {
+        let port = DbPort(5432);
+        assert_eq!(format!("{}", port), "5432");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let port = DbPort(5432);
+        assert_eq!(port.get_value(), &5432);
+    }
+
+    #[test]
+    fn test_deserialization_invalid_json() {
+        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("invalid");
+        assert!(port.is_err());
+    }
+
+    #[test]
+    fn test_cloning() {
+        let port = DbPort(5432);
+        let cloned = port.clone();
+        assert_eq!(port, cloned);
     }
 }

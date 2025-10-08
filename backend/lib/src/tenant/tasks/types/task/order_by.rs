@@ -101,4 +101,64 @@ impl Display for OrderBy {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use crate::common::types::value_object::ValueObject;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by = OrderBy("title".to_string());
+        assert!(order_by.validate().is_ok());
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let order_by = OrderBy("invalid".to_string());
+        assert!(order_by.validate().is_err());
+    }
+
+    #[test]
+    fn test_from_str() {
+        let order_by = OrderBy::from_str("title").unwrap();
+        assert_eq!(order_by.0, "title");
+    }
+
+    #[test]
+    fn test_display() {
+        let order_by = OrderBy("title".to_string());
+        assert_eq!(format!("{}", order_by), "title");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let order_by = OrderBy("title".to_string());
+        assert_eq!(order_by.get_value(), "title");
+    }
+
+    #[test]
+    fn test_deserialize_valid() {
+        let json = r#""title""#;
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(json);
+        assert!(order_by.is_ok());
+    }
+
+    #[test]
+    fn test_deserialize_invalid() {
+        let json = r#""invalid""#;
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(json);
+        assert!(order_by.is_err());
+    }
+
+    #[test]
+    fn test_clone() {
+        let order_by = OrderBy("title".to_string());
+        let cloned = order_by.clone();
+        assert_eq!(order_by, cloned);
+    }
+
+    #[test]
+    fn test_debug() {
+        let order_by = OrderBy("title".to_string());
+        assert_eq!(format!("{:?}", order_by), "OrderBy(\"title\")");
+    }
+}

@@ -92,4 +92,64 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_warehouse_name() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test Warehouse""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test Warehouse");
+    }
+
+    #[test]
+    fn test_valid_warehouse_name_with_spaces() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""  Test  Warehouse  ""#).unwrap();
+        assert_eq!(name.extract().get_value(), "  Test  Warehouse  ");
+    }
+
+    #[test]
+    fn test_invalid_warehouse_name_empty() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_invalid_warehouse_name_whitespace() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_warehouse_name_display() {
+        let name = Name("Test Warehouse".to_string());
+        assert_eq!(format!("{}", name), "Test Warehouse");
+    }
+
+    #[test]
+    fn test_warehouse_name_debug() {
+        let name = Name("Test Warehouse".to_string());
+        assert_eq!(format!("{:?}", name), r#"Name("Test Warehouse")"#);
+    }
+
+    #[test]
+    fn test_warehouse_name_clone() {
+        let name = Name("Test Warehouse".to_string());
+        let cloned = name.clone();
+        assert_eq!(name, cloned);
+    }
+
+    #[test]
+    fn test_warehouse_name_deserialization() {
+        let json = r#""Test Warehouse""#;
+        let name: ValueObject<Name> = serde_json::from_str(json).unwrap();
+        assert_eq!(name.extract().get_value(), "Test Warehouse");
+    }
+
+    #[test]
+    fn test_warehouse_name_serialization() {
+        let name = ValueObject::new(Name("Test Warehouse".to_string())).unwrap();
+        let json = serde_json::to_string(&name).unwrap();
+        assert_eq!(json, r#""Test Warehouse""#);
+    }
+}

@@ -93,4 +93,77 @@ impl<'de> Deserialize<'de> for ValueObject<Priority> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_priority_low() {
+        let priority: ValueObject<Priority> = serde_json::from_str(r#""low""#).unwrap();
+        assert_eq!(priority.extract().get_value(), "low");
+    }
+
+    #[test]
+    fn test_valid_priority_normal() {
+        let priority: ValueObject<Priority> = serde_json::from_str(r#""normal""#).unwrap();
+        assert_eq!(priority.extract().get_value(), "normal");
+    }
+
+    #[test]
+    fn test_valid_priority_high() {
+        let priority: ValueObject<Priority> = serde_json::from_str(r#""high""#).unwrap();
+        assert_eq!(priority.extract().get_value(), "high");
+    }
+
+    #[test]
+    fn test_invalid_priority() {
+        let priority: Result<ValueObject<Priority>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(priority.is_err());
+    }
+
+    #[test]
+    fn test_empty_priority() {
+        let priority: Result<ValueObject<Priority>, _> = serde_json::from_str(r#""""#);
+        assert!(priority.is_err());
+    }
+
+    #[test]
+    fn test_priority_display() {
+        let priority = Priority("normal".to_string());
+        assert_eq!(format!("{}", priority), "normal");
+    }
+
+    #[test]
+    fn test_priority_debug() {
+        let priority = Priority("high".to_string());
+        assert_eq!(format!("{:?}", priority), r#"Priority("high")"#);
+    }
+
+    #[test]
+    fn test_priority_clone() {
+        let priority = Priority("low".to_string());
+        let cloned = priority.clone();
+        assert_eq!(priority, cloned);
+    }
+
+    #[test]
+    fn test_priority_validate() {
+        let valid_priorities = vec!["low", "normal", "high"];
+        for p in valid_priorities {
+            let priority = Priority(p.to_string());
+            assert!(priority.validate().is_ok());
+        }
+
+        let invalid_priorities = vec!["LOW", "NORMAL", "HIGH", "medium", "urgent", ""];
+        for p in invalid_priorities {
+            let priority = Priority(p.to_string());
+            assert!(priority.validate().is_err());
+        }
+    }
+
+    #[test]
+    fn test_priority_get_value() {
+        let priority = Priority("normal".to_string());
+        assert_eq!(priority.get_value(), "normal");
+    }
+}

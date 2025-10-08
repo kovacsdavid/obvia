@@ -97,4 +97,95 @@ impl<'de> Deserialize<'de> for ValueObject<Title> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_title() {
+        let title: ValueObject<Title> = serde_json::from_str(r#""Test Title""#).unwrap();
+        assert_eq!(title.extract().get_value(), "Test Title");
+    }
+
+    #[test]
+    fn test_empty_title() {
+        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""""#);
+        assert!(title.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_only_title() {
+        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""   ""#);
+        assert!(title.is_err());
+    }
+
+    #[test]
+    fn test_title_too_long() {
+        let long_title = "a".repeat(501);
+        let title: Result<ValueObject<Title>, _> = serde_json::from_str(&format!(r#""{}""#, long_title));
+        assert!(title.is_err());
+    }
+
+    #[test]
+    fn test_title_max_length() {
+        let max_title = "a".repeat(500);
+        let title: ValueObject<Title> = serde_json::from_str(&format!(r#""{}""#, max_title)).unwrap();
+        assert_eq!(title.extract().get_value().len(), 500);
+    }
+
+    #[test]
+    fn test_title_display() {
+        let title = Title("Test Title".to_string());
+        assert_eq!(format!("{}", title), "Test Title");
+    }
+
+    #[test]
+    fn test_title_validate_success() {
+        let title = Title("Valid Title".to_string());
+        assert!(title.validate().is_ok());
+    }
+
+    #[test]
+    fn test_title_validate_failure_empty() {
+        let title = Title("".to_string());
+        assert!(title.validate().is_err());
+    }
+
+    #[test]
+    fn test_title_validate_failure_too_long() {
+        let title = Title("a".repeat(501));
+        assert!(title.validate().is_err());
+    }
+
+    #[test]
+    fn test_title_get_value() {
+        let title = Title("Test Title".to_string());
+        assert_eq!(title.get_value(), "Test Title");
+    }
+
+    #[test]
+    fn test_title_clone() {
+        let title = Title("Test Title".to_string());
+        let cloned = title.clone();
+        assert_eq!(title, cloned);
+    }
+
+    #[test]
+    fn test_title_debug() {
+        let title = Title("Test Title".to_string());
+        assert_eq!(format!("{:?}", title), r#"Title("Test Title")"#);
+    }
+
+    #[test]
+    fn test_title_serialization() {
+        let title = Title("Test Title".to_string());
+        let serialized = serde_json::to_string(&title).unwrap();
+        assert_eq!(serialized, r#""Test Title""#);
+    }
+
+    #[test]
+    fn test_title_deserialization_invalid_json() {
+        let result: Result<ValueObject<Title>, _> = serde_json::from_str("invalid");
+        assert!(result.is_err());
+    }
+}

@@ -94,4 +94,66 @@ impl<'de> Deserialize<'de> for ValueObject<UnitsOfMeasure> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_unit_of_measure() {
+        let uom: ValueObject<UnitsOfMeasure> = serde_json::from_str(r#""kg""#).unwrap();
+        assert_eq!(uom.extract().get_value(), "kg");
+    }
+
+    #[test]
+    fn test_empty_unit_of_measure() {
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(r#""""#);
+        assert!(uom.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_only_unit_of_measure() {
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(r#"" ""#);
+        assert!(uom.is_err());
+    }
+
+    #[test]
+    fn test_too_long_unit_of_measure() {
+        let long_str = "a".repeat(51);
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
+        assert!(uom.is_err());
+    }
+
+    #[test]
+    fn test_max_length_unit_of_measure() {
+        let max_str = "a".repeat(50);
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(&format!(r#""{}""#, max_str));
+        assert!(uom.is_ok());
+    }
+
+    #[test]
+    fn test_special_characters() {
+        let cases = vec![
+            r#""kg/m²""#,
+            r#""°C""#,
+            r#""m³""#,
+            r#""μm""#
+        ];
+        for case in cases {
+            let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(case);
+            assert!(uom.is_ok());
+        }
+    }
+
+    #[test]
+    fn test_display_format() {
+        let uom = UnitsOfMeasure("kg".to_string());
+        assert_eq!(format!("{}", uom), "kg");
+    }
+
+    #[test]
+    fn test_deserialization_error_handling() {
+        let invalid_json = r#"{"unit": "kg"}"#;
+        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(invalid_json);
+        assert!(uom.is_err());
+    }
+}

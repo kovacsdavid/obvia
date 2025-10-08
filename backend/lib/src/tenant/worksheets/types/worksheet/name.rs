@@ -92,4 +92,62 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_name() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test Name""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test Name");
+    }
+
+    #[test]
+    fn test_invalid_name_empty() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_invalid_name_whitespace() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#"" ""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_name_display() {
+        let name = Name(String::from("Test Name"));
+        assert_eq!(format!("{}", name), "Test Name");
+    }
+
+    #[test]
+    fn test_name_clone() {
+        let name = Name(String::from("Test Name"));
+        let cloned = name.clone();
+        assert_eq!(name, cloned);
+    }
+
+    #[test]
+    fn test_name_debug() {
+        let name = Name(String::from("Test Name"));
+        assert_eq!(format!("{:?}", name), r#"Name("Test Name")"#);
+    }
+
+    #[test]
+    fn test_valid_name_with_special_chars() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test Name !@#$%^&*()""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test Name !@#$%^&*()");
+    }
+
+    #[test]
+    fn test_valid_name_numbers() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test 123""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test 123");
+    }
+
+    #[test]
+    fn test_valid_name_unicode() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Tést Náme 测试""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Tést Náme 测试");
+    }
+}

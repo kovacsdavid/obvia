@@ -101,4 +101,78 @@ impl Display for OrderBy {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(order_by.extract().get_value(), "name");
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(order_by.is_err());
+    }
+
+    #[test]
+    fn test_empty_order_by() {
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""""#);
+        assert!(order_by.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_order_by() {
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""  ""#);
+        assert!(order_by.is_err());
+    }
+
+    #[test]
+    fn test_order_by_display() {
+        let order_by = OrderBy("name".to_string());
+        assert_eq!(format!("{}", order_by), "name");
+    }
+
+    #[test]
+    fn test_order_by_clone() {
+        let order_by = OrderBy("name".to_string());
+        let cloned = order_by.clone();
+        assert_eq!(order_by, cloned);
+    }
+
+    #[test]
+    fn test_order_by_debug() {
+        let order_by = OrderBy("name".to_string());
+        assert_eq!(format!("{:?}", order_by), r#"OrderBy("name")"#);
+    }
+
+    #[test]
+    fn test_order_by_from_str() {
+        let order_by = OrderBy::from_str("name").unwrap();
+        assert_eq!(order_by.get_value(), "name");
+    }
+
+    #[test]
+    fn test_order_by_validation() {
+        let valid = OrderBy("name".to_string());
+        let invalid = OrderBy("invalid".to_string());
+
+        assert!(valid.validate().is_ok());
+        assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    fn test_order_by_get_value() {
+        let order_by = OrderBy("name".to_string());
+        assert_eq!(order_by.get_value(), "name");
+    }
+
+    #[test]
+    fn test_order_by_serialization() {
+        let order_by = ValueObject::new(OrderBy("name".to_string())).unwrap();
+        let serialized = serde_json::to_string(&order_by).unwrap();
+        assert_eq!(serialized, r#""name""#);
+    }
+}

@@ -120,24 +120,55 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_name() {
-        let name: ValueObject<Name> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d""#).unwrap();
-        assert_eq!(
-            name.extract().get_value(),
-            "bc5690796fc8414e93e32fcdaae3156d"
-        );
-        let name: ValueObject<Name> = serde_json::from_str(r#""Test tenant""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Test tenant");
+    fn test_valid_tenant_name() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""ValidTenant123""#).unwrap();
+        assert_eq!(name.extract().get_value(), "ValidTenant123");
     }
 
     #[test]
-    fn test_invalid_name() {
+    fn test_empty_tenant_name() {
         let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
         assert!(name.is_err());
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#"" "#);
+    }
+
+    #[test]
+    fn test_whitespace_only_name() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
         assert!(name.is_err());
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""    ""#);
+    }
+
+    #[test]
+    fn test_long_tenant_name() {
+        let long_str = "a".repeat(255);
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
         assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let name = Name("TestTenant".to_string());
+        assert_eq!(format!("{}", name), "TestTenant");
+    }
+
+    #[test]
+    fn test_validation() {
+        let name = Name("ValidName".to_string());
+        assert!(name.validate().is_ok());
+
+        let empty_name = Name("".to_string());
+        assert!(empty_name.validate().is_err());
+
+        let whitespace_name = Name("   ".to_string());
+        assert!(whitespace_name.validate().is_err());
+
+        let long_name = Name("a".repeat(255));
+        assert!(long_name.validate().is_err());
+    }
+
+    #[test]
+    fn test_get_value() {
+        let test_str = "TestValue";
+        let name = Name(test_str.to_string());
+        assert_eq!(name.get_value(), test_str);
     }
 }

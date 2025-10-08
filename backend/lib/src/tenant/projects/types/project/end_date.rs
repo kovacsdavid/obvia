@@ -95,4 +95,61 @@ impl<'de> Deserialize<'de> for ValueObject<EndDate> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_end_date_format() {
+        let date: ValueObject<EndDate> = serde_json::from_str(r#""2025-01-01 12:00:00""#).unwrap();
+        assert_eq!(date.extract().get_value(), "2025-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_valid_empty_end_date() {
+        let date: ValueObject<EndDate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(date.extract().get_value(), "");
+    }
+
+    #[test]
+    fn test_invalid_date_format() {
+        let cases = vec![
+            r#""2025/01/01 12:00:00""#,
+            r#""2025-13-01 12:00:00""#,
+            r#""2025-01-32 12:00:00""#,
+            r#""2025-01-01 25:00:00""#,
+            r#""2025-01-01 12:61:00""#,
+            r#""2025-01-01""#,
+            r#""not a date""#
+        ];
+
+        for case in cases {
+            let date: Result<ValueObject<EndDate>, _> = serde_json::from_str(case);
+            assert!(date.is_err(), "Should fail for input: {}", case);
+        }
+    }
+
+    #[test]
+    fn test_date_display() {
+        let date = EndDate("2025-01-01 12:00:00".to_string());
+        assert_eq!(format!("{}", date), "2025-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_date_value_access() {
+        let date = EndDate("2025-01-01 12:00:00".to_string());
+        assert_eq!(date.get_value(), "2025-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_date_validation() {
+        let valid_date = EndDate("2025-01-01 12:00:00".to_string());
+        assert!(valid_date.validate().is_ok());
+
+        let empty_date = EndDate("".to_string());
+        assert!(empty_date.validate().is_ok());
+
+        let invalid_date = EndDate("invalid date".to_string());
+        assert!(invalid_date.validate().is_err());
+    }
+}

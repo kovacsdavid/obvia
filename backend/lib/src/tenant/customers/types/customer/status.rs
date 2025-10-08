@@ -95,4 +95,96 @@ impl<'de> Deserialize<'de> for ValueObject<Status> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_status_active() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""active""#).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_valid_status_inactive() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""inactive""#).unwrap();
+        assert_eq!(status.extract().get_value(), "inactive");
+    }
+
+    #[test]
+    fn test_valid_status_suspended() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""suspended""#).unwrap();
+        assert_eq!(status.extract().get_value(), "suspended");
+    }
+
+    #[test]
+    fn test_valid_status_closed() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""closed""#).unwrap();
+        assert_eq!(status.extract().get_value(), "closed");
+    }
+
+    #[test]
+    fn test_valid_status_prospect() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""prospect""#).unwrap();
+        assert_eq!(status.extract().get_value(), "prospect");
+    }
+
+    #[test]
+    fn test_invalid_status() {
+        let status: Result<ValueObject<Status>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(status.is_err());
+    }
+
+    #[test]
+    fn test_empty_status() {
+        let status: Result<ValueObject<Status>, _> = serde_json::from_str(r#""""#);
+        assert!(status.is_err());
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
+    }
+
+    #[test]
+    fn test_clone() {
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
+    }
+
+    #[test]
+    fn test_debug_output() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{:?}", status), r#"Status("active")"#);
+    }
+
+    #[test]
+    fn test_validation() {
+        let valid_statuses = vec!["active", "inactive", "suspended", "closed", "prospect"];
+        for status in valid_statuses {
+            let s = Status(status.to_string());
+            assert!(s.validate().is_ok());
+        }
+
+        let invalid_statuses = vec!["", "pending", "deleted", "unknown"];
+        for status in invalid_statuses {
+            let s = Status(status.to_string());
+            assert!(s.validate().is_err());
+        }
+    }
+
+    #[test]
+    fn test_get_value() {
+        let value = "active".to_string();
+        let status = Status(value.clone());
+        assert_eq!(status.get_value(), &value);
+    }
+
+    #[test]
+    fn test_deserialization_error_messages() {
+        let invalid: Result<ValueObject<Status>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(invalid.unwrap_err().to_string().contains("státusz"));
+    }
+}

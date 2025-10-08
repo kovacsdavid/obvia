@@ -101,4 +101,37 @@ impl Display for Order {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_asc_order() {
+        let order: ValueObject<Order> = serde_json::from_str(r#""asc""#).unwrap();
+        assert_eq!(order.extract().get_value(), "asc");
+    }
+
+    #[test]
+    fn test_valid_desc_order() {
+        let order: ValueObject<Order> = serde_json::from_str(r#""desc""#).unwrap();
+        assert_eq!(order.extract().get_value(), "desc");
+    }
+
+    #[test]
+    fn test_invalid_order() {
+        let order: Result<ValueObject<Order>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(order.is_err());
+    }
+
+    #[test]
+    fn test_empty_order() {
+        let order: Result<ValueObject<Order>, _> = serde_json::from_str(r#""""#);
+        assert!(order.is_err());
+    }
+
+    #[test]
+    fn test_to_string() {
+        let order = Order("asc".to_string());
+        assert_eq!(order.to_string(), "asc");
+    }
+}

@@ -88,4 +88,68 @@ impl<'de> Deserialize<'de> for ValueObject<ContactName> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_contact_name() {
+        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John Doe""#).unwrap();
+        assert_eq!(contact_name.extract().get_value(), "John Doe");
+    }
+
+    #[test]
+    fn test_empty_contact_name() {
+        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(contact_name.extract().get_value(), "");
+    }
+
+    #[test]
+    fn test_contact_name_with_special_chars() {
+        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John @ Doe!""#).unwrap();
+        assert_eq!(contact_name.extract().get_value(), "John @ Doe!");
+    }
+
+    #[test]
+    fn test_contact_name_with_numbers() {
+        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John Doe 123""#).unwrap();
+        assert_eq!(contact_name.extract().get_value(), "John Doe 123");
+    }
+
+    #[test]
+    fn test_contact_name_unicode() {
+        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""János Kovács""#).unwrap();
+        assert_eq!(contact_name.extract().get_value(), "János Kovács");
+    }
+
+    #[test]
+    fn test_contact_name_display() {
+        let contact_name = ContactName("John Doe".to_string());
+        assert_eq!(format!("{}", contact_name), "John Doe");
+    }
+
+    #[test]
+    fn test_contact_name_validate() {
+        let contact_name = ContactName("John Doe".to_string());
+        assert!(contact_name.validate().is_ok());
+    }
+
+    #[test]
+    fn test_contact_name_clone() {
+        let contact_name = ContactName("John Doe".to_string());
+        let cloned = contact_name.clone();
+        assert_eq!(contact_name, cloned);
+    }
+
+    #[test]
+    fn test_contact_name_debug() {
+        let contact_name = ContactName("John Doe".to_string());
+        assert_eq!(format!("{:?}", contact_name), r#"ContactName("John Doe")"#);
+    }
+
+    #[test]
+    fn test_invalid_json() {
+        let result: Result<ValueObject<ContactName>, _> = serde_json::from_str("invalid");
+        assert!(result.is_err());
+    }
+}

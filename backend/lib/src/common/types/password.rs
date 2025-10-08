@@ -100,27 +100,31 @@ mod tests {
 
     #[test]
     fn test_valid_password() {
-        let pw: ValueObject<Password> = serde_json::from_str(r#""abc12345""#).unwrap();
-        assert_eq!(pw.extract().get_value(), "abc12345");
-        let pw: ValueObject<Password> = serde_json::from_str(r#""Password1""#).unwrap();
-        assert_eq!(pw.extract().get_value(), "Password1");
+        let pwd: ValueObject<Password> = serde_json::from_str(r#""password123""#).unwrap();
+        assert_eq!(pwd.extract().get_value(), "password123");
     }
 
     #[test]
-    fn test_invalid_password() {
-        // Too short
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""a1b2c3""#).is_err());
-        // No digit
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""abcdefgh""#).is_err());
-        // No letter
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""12345678""#).is_err());
-        // Empty
-        assert!(serde_json::from_str::<ValueObject<Password>>(r#""""#).is_err());
+    fn test_invalid_password_too_short() {
+        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""pass1""#);
+        assert!(pwd.is_err());
     }
 
     #[test]
-    fn test_display_masks_password() {
-        let pw: Password = Password(String::from("abc12345"));
-        assert_eq!(format!("{pw}"), "********");
+    fn test_invalid_password_no_letters() {
+        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""12345678""#);
+        assert!(pwd.is_err());
+    }
+
+    #[test]
+    fn test_invalid_password_no_numbers() {
+        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""password""#);
+        assert!(pwd.is_err());
+    }
+
+    #[test]
+    fn test_password_display() {
+        let pwd = Password("secret123".to_string());
+        assert_eq!(format!("{}", pwd), "********");
     }
 }

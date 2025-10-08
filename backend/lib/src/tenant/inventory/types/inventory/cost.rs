@@ -97,4 +97,66 @@ impl<'de> Deserialize<'de> for ValueObject<Cost> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_cost() {
+        let cost: ValueObject<Cost> = serde_json::from_str(r#""123.45""#).unwrap();
+        assert_eq!(cost.extract().get_value(), "123.45");
+
+        let cost: ValueObject<Cost> = serde_json::from_str(r#""123,45""#).unwrap();
+        assert_eq!(cost.extract().get_value(), "123,45");
+    }
+
+    #[test]
+    fn test_empty_cost() {
+        let cost: ValueObject<Cost> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(cost.extract().get_value(), "");
+
+        let cost: ValueObject<Cost> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(cost.extract().get_value(), "  ");
+    }
+
+    #[test]
+    fn test_invalid_cost_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#
+        ];
+
+        for case in cases {
+            let cost: Result<ValueObject<Cost>, _> = serde_json::from_str(case);
+            assert!(cost.is_err());
+        }
+    }
+
+    #[test]
+    fn test_display() {
+        let cost = Cost("123.45".to_string());
+        assert_eq!(format!("{}", cost), "123.45");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let cost = Cost("123.45".to_string());
+        assert_eq!(cost.get_value(), "123.45");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(Cost("123.45".to_string()).validate().is_ok());
+        assert!(Cost("123,45".to_string()).validate().is_ok());
+        assert!(Cost("".to_string()).validate().is_ok());
+        assert!(Cost("  ".to_string()).validate().is_ok());
+
+        assert!(Cost("abc".to_string()).validate().is_err());
+        assert!(Cost("12.34.56".to_string()).validate().is_err());
+        assert!(Cost("12,34,56".to_string()).validate().is_err());
+        assert!(Cost("$123".to_string()).validate().is_err());
+    }
+}

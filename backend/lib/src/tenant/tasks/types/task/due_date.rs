@@ -95,4 +95,65 @@ impl<'de> Deserialize<'de> for ValueObject<DueDate> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_due_date() {
+        let date: ValueObject<DueDate> = serde_json::from_str(r#""2024-01-01 12:00:00""#).unwrap();
+        assert_eq!(date.extract().get_value(), "2024-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_empty_due_date() {
+        let date: ValueObject<DueDate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(date.extract().get_value(), "");
+    }
+
+    #[test]
+    fn test_invalid_date_format() {
+        let cases = vec![
+            r#""2024/01/01 12:00:00""#,
+            r#""2024-01-01""#,
+            r#""12:00:00""#,
+            r#""invalid date""#,
+            r#""2024-13-01 12:00:00""#, // Invalid month
+            r#""2024-01-32 12:00:00""#, // Invalid day
+            r#""2024-01-01 25:00:00""#, // Invalid hour
+            r#""2024-01-01 12:61:00""#, // Invalid minute
+            r#""2024-01-01 12:00:61""#  // Invalid second
+        ];
+
+        for case in cases {
+            let date: Result<ValueObject<DueDate>, _> = serde_json::from_str(case);
+            assert!(date.is_err(), "Should fail for invalid format: {}", case);
+        }
+    }
+
+    #[test]
+    fn test_display_format() {
+        let date = DueDate("2024-01-01 12:00:00".to_string());
+        assert_eq!(format!("{}", date), "2024-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_value_retrieval() {
+        let date = DueDate("2024-01-01 12:00:00".to_string());
+        assert_eq!(date.get_value(), "2024-01-01 12:00:00");
+    }
+
+    #[test]
+    fn test_whitespace_handling() {
+        let cases = vec![
+            r#"" 2024-01-01 12:00:00""#,
+            r#""2024-01-01 12:00:00 ""#,
+            r#"" 2024-01-01 12:00:00 ""#
+        ];
+
+        for case in cases {
+            let date: ValueObject<DueDate> = serde_json::from_str(case).unwrap();
+            assert_eq!(date.extract().get_value().trim(), "2024-01-01 12:00:00");
+        }
+    }
+}

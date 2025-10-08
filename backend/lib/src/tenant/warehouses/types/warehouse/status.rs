@@ -94,4 +94,70 @@ impl<'de> Deserialize<'de> for ValueObject<Status> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_warehouse_status_active() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""active""#).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_valid_warehouse_status_inactive() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""inactive""#).unwrap();
+        assert_eq!(status.extract().get_value(), "inactive");
+    }
+
+    #[test]
+    fn test_valid_warehouse_status_maintenance() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""maintenance""#).unwrap();
+        assert_eq!(status.extract().get_value(), "maintenance");
+    }
+
+    #[test]
+    fn test_valid_warehouse_status_closed() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""closed""#).unwrap();
+        assert_eq!(status.extract().get_value(), "closed");
+    }
+
+    #[test]
+    fn test_invalid_warehouse_status() {
+        let status: Result<ValueObject<Status>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(status.is_err());
+    }
+
+    #[test]
+    fn test_warehouse_status_display() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
+    }
+
+    #[test]
+    fn test_warehouse_status_debug() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{:?}", status), r#"Status("active")"#);
+    }
+
+    #[test]
+    fn test_warehouse_status_clone() {
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
+    }
+
+    #[test]
+    fn test_warehouse_status_deserialization() {
+        let json = r#""active""#;
+        let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_warehouse_status_serialization() {
+        let status = ValueObject::new(Status("active".to_string())).unwrap();
+        let json = serde_json::to_string(&status).unwrap();
+        assert_eq!(json, r#""active""#);
+    }
+}

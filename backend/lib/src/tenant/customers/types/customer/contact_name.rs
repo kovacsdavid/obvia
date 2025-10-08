@@ -92,4 +92,79 @@ impl<'de> Deserialize<'de> for ValueObject<ContactName> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_contact_name() {
+        let name: ValueObject<ContactName> = serde_json::from_str(r#""John Doe""#).unwrap();
+        assert_eq!(name.extract().get_value(), "John Doe");
+    }
+
+    #[test]
+    fn test_empty_contact_name() {
+        let name: Result<ValueObject<ContactName>, _> = serde_json::from_str(r#""""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_contact_name() {
+        let name: Result<ValueObject<ContactName>, _> = serde_json::from_str(r#"" "#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_contact_name_display() {
+        let name = ContactName("John Doe".to_string());
+        assert_eq!(format!("{}", name), "John Doe");
+    }
+
+    #[test]
+    fn test_contact_name_validation() {
+        let name = ContactName("John Doe".to_string());
+        assert!(name.validate().is_ok());
+
+        let empty_name = ContactName("".to_string());
+        assert!(empty_name.validate().is_err());
+
+        let whitespace_name = ContactName(" ".to_string());
+        assert!(whitespace_name.validate().is_err());
+    }
+
+    #[test]
+    fn test_contact_name_get_value() {
+        let name = ContactName("John Doe".to_string());
+        assert_eq!(name.get_value(), "John Doe");
+    }
+
+    #[test]
+    fn test_contact_name_debug() {
+        let name = ContactName("John Doe".to_string());
+        assert_eq!(format!("{:?}", name), "ContactName(\"John Doe\")");
+    }
+
+    #[test]
+    fn test_contact_name_clone() {
+        let name = ContactName("John Doe".to_string());
+        let cloned = name.clone();
+        assert_eq!(name, cloned);
+    }
+
+    #[test]
+    fn test_contact_name_partial_eq() {
+        let name1 = ContactName("John Doe".to_string());
+        let name2 = ContactName("John Doe".to_string());
+        let name3 = ContactName("Jane Doe".to_string());
+
+        assert_eq!(name1, name2);
+        assert_ne!(name1, name3);
+    }
+
+    #[test]
+    fn test_contact_name_serialize() {
+        let name = ContactName("John Doe".to_string());
+        let serialized = serde_json::to_string(&name).unwrap();
+        assert_eq!(serialized, r#""John Doe""#);
+    }
+}

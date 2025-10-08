@@ -97,4 +97,66 @@ impl<'de> Deserialize<'de> for ValueObject<Price> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123.45");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123,45");
+    }
+
+    #[test]
+    fn test_empty_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(price.extract().get_value(), "");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(price.extract().get_value(), "  ");
+    }
+
+    #[test]
+    fn test_invalid_price_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#
+        ];
+
+        for case in cases {
+            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
+            assert!(price.is_err());
+        }
+    }
+
+    #[test]
+    fn test_display() {
+        let price = Price("123.45".to_string());
+        assert_eq!(format!("{}", price), "123.45");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let price = Price("123.45".to_string());
+        assert_eq!(price.get_value(), "123.45");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(Price("123.45".to_string()).validate().is_ok());
+        assert!(Price("123,45".to_string()).validate().is_ok());
+        assert!(Price("".to_string()).validate().is_ok());
+        assert!(Price("  ".to_string()).validate().is_ok());
+
+        assert!(Price("abc".to_string()).validate().is_err());
+        assert!(Price("12.34.56".to_string()).validate().is_err());
+        assert!(Price("12,34,56".to_string()).validate().is_err());
+        assert!(Price("$123".to_string()).validate().is_err());
+    }
+}

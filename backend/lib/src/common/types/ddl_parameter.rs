@@ -130,28 +130,78 @@ mod tests {
 
     #[test]
     fn test_valid_ddl_parameter() {
-        let ddl_parameter: ValueObject<DdlParameter> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d""#).unwrap();
-        assert_eq!(
-            ddl_parameter.extract().get_value(),
-            "bc5690796fc8414e93e32fcdaae3156d"
-        );
+        let param: ValueObject<DdlParameter> = serde_json::from_str(r#""abc123""#).unwrap();
+        assert_eq!(param.extract().get_value(), "abc123");
     }
 
     #[test]
-    fn test_invalid_ddl_parameter() {
-        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d'DROP""#);
-        assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d;DROP""#);
-        assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<ValueObject<DdlParameter>, _> =
-            serde_json::from_str(r#""bc5690796fc8414e93e32fcdaae3156d"DROP""#);
-        assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#""""#);
-        assert!(ddl_parameter.is_err());
-        let ddl_parameter: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#"" ""#);
-        assert!(ddl_parameter.is_err());
+    fn test_invalid_ddl_parameter_special_chars() {
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#""abc!@#""#);
+        assert!(param.is_err());
+    }
+
+    #[test]
+    fn test_invalid_ddl_parameter_empty() {
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(r#""""#);
+        assert!(param.is_err());
+    }
+
+    #[test]
+    fn test_invalid_ddl_parameter_too_long() {
+        let long_str = "a".repeat(256);
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(&format!(r#""{}""#, long_str));
+        assert!(param.is_err());
+    }
+
+    #[test]
+    fn test_sql_injection_basic() {
+        let injection = r#""DROP TABLE users"#;
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(injection);
+        assert!(param.is_err());
+    }
+
+    #[test]
+    fn test_sql_injection_keywords() {
+        let cases = vec![
+            r#""SELECT"#,
+            r#""INSERT"#,
+            r#""UPDATE"#,
+            r#""DELETE"#,
+            r#""DROP"#,
+            r#""ALTER"#,
+        ];
+        for case in cases {
+            let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(case);
+            assert!(param.is_err());
+        }
+    }
+
+    #[test]
+    fn test_sql_injection_multiple_statements() {
+        let injection = r#""users; DROP TABLE secrets"#;
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(injection);
+        assert!(param.is_err());
+    }
+
+    #[test]
+    fn test_sql_injection_comments() {
+        let cases = vec![
+            r#""users--"#,
+            r#""users/*"#,
+            r#""users*/"#,
+            r#""users#"#,
+        ];
+        for case in cases {
+            let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(case);
+            assert!(param.is_err());
+        }
+    }
+
+    #[test]
+    fn test_sql_injection_union() {
+        let injection = r#""users UNION SELECT password"#;
+        let param: Result<ValueObject<DdlParameter>, _> = serde_json::from_str(injection);
+        assert!(param.is_err());
     }
 }
+

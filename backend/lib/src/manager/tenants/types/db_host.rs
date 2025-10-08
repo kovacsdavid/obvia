@@ -241,64 +241,99 @@ mod tests {
     #[test]
     fn test_valid_db_host() {
         let valid_hosts = vec![
+            // Valid domains
             r#"example.com"#,
             r#"postgres.example.com"#,
             r#"example.hu"#,
             r#"postgres.example.hu"#,
+            r#"a-valid-domain.com"#,
+            r#"subdomain.another-domain.net"#,
+            r#"very.deep.nested.domain.org"#,
+            // Valid IPv4 addresses
             r#"8.8.8.8"#,
             r#"8.8.4.4"#,
+            r#"203.0.114.1"#,
+            r#"104.16.1.1"#,
+            // Valid IPv6 addresses
             r#"224c:ac51:1517:9700:fcec:3e03:0bb6:9e2e"#,
             r#"1e94:7af0:339b:2402:e58a:89c2:db5b:75a5"#,
+            r#"2001:4860:4860::8888"#,
+            r#"2606:4700:4700::1111"#
         ];
         for host in valid_hosts {
-            //panic!("{}", host);
             let db_host: ValueObject<DbHost> =
                 serde_json::from_str(format!("\"{}\"", &host).as_str()).unwrap();
             assert_eq!(db_host.extract().get_value(), host);
         }
     }
+
     #[test]
     fn test_invalid_db_host() {
         let invalid_hosts = vec![
+            // Invalid private IPv4 ranges
             r#"192.168.1.1"#,
             r#"192.168.1.255"#,
             r#"192.168.1.0/24"#,
+            r#"10.10.10.10"#,
+            r#"172.16.0.1"#,
+            r#"172.18.0.1"#,
+
+            // Invalid special IPv4 addresses
             r#"255.255.255.255"#,
             r#"0.0.0.0"#,
+            r#"127.0.0.1"#,
+
+            // Invalid CIDR notations
             r#"0.0.0.0/0"#,
-            r#"10.10.10.10"#,
-            r#"10.10.10.255"#,
-            r#"10.0.0.0"#,
-            r#"10.0.0.255"#,
             r#"10.0.0.0/24"#,
-            r#"10.0.0.1"#,
-            r#"172.16.0.0"#,
-            r#"172.16.0.255"#,
             r#"172.16.0.0/24"#,
-            r#"172.16.0.1"#,
-            r#"172.18.0.0"#,
-            r#"172.18.0.255"#,
             r#"172.18.0.0/24"#,
-            r#"172.18.0.1"#,
+
+            // Invalid domains
             r#"localhost"#,
             r#"anything.localhost"#,
             r#"anything.local"#,
             r#"example..com"#,
             r#"'example.com"#,
             r#"--example.com"#,
-            r#"127.0.0.1"#,
+            r#"-invalid-start.com"#,
+            r#"invalid-end-.com"#,
+            r#"too..many.dots"#,
+
+            // Invalid IPv6 addresses
             r#"::"#,
             r#"::/128"#,
             r#"::1"#,
             r#"::1/128"#,
+            r#"fe80::1"#,
+            r#"fc00::1"#,
+
+            // Invalid formatting
             r#":"#,
             r#""#,
             r#" "#,
+            r#"     "#,
+            r#"invalid@domain.com"#,
+            r#"domain with spaces.com"#
         ];
         for host in invalid_hosts {
             let db_host: Result<ValueObject<DbHost>, _> =
                 serde_json::from_str(format!("\"{}\"", &host).as_str());
-            assert!(db_host.is_err());
+            assert!(db_host.is_err(), "Host '{}' should be invalid", host);
         }
+    }
+
+    #[test]
+    fn test_valid_display() {
+        let host = "example.com";
+        let db_host = DbHost(host.to_string());
+        assert_eq!(format!("{}", db_host), host);
+    }
+
+    #[test]
+    fn test_get_value() {
+        let host = "example.com";
+        let db_host = DbHost(host.to_string());
+        assert_eq!(db_host.get_value(), host);
     }
 }

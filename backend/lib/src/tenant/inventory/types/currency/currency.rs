@@ -92,4 +92,78 @@ impl<'de> Deserialize<'de> for ValueObject<Currency> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_currency() {
+        let currency: ValueObject<Currency> = serde_json::from_str(r#""USD""#).unwrap();
+        assert_eq!(currency.extract().get_value(), "USD");
+    }
+
+    #[test]
+    fn test_invalid_currency_too_short() {
+        let currency: Result<ValueObject<Currency>, _> = serde_json::from_str(r#""US""#);
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_invalid_currency_too_long() {
+        let currency: Result<ValueObject<Currency>, _> = serde_json::from_str(r#""USDT""#);
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_invalid_currency_empty() {
+        let currency: Result<ValueObject<Currency>, _> = serde_json::from_str(r#""""#);
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_display_format() {
+        let currency = Currency("EUR".to_string());
+        assert_eq!(format!("{}", currency), "EUR");
+    }
+
+    #[test]
+    fn test_validation_with_spaces() {
+        let currency = Currency(" USD ".to_string());
+        assert!(currency.validate().is_ok());
+    }
+
+    #[test]
+    fn test_get_value() {
+        let currency = Currency("GBP".to_string());
+        assert_eq!(currency.get_value(), "GBP");
+    }
+
+    #[test]
+    fn test_clone() {
+        let currency = Currency("JPY".to_string());
+        let cloned = currency.clone();
+        assert_eq!(currency, cloned);
+    }
+
+    #[test]
+    fn test_debug_format() {
+        let currency = Currency("CNY".to_string());
+        assert_eq!(format!("{:?}", currency), r#"Currency("CNY")"#);
+    }
+
+    #[test]
+    fn test_deserialization_errors() {
+        let invalid_types = vec![
+            "null",
+            "123",
+            "true",
+            "[]",
+            "{}",
+        ];
+
+        for invalid in invalid_types {
+            let result: Result<ValueObject<Currency>, _> = serde_json::from_str(invalid);
+            assert!(result.is_err());
+        }
+    }
+}

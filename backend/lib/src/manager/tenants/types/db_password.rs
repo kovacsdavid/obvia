@@ -129,23 +129,39 @@ mod tests {
 
     #[test]
     fn test_valid_db_password() {
-        let valid_passwords = vec![r#"RpehL35tQxnG6fgST0FQUnqHhkaqVOtTgflqArsl"#];
+        let valid_passwords = vec![
+            r#"RpehL35tQxnG6fgST0FQUnqHhkaqVOtTgflqArsl"#,
+            r#"abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLM"#,
+            r#"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"#,
+            r#"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"#,
+            r#"1111111111111111111111111111111111111111"#,
+        ];
         for password in valid_passwords {
-            //panic!("{}", host);
             let db_password: ValueObject<DbPassword> =
                 serde_json::from_str(format!("\"{}\"", &password).as_str()).unwrap();
             assert_eq!(db_password.extract().get_value(), password);
         }
     }
+
     #[test]
     fn test_invalid_db_password() {
         let invalid_passwords = vec![
+            // Special characters not allowed
             r#"4v4X;yk+|hJH3QLL>%7S-~]%1A2}|Fh_:`p[#QPL+!"#,
+            // Too short
             r#"password"#,
+            // Too long (100+ chars)
             r#"jwP9rF3xa4hvTk1m2PLVobm99gXv5BSdmuEeTvmCxB9YgIVDwYjwP9rF3xa4hvTk1m2PLVobm99gXv5BSdmuEeTvmCxB9YgIVDwY"#,
+            // Under 40 chars
             r#"gyoP823CB0e7GFx5FUNqscBQg76VdXwcMRD6vsP"#,
+            // Empty string
             r#""#,
+            // Whitespace
             r#" "#,
+            // Special chars only
+            r#"!@#$%^&*()_+-=[]{}|;:,.<>?"#,
+            // Mixed invalid chars
+            r#"abc123!@#"#,
         ];
         for password in invalid_passwords {
             let db_password: Result<ValueObject<DbPassword>, _> =

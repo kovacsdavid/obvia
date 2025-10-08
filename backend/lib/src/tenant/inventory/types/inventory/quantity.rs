@@ -96,4 +96,64 @@ impl<'de> Deserialize<'de> for ValueObject<Quantity> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_quantity() {
+        let qty: ValueObject<Quantity> = serde_json::from_str(r#""123""#).unwrap();
+        assert_eq!(qty.extract().get_value(), "123");
+    }
+
+    #[test]
+    fn test_empty_quantity() {
+        let qty: Result<ValueObject<Quantity>, _> = serde_json::from_str(r#""""#);
+        assert!(qty.is_err());
+
+        let qty: Result<ValueObject<Quantity>, _> = serde_json::from_str(r#""  ""#);
+        assert!(qty.is_err());
+    }
+
+    #[test]
+    fn test_invalid_quantity_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#,
+            r#""123.456.789""#
+        ];
+
+        for case in cases {
+            let qty: Result<ValueObject<Quantity>, _> = serde_json::from_str(case);
+            assert!(qty.is_err());
+        }
+    }
+
+    #[test]
+    fn test_display() {
+        let qty = Quantity("123".to_string());
+        assert_eq!(format!("{}", qty), "123");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let qty = Quantity("123".to_string());
+        assert_eq!(qty.get_value(), "123");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(Quantity("123".to_string()).validate().is_ok());
+        
+        assert!(Quantity("".to_string()).validate().is_err());
+        assert!(Quantity("  ".to_string()).validate().is_err());
+        assert!(Quantity("abc".to_string()).validate().is_err());
+        assert!(Quantity("12.34.56".to_string()).validate().is_err());
+        assert!(Quantity("12,34,56".to_string()).validate().is_err());
+        assert!(Quantity("123.456.789".to_string()).validate().is_err());
+        assert!(Quantity("$123".to_string()).validate().is_err());
+    }
+}

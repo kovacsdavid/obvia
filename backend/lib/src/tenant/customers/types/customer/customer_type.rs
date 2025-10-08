@@ -92,4 +92,61 @@ impl<'de> Deserialize<'de> for ValueObject<CustomerType> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_natural_customer_type() {
+        let customer_type: ValueObject<CustomerType> = serde_json::from_str(r#""natural""#).unwrap();
+        assert_eq!(customer_type.extract().get_value(), "natural");
+    }
+
+    #[test]
+    fn test_valid_legal_customer_type() {
+        let customer_type: ValueObject<CustomerType> = serde_json::from_str(r#""legal""#).unwrap();
+        assert_eq!(customer_type.extract().get_value(), "legal");
+    }
+
+    #[test]
+    fn test_invalid_customer_type() {
+        let customer_type: Result<ValueObject<CustomerType>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(customer_type.is_err());
+    }
+
+    #[test]
+    fn test_empty_customer_type() {
+        let customer_type: Result<ValueObject<CustomerType>, _> = serde_json::from_str(r#""""#);
+        assert!(customer_type.is_err());
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let customer_type = CustomerType("natural".to_string());
+        assert_eq!(format!("{}", customer_type), "natural");
+    }
+
+    #[test]
+    fn test_value_getter() {
+        let customer_type = CustomerType("legal".to_string());
+        assert_eq!(customer_type.get_value(), "legal");
+    }
+
+    #[test]
+    fn test_validation() {
+        let valid_natural = CustomerType("natural".to_string());
+        let valid_legal = CustomerType("legal".to_string());
+        let invalid = CustomerType("invalid".to_string());
+
+        assert!(valid_natural.validate().is_ok());
+        assert!(valid_legal.validate().is_ok());
+        assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    fn test_validation_error_message() {
+        let invalid = CustomerType("invalid".to_string());
+        let result = invalid.validate();
+        assert_eq!(result.unwrap_err(), "Hibás vevő típus!");
+    }
+}

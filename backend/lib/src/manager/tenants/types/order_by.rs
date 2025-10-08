@@ -100,4 +100,55 @@ impl Display for OrderBy {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_order_by() {
+        let values = ["name", "created_by", "updated_at", ""];
+        for value in values.iter() {
+            let order: OrderBy = OrderBy(value.to_string());
+            assert!(order.validate().is_ok());
+        }
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let order = OrderBy("invalid_column".to_string());
+        assert!(order.validate().is_err());
+    }
+
+    #[test]
+    fn test_get_value() {
+        let test_str = "name";
+        let order = OrderBy(test_str.to_string());
+        assert_eq!(order.get_value(), test_str);
+    }
+
+    #[test]
+    fn test_from_str() {
+        let test_str = "name";
+        let order = OrderBy::from_str(test_str).unwrap();
+        assert_eq!(order.get_value(), test_str);
+    }
+
+    #[test]
+    fn test_display() {
+        let test_str = "name";
+        let order = OrderBy(test_str.to_string());
+        assert_eq!(format!("{}", order), test_str);
+    }
+
+    #[test]
+    fn test_deserialize_valid() {
+        let order: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(order.extract().get_value(), "name");
+    }
+
+    #[test]
+    fn test_deserialize_invalid() {
+        let result: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid_column""#);
+        assert!(result.is_err());
+    }
+}

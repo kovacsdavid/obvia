@@ -95,4 +95,88 @@ impl<'de> Deserialize<'de> for ValueObject<StartDate> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_start_date() {
+        let date: ValueObject<StartDate> = serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
+        assert_eq!(date.extract().get_value(), "2023-12-25 10:30:00");
+    }
+
+    #[test]
+    fn test_empty_date() {
+        let date: ValueObject<StartDate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(date.extract().get_value(), "");
+    }
+
+    #[test]
+    fn test_invalid_date_format() {
+        let date: Result<ValueObject<StartDate>, _> = serde_json::from_str(r#""2023-12-25""#);
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn test_invalid_date_values() {
+        let date: Result<ValueObject<StartDate>, _> = serde_json::from_str(r#""2023-13-45 25:70:99""#);
+        assert!(date.is_err());
+    }
+
+    #[test]
+    fn test_date_display() {
+        let date = StartDate("2023-12-25 10:30:00".to_string());
+        assert_eq!(format!("{}", date), "2023-12-25 10:30:00");
+    }
+
+    #[test]
+    fn test_date_clone() {
+        let date = StartDate("2023-12-25 10:30:00".to_string());
+        let cloned = date.clone();
+        assert_eq!(date, cloned);
+    }
+
+    #[test]
+    fn test_date_debug() {
+        let date = StartDate("2023-12-25 10:30:00".to_string());
+        assert_eq!(format!("{:?}", date), r#"StartDate("2023-12-25 10:30:00")"#);
+    }
+
+    #[test]
+    fn test_date_partial_eq() {
+        let date1 = StartDate("2023-12-25 10:30:00".to_string());
+        let date2 = StartDate("2023-12-25 10:30:00".to_string());
+        let date3 = StartDate("2023-12-26 10:30:00".to_string());
+
+        assert_eq!(date1, date2);
+        assert_ne!(date1, date3);
+    }
+
+    #[test]
+    fn test_date_validation() {
+        let valid_date = StartDate("2023-12-25 10:30:00".to_string());
+        assert!(valid_date.validate().is_ok());
+
+        let invalid_date = StartDate("invalid date".to_string());
+        assert!(invalid_date.validate().is_err());
+    }
+
+    #[test]
+    fn test_date_get_value() {
+        let date = StartDate("2023-12-25 10:30:00".to_string());
+        assert_eq!(date.get_value(), "2023-12-25 10:30:00");
+    }
+
+    #[test]
+    fn test_date_serialization() {
+        let date = ValueObject::new(StartDate("2023-12-25 10:30:00".to_string())).unwrap();
+        let serialized = serde_json::to_string(&date).unwrap();
+        assert_eq!(serialized, r#""2023-12-25 10:30:00""#);
+    }
+
+    #[test]
+    fn test_date_deserialization() {
+        let date: ValueObject<StartDate> = serde_json::from_str(r#""2023-12-25 10:30:00""#).unwrap();
+        assert_eq!(date.extract().get_value(), "2023-12-25 10:30:00");
+    }
+}

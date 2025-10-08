@@ -92,4 +92,72 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_name() {
+        let name: ValueObject<Name> = serde_json::from_str(r#""Test Name""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Test Name");
+    }
+
+    #[test]
+    fn test_empty_name() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_whitespace_only_name() {
+        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
+        assert!(name.is_err());
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let name = Name("Test Name".to_string());
+        assert_eq!(format!("{}", name), "Test Name");
+    }
+
+    #[test]
+    fn test_clone() {
+        let name = Name("Test Name".to_string());
+        let cloned = name.clone();
+        assert_eq!(name, cloned);
+    }
+
+    #[test]
+    fn test_debug_output() {
+        let name = Name("Test Name".to_string());
+        assert_eq!(format!("{:?}", name), r#"Name("Test Name")"#);
+    }
+
+    #[test]
+    fn test_validation() {
+        let name = Name("Valid Name".to_string());
+        assert!(name.validate().is_ok());
+
+        let empty_name = Name("".to_string());
+        assert!(empty_name.validate().is_err());
+
+        let whitespace_name = Name("   ".to_string());
+        assert!(whitespace_name.validate().is_err());
+    }
+
+    #[test]
+    fn test_get_value() {
+        let value = "Test Name".to_string();
+        let name = Name(value.clone());
+        assert_eq!(name.get_value(), &value);
+    }
+
+    #[test]
+    fn test_deserialization_error_messages() {
+        let empty: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
+        assert!(empty.unwrap_err().to_string().contains("kötelező"));
+
+        let whitespace: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
+        assert!(whitespace.unwrap_err().to_string().contains("kötelező"));
+    }
+}

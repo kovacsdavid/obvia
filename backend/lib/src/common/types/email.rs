@@ -127,16 +127,41 @@ impl Display for Email {
 mod tests {
     use super::*;
     use serde_json;
+    use crate::common::types::value_object::ValueObject;
 
     #[test]
     fn test_valid_email() {
-        let email: ValueObject<Email> = serde_json::from_str(r#""user@example.com""#).unwrap();
-        assert_eq!(email.extract().get_value(), "user@example.com");
+        let email: ValueObject<Email> = serde_json::from_str(r#""test@example.com""#).unwrap();
+        assert_eq!(email.extract().get_value(), "test@example.com");
     }
 
     #[test]
-    fn test_invalid_email() {
-        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""not-an-email""#);
+    fn test_invalid_email_missing_at() {
+        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""testexample.com""#);
         assert!(email.is_err());
+    }
+
+    #[test]
+    fn test_invalid_email_missing_domain() {
+        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""test@""#);
+        assert!(email.is_err());
+    }
+
+    #[test]
+    fn test_invalid_email_special_chars() {
+        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""test!$%@example.com""#);
+        assert!(email.is_ok());
+    }
+
+    #[test]
+    fn test_valid_email_with_subdomain() {
+        let email: ValueObject<Email> = serde_json::from_str(r#""test@sub.example.com""#).unwrap();
+        assert_eq!(email.extract().get_value(), "test@sub.example.com");
+    }
+
+    #[test]
+    fn test_display_implementation() {
+        let email = Email("test@example.com".to_string());
+        assert_eq!(format!("{}", email), "test@example.com");
     }
 }

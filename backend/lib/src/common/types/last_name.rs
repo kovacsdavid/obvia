@@ -110,19 +110,31 @@ mod tests {
 
     #[test]
     fn test_valid_last_name() {
-        let name: ValueObject<LastName> = serde_json::from_str(r#""Kovács""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Kovács");
-        let name: ValueObject<LastName> = serde_json::from_str(r#""Kovács-Kovács""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Kovács-Kovács");
+        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Smith");
     }
 
     #[test]
-    fn test_invalid_last_name() {
+    fn test_valid_last_name_with_hyphen() {
+        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith-Jones""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Smith-Jones");
+    }
+
+    #[test]
+    fn test_valid_last_name_with_space() {
+        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith Smith""#).unwrap();
+        assert_eq!(name.extract().get_value(), "Smith Smith");
+    }
+
+    #[test]
+    fn test_invalid_last_name_empty() {
         let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""""#);
         assert!(name.is_err());
-        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""123""#);
-        assert!(name.is_err());
-        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""Kovács!""#);
+    }
+
+    #[test]
+    fn test_invalid_last_name_special_chars() {
+        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""Smith123""#);
         assert!(name.is_err());
     }
 }

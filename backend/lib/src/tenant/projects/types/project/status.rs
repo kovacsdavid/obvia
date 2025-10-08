@@ -92,4 +92,90 @@ impl<'de> Deserialize<'de> for ValueObject<Status> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_status_active() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""active""#).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_valid_status_inactive() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""inactive""#).unwrap();
+        assert_eq!(status.extract().get_value(), "inactive");
+    }
+
+    #[test]
+    fn test_invalid_status() {
+        let status: Result<ValueObject<Status>, _> = serde_json::from_str(r#""pending""#);
+        assert!(status.is_err());
+    }
+
+    #[test]
+    fn test_empty_status() {
+        let status: Result<ValueObject<Status>, _> = serde_json::from_str(r#""""#);
+        assert!(status.is_err());
+    }
+
+    #[test]
+    fn test_status_display() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
+    }
+
+    #[test]
+    fn test_status_clone() {
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
+    }
+
+    #[test]
+    fn test_status_debug() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{:?}", status), r#"Status("active")"#);
+    }
+
+    #[test]
+    fn test_status_partial_eq() {
+        let status1 = Status("active".to_string());
+        let status2 = Status("active".to_string());
+        let status3 = Status("inactive".to_string());
+
+        assert_eq!(status1, status2);
+        assert_ne!(status1, status3);
+    }
+
+    #[test]
+    fn test_status_validation() {
+        let active = Status("active".to_string());
+        let inactive = Status("inactive".to_string());
+        let invalid = Status("invalid".to_string());
+
+        assert!(active.validate().is_ok());
+        assert!(inactive.validate().is_ok());
+        assert!(invalid.validate().is_err());
+    }
+
+    #[test]
+    fn test_status_get_value() {
+        let status = Status("active".to_string());
+        assert_eq!(status.get_value(), "active");
+    }
+
+    #[test]
+    fn test_status_serialization() {
+        let status = ValueObject::new(Status("active".to_string())).unwrap();
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert_eq!(serialized, r#""active""#);
+    }
+
+    #[test]
+    fn test_status_deserialization() {
+        let status: ValueObject<Status> = serde_json::from_str(r#""active""#).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+}

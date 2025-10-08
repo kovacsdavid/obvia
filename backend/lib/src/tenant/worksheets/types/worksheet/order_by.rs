@@ -101,4 +101,68 @@ impl Display for OrderBy {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(order_by.extract().get_value(), "name");
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(order_by.is_err());
+    }
+
+    #[test]
+    fn test_order_by_fromstr() {
+        let order_by = OrderBy::from_str("name").unwrap();
+        assert_eq!(order_by.0, "name");
+    }
+
+    #[test]
+    fn test_order_by_display() {
+        let order_by = OrderBy(String::from("name"));
+        assert_eq!(format!("{}", order_by), "name");
+    }
+
+    #[test]
+    fn test_order_by_clone() {
+        let order_by = OrderBy(String::from("name"));
+        let cloned = order_by.clone();
+        assert_eq!(order_by, cloned);
+    }
+
+    #[test]
+    fn test_order_by_debug() {
+        let order_by = OrderBy(String::from("name"));
+        assert_eq!(format!("{:?}", order_by), r#"OrderBy("name")"#);
+    }
+
+    #[test]
+    fn test_invalid_order_by_empty() {
+        let order_by = OrderBy(String::from(""));
+        assert!(order_by.validate().is_err());
+    }
+
+    #[test]
+    fn test_invalid_order_by_whitespace() {
+        let order_by = OrderBy(String::from(" "));
+        assert!(order_by.validate().is_err());
+    }
+
+    #[test]
+    fn test_invalid_order_by_special_chars() {
+        let order_by = OrderBy(String::from("name!"));
+        assert!(order_by.validate().is_err());
+    }
+
+    #[test]
+    fn test_order_by_get_value() {
+        let order_by = OrderBy(String::from("name"));
+        assert_eq!(order_by.get_value(), "name");
+    }
+}

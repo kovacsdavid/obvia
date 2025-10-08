@@ -101,4 +101,55 @@ impl Display for OrderBy {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""product_id""#).unwrap();
+        assert_eq!(order_by.extract().get_value(), "product_id");
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let cases = vec![
+            r#""name""#,
+            r#""price""#,
+            r#""quantity""#,
+            r#""invalid_column""#
+        ];
+
+        for case in cases {
+            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
+            assert!(order_by.is_err());
+        }
+    }
+
+    #[test]
+    fn test_from_str() {
+        let order_by = OrderBy::from_str("product_id").unwrap();
+        assert_eq!(order_by.get_value(), "product_id");
+    }
+
+    #[test]
+    fn test_display() {
+        let order_by = OrderBy("product_id".to_string());
+        assert_eq!(format!("{}", order_by), "product_id");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let order_by = OrderBy("product_id".to_string());
+        assert_eq!(order_by.get_value(), "product_id");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(OrderBy("product_id".to_string()).validate().is_ok());
+        assert!(OrderBy("name".to_string()).validate().is_err());
+        assert!(OrderBy("price".to_string()).validate().is_err());
+        assert!(OrderBy("quantity".to_string()).validate().is_err());
+        assert!(OrderBy("invalid_column".to_string()).validate().is_err());
+    }
+}

@@ -99,4 +99,71 @@ impl<'de> Deserialize<'de> for ValueObject<ContactPhone> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_phone_number() {
+        let phone: ValueObject<ContactPhone> = serde_json::from_str(r#""+36301234567""#).unwrap();
+        assert_eq!(phone.extract().get_value(), "+36301234567");
+    }
+
+    #[test]
+    fn test_valid_empty_phone() {
+        let phone: ValueObject<ContactPhone> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(phone.extract().get_value(), "");
+    }
+
+    #[test]
+    fn test_invalid_phone_without_plus() {
+        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""36301234567""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_too_short() {
+        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+3612""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_too_long() {
+        let phone: Result<ValueObject<ContactPhone>, _> =
+            serde_json::from_str(r#""+361234567890123456789""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_with_letters() {
+        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+3630abc1234""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_with_spaces() {
+        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+36 30 123 4567""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_with_special_chars() {
+        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+36-30-123-4567""#);
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_display_formatting() {
+        let phone = ContactPhone(String::from("+36301234567"));
+        assert_eq!(format!("{}", phone), "+36301234567");
+    }
+
+    #[test]
+    fn test_validation_error_message() {
+        let phone = ContactPhone(String::from("invalid"));
+        assert_eq!(
+            phone.validate().err().unwrap(),
+            "Hibás telefonszám formátum"
+        );
+    }
+}

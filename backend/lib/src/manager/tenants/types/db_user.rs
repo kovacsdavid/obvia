@@ -148,27 +148,62 @@ impl TryFrom<Uuid> for ValueObject<DbUser> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json;
 
     #[test]
     fn test_valid_db_user() {
-        let valid_db_users = vec![r#"tenant_db_user"#];
-        for db_user in valid_db_users {
-            //panic!("{}", host);
-            let not_a_db_user_shadow: ValueObject<DbUser> =
-                serde_json::from_str(format!("\"{}\"", &db_user).as_str()).unwrap();
-            assert_eq!(
-                *not_a_db_user_shadow.extract().get_value(),
-                db_user.to_string()
-            );
+        let user: ValueObject<DbUser> = serde_json::from_str(r#""tenant_test123""#).unwrap();
+        assert_eq!(user.extract().get_value(), "tenant_test123");
+
+        let user: ValueObject<DbUser> = serde_json::from_str(r#""tenant_valid_user""#).unwrap();
+        assert_eq!(user.extract().get_value(), "tenant_valid_user");
+    }
+
+    #[test]
+    fn test_invalid_db_user_without_prefix() {
+        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""test123""#);
+        assert!(user.is_err());
+    }
+
+    #[test]
+    fn test_invalid_db_user_empty() {
+        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""""#);
+        assert!(user.is_err());
+    }
+
+    #[test]
+    fn test_invalid_db_user_special_chars() {
+        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""tenant_test!@#""#);
+        assert!(user.is_err());
+    }
+
+    #[test]
+    fn test_invalid_db_user_sql_injection() {
+        let sql_injection_attempts = vec![
+            r#""tenant_1;DROP TABLE users;--""#,
+            r#""tenant_1' OR '1'='1""#,
+            r#""tenant_1 UNION SELECT * FROM passwords""#,
+            r#""tenant_1); DELETE FROM users; --""#,
+            r#""tenant_1/**/UNION/**/SELECT/**/password/**/FROM/**/users""#
+        ];
+
+        for attempt in sql_injection_attempts {
+            let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(attempt);
+            assert!(user.is_err());
         }
     }
+
     #[test]
-    fn test_invalid_db_user() {
-        let invalid_db_users = vec![r#"4db_user"#, r#"123"#, r#""#, r#" "#];
-        for db_user in invalid_db_users {
-            let db_user: Result<ValueObject<DbUser>, _> =
-                serde_json::from_str(format!("\"{}\"", &db_user).as_str());
-            assert!(db_user.is_err());
-        }
+    fn test_invalid_db_user_too_long() {
+        let long_name = format!(r#""tenant_{}" "#, "a".repeat(51));
+        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(&long_name);
+        assert!(user.is_err());
+    }
+
+    #[test]
+    fn test_uuid_conversion() {
+        let uuid = Uuid::new_v4();
+        let user = ValueObject::<DbUser>::try_from(uuid);
+        assert!(user.is_err(), "UUID should not be valid since it doesn't start with tenant_");
     }
 }

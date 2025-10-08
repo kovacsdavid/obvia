@@ -17,13 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/components/warehouses/slice.ts";
+import {create, get, update} from "@/components/warehouses/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
+import {useParams} from "react-router";
 
 export default function List() {
   const [name, setName] = React.useState("");
@@ -33,10 +34,12 @@ export default function List() {
   const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = useCallback(() => {
     dispatch(create({
+      id,
       name,
       contactName,
       contactPhone,
@@ -54,6 +57,61 @@ export default function List() {
         unexpectedError();
       }
     });
+  }, [contactName, contactPhone, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+
+  const handleUpdate = useCallback(() => {
+    dispatch(update({
+      id,
+      name,
+      contactName,
+      contactPhone,
+      status,
+    })).then(async (response) => {
+      if (update.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          navigate("/raktar/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [contactName, contactPhone, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+
+  useEffect(() => {
+    if (typeof id === "string") {
+      dispatch(get(id)).then(async (response) => {
+        if (get.fulfilled.match(response)) {
+          if (response.payload.statusCode === 200) {
+            if (typeof response.payload.jsonData.data !== "undefined") {
+              const data = response.payload.jsonData.data;
+              setName(data.name);
+              setContactName(data.contact_name ?? "");
+              setContactPhone(data.contact_phone ?? "");
+              setStatus(data.status ?? "");
+            }
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    }
+  }, [dispatch, id, setErrors, unexpectedError]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof id === "string") {
+      handleUpdate();
+    } else {
+      handleCreate();
+    }
   };
 
   return (

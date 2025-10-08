@@ -26,7 +26,7 @@ use crate::tenant::tasks::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(tasks_module: Arc<TasksModule>) -> Router {
@@ -38,8 +38,8 @@ pub fn routes(tasks_module: Arc<TasksModule>) -> Router {
             .route("/list", get(tasks_list))
             .route("/select_list", get(tasks_select_list))
             .route("/create", post(tasks_create))
-            .route("/update", post(tasks_update))
-            .route("/delete", post(tasks_delete))
+            .route("/update", put(tasks_update))
+            .route("/delete", delete(tasks_delete))
             .layer(from_fn_with_state(
                 tasks_module.config.clone(),
                 require_auth,

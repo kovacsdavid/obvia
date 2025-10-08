@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateTagResponse, DeleteTagResponse,
+  CreateTagResponse,
+  DeleteTagResponse,
   PaginatedTagResolvedListResponse,
   Tag,
   TagResolved,
   TagResolvedList,
-  TagResolvedResponse, TagResponse, UpdateTagResponse
+  TagResolvedResponse,
+  TagResponse,
+  UpdateTagResponse
 } from "@/components/tags/interface.ts";
 
 export function isCreateTagResponse(data: unknown): data is CreateTagResponse {

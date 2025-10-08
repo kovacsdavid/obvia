@@ -26,7 +26,7 @@ import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {deleteCustomer, list} from "@/components/customers/slice.ts";
+import {deleteItem, list} from "@/components/customers/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type CustomerResolvedList} from "@/components/customers/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
@@ -95,8 +95,8 @@ export default function List() {
   }, [dispatch, rawQuery, setLimit, setPage, setTotal])
 
   const handleDelete = (id: string) => {
-    dispatch(deleteCustomer(id)).then(async (response) => {
-      if (deleteCustomer.fulfilled.match(response)) {
+    dispatch(deleteItem(id)).then(async (response) => {
+      if (deleteItem.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           refresh();
         }
@@ -115,7 +115,7 @@ export default function List() {
       <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
-          <Link to={"/vevo/uj"}>
+          <Link to={"/vevo/szerkesztes"}>
             <Button style={{color: "green"}} variant="outline">
               <Plus color="green"/> Új
             </Button>
@@ -198,10 +198,10 @@ export default function List() {
                         <Eye/> Részletek
                       </DropdownMenuItem>
                     </Link>
-                    <Link to={`/vevo/uj/${item.id}`}>
-                    <DropdownMenuItem>
-                      <Pencil/> Szerkesztés
-                    </DropdownMenuItem>
+                    <Link to={`/vevo/szerkesztes/${item.id}`}>
+                      <DropdownMenuItem>
+                        <Pencil/> Szerkesztés
+                      </DropdownMenuItem>
                     </Link>
                     <DropdownMenuSeparator/>
                     <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>

@@ -29,7 +29,9 @@ import type {
   Customer,
   CustomerResolved,
   CustomerResolvedList,
-  CustomerResolvedResponse, CustomerResponse, DeleteCustomerResponse,
+  CustomerResolvedResponse,
+  CustomerResponse,
+  DeleteCustomerResponse,
   PaginatedCustomerResolvedListResponse,
   UpdateCustomerResponse
 } from "@/components/customers/interface.ts";

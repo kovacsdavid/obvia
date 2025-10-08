@@ -17,17 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, select_list} from "@/components/inventory/slice.ts";
+import {create, get, select_list, update} from "@/components/inventory/slice.ts";
 import {type SelectOptionList,} from "@/lib/interfaces/common.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
+import {useParams} from "react-router";
 
-export default function Create() {
+export default function Edit() {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
@@ -42,6 +43,84 @@ export default function Create() {
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
   const {errors, setErrors, unexpectedError} = useFormError();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
+
+  const handleCreate = useCallback(() => {
+    dispatch(create({
+      id,
+      productId,
+      warehouseId,
+      quantity,
+      cost,
+      price,
+      currencyId,
+      newCurrency,
+    })).then(async (response) => {
+      if (create.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          navigate("/leltar/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [cost, currencyId, dispatch, id, navigate, newCurrency, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+
+  const handleUpdate = useCallback(() => {
+    dispatch(update({
+      id,
+      productId,
+      warehouseId,
+      quantity,
+      cost,
+      price,
+      currencyId,
+      newCurrency,
+    })).then(async (response) => {
+      if (update.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          navigate("/leltar/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [cost, currencyId, dispatch, id, navigate, newCurrency, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+
+  useEffect(() => {
+    if (typeof id === "string") {
+      dispatch(get(id)).then(async (response) => {
+        if (get.fulfilled.match(response)) {
+          if (response.payload.statusCode === 200) {
+            if (typeof response.payload.jsonData.data !== "undefined") {
+              const data = response.payload.jsonData.data;
+              setProductId(data.product_id);
+              setWarehouseId(data.warehouse_id);
+              setQuantity(data.quantity.toString());
+              setCost(data.cost ?? "");
+              setPrice(data.price ?? "");
+              setCurrencyId(data.currency_id);
+            }
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    }
+  }, [dispatch, id, setErrors, unexpectedError]);
 
   useEffect(() => {
     dispatch(select_list("currencies")).then(async (response) => {
@@ -74,27 +153,11 @@ export default function Create() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    dispatch(create({
-      productId,
-      warehouseId,
-      quantity,
-      cost,
-      price,
-      currencyId,
-      newCurrency,
-    })).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          navigate("/leltar/lista");
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
-        } else {
-          unexpectedError();
-        }
-      } else {
-        unexpectedError();
-      }
-    });
+    if (typeof id === "string") {
+      handleUpdate();
+    } else {
+      handleCreate();
+    }
   };
 
   return (

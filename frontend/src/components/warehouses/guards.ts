@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateWarehouseResponse, DeleteWarehouseResponse,
-  PaginatedWarehouseResolvedListResponse, UpdateWarehouseResponse,
+  CreateWarehouseResponse,
+  DeleteWarehouseResponse,
+  PaginatedWarehouseResolvedListResponse,
+  UpdateWarehouseResponse,
   Warehouse,
   WarehouseResolved,
   WarehouseResolvedList,
-  WarehouseResolvedResponse, WarehouseResponse
+  WarehouseResolvedResponse,
+  WarehouseResponse
 } from "@/components/warehouses/interface.ts";
 
 export function isCreateWarehouseResponse(data: unknown): data is CreateWarehouseResponse {

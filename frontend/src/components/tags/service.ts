@@ -19,16 +19,22 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type TagUserInput,
   type CreateTagResponse,
+  type DeleteTagResponse,
   type PaginatedTagResolvedListResponse,
-  type TagResolvedResponse, type UpdateTagResponse, type TagResponse, type DeleteTagResponse
+  type TagResolvedResponse,
+  type TagResponse,
+  type TagUserInput,
+  type UpdateTagResponse
 } from "@/components/tags/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 import {
-  isCreateTagResponse, isDeleteTagResponse,
+  isCreateTagResponse,
+  isDeleteTagResponse,
   isPaginatedTagResolvedListResponse,
-  isTagResolvedResponse, isTagResponse, isUpdateTagResponse
+  isTagResolvedResponse,
+  isTagResponse,
+  isUpdateTagResponse
 } from "@/components/tags/guards.ts";
 
 export async function create({
@@ -130,7 +136,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteTag(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTagResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTagResponse>> {
   return await fetch(`/api/tags/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

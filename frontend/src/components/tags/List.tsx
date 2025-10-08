@@ -26,7 +26,7 @@ import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {list} from "@/components/tags/slice.ts";
+import {list, deleteItem} from "@/components/tags/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type TagResolvedList} from "@/components/tags/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
@@ -48,16 +48,16 @@ export default function List() {
   }, []);
 
   const {
-    searchParams,
+    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
     //orderBy,
-    setOrderBy,
+    //setOrderBy,
     //order,
-    setOrder,
+    //setOrder,
     paginatorSelect,
     //orderSelect,
     //filterSelect,
@@ -70,7 +70,7 @@ export default function List() {
     });
   };
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
@@ -91,16 +91,23 @@ export default function List() {
       } else {
         unexpectedError();
       }
+    })
+  }, [dispatch, rawQuery, setLimit, setPage, setTotal])
+
+  const handleDelete = (id: string) => {
+    dispatch(deleteItem(id)).then(async (response) => {
+      if (deleteItem.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          refresh();
+        }
+      }
     });
+  }
+
+  useEffect(() => {
+    refresh();
   }, [
-    searchParams,
-    rawQuery,
-    dispatch,
-    setOrder,
-    setOrderBy,
-    setLimit,
-    setPage,
-    setTotal
+    refresh
   ]);
 
   return (
@@ -108,7 +115,7 @@ export default function List() {
       <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
-          <Link to={"/cimke/uj"}>
+          <Link to={"/cimke/szerkesztes"}>
             <Button style={{color: "green"}} variant="outline">
               <Plus color="green"/> Új
             </Button>
@@ -179,11 +186,13 @@ export default function List() {
                         <Eye/> Részletek
                       </DropdownMenuItem>
                     </Link>
-                    <DropdownMenuItem>
-                      <Pencil/> Szerkesztés
-                    </DropdownMenuItem>
+                    <Link to={`/cimke/szerkesztes/${item.id}`}>
+                      <DropdownMenuItem>
+                        <Pencil/> Szerkesztés
+                      </DropdownMenuItem>
+                    </Link>
                     <DropdownMenuSeparator/>
-                    <DropdownMenuItem>
+                    <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
                       <Trash/> Törlés
                     </DropdownMenuItem>
                   </DropdownMenuContent>

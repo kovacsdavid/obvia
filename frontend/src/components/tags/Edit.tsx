@@ -17,36 +17,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create} from "@/components/projects/slice.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
+import {create, get, update} from "@/components/tags/slice.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
+import {useParams} from "react-router";
 
-export default function Create() {
+export default function Edit() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [startDate, setStartDate] = React.useState("");
-  const [endDate, setEndDate] = React.useState("");
-  const [status, setStatus] = React.useState("active");
   const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = useCallback(() => {
     dispatch(create({
+      id,
       name,
       description,
-      startDate,
-      endDate,
-      status
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/projekt/lista");
+          navigate("/cimke/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -56,6 +52,57 @@ export default function Create() {
         unexpectedError();
       }
     });
+  }, [description, dispatch, id, name, navigate, setErrors, unexpectedError]);
+
+  const handleUpdate = useCallback(() => {
+    dispatch(update({
+      id,
+      name,
+      description,
+    })).then(async (response) => {
+      if (update.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          navigate("/cimke/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [description, dispatch, id, name, navigate, setErrors, unexpectedError]);
+
+  useEffect(() => {
+    if (typeof id === "string") {
+      dispatch(get(id)).then(async (response) => {
+        if (get.fulfilled.match(response)) {
+          if (response.payload.statusCode === 200) {
+            if (typeof response.payload.jsonData.data !== "undefined") {
+              const data = response.payload.jsonData.data;
+              setName(data.name);
+              setDescription(data.description ?? "");
+            }
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    }
+  }, [dispatch, id, setErrors, unexpectedError]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof id === "string") {
+      handleUpdate();
+    } else {
+      handleCreate();
+    }
   };
 
   return (
@@ -78,36 +125,6 @@ export default function Create() {
           onChange={e => setDescription(e.target.value)}
         />
         <FieldError error={errors} field={"description"}/>
-        <Label htmlFor="start_date">Kezdődátum</Label>
-        <Input
-          id="start_date"
-          type="text"
-          value={startDate}
-          onChange={e => setStartDate(e.target.value)}
-        />
-        <FieldError error={errors} field={"start_date"}/>
-        <Label htmlFor="end_date">Határidő</Label>
-        <Input
-          id="end_date"
-          type="text"
-          value={endDate}
-          onChange={e => setEndDate(e.target.value)}
-        />
-        <FieldError error={errors} field={"end_date"}/>
-        <Label htmlFor="status">Státusz</Label>
-        <Select
-          value={status}
-          onValueChange={val => setStatus(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="inactive">Inaktív</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"status"}/>
         <Button type="submit">Létrehozás</Button>
       </form>
     </>

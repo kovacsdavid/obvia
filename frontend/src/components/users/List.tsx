@@ -83,7 +83,7 @@ export default function List() {
       <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
-          <Link to={"/felhasznalo/uj"}>
+          <Link to={"/felhasznalo/szerkesztes"}>
             <Button style={{color: "green"}} variant="outline">
               <Plus color="green"/> Új
             </Button>

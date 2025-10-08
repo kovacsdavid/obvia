@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateWorksheetResponse, DeleteWorksheetResponse,
-  PaginatedWorksheetResolvedListResponse, UpdateWorksheetResponse,
+  CreateWorksheetResponse,
+  DeleteWorksheetResponse,
+  PaginatedWorksheetResolvedListResponse,
+  UpdateWorksheetResponse,
   Worksheet,
   WorksheetResolved,
   WorksheetResolvedList,
-  WorksheetResolvedResponse, WorksheetResponse
+  WorksheetResolvedResponse,
+  WorksheetResponse
 } from "@/components/worksheets/interface.ts";
 
 export function isCreateWorksheetResponse(data: unknown): data is CreateWorksheetResponse {

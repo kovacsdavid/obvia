@@ -20,22 +20,22 @@
 import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, update} from "@/components/customers/slice.ts";
+import {create, get, update} from "@/components/projects/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
-import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
+import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function Edit() {
-  const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
   const [name, setName] = React.useState("");
-  const [contactName, setContactName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [status, setStatus] = React.useState<string | undefined>("active");
+  const [description, setDescription] = React.useState("");
+  const [startDate, setStartDate] = React.useState("");
+  const [endDate, setEndDate] = React.useState("");
+  const [status, setStatus] = React.useState("active");
+  const {errors, setErrors, unexpectedError} = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -43,15 +43,14 @@ export default function Edit() {
     dispatch(create({
       id,
       name,
-      contactName,
-      email,
-      phoneNumber,
-      status,
-      customerType,
+      description,
+      startDate,
+      endDate,
+      status
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/vevo/lista");
+          navigate("/projekt/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -61,21 +60,20 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [contactName, customerType, dispatch, email, id, name, navigate, phoneNumber, setErrors, status, unexpectedError]);
+  }, [description, dispatch, endDate, id, name, navigate, setErrors, startDate, status, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
       id,
       name,
-      contactName,
-      email,
-      phoneNumber,
-      status,
-      customerType,
+      description,
+      startDate,
+      endDate,
+      status
     })).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
-          navigate("/vevo/lista");
+          navigate("/projekt/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -85,7 +83,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [contactName, customerType, dispatch, email, id, name, navigate, phoneNumber, setErrors, status, unexpectedError]);
+  }, [description, dispatch, endDate, id, name, navigate, setErrors, startDate, status, unexpectedError]);
 
   useEffect(() => {
     if (typeof id === "string") {
@@ -94,12 +92,11 @@ export default function Edit() {
           if (response.payload.statusCode === 200) {
             if (typeof response.payload.jsonData.data !== "undefined") {
               const data = response.payload.jsonData.data;
-              setCustomerType(data.customer_type);
               setName(data.name);
-              setContactName(data.contact_name ?? "");
-              setEmail(data.email);
-              setPhoneNumber(data.phone_number ?? "");
-              setStatus(data.status);
+              setDescription(data.description ?? "");
+              setStartDate(formatDateToYMDHMS(data.start_date ?? ""));
+              setEndDate(formatDateToYMDHMS(data.end_date ?? ""));
+              setStatus(data.status ?? "");
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors({message: response.payload.jsonData.error.message, fields: {}})
@@ -125,23 +122,8 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="customer_type">Típus</Label>
-        <Select
-          value={customerType}
-          onValueChange={val => setCustomerType(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="natural">Természetes személy</SelectItem>
-            <SelectItem value="legal">Jogi személy</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"customer_type"}/>
-        <Label htmlFor="name">{customerType === "legal" ? "Jogi személy neve" : "Név"}</Label>
+        <Label htmlFor="name">Név</Label>
         <Input
           id="name"
           type="text"
@@ -149,36 +131,30 @@ export default function Edit() {
           onChange={e => setName(e.target.value)}
         />
         <FieldError error={errors} field={"name"}/>
-        {customerType === "legal" ? (
-          <>
-            <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-            <Input
-              id="contact_name"
-              type="text"
-              value={contactName}
-              onChange={e => setContactName(e.target.value)}
-            />
-            <FieldError error={errors} field={"contact_name"}/>
-          </>
-        ) : null}
-        <Label htmlFor="email">{customerType === "legal" ? "Kapcsolattartó e-mail címe" : "E-mail cím"}</Label>
+        <Label htmlFor="description">Leírás</Label>
         <Input
-          id="email"
+          id="description"
           type="text"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
+          value={description}
+          onChange={e => setDescription(e.target.value)}
         />
-        <FieldError error={errors} field={"email"}/>
-        <Label htmlFor="phone_number">{customerType === "legal" ? "Kapcsolattartó telefonszáma" : "Telefonszám"}</Label>
+        <FieldError error={errors} field={"description"}/>
+        <Label htmlFor="start_date">Kezdődátum</Label>
         <Input
-          id="phone_number"
+          id="start_date"
           type="text"
-          value={phoneNumber}
-          onChange={e => setPhoneNumber(e.target.value)}
+          value={startDate}
+          onChange={e => setStartDate(e.target.value)}
         />
-        <FieldError error={errors} field={"phone_number"}/>
-
-
+        <FieldError error={errors} field={"start_date"}/>
+        <Label htmlFor="end_date">Határidő</Label>
+        <Input
+          id="end_date"
+          type="text"
+          value={endDate}
+          onChange={e => setEndDate(e.target.value)}
+        />
+        <FieldError error={errors} field={"end_date"}/>
         <Label htmlFor="status">Státusz</Label>
         <Select
           value={status}
@@ -189,8 +165,7 @@ export default function Edit() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="lead">Érdeklődő</SelectItem>
-            <SelectItem value="prospect">Lehetséges vevő</SelectItem>
+            <SelectItem value="inactive">Inaktív</SelectItem>
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"status"}/>

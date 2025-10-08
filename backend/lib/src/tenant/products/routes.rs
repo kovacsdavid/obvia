@@ -26,7 +26,7 @@ use crate::tenant::products::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(products_module: Arc<ProductsModule>) -> Router {
@@ -38,8 +38,8 @@ pub fn routes(products_module: Arc<ProductsModule>) -> Router {
             .route("/list", get(products_list))
             .route("/select_list", get(products_select_list))
             .route("/create", post(products_create))
-            .route("/update", post(products_update))
-            .route("/delete", post(products_delete))
+            .route("/update", put(products_update))
+            .route("/delete", delete(products_delete))
             .layer(from_fn_with_state(
                 products_module.config.clone(),
                 require_auth,

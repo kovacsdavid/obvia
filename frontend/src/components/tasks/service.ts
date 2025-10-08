@@ -19,10 +19,13 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type TaskUserInput,
   type CreateTaskResponse,
+  type DeleteTaskResponse,
   type PaginatedTaskResolvedListResponse,
-  type TaskResolvedResponse, type UpdateTaskResponse, type TaskResponse, type DeleteTaskResponse
+  type TaskResolvedResponse,
+  type TaskResponse,
+  type TaskUserInput,
+  type UpdateTaskResponse
 } from "@/components/tasks/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -31,9 +34,12 @@ import {
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateTaskResponse, isDeleteTaskResponse,
+  isCreateTaskResponse,
+  isDeleteTaskResponse,
   isPaginatedTaskResolvedListResponse,
-  isTaskResolvedResponse, isTaskResponse, isUpdateTaskResponse
+  isTaskResolvedResponse,
+  isTaskResponse,
+  isUpdateTaskResponse
 } from "@/components/tasks/guards.ts";
 
 export async function create({
@@ -167,7 +173,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteTask(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTaskResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTaskResponse>> {
   return await fetch(`/api/tasks/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

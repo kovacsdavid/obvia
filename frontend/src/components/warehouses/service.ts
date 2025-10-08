@@ -19,16 +19,22 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateWarehouseResponse, type DeleteWarehouseResponse,
-  type PaginatedWarehouseResolvedListResponse, type UpdateWarehouseResponse,
-  type WarehouseResolvedResponse, type WarehouseResponse,
+  type CreateWarehouseResponse,
+  type DeleteWarehouseResponse,
+  type PaginatedWarehouseResolvedListResponse,
+  type UpdateWarehouseResponse,
+  type WarehouseResolvedResponse,
+  type WarehouseResponse,
   type WarehouseUserInput
 } from "@/components/warehouses/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 import {
-  isCreateWarehouseResponse, isDeleteWarehouseResponse,
-  isPaginatedWarehouseResolvedListResponse, isUpdateWarehouseResponse,
-  isWarehouseResolvedResponse, isWarehouseResponse
+  isCreateWarehouseResponse,
+  isDeleteWarehouseResponse,
+  isPaginatedWarehouseResolvedListResponse,
+  isUpdateWarehouseResponse,
+  isWarehouseResolvedResponse,
+  isWarehouseResponse
 } from "@/components/warehouses/guards.ts";
 
 export async function create({
@@ -138,7 +144,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteWarehouse(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
   return await fetch(`/api/warehouses/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

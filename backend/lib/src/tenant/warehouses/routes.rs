@@ -25,7 +25,7 @@ use crate::tenant::warehouses::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(warehouses_module: Arc<WarehousesModule>) -> Router {
@@ -36,8 +36,8 @@ pub fn routes(warehouses_module: Arc<WarehousesModule>) -> Router {
             .route("/get_resolved", get(warehouses_get_resolved))
             .route("/list", get(warehouses_list))
             .route("/create", post(warehouses_create))
-            .route("/update", post(warehouses_update))
-            .route("/delete", post(warehouses_delete))
+            .route("/update", put(warehouses_update))
+            .route("/delete", delete(warehouses_delete))
             .layer(from_fn_with_state(
                 warehouses_module.config.clone(),
                 require_auth,

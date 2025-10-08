@@ -25,7 +25,7 @@ use crate::tenant::tags::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(tags_module: Arc<TagsModule>) -> Router {
@@ -36,8 +36,8 @@ pub fn routes(tags_module: Arc<TagsModule>) -> Router {
             .route("/get_resolved", get(tags_get_resolved))
             .route("/list", get(tags_list))
             .route("/create", post(tags_create))
-            .route("/update", post(tags_update))
-            .route("/delete", post(tags_delete))
+            .route("/update", put(tags_update))
+            .route("/delete", delete(tags_delete))
             .layer(from_fn_with_state(tags_module.config.clone(), require_auth))
             .with_state(tags_module),
     )

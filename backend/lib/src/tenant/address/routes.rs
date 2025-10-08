@@ -25,7 +25,7 @@ use crate::tenant::address::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(address_module: Arc<AddressModule>) -> Router {
@@ -35,8 +35,8 @@ pub fn routes(address_module: Arc<AddressModule>) -> Router {
             .route("/get", get(address_get))
             .route("/list", get(address_list))
             .route("/create", post(address_create))
-            .route("/update", post(address_update))
-            .route("/delete", post(address_delete))
+            .route("/update", put(address_update))
+            .route("/delete", delete(address_delete))
             .layer(from_fn_with_state(
                 address_module.config.clone(),
                 require_auth,

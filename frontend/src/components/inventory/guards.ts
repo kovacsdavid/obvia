@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateInventoryResponse, DeleteInventoryResponse, Inventory,
+  CreateInventoryResponse,
+  DeleteInventoryResponse,
+  Inventory,
   InventoryResolved,
   InventoryResolvedList,
   InventoryResolvedResponse,
   InventoryResponse,
-  PaginatedInventoryResolvedListResponse, UpdateInventoryResponse
+  PaginatedInventoryResolvedListResponse,
+  UpdateInventoryResponse
 } from "@/components/inventory/interface.ts";
 
 export function isCreateInventoryResponse(data: unknown): data is CreateInventoryResponse {

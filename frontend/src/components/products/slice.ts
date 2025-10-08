@@ -75,12 +75,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteProduct = createAsyncThunk(
-  "products/deleteProduct",
+export const deleteItem = createAsyncThunk(
+  "products/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await productsApi.deleteProduct(uuid, token);
+    return await productsApi.deleteItem(uuid, token);
   }
 );
 

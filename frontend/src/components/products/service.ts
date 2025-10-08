@@ -19,10 +19,13 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type ProductUserInput,
   type CreateProductResponse,
+  type DeleteProductResponse,
   type PaginatedProductResolvedListResponse,
-  type ProductResolvedResponse, type UpdateProductResponse, type ProductResponse, type DeleteProductResponse,
+  type ProductResolvedResponse,
+  type ProductResponse,
+  type ProductUserInput,
+  type UpdateProductResponse,
 } from "@/components/products/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -31,9 +34,12 @@ import {
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateProductResponse, isDeleteProductResponse,
+  isCreateProductResponse,
+  isDeleteProductResponse,
   isPaginatedProductResolvedListResponse,
-  isProductResolvedResponse, isProductResponse, isUpdateProductResponse
+  isProductResolvedResponse,
+  isProductResponse,
+  isUpdateProductResponse
 } from "@/components/products/guards.ts";
 
 export async function create({
@@ -124,7 +130,7 @@ export async function update({
                                newUnitOfMeasure,
                                status
                              }: ProductUserInput, token: string | null): Promise<ProcessedResponse<UpdateProductResponse>> {
-  return await fetch(`/api/product/update`, {
+  return await fetch(`/api/products/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -148,7 +154,7 @@ export async function update({
 }
 
 export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<ProductResponse>> {
-  return await fetch(`/api/product/get?uuid=${uuid}`, {
+  return await fetch(`/api/products/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -163,8 +169,8 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteProduct(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProductResponse>> {
-  return await fetch(`/api/product/delete?uuid=${uuid}`, {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProductResponse>> {
+  return await fetch(`/api/products/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",

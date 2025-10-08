@@ -25,305 +25,130 @@ import Dashboard from "@/components/dashboard/Dashboard";
 import {useSelector} from "react-redux";
 import type {RootState} from "./store";
 import {Layout} from "@/components/layout/Layout";
-import {default as CustomerEdit} from "@/components/customers/Edit.tsx";
-import {default as CustomerList} from "@/components/customers/List.tsx";
-import {default as CustomerView} from "@/components/customers/View.tsx";
-import {default as InventoryCreate} from "@/components/inventory/Create.tsx";
-import {default as InventoryList} from "@/components/inventory/List.tsx";
-import {default as InventoryView} from "@/components/inventory/View.tsx";
-import {default as ProductsCreate} from "@/components/products/Create.tsx";
-import {default as ProductsList} from "@/components/products/List.tsx";
-import {default as ProductsView} from "@/components/products/View.tsx";
-import {default as ProjectsCreate} from "@/components/projects/Create.tsx";
-import {default as ProjectsList} from "@/components/projects/List.tsx";
-import {default as ProjectsView} from "@/components/projects/View.tsx";
-import {default as TagsCreate} from "@/components/tags/Create.tsx";
-import {default as TagsList} from "@/components/tags/List.tsx";
-import {default as TagsView} from "@/components/tags/View.tsx";
-import {default as TasksCreate} from "@/components/tasks/Create.tsx";
-import {default as TasksList} from "@/components/tasks/List.tsx";
-import {default as TasksView} from "@/components/tasks/View.tsx";
-import {default as UsersCreate} from "@/components/users/Create.tsx";
-import {default as UsersList} from "@/components/users/List.tsx";
-import {default as WarehousesCreate} from "@/components/warehouses/Create.tsx";
-import {default as WarehousesList} from "@/components/warehouses/List.tsx";
-import {default as WarehousesView} from "@/components/warehouses/View.tsx";
-import {default as WorksheetsCreate} from "@/components/worksheets/Create.tsx";
-import {default as WorksheetsList} from "@/components/worksheets/List.tsx";
-import {default as WorksheetsView} from "@/components/worksheets/View.tsx";
-import {default as TenantsCreate} from "@/components/tenants/Create.tsx";
-import {default as TenantsList} from "@/components/tenants/List.tsx";
-import {default as TenantsView} from "@/components/tenants/View.tsx";
+import CustomerEdit from "@/components/customers/Edit.tsx";
+import CustomerList from "@/components/customers/List.tsx";
+import CustomerView from "@/components/customers/View.tsx";
+import InventoryEdit from "@/components/inventory/Edit.tsx";
+import InventoryList from "@/components/inventory/List.tsx";
+import InventoryView from "@/components/inventory/View.tsx";
+import ProductsEdit from "@/components/products/Edit.tsx";
+import ProductsList from "@/components/products/List.tsx";
+import ProductsView from "@/components/products/View.tsx";
+import ProjectsEdit from "@/components/projects/Edit.tsx";
+import ProjectsList from "@/components/projects/List.tsx";
+import ProjectsView from "@/components/projects/View.tsx";
+import TagsEdit from "@/components/tags/Edit.tsx";
+import TagsList from "@/components/tags/List.tsx";
+import TagsView from "@/components/tags/View.tsx";
+import TasksEdit from "@/components/tasks/Edit.tsx";
+import TasksList from "@/components/tasks/List.tsx";
+import TasksView from "@/components/tasks/View.tsx";
+//import UsersEdit from "@/components/users/Edit.tsx";
+//import UsersList from "@/components/users/List.tsx";
+import WarehousesEdit from "@/components/warehouses/Edit.tsx";
+import WarehousesList from "@/components/warehouses/List.tsx";
+import WarehousesView from "@/components/warehouses/View.tsx";
+import WorksheetsEdit from "@/components/worksheets/Edit.tsx";
+import WorksheetsList from "@/components/worksheets/List.tsx";
+import WorksheetsView from "@/components/worksheets/View.tsx";
+import TenantsEdit from "@/components/tenants/Edit.tsx";
+import TenantsList from "@/components/tenants/List.tsx";
+import TenantsView from "@/components/tenants/View.tsx";
+
+interface RouteConfig {
+  path: string;
+  element: React.ComponentType;
+  isPrivate?: boolean;
+}
+
+const ROUTE_CONFIGS: RouteConfig[] = [
+  // Public routes
+  {path: "/bejelentkezes", element: Login, isPrivate: false},
+  {path: "/regisztracio", element: Register, isPrivate: false},
+
+  // Dashboard
+  {path: "/vezerlopult", element: Dashboard, isPrivate: true},
+
+  // Tenants
+  {path: "/szervezeti_egyseg/szerkesztes", element: TenantsEdit, isPrivate: true},
+  {path: "/szervezeti_egyseg/lista", element: TenantsList, isPrivate: true},
+  {path: "/szervezeti_egyseg/reszletek/:id", element: TenantsView, isPrivate: true},
+
+  // Customers
+  {path: "/vevo/szerkesztes", element: CustomerEdit, isPrivate: true},
+  {path: "/vevo/szerkesztes/:id", element: CustomerEdit, isPrivate: true},
+  {path: "/vevo/lista", element: CustomerList, isPrivate: true},
+  {path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true},
+
+  // Inventory
+  {path: "/leltar/szerkesztes", element: InventoryEdit, isPrivate: true},
+  {path: "/leltar/szerkesztes/:id", element: InventoryEdit, isPrivate: true},
+  {path: "/leltar/lista", element: InventoryList, isPrivate: true},
+  {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
+
+  // Products
+  {path: "/termek/szerkesztes", element: ProductsEdit, isPrivate: true},
+  {path: "/termek/szerkesztes/:id", element: ProductsEdit, isPrivate: true},
+  {path: "/termek/lista", element: ProductsList, isPrivate: true},
+  {path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true},
+
+  // Projects
+  {path: "/projekt/szerkesztes", element: ProjectsEdit, isPrivate: true},
+  {path: "/projekt/szerkesztes/:id", element: ProjectsEdit, isPrivate: true},
+  {path: "/projekt/lista", element: ProjectsList, isPrivate: true},
+  {path: "/projekt/reszletek/:id", element: ProjectsView, isPrivate: true},
+
+  // Tags
+  {path: "/cimke/szerkesztes", element: TagsEdit, isPrivate: true},
+  {path: "/cimke/szerkesztes/:id", element: TagsEdit, isPrivate: true},
+  {path: "/cimke/lista", element: TagsList, isPrivate: true},
+  {path: "/cimke/reszletek/:id", element: TagsView, isPrivate: true},
+
+  // Tasks
+  {path: "/feladat/szerkesztes", element: TasksEdit, isPrivate: true},
+  {path: "/feladat/szerkesztes/:id", element: TasksEdit, isPrivate: true},
+  {path: "/feladat/lista", element: TasksList, isPrivate: true},
+  {path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true},
+
+  // Users
+  // {path: "/felhasznalo/szerkesztes", element: UsersEdit, isPrivate: true},
+  // {path: "/felhasznalo/szerkesztes/:id", element: UsersEdit, isPrivate: true},
+  // {path: "/felhasznalo/lista", element: UsersList, isPrivate: true},
+
+  // Warehouses
+  {path: "/raktar/szerkesztes", element: WarehousesEdit, isPrivate: true},
+  {path: "/raktar/szerkesztes/:id", element: WarehousesEdit, isPrivate: true},
+  {path: "/raktar/lista", element: WarehousesList, isPrivate: true},
+  {path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true},
+
+  // Worksheets
+  {path: "/munkalap/szerkesztes", element: WorksheetsEdit, isPrivate: true},
+  {path: "/munkalap/szerkesztes/:id", element: WorksheetsEdit, isPrivate: true},
+  {path: "/munkalap/lista", element: WorksheetsList, isPrivate: true},
+  {path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true},
+];
 
 function PrivateRoute({children}: { children: React.JSX.Element }) {
   const user = useSelector((state: RootState) => state.auth.login.user);
   return user ? children : <Navigate to="/bejelentkezes" replace/>;
 }
 
+function createRouteElement(Component: React.ComponentType, isPrivate: boolean): React.JSX.Element {
+  const element = <Component/>;
+  return isPrivate ? <PrivateRoute>{element}</PrivateRoute> : element;
+}
+
 export default function App() {
   return (
     <Layout>
       <Routes>
-        <Route path="/bejelentkezes" element={<Login/>}/>
-        <Route path="/regisztracio" element={<Register/>}/>
-        <Route
-          path="/vezerlopult"
-          element={
-            <PrivateRoute>
-              <Dashboard/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/szervezeti_egyseg/uj"
-          element={
-            <PrivateRoute>
-              <TenantsCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/szervezeti_egyseg/lista"
-          element={
-            <PrivateRoute>
-              <TenantsList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/szervezeti_egyseg/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <TenantsView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/vevo/uj"
-          element={
-            <PrivateRoute>
-              <CustomerEdit/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/vevo/uj/:id"
-          element={
-            <PrivateRoute>
-              <CustomerEdit/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/vevo/lista"
-          element={
-            <PrivateRoute>
-              <CustomerList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/vevo/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <CustomerView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/leltar/uj"
-          element={
-            <PrivateRoute>
-              <InventoryCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/leltar/lista"
-          element={
-            <PrivateRoute>
-              <InventoryList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/leltar/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <InventoryView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/termek/uj"
-          element={
-            <PrivateRoute>
-              <ProductsCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/termek/lista"
-          element={
-            <PrivateRoute>
-              <ProductsList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/termek/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <ProductsView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/projekt/uj"
-          element={
-            <PrivateRoute>
-              <ProjectsCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/projekt/lista"
-          element={
-            <PrivateRoute>
-              <ProjectsList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/projekt/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <ProjectsView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/cimke/uj"
-          element={
-            <PrivateRoute>
-              <TagsCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/cimke/lista"
-          element={
-            <PrivateRoute>
-              <TagsList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/cimke/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <TagsView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/feladat/uj"
-          element={
-            <PrivateRoute>
-              <TasksCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/feladat/lista"
-          element={
-            <PrivateRoute>
-              <TasksList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/feladat/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <TasksView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/felhasznalo/uj"
-          element={
-            <PrivateRoute>
-              <UsersCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/felhasznalo/lista"
-          element={
-            <PrivateRoute>
-              <UsersList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/raktar/uj"
-          element={
-            <PrivateRoute>
-              <WarehousesCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/raktar/lista"
-          element={
-            <PrivateRoute>
-              <WarehousesList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/raktar/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <WarehousesView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/munkalap/uj"
-          element={
-            <PrivateRoute>
-              <WorksheetsCreate/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/munkalap/lista"
-          element={
-            <PrivateRoute>
-              <WorksheetsList/>
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/munkalap/reszletek/:id"
-          element={
-            <PrivateRoute>
-              <WorksheetsView/>
-            </PrivateRoute>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/vezerlopult"/>}/>
+        {ROUTE_CONFIGS.map(({path, element: Component, isPrivate = true}) => (
+          <Route
+            key={path}
+            path={path}
+            element={createRouteElement(Component, isPrivate)}
+          />
+        ))}
       </Routes>
     </Layout>
   );

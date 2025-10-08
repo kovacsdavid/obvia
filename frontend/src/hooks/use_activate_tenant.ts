@@ -25,7 +25,7 @@ export function useActivateTenant() {
   const dispatch = useAppDispatch();
   return async (new_tenant_id: string): Promise<boolean> => {
     return dispatch(activate(new_tenant_id)).then(async (response) => {
-      if(activate.fulfilled.match(response)
+      if (activate.fulfilled.match(response)
         && response.payload.statusCode === 200) {
         dispatch(updateToken(response.payload.jsonData.data));
         return true;

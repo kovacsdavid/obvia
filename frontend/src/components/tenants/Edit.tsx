@@ -36,7 +36,7 @@ import {useActivateTenant} from "@/hooks/use_activate_tenant.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 
-export default function Create() {
+export default function Edit() {
   const [name, setName] = React.useState("");
   const [dbIsSelfHosted, setDbIsSelfHosted] = React.useState<boolean | "indeterminate">(false);
   const [dbHost, setDbHost] = React.useState("");

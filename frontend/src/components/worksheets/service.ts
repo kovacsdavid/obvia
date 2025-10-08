@@ -19,9 +19,12 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateWorksheetResponse, type DeleteWorksheetResponse,
-  type PaginatedWorksheetResolvedListResponse, type UpdateWorksheetResponse,
-  type WorksheetResolvedResponse, type WorksheetResponse,
+  type CreateWorksheetResponse,
+  type DeleteWorksheetResponse,
+  type PaginatedWorksheetResolvedListResponse,
+  type UpdateWorksheetResponse,
+  type WorksheetResolvedResponse,
+  type WorksheetResponse,
   type WorksheetUserInput,
 } from "@/components/worksheets/interface.ts";
 import {
@@ -31,9 +34,12 @@ import {
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateWorksheetResponse, isDeleteWorksheetResponse,
-  isPaginatedWorksheetResolvedListResponse, isUpdateWorksheetResponse,
-  isWorksheetResolvedResponse, isWorksheetResponse
+  isCreateWorksheetResponse,
+  isDeleteWorksheetResponse,
+  isPaginatedWorksheetResolvedListResponse,
+  isUpdateWorksheetResponse,
+  isWorksheetResolvedResponse,
+  isWorksheetResponse
 } from "@/components/worksheets/guards.ts";
 
 export async function create({
@@ -159,7 +165,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteWorksheet(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
   return await fetch(`/api/worksheets/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

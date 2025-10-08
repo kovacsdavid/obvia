@@ -84,12 +84,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteWorksheet = createAsyncThunk(
-  "worksheets/deleteWorksheet",
+export const deleteItem = createAsyncThunk(
+  "worksheets/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await worksheetsApi.deleteWorksheet(uuid, token);
+    return await worksheetsApi.deleteItem(uuid, token);
   }
 );
 

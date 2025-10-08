@@ -26,7 +26,7 @@ use crate::tenant::worksheets::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(worksheets_module: Arc<WorksheetsModule>) -> Router {
@@ -38,8 +38,8 @@ pub fn routes(worksheets_module: Arc<WorksheetsModule>) -> Router {
             .route("/list", get(worksheets_list))
             .route("/select_list", get(worksheets_select_list))
             .route("/create", post(worksheets_create))
-            .route("/update", post(worksheets_update))
-            .route("/delete", post(worksheets_delete))
+            .route("/update", put(worksheets_update))
+            .route("/delete", delete(worksheets_delete))
             .layer(from_fn_with_state(
                 worksheets_module.config.clone(),
                 require_auth,

@@ -75,12 +75,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteProject = createAsyncThunk(
-  "projects/deleteProject",
+export const deleteItem = createAsyncThunk(
+  "projects/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await projectsApi.deleteProject(uuid, token);
+    return await projectsApi.deleteItem(uuid, token);
   }
 );
 

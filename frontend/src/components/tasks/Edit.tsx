@@ -17,17 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useEffect} from "react";
+import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, select_list} from "@/components/tasks/slice.ts";
+import {create, get, select_list, update} from "@/components/tasks/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import {useNavigate} from "react-router-dom";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import type {SelectOptionList} from "@/lib/interfaces/common.ts";
+import {useParams} from "react-router";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
-export default function Create() {
+export default function Edit() {
   const [worksheetId, setWorksheetId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -39,21 +41,12 @@ export default function Create() {
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
   const {errors, setErrors, unexpectedError} = useFormError();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  useEffect(() => {
-    dispatch(select_list("worksheets")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setWorksheetList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [dispatch, setListResponse, setErrors, unexpectedError]);
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = useCallback(() => {
     dispatch(create({
+      id,
       worksheetId,
       title,
       description,
@@ -73,6 +66,75 @@ export default function Create() {
         unexpectedError();
       }
     });
+  }, [description, dispatch, dueDate, id, navigate, priority, setErrors, status, title, unexpectedError, worksheetId]);
+
+  const handleUpdate = useCallback(() => {
+    dispatch(update({
+      id,
+      worksheetId,
+      title,
+      description,
+      status,
+      priority,
+      dueDate
+    })).then(async (response) => {
+      if (update.fulfilled.match(response)) {
+        if (response.payload.statusCode === 200) {
+          navigate("/feladat/lista");
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error)
+        } else {
+          unexpectedError();
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [description, dispatch, dueDate, id, navigate, priority, setErrors, status, title, unexpectedError, worksheetId]);
+
+  useEffect(() => {
+    if (typeof id === "string") {
+      dispatch(get(id)).then(async (response) => {
+        if (get.fulfilled.match(response)) {
+          if (response.payload.statusCode === 200) {
+            if (typeof response.payload.jsonData.data !== "undefined") {
+              const data = response.payload.jsonData.data;
+              setWorksheetId(data.worksheet_id);
+              setTitle(data.title);
+              setDescription(data.description ?? "");
+              setPriority(data.priority ?? "");
+              setDueDate(formatDateToYMDHMS(data.due_date ?? ""));
+            }
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    }
+  }, [dispatch, id, setErrors, unexpectedError]);
+
+  useEffect(() => {
+    dispatch(select_list("worksheets")).then(async (response) => {
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setWorksheetList, setErrors);
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [dispatch, setListResponse, setErrors, unexpectedError]);
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (typeof id === "string") {
+      handleUpdate();
+    } else {
+      handleCreate();
+    }
   };
 
   return (

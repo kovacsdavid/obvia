@@ -31,7 +31,9 @@ import type {
   Product,
   ProductResolved,
   ProductResolvedList,
-  ProductResolvedResponse, ProductResponse, UpdateProductResponse
+  ProductResolvedResponse,
+  ProductResponse,
+  UpdateProductResponse
 } from "@/components/products/interface.ts";
 
 export function isCreateProductResponse(data: unknown): data is CreateProjectResponse {

@@ -75,12 +75,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteWarehouse = createAsyncThunk(
-  "warehouses/deleteWarehouse",
+export const deleteItem = createAsyncThunk(
+  "warehouses/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await warehousesApi.deleteWarehouse(uuid, token);
+    return await warehousesApi.deleteItem(uuid, token);
   }
 );
 

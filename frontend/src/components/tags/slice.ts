@@ -75,12 +75,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteTag = createAsyncThunk(
-  "tags/deleteTag",
+export const deleteItem = createAsyncThunk(
+  "tags/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await tagsApi.deleteTag(uuid, token);
+    return await tagsApi.deleteItem(uuid, token);
   }
 );
 

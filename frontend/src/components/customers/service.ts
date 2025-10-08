@@ -19,16 +19,20 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CustomerUserInput,
   type CreateCustomerResponse,
   type CustomerResolvedResponse,
-  type PaginatedCustomerResolvedListResponse, type UpdateCustomerResponse, type CustomerResponse,
-  type DeleteCustomerResponse
+  type CustomerResponse,
+  type CustomerUserInput,
+  type DeleteCustomerResponse,
+  type PaginatedCustomerResolvedListResponse,
+  type UpdateCustomerResponse
 } from "@/components/customers/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 import {
   isCreateCustomerResponse,
-  isCustomerResolvedResponse, isCustomerResponse, isDeleteCustomerResponse,
+  isCustomerResolvedResponse,
+  isCustomerResponse,
+  isDeleteCustomerResponse,
   isPaginatedCustomerResolvedListResponse,
   isUpdateCustomerResponse
 } from "@/components/customers/guards.ts";
@@ -148,7 +152,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteCustomer(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteCustomerResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteCustomerResponse>> {
   return await fetch(`/api/customers/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

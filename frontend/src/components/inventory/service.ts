@@ -19,11 +19,13 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type InventoryUserInput,
   type CreateInventoryResponse,
+  type DeleteInventoryResponse,
   type InventoryResolvedResponse,
-  type PaginatedInventoryResolvedListResponse, type UpdateInventoryResponse, type InventoryResponse,
-  type DeleteInventoryResponse
+  type InventoryResponse,
+  type InventoryUserInput,
+  type PaginatedInventoryResolvedListResponse,
+  type UpdateInventoryResponse
 } from "@/components/inventory/interface.ts";
 import {
   isSelectOptionListResponse,
@@ -32,9 +34,12 @@ import {
   type SelectOptionListResponse
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateInventoryResponse, isDeleteInventoryResponse,
-  isInventoryResolvedResponse, isInventoryResponse,
-  isPaginatedInventoryResolvedListResponse, isUpdateInventoryResponse
+  isCreateInventoryResponse,
+  isDeleteInventoryResponse,
+  isInventoryResolvedResponse,
+  isInventoryResponse,
+  isPaginatedInventoryResolvedListResponse,
+  isUpdateInventoryResponse
 } from "@/components/inventory/guards.ts";
 
 export async function create({
@@ -174,7 +179,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteInventory(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteInventoryResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteInventoryResponse>> {
   return await fetch(`/api/inventory/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

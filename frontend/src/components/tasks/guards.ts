@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateTaskResponse, DeleteTaskResponse,
+  CreateTaskResponse,
+  DeleteTaskResponse,
   PaginatedTaskResolvedListResponse,
   Task,
   TaskResolved,
   TaskResolvedList,
-  TaskResolvedResponse, TaskResponse, UpdateTaskResponse
+  TaskResolvedResponse,
+  TaskResponse,
+  UpdateTaskResponse
 } from "@/components/tasks/interface.ts";
 
 export function isCreateTaskResponse(data: unknown): data is CreateTaskResponse {

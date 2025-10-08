@@ -114,7 +114,7 @@ impl WarehousesRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
-            "SELECT warehouses.id::VARCHAR as value, warehoues.name as title FROM warehouses WHERE deleted_at IS NULL ORDER BY name",
+            "SELECT warehouses.id::VARCHAR as value, warehouses.name as title FROM warehouses WHERE deleted_at IS NULL ORDER BY name",
         )
         .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

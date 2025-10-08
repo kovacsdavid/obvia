@@ -25,7 +25,7 @@ use crate::tenant::projects::handler::{
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
 pub fn routes(projects_module: Arc<ProjectsModule>) -> Router {
@@ -36,8 +36,8 @@ pub fn routes(projects_module: Arc<ProjectsModule>) -> Router {
             .route("/get_resolved", get(projects_get_resolved))
             .route("/list", get(projects_list))
             .route("/create", post(projects_create))
-            .route("/update", post(projects_update))
-            .route("/delete", post(projects_delete))
+            .route("/update", put(projects_update))
+            .route("/delete", delete(projects_delete))
             .layer(from_fn_with_state(
                 projects_module.config.clone(),
                 require_auth,

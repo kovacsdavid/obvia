@@ -57,12 +57,12 @@ export const update = createAsyncThunk(
   }
 )
 
-export const deleteInventory = createAsyncThunk(
-  "inventory/deleteInventory",
+export const deleteItem = createAsyncThunk(
+  "inventory/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await inventoryApi.deleteInventory(uuid, token);
+    return await inventoryApi.deleteItem(uuid, token);
   }
 );
 

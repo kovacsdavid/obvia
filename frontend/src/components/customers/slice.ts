@@ -39,12 +39,12 @@ export const create = createAsyncThunk(
   }
 )
 
-export const deleteCustomer = createAsyncThunk(
-  "customers/deleteCustomer",
+export const deleteItem = createAsyncThunk(
+  "customers/deleteItem",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await customersApi.deleteCustomer(uuid, token);
+    return await customersApi.deleteItem(uuid, token);
   }
 );
 

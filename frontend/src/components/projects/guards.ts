@@ -25,12 +25,15 @@ import {
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateProjectResponse, DeleteProjectResponse,
+  CreateProjectResponse,
+  DeleteProjectResponse,
   PaginatedProjectResolvedListResponse,
   Project,
   ProjectResolved,
   ProjectResolvedList,
-  ProjectResolvedResponse, ProjectResponse, UpdateProjectResponse
+  ProjectResolvedResponse,
+  ProjectResponse,
+  UpdateProjectResponse
 } from "@/components/projects/interface.ts";
 
 export function isCreateProjectResponse(data: unknown): data is CreateProjectResponse {

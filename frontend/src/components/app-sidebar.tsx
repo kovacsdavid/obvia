@@ -49,7 +49,7 @@ import {
   NotebookText,
   Package,
   Tag,
-  UserCog,
+  //UserCog,
   UsersRound,
   Warehouse
 } from "lucide-react";
@@ -101,13 +101,13 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             icon: <Group/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
-          {
-            title: "Felhasználók",
-            url: "/felhasznalo/lista",
-            private: true,
-            icon: <UserCog/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
-          },
+          // {
+          //   title: "Felhasználók",
+          //   url: "/felhasznalo/lista",
+          //   private: true,
+          //   icon: <UserCog/>,
+          //   isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          // },
           {
             title: "Vevők",
             url: "/vevo/lista",

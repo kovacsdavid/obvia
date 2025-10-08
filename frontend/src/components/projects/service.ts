@@ -19,16 +19,22 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type ProjectUserInput,
   type CreateProjectResponse,
+  type DeleteProjectResponse,
   type PaginatedProjectResolvedListResponse,
-  type ProjectResolvedResponse, type UpdateProjectResponse, type ProjectResponse, type DeleteProjectResponse
+  type ProjectResolvedResponse,
+  type ProjectResponse,
+  type ProjectUserInput,
+  type UpdateProjectResponse
 } from "@/components/projects/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 import {
-  isCreateProjectResponse, isDeleteProjectResponse,
+  isCreateProjectResponse,
+  isDeleteProjectResponse,
   isPaginatedProjectResolvedListResponse,
-  isProjectResolvedResponse, isProjectResponse, isUpdateProjectResponse
+  isProjectResolvedResponse,
+  isProjectResponse,
+  isUpdateProjectResponse
 } from "@/components/projects/guards.ts";
 
 export async function create({
@@ -142,7 +148,7 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   });
 }
 
-export async function deleteProject(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProjectResponse>> {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProjectResponse>> {
   return await fetch(`/api/projects/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {

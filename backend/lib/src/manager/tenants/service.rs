@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::services::generate_string_csprng;
 use crate::common::types::value_object::ValueObjectable;
@@ -60,11 +60,13 @@ impl IntoResponse for TenantsServiceError {
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                TenantsServiceError::AccessDenied.to_string(),
-            ),
-            e => FriendlyError::internal(file!(), e.to_string()),
+                GeneralError {
+                    message: TenantsServiceError::AccessDenied.to_string(),
+                },
+            )
+            .into_response(),
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
-        .into_response()
     }
 }
 

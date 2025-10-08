@@ -25,6 +25,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::Serialize;
+use sqlx::Error;
 use sqlx::migrate::MigrateError;
 use tracing::Level;
 use tracing::event;
@@ -246,6 +247,18 @@ pub enum RepositoryError {
 
     #[error("Tenant pool not found")]
     TenantPoolNotFound,
+}
+
+impl RepositoryError {
+    pub fn is_unique_violation(&self) -> bool {
+        if let RepositoryError::Database(sqlxe) = self
+            && let Error::Database(database_error) = sqlxe
+            && database_error.is_unique_violation()
+        {
+            return true;
+        }
+        false
+    }
 }
 
 pub type RepositoryResult<T> = Result<T, RepositoryError>;

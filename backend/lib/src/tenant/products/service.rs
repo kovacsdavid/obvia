@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::types::value_object::ValueObjectable;
@@ -56,11 +56,13 @@ impl IntoResponse for ProductsServiceError {
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                ProductsServiceError::Unauthorized.to_string(),
-            ),
-            e => FriendlyError::internal(file!(), e.to_string()),
+                GeneralError {
+                    message: ProductsServiceError::Unauthorized.to_string(),
+                },
+            )
+            .into_response(),
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
-        .into_response()
     }
 }
 

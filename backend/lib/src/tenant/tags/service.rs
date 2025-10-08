@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -47,11 +47,13 @@ impl IntoResponse for TagsServiceError {
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                TagsServiceError::Unauthorized.to_string(),
-            ),
-            e => FriendlyError::internal(file!(), e.to_string()),
+                GeneralError {
+                    message: TagsServiceError::Unauthorized.to_string(),
+                },
+            )
+            .into_response(),
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
-        .into_response()
     }
 }
 

@@ -21,21 +21,21 @@ export interface SimpleError {
   message: string | null | undefined
 }
 
+export interface FormError extends SimpleError {
+  fields?: FormErrorFields
+}
+
 export type FormErrorFields = Record<string, string | null>;
 
 export function isFormErrorFields(data: unknown): data is FormErrorFields {
   return (
     typeof data === "object" &&
     data !== null &&
-    Object.values(data as Record<string, unknown>).every(value =>
-      value === null || typeof value === "string"
+    Object.entries(data).every(([key, value]) =>
+      typeof key === "string" &&
+      (value === null || typeof value === "string")
     )
   );
-}
-
-export interface FormError {
-  message: string | null | undefined
-  fields: FormErrorFields
 }
 
 export function isFormError(data: unknown): data is FormError {
@@ -44,8 +44,7 @@ export function isFormError(data: unknown): data is FormError {
     data !== null &&
     "message" in data &&
     (data.message === null || data.message === undefined || typeof data.message === "string") &&
-    "fields" in data &&
-    isFormErrorFields(data.fields)
+    (!("fields" in data) || data.fields === undefined || isFormErrorFields(data.fields))
   );
 }
 

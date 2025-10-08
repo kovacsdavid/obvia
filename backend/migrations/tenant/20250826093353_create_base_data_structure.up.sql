@@ -63,7 +63,7 @@ create table customers
     id            uuid primary key      default uuid_generate_v4(),
     name          varchar(255) not null,
     contact_name  varchar(255),
-    email         varchar(255) not null unique,
+    email         varchar(255) not null,
     phone_number  varchar(50),
     status        varchar(50)  not null,
     customer_type varchar(50)  not null,
@@ -71,7 +71,8 @@ create table customers
     created_at    timestamptz  not null default now(),
     updated_at    timestamptz  not null default now(),
     deleted_at    timestamptz,
-    foreign key (created_by_id) references users (id)
+    foreign key (created_by_id) references users (id),
+    unique nulls not distinct (email, deleted_at)
 );
 
 CREATE INDEX idx_customers_created_by_id ON customers (created_by_id);
@@ -353,7 +354,7 @@ create table currencies
     created_at    timestamptz not null default now(),
     deleted_at    timestamptz,
     foreign key (created_by_id) references users (id),
-    unique (currency)
+    unique nulls not distinct (currency, deleted_at)
 );
 
 CREATE INDEX idx_currencies_created_by_id ON currencies (created_by_id);
@@ -367,7 +368,7 @@ create table units_of_measure
     created_at      timestamptz not null default now(),
     deleted_at      timestamptz,
     foreign key (created_by_id) references users (id),
-    unique (unit_of_measure)
+    unique nulls not distinct (unit_of_measure, deleted_at)
 );
 
 CREATE INDEX idx_units_of_measure_created_by_id ON units_of_measure (created_by_id);
@@ -503,7 +504,7 @@ create table task_assignments
     created_by_id uuid                           not null,
     created_at    timestamptz      default now() not null,
     deleted_at    timestamptz,
-    unique (user_id, task_id),
+    unique nulls not distinct (user_id, task_id, deleted_at),
     foreign key (user_id) references users (id),
     foreign key (task_id) references tasks (id),
     foreign key (created_by_id) references users (id)
@@ -523,7 +524,7 @@ create table project_assignments
     created_by_id uuid                           not null,
     created_at    timestamptz      default now() not null,
     deleted_at    timestamptz,
-    unique (user_id, project_id),
+    unique nulls not distinct (user_id, project_id, deleted_at),
     foreign key (user_id) references users (id),
     foreign key (project_id) references tasks (id),
     foreign key (created_by_id) references users (id)

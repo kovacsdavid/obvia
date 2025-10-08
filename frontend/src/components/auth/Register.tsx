@@ -38,7 +38,7 @@ export default function Register() {
 
   const handleRegistrationResponse = async (response: ProcessedResponse<RegisterResponse>) => {
     if (response.statusCode === 201) {
-      navigate("/login");
+      navigate("/bejelentkezes");
     } else if (typeof response.jsonData?.error !== "undefined") {
       setErrors(response.jsonData.error)
     } else {

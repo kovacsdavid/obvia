@@ -35,7 +35,6 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
-use sqlx::Error;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -80,7 +79,9 @@ impl IntoResponse for AuthServiceError {
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
-                "A megadott e-mail cím már foglalt!".to_string(),
+                GeneralError {
+                    message: "A megadott e-mail cím már foglalt!".to_string(),
+                },
             )
             .into_response(),
             e => FriendlyError::internal(file!(), e.to_string()).into_response(),
@@ -219,10 +220,7 @@ impl AuthService {
         repo.insert_user(&payload, &password_hash)
             .await
             .map_err(|e| {
-                if let RepositoryError::Database(sqlxe) = &e
-                    && let Error::Database(database_error) = sqlxe
-                    && database_error.is_unique_violation()
-                {
+                if e.is_unique_violation() {
                     AuthServiceError::UserExists
                 } else {
                     e.into()

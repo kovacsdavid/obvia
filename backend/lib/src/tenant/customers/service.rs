@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -37,20 +37,29 @@ pub enum CustomersServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("A megadot e-mail címmel már létezik vevő a rendszerben!")]
+    CustomerExists,
 }
 
 impl IntoResponse for CustomersServiceError {
     fn into_response(self) -> Response {
         match self {
-            CustomersServiceError::Repository(e) => FriendlyError::internal(file!(), e.to_string()),
-            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                CustomersServiceError::Unauthorized.to_string(),
-            ),
+            CustomersServiceError::Repository(e) => {
+                FriendlyError::internal(file!(), e.to_string()).into_response()
+            }
+            CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    GeneralError {
+                        message: self.to_string(),
+                    },
+                )
+                .into_response()
+            }
         }
-        .into_response()
     }
 }
 
@@ -71,7 +80,14 @@ impl CustomersService {
                 .active_tenant()
                 .ok_or(CustomersServiceError::Unauthorized)?,
         )
-        .await?;
+        .await
+        .map_err(|e| {
+            if e.is_unique_violation() {
+                CustomersServiceError::CustomerExists
+            } else {
+                e.into()
+            }
+        })?;
         Ok(())
     }
     pub async fn get_resolved_by_id(

@@ -26,7 +26,7 @@ import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {list, deleteItem} from "@/components/worksheets/slice.ts";
+import {deleteItem, list} from "@/components/worksheets/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type WorksheetResolvedList} from "@/components/worksheets/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";

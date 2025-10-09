@@ -26,9 +26,9 @@ import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {deleteItem, list} from "@/components/warehouses/slice.ts";
+import {deleteItem, list} from "@/components/taxes/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {type WarehouseResolvedList} from "@/components/warehouses/interface.ts";
+import {type TaxResolvedList} from "@/components/taxes/interface.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
@@ -42,7 +42,7 @@ import {
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
-  const [data, setData] = React.useState<WarehouseResolvedList>([]);
+  const [data, setData] = React.useState<TaxResolvedList>([]);
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -108,14 +108,14 @@ export default function List() {
     refresh();
   }, [
     refresh
-  ])
+  ]);
 
   return (
     <>
       <GlobalError error={errors}/>
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
-          <Link to={"/raktar/szerkesztes"}>
+          <Link to={"/ado/szerkesztes"}>
             <Button style={{color: "green"}} variant="outline">
               <Plus color="green"/> Új
             </Button>
@@ -150,19 +150,27 @@ export default function List() {
           </Popover>
         </div>
       </div>
-
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead/>
             <TableHead>
-              Név
+              Adókulcs (%)
             </TableHead>
             <TableHead>
-              Kapcsolattartó neve
+              Leírás
             </TableHead>
             <TableHead>
-              Kapcsolattartó telefonszáma
+              Ország
+            </TableHead>
+            <TableHead>
+              Adó kategória
+            </TableHead>
+            <TableHead>
+              Jogi szöveg
+            </TableHead>
+            <TableHead>
+              Jelentési kód (NAV)
             </TableHead>
             <TableHead>
               Státusz
@@ -191,12 +199,12 @@ export default function List() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent side={"bottom"} align="start">
                     <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <Link to={`/raktar/reszletek/${item.id}`}>
+                    <Link to={`/ado/reszletek/${item.id}`}>
                       <DropdownMenuItem>
                         <Eye/> Részletek
                       </DropdownMenuItem>
                     </Link>
-                    <Link to={`/raktar/szerkesztes/${item.id}`}>
+                    <Link to={`/ado/szerkesztes/${item.id}`}>
                       <DropdownMenuItem>
                         <Pencil/> Szerkesztés
                       </DropdownMenuItem>
@@ -208,9 +216,12 @@ export default function List() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </TableCell>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.contact_name ? item.contact_name : 'N/A'}</TableCell>
-              <TableCell>{item.contact_phone ? item.contact_phone : 'N/A'}</TableCell>
+              <TableCell>{item.rate}</TableCell>
+              <TableCell>{item.description}</TableCell>
+              <TableCell>{item.country}</TableCell>
+              <TableCell>{item.tax_category}</TableCell>
+              <TableCell>{item.legal_text}</TableCell>
+              <TableCell>{item.reporting_code}</TableCell>
               <TableCell>{item.status}</TableCell>
               <TableCell>{item.created_by}</TableCell>
               <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
@@ -218,6 +229,7 @@ export default function List() {
             </TableRow>
           ))}
         </TableBody>
+
       </Table>
       <Paginator
         page={page}

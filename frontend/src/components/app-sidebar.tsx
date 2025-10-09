@@ -42,6 +42,8 @@ import {
   Boxes,
   FolderOpen,
   Group,
+  HandCoins,
+  HandPlatter,
   KeyRound,
   ListTodo,
   LogOut,
@@ -49,7 +51,6 @@ import {
   NotebookText,
   Package,
   Tag,
-  //UserCog,
   UsersRound,
   Warehouse
 } from "lucide-react";
@@ -129,6 +130,13 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             icon: <Warehouse/>,
             isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
           },
+          {
+            title: "Adók",
+            url: "/ado/lista",
+            private: true,
+            icon: <HandCoins/>,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
         ]
       },
       {
@@ -155,7 +163,13 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
         title: "Munkafolyamat",
         url: "#",
         items: [
-
+          {
+            title: "Szolgáltatások",
+            url: "/szolgaltatas/lista",
+            private: true,
+            icon: <HandPlatter/>,
+            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          },
           {
             title: "Projektek",
             url: "/projekt/lista",

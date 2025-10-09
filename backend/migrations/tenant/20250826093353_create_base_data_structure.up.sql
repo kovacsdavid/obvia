@@ -355,8 +355,8 @@ create table services
     name           varchar(255) not null,
     description    text,
     default_price  numeric(15, 2),
-    default_tax_id uuid         not null,
-    currency_id    uuid         not null,
+    default_tax_id uuid,
+    currency_id    uuid, -- default currency
     status         varchar(50)  not null default 'active',
     created_by_id  uuid         not null,
     created_at     timestamptz  not null default now(),

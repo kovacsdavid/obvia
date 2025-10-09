@@ -54,6 +54,12 @@ import WorksheetsView from "@/components/worksheets/View.tsx";
 import TenantsEdit from "@/components/tenants/Edit.tsx";
 import TenantsList from "@/components/tenants/List.tsx";
 import TenantsView from "@/components/tenants/View.tsx";
+import TaxesEdit from "@/components/taxes/Edit.tsx";
+import TaxesList from "@/components/taxes/List.tsx";
+import TaxesView from "@/components/taxes/View.tsx";
+import ServicesEdit from "@/components/services/Edit.tsx";
+import ServicesList from "@/components/services/List.tsx";
+import ServicesView from "@/components/services/View.tsx";
 
 interface RouteConfig {
   path: string;
@@ -126,6 +132,18 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/munkalap/szerkesztes/:id", element: WorksheetsEdit, isPrivate: true},
   {path: "/munkalap/lista", element: WorksheetsList, isPrivate: true},
   {path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true},
+
+  // Taxes
+  {path: "/ado/szerkesztes", element: TaxesEdit, isPrivate: true},
+  {path: "/ado/szerkesztes/:id", element: TaxesEdit, isPrivate: true},
+  {path: "/ado/lista", element: TaxesList, isPrivate: true},
+  {path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true},
+
+  // Services
+  {path: "/szolgaltatas/szerkesztes", element: ServicesEdit, isPrivate: true},
+  {path: "/szolgaltatas/szerkesztes/:id", element: ServicesEdit, isPrivate: true},
+  {path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true},
+  {path: "/szolgaltatas/reszletek/:id", element: ServicesView, isPrivate: true},
 ];
 
 function PrivateRoute({children}: { children: React.JSX.Element }) {

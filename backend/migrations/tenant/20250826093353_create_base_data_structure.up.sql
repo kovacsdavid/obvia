@@ -110,7 +110,7 @@ CREATE TRIGGER update_updated_at_on_comments_table
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
-create table countries -- Entry can only be deleted if no data relies on it!
+create table countries
 (
     id            uuid         not null primary key,
     name          varchar(100) not null,
@@ -128,7 +128,7 @@ CREATE TRIGGER update_updated_at_on_countries_table
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
-create table states -- Entry can only be deleted if no data relies on it!
+create table states
 (
     id            uuid         not null primary key,
     name          varchar(100) not null,
@@ -311,6 +311,75 @@ CREATE INDEX idx_worksheets_created_at ON worksheets (created_at);
 CREATE INDEX idx_worksheets_updated_at ON worksheets (updated_at);
 CREATE INDEX idx_worksheets_deleted_at ON worksheets (deleted_at);
 
+create table tax
+(
+    id                 uuid primary key      default uuid_generate_v4(),
+    rate               numeric(5, 2),
+    description        varchar(255) not null,
+    country_id         uuid         not null,
+    tax_category       varchar(50)  not null,              -- 'standard', 'reduced', 'exempt', 'reverse_charge', 'small_business_exempt', etc.
+    is_rate_applicable boolean      not null default true, -- false for Alanyi adómentes
+    legal_text         text,                               -- Required legal disclaimer for invoices
+    reporting_code     varchar(50),                        -- For tax authority reporting (e.g., NAV reporting codes)
+    is_default         boolean      not null default false,
+    status             varchar(50)  not null default 'active',
+    created_by_id      uuid         not null,
+    created_at         timestamptz  not null default now(),
+    updated_at         timestamptz  not null default now(),
+    deleted_at         timestamptz,
+    foreign key (country_id) references countries (id),
+    foreign key (created_by_id) references users (id),
+    unique nulls not distinct (rate, country_id, tax_category, deleted_at),
+    constraint check_rate_applicable check (
+        (is_rate_applicable = true and rate is not null) or
+        (is_rate_applicable = false and rate is null)
+        )
+);
+
+CREATE INDEX idx_tax_country_id ON tax (country_id);
+CREATE INDEX idx_tax_tax_category ON tax (tax_category);
+CREATE INDEX idx_tax_created_by_id ON tax (created_by_id);
+CREATE INDEX idx_tax_created_at ON tax (created_at);
+CREATE INDEX idx_tax_updated_at ON tax (updated_at);
+CREATE INDEX idx_tax_deleted_at ON tax (deleted_at);
+
+CREATE TRIGGER update_updated_at_on_tax_table
+    BEFORE UPDATE
+    ON tax
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
+create table services
+(
+    id             uuid primary key      default uuid_generate_v4(),
+    name           varchar(255) not null,
+    description    text,
+    default_price  numeric(15, 2),
+    default_tax_id uuid         not null,
+    currency_id    uuid         not null,
+    status         varchar(50)  not null default 'active',
+    created_by_id  uuid         not null,
+    created_at     timestamptz  not null default now(),
+    updated_at     timestamptz  not null default now(),
+    deleted_at     timestamptz,
+    foreign key (currency_id) references currencies (id),
+    foreign key (created_by_id) references users (id),
+    foreign key (default_tax_id) references tax (id)
+);
+
+CREATE INDEX idx_services_currency_id ON services (currency_id);
+CREATE INDEX idx_services_default_tax_id ON services (default_tax_id);
+CREATE INDEX idx_services_created_by_id ON services (created_by_id);
+CREATE INDEX idx_services_created_at ON services (created_at);
+CREATE INDEX idx_services_updated_at ON services (updated_at);
+CREATE INDEX idx_services_deleted_at ON services (deleted_at);
+
+CREATE TRIGGER update_updated_at_on_services_table
+    BEFORE UPDATE
+    ON services
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();
+
 CREATE TRIGGER update_updated_at_on_worksheets_table
     BEFORE UPDATE
     ON worksheets
@@ -319,22 +388,30 @@ EXECUTE FUNCTION update_updated_at();
 
 create table tasks
 (
-    id            uuid primary key      default uuid_generate_v4(),
-    worksheet_id  uuid         not null,
-    title         varchar(255) not null,
-    description   text,
-    created_by_id uuid         not null,
-    status        varchar(50)  not null default 'pending',
+    id            uuid primary key     default uuid_generate_v4(),
+    worksheet_id  uuid        not null,
+    service_id    uuid        not null,
+    currency_id   uuid        not null,
+    price         numeric(15, 2),
+    tax_id        uuid        not null,
+    created_by_id uuid        not null,
+    status        varchar(50) not null default 'pending',
     priority      varchar(50),
     due_date      timestamptz,
-    created_at    timestamptz  not null default now(),
-    updated_at    timestamptz  not null default now(),
+    created_at    timestamptz not null default now(),
+    updated_at    timestamptz not null default now(),
     deleted_at    timestamptz,
     foreign key (worksheet_id) references worksheets (id),
-    foreign key (created_by_id) references users (id)
+    foreign key (service_id) references services (id),
+    foreign key (created_by_id) references users (id),
+    foreign key (tax_id) references tax (id),
+    foreign key (currency_id) references currencies (id)
 );
 
 CREATE INDEX idx_tasks_worksheet_id ON tasks (worksheet_id);
+CREATE INDEX idx_tasks_service_id ON tasks (service_id);
+CREATE INDEX idx_tasks_currency_id ON tasks (currency_id);
+CREATE INDEX idx_tasks_tax_id ON tasks (tax_id);
 CREATE INDEX idx_tasks_created_by_id ON tasks (created_by_id);
 CREATE INDEX idx_tasks_created_at ON tasks (created_at);
 CREATE INDEX idx_tasks_updated_at ON tasks (updated_at);
@@ -468,7 +545,7 @@ create table inventory
     warehouse_id  uuid        not null,
     quantity      integer     not null default 0,
     price         numeric(15, 2),
-    cost          numeric(15, 2),
+    tax_id uuid not null,
     currency_id   uuid        not null,
     created_by_id uuid        not null,
     created_at    timestamptz not null default now(),
@@ -477,11 +554,12 @@ create table inventory
     foreign key (currency_id) references currencies (id),
     foreign key (product_id) references products (id),
     foreign key (warehouse_id) references warehouses (id),
-    foreign key (created_by_id) references users (id)
+    foreign key (created_by_id) references users (id),
+    foreign key (tax_id) references tax (id)
 );
 
 CREATE INDEX idx_inventory_price ON inventory (price);
-CREATE INDEX idx_inventory_cost ON inventory (cost);
+CREATE INDEX idx_inventory_tax_id ON inventory (tax_id);
 CREATE INDEX idx_inventory_currency_id ON inventory (currency_id);
 CREATE INDEX idx_inventory_product_id ON inventory (product_id);
 CREATE INDEX idx_inventory_warehouse_id ON inventory (warehouse_id);

@@ -28,6 +28,7 @@ pub(crate) mod products;
 pub(crate) mod projects;
 pub(crate) mod tags;
 pub(crate) mod tasks;
+pub(crate) mod taxes;
 pub(crate) mod users;
 pub(crate) mod warehouses;
 pub(crate) mod worksheets;

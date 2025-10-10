@@ -17,20 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// TODO: this possibly can be simplified!
+pub(crate) mod description;
+pub(crate) mod legal_text;
+pub(crate) mod order_by;
+pub(crate) mod rate;
+pub(crate) mod reporting_code;
+pub(crate) mod status;
+pub(crate) mod tax_category;
 
-#[macro_export]
-macro_rules! validate_optional_string {
-    ($value:expr, $error_field:expr) => {
-        match ValueObject::new($value).inspect_err(|e| $error_field = Some(e.to_string())) {
-            Ok(val) => {
-                if !val.extract().get_value().trim().is_empty() {
-                    Some(val)
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        }
-    };
-}
+pub(crate) use description::Description as TaxDescription;
+pub(crate) use legal_text::LegalText as TaxLegalText;
+pub(crate) use order_by::OrderBy as TaxOrderBy;
+pub(crate) use rate::Rate as TaxRate;
+pub(crate) use reporting_code::ReportingCode as TaxReportingCode;
+pub(crate) use status::Status as TaxStatus;
+pub(crate) use tax_category::TaxCategory;

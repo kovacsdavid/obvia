@@ -16,20 +16,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![allow(clippy::module_inception)]
-#![allow(dead_code)] // TODO: Remove this when you are ready!
-#![allow(unused_variables)] // TODO: Remove this when you are ready!
 
-pub(crate) mod address;
-pub(crate) mod common;
-pub(crate) mod customers;
-pub(crate) mod inventory;
-pub(crate) mod products;
-pub(crate) mod projects;
-pub(crate) mod services;
-pub(crate) mod tags;
-pub(crate) mod tasks;
-pub(crate) mod taxes;
-pub(crate) mod users;
-pub(crate) mod warehouses;
-pub(crate) mod worksheets;
+pub(crate) mod description;
+pub(crate) mod name;
+pub(crate) mod order_by;
+pub(crate) mod status;
+pub(crate) mod default_price;
+
+pub(crate) use default_price::DefaultPrice as ServiceDefaultPrice;
+pub(crate) use description::Description as ServiceDescription;
+pub(crate) use name::Name as ServiceName;
+pub(crate) use order_by::OrderBy as ServiceOrderBy;
+pub(crate) use status::Status as ServiceStatus;

@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod default_price;
 pub(crate) mod description;
 pub(crate) mod name;
 pub(crate) mod order_by;
 pub(crate) mod status;
-pub(crate) mod default_price;
 
 pub(crate) use default_price::DefaultPrice as ServiceDefaultPrice;
 pub(crate) use description::Description as ServiceDescription;

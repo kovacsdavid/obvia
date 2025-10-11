@@ -20,7 +20,9 @@
 use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::tenant::services::types::service::default_price::DefaultPrice;
-use crate::tenant::services::types::service::{ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus};
+use crate::tenant::services::types::service::{
+    ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus,
+};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
@@ -113,8 +115,10 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
             error.name = Some(e.to_string());
         });
 
-        let description = validate_optional_string!(ServiceDescription(value.description), error.description);
-        let default_price = validate_optional_string!(ServiceDefaultPrice(value.default_price), error.description);
+        let description =
+            validate_optional_string!(ServiceDescription(value.description), error.description);
+        let default_price =
+            validate_optional_string!(ServiceDefaultPrice(value.default_price), error.description);
 
         let default_tax_id = if value.default_tax_id.trim().is_empty() {
             None

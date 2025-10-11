@@ -220,7 +220,12 @@ impl ServicesRepository for PoolManagerWrapper {
                     .as_ref()
                     .map(|d| d.extract().get_value().as_str()),
             )
-            .bind(service.default_price.as_ref().map(|d| d.extract().get_value().as_str()))
+            .bind(
+                service
+                    .default_price
+                    .as_ref()
+                    .map(|d| d.extract().get_value().as_str()),
+            )
             .bind(service.default_tax_id)
             .bind(service.currency_id)
             .bind(service.status.extract().get_value())

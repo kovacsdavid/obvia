@@ -27,10 +27,10 @@ use crate::common::types::order::Order;
 use crate::common::types::value_object::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
+use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::{ServiceUserInput, ServiceUserInputHelper};
 use crate::tenant::services::service::ServicesService;
 use crate::tenant::services::types::service::ServiceOrderBy;
-use crate::tenant::services::ServicesModule;
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -51,8 +51,8 @@ pub async fn get_resolved(
                 &payload,
                 services_module.services_repo.clone(),
             )
-                .await
-                .map_err(|e| e.into_response())?,
+            .await
+            .map_err(|e| e.into_response())?,
         )
         .build()
         .map_err(|e| e.into_response())?
@@ -152,8 +152,8 @@ pub async fn list(
         &claims,
         services_module.services_repo.clone(),
     )
-        .await
-        .map_err(|e| e.into_response())?;
+    .await
+    .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)

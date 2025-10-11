@@ -18,14 +18,14 @@
  */
 
 use crate::manager::auth::middleware::require_auth;
+use crate::tenant::services::ServicesModule;
 use crate::tenant::services::handler::{
     create as services_create, delete as services_delete, get as services_get,
     get_resolved as services_get_resolved, list as services_list, update as services_update,
 };
-use crate::tenant::services::ServicesModule;
+use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
-use axum::Router;
 use std::sync::Arc;
 
 pub fn routes(services_module: Arc<ServicesModule>) -> Router {

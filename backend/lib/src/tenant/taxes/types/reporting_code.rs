@@ -28,7 +28,7 @@ impl ValueObjectable for ReportingCode {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        todo!()
+        Ok(())
     }
 
     /// Retrieves a reference to the value contained within the struct.

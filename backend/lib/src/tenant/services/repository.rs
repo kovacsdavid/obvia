@@ -66,9 +66,9 @@ impl ServicesRepository for PoolManagerWrapper {
         let service = sqlx::query_as::<_, Service>(
             r#"SELECT * FROM services WHERE id = $1 AND deleted_at IS NULL"#,
         )
-            .bind(id)
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
-            .await?;
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
         Ok(service)
     }
 
@@ -101,9 +101,9 @@ impl ServicesRepository for PoolManagerWrapper {
             WHERE services.id = $1 AND services.deleted_at IS NULL
             "#,
         )
-            .bind(id)
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
-            .await?;
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
         Ok(service)
     }
 
@@ -213,25 +213,25 @@ impl ServicesRepository for PoolManagerWrapper {
             RETURNING *
             "#,
         )
-            .bind(service.name.extract().get_value())
-            .bind(
-                service
-                    .description
-                    .as_ref()
-                    .map(|d| d.extract().get_value().as_str()),
-            )
-            .bind(
-                service
-                    .default_price
-                    .as_ref()
-                    .map(|d| d.extract().get_value().as_str()),
-            )
-            .bind(service.default_tax_id)
-            .bind(service.currency_id)
-            .bind(service.status.extract().get_value())
-            .bind(id)
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
-            .await?)
+        .bind(service.name.extract().get_value())
+        .bind(
+            service
+                .description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
+        .bind(
+            service
+                .default_price
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
+        .bind(service.default_tax_id)
+        .bind(service.currency_id)
+        .bind(service.status.extract().get_value())
+        .bind(id)
+        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
     }
 
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
@@ -243,9 +243,9 @@ impl ServicesRepository for PoolManagerWrapper {
                 AND deleted_at IS NULL
             "#,
         )
-            .bind(id)
-            .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
-            .await?;
+        .bind(id)
+        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?;
 
         Ok(())
     }

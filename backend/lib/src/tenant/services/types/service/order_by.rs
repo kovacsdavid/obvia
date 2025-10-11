@@ -30,7 +30,10 @@ impl ValueObjectable for OrderBy {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        todo!()
+        match self.0.trim() {
+            "name" => Ok(()),
+            _ => Err("Hibás sorrend formátum".to_string()),
+        }
     }
 
     fn get_value(&self) -> &Self::DataType {
@@ -63,4 +66,49 @@ impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(order_by.extract().get_value(), "name");
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let cases = vec![r#""price""#, r#""quantity""#, r#""invalid_column""#];
+
+        for case in cases {
+            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
+            assert!(order_by.is_err());
+        }
+    }
+
+    #[test]
+    fn test_from_str() {
+        let order_by = OrderBy::from_str("name").unwrap();
+        assert_eq!(order_by.get_value(), "name");
+    }
+
+    #[test]
+    fn test_display() {
+        let order_by = OrderBy("name".to_string());
+        assert_eq!(format!("{}", order_by), "name");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let order_by = OrderBy("name".to_string());
+        assert_eq!(order_by.get_value(), "name");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(OrderBy("name".to_string()).validate().is_ok());
+        assert!(OrderBy("price".to_string()).validate().is_err());
+        assert!(OrderBy("quantity".to_string()).validate().is_err());
+        assert!(OrderBy("invalid_column".to_string()).validate().is_err());
+    }
+}

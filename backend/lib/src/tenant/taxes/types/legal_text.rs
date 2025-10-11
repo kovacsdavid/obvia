@@ -28,7 +28,13 @@ impl ValueObjectable for LegalText {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        todo!()
+        if self.0.len() <= 10000 {
+            Ok(())
+        } else {
+            Err(String::from(
+                "A jogi szöveg nem lehet 10 000 karakternél hosszabb!",
+            ))
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.
@@ -88,4 +94,87 @@ impl<'de> Deserialize<'de> for ValueObject<LegalText> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_legal_text() {
+        // Test regular text
+        let text: ValueObject<LegalText> =
+            serde_json::from_str(r#""This is a valid legal text.""#).unwrap();
+        assert_eq!(text.extract().get_value(), "This is a valid legal text.");
+
+        // Test empty text
+        let text: ValueObject<LegalText> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(text.extract().get_value(), "");
+
+        // Test text with special characters
+        let text: ValueObject<LegalText> =
+            serde_json::from_str(r#""Legal text with §§§ symbols and numbers 123!""#).unwrap();
+        assert_eq!(
+            text.extract().get_value(),
+            "Legal text with §§§ symbols and numbers 123!"
+        );
+    }
+
+    #[test]
+    fn test_max_length_legal_text() {
+        // Test text at exactly 10000 characters
+        let text = "a".repeat(10000);
+        let json = format!(r#""{}""#, text);
+        let result: Result<ValueObject<LegalText>, _> = serde_json::from_str(&json);
+        assert!(result.is_ok());
+
+        // Test text exceeding 10000 characters
+        let text = "a".repeat(10001);
+        let json = format!(r#""{}""#, text);
+        let result: Result<ValueObject<LegalText>, _> = serde_json::from_str(&json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_validation() {
+        // Test valid cases
+        assert!(LegalText("Short text".to_string()).validate().is_ok());
+        assert!(LegalText("".to_string()).validate().is_ok());
+        assert!(LegalText("a".repeat(10000)).validate().is_ok());
+
+        // Test invalid cases
+        assert!(LegalText("a".repeat(10001)).validate().is_err());
+    }
+
+    #[test]
+    fn test_display() {
+        let text = LegalText("Sample legal text".to_string());
+        assert_eq!(format!("{}", text), "Sample legal text");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let text = LegalText("Test text".to_string());
+        assert_eq!(text.get_value(), "Test text");
+    }
+
+    #[test]
+    fn test_deserialization_errors() {
+        // Test invalid JSON format
+        let result: Result<ValueObject<LegalText>, _> =
+            serde_json::from_str(r#"{"text": "Invalid format"}"#);
+        assert!(result.is_err());
+
+        // Test with non-string JSON value
+        let result: Result<ValueObject<LegalText>, _> = serde_json::from_str("123");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_clone_and_equality() {
+        let text1 = LegalText("Test text".to_string());
+        let text2 = text1.clone();
+        assert_eq!(text1, text2);
+
+        let text3 = LegalText("Different text".to_string());
+        assert_ne!(text1, text3);
+    }
+}

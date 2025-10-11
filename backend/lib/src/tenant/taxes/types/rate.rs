@@ -28,7 +28,16 @@ impl ValueObjectable for Rate {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        todo!()
+        if self.0.trim().is_empty() {
+            Ok(())
+        } else {
+            self.0
+                .trim()
+                .replace(",", ".")
+                .parse::<f64>()
+                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            Ok(())
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.
@@ -88,4 +97,66 @@ impl<'de> Deserialize<'de> for ValueObject<Rate> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use serde_json;
+
+    #[test]
+    fn test_valid_default_price() {
+        let price: ValueObject<Rate> = serde_json::from_str(r#""123.45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123.45");
+
+        let price: ValueObject<Rate> = serde_json::from_str(r#""123,45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123,45");
+    }
+
+    #[test]
+    fn test_empty_default_price() {
+        let price: ValueObject<Rate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(price.extract().get_value(), "");
+
+        let price: ValueObject<Rate> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(price.extract().get_value(), "  ");
+    }
+
+    #[test]
+    fn test_invalid_default_price_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#,
+        ];
+
+        for case in cases {
+            let price: Result<ValueObject<Rate>, _> = serde_json::from_str(case);
+            assert!(price.is_err());
+        }
+    }
+
+    #[test]
+    fn test_display() {
+        let price = Rate("123.45".to_string());
+        assert_eq!(format!("{}", price), "123.45");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let price = Rate("123.45".to_string());
+        assert_eq!(price.get_value(), "123.45");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(Rate("123.45".to_string()).validate().is_ok());
+        assert!(Rate("123,45".to_string()).validate().is_ok());
+        assert!(Rate("".to_string()).validate().is_ok());
+        assert!(Rate("  ".to_string()).validate().is_ok());
+
+        assert!(Rate("abc".to_string()).validate().is_err());
+        assert!(Rate("12.34.56".to_string()).validate().is_err());
+        assert!(Rate("12,34,56".to_string()).validate().is_err());
+        assert!(Rate("$123".to_string()).validate().is_err());
+    }
+}

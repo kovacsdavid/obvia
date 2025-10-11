@@ -58,7 +58,7 @@ impl IntoResponse for ServicesServiceError {
                         message: self.to_string(),
                     },
                 )
-                    .into_response()
+                .into_response()
             }
         }
     }
@@ -81,14 +81,14 @@ impl ServicesService {
                 .active_tenant()
                 .ok_or(ServicesServiceError::Unauthorized)?,
         )
-            .await
-            .map_err(|e| {
-                if e.is_unique_violation() {
-                    ServicesServiceError::ServiceExists
-                } else {
-                    e.into()
-                }
-            })?;
+        .await
+        .map_err(|e| {
+            if e.is_unique_violation() {
+                ServicesServiceError::ServiceExists
+            } else {
+                e.into()
+            }
+        })?;
         Ok(())
     }
     pub async fn get_resolved_by_id(

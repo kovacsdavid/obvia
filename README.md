@@ -43,23 +43,18 @@ Obvia ERP is designed as a full-stack web application:
 
 ```
 obvia/
-├── backend/                        # Backend Rust workspace
-│   ├── bin/                        # Backend binary (entry point)
-│   │   ├── src/main.rs             # Main application entry point
-│   │   └── Cargo.toml              # Binary package manifest
-│   ├── lib/                        # Backend library code
-│   │   ├── src/
-│   │   │   ├── common/             # Common utilities and types
-│   │   │   ├── manager/            # System-wide operations (auth, users, tenants)
-│   │   │   ├── tenant/             # Tenant-specific business logic
-│   │   │   └── lib.rs              # Library entry point
-│   │   └── Cargo.toml              # Library package manifest
+├── backend/                        # Backend Rust application
+│   ├── src/
+│   │   ├── main.rs                 # Main application entry point
+│   │   ├── common/                 # Common utilities and types
+│   │   ├── manager/                # System-wide operations (auth, users, tenants)
+│   │   └── tenant/                 # Tenant-specific business logic
 │   ├── config/                     # Configuration files
 │   │   └── default.toml.example    # Example configuration
 │   ├── migrations/                 # Database migrations
 │   │   ├── main/                   # Main database migrations
 │   │   └── tenant/                 # Tenant database migrations
-│   ├── Cargo.toml                  # Rust workspace manifest
+│   ├── Cargo.toml                  # Rust package manifest
 │   └── Dockerfile                  # Backend container definition
 ├── frontend/                       # Frontend React application
 │   ├── src/                        # Frontend source code
@@ -357,12 +352,12 @@ applied to avoid re-running them.
 
 Obvia ERP implements a multi-tenant architecture with separate database schemas:
 
-- **Manager Module** (`backend/lib/src/manager/`): Handles system-wide operations including:
+- **Manager Module** (`backend/src/manager/`): Handles system-wide operations including:
     - Authentication and authorization
     - User management
     - Tenant management
 
-- **Tenant Module** (`backend/lib/src/tenant/`): Contains tenant-specific business logic:
+- **Tenant Module** (`backend/src/tenant/`): Contains tenant-specific business logic:
     - Products
     - Services
     - Customers
@@ -371,7 +366,7 @@ Obvia ERP implements a multi-tenant architecture with separate database schemas:
 
 ### Security
 
-- **No Unsafe Code**: The workspace is configured to deny unsafe code via Clippy metadata and `#![forbid(unsafe_code)]`
+- **No Unsafe Code**: The package is configured to deny unsafe code via Clippy metadata and `#![forbid(unsafe_code)]`
 - **Password Hashing**: Uses Argon2 for secure password hashing
 - **JWT Authentication**: Stateless authentication with configurable expiration
 - **SQL Injection Protection**: All database queries use parameterized queries via SQLx

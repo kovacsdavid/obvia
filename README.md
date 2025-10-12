@@ -129,10 +129,10 @@ obvia/
 5. **Run the backend**:
    ```bash
    # Development mode
-   cargo run --bin backend_bin
+   cargo run --bin obvia_backend
    
    # Production mode (after release build)
-   ./target/release/backend_bin
+   ./target/release/obvia_backend
    ```
 
    The backend will start on `http://0.0.0.0:3000` (or the configured host/port).
@@ -288,7 +288,7 @@ Run these commands from the `backend/` directory:
 
 - **`cargo build`**: Build the backend in debug mode
 - **`cargo build --release`**: Build optimized production binary
-- **`cargo run --bin backend_bin`**: Run the backend in development mode
+- **`cargo run --bin obvia_backend`**: Run the backend in development mode
 - **`cargo test`**: Run all tests
 - **`cargo clippy`**: Run linter for code quality checks
 - **`cargo fmt`**: Format Rust source files

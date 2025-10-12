@@ -16,8 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![forbid(unsafe_code)]
 
-mod common;
-pub mod manager;
-pub mod tenant;
+#![allow(dead_code)] // TODO: Remove this when you are ready!
+#![allow(unused_variables)] // TODO: Remove this when you are ready!
+
+pub mod app;
+pub mod auth;
+pub mod tenants;
+pub mod users;

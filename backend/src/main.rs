@@ -16,14 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![forbid(unsafe_code)]
 
-use axum::Router;
-use backend_lib::manager::app::config::AppConfig;
-use backend_lib::manager::app::init::{
+#![forbid(unsafe_code)]
+mod common;
+mod manager;
+mod tenant;
+
+use crate::manager::app::config::AppConfig;
+use crate::manager::app::init::{
     config, init_default_app, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
     pg_pool_manager, subscriber,
 };
+use axum::Router;
 use std::sync::Arc;
 use tokio::signal;
 

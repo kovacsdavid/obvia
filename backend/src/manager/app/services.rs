@@ -44,7 +44,7 @@ use tracing::{error, info};
 /// * Ensure that the `../migrations/main` directory exists and contains valid migration scripts.
 /// * Requires the `sqlx` runtime and feature flags for PostgreSQL.
 pub async fn migrate_main_db(pg_pool_manager: Arc<dyn PgPoolManagerTrait>) -> anyhow::Result<()> {
-    Ok(sqlx::migrate!("../migrations/main")
+    Ok(sqlx::migrate!("./migrations/main")
         .run(&pg_pool_manager.get_main_pool())
         .await?)
 }

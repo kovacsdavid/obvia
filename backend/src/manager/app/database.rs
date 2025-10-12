@@ -347,7 +347,7 @@ pub struct PgDatabaseMigrator;
 #[async_trait]
 impl DatabaseMigrator for PgDatabaseMigrator {
     async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<(), RepositoryError> {
-        Ok(sqlx::migrate!("../migrations/tenant")
+        Ok(sqlx::migrate!("./migrations/tenant")
             .run(tenant_pool)
             .await?)
     }

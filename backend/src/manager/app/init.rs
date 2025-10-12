@@ -36,8 +36,10 @@ use crate::tenant::customers::init_default_customers_module;
 use crate::tenant::inventory::init_default_inventory_module;
 use crate::tenant::products::init_default_products_module;
 use crate::tenant::projects::init_default_projects_module;
+use crate::tenant::services::init_default_services_module;
 use crate::tenant::tags::init_default_tags_module;
 use crate::tenant::tasks::init_default_tasks_module;
+use crate::tenant::taxes::init_default_taxes_module;
 use crate::tenant::warehouses::init_default_warehouses_module;
 use crate::tenant::worksheets::init_default_worksheets_module;
 
@@ -162,10 +164,16 @@ pub async fn init_default_app(
     let projects_module = init_default_projects_module(pool_manager.clone(), config.clone())
         .build()
         .map_err(|e| anyhow!("{e}"))?;
+    let services_module = init_default_services_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
     let tags_module = init_default_tags_module(pool_manager.clone(), config.clone())
         .build()
         .map_err(|e| anyhow!("{e}"))?;
     let tasks_module = init_default_tasks_module(pool_manager.clone(), config.clone())
+        .build()
+        .map_err(|e| anyhow!("{e}"))?;
+    let taxes_module = init_default_taxes_module(pool_manager.clone(), config.clone())
         .build()
         .map_err(|e| anyhow!("{e}"))?;
     let warehouses_module = init_default_warehouses_module(pool_manager.clone(), config.clone())
@@ -188,8 +196,10 @@ pub async fn init_default_app(
             )))
             .merge(tenant::products::routes::routes(Arc::new(products_module)))
             .merge(tenant::projects::routes::routes(Arc::new(projects_module)))
+            .merge(tenant::services::routes::routes(Arc::new(services_module    )))
             .merge(tenant::tags::routes::routes(Arc::new(tags_module)))
             .merge(tenant::tasks::routes::routes(Arc::new(tasks_module)))
+            .merge(tenant::taxes::routes::routes(Arc::new(taxes_module)))
             .merge(tenant::warehouses::routes::routes(Arc::new(
                 warehouses_module,
             )))

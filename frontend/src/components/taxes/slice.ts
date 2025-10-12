@@ -84,6 +84,16 @@ export const get_resolved = createAsyncThunk(
   }
 )
 
+
+export const select_list = createAsyncThunk(
+  "taxes/select_list",
+  async (list: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await taxesApi.select_list(list, token);
+  }
+)
+
 const taxesSlice = createSlice({
   name: "taxes",
   initialState,

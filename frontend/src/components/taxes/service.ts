@@ -27,7 +27,12 @@ import {
   type TaxUserInput,
   type UpdateTaxResponse
 } from "@/components/taxes/interface.ts";
-import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
 import {
   isCreateTaxResponse,
   isDeleteTaxResponse,
@@ -176,6 +181,24 @@ export async function deleteItem(uuid: string, token: string | null): Promise<Pr
     return await ProcessResponse(
       response,
       isDeleteTaxResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function select_list(
+  list: string,
+  token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+  return await fetch(`/api/taxes/select_list?list=${list}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
     ) ?? unexpectedError;
   });
 }

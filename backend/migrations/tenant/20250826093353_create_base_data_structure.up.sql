@@ -311,7 +311,7 @@ CREATE INDEX idx_worksheets_created_at ON worksheets (created_at);
 CREATE INDEX idx_worksheets_updated_at ON worksheets (updated_at);
 CREATE INDEX idx_worksheets_deleted_at ON worksheets (deleted_at);
 
-create table tax
+create table taxes
 (
     id                 uuid primary key      default uuid_generate_v4(),
     rate               numeric(5, 2),
@@ -336,18 +336,32 @@ create table tax
         )
 );
 
-CREATE INDEX idx_tax_country_id ON tax (country_id);
-CREATE INDEX idx_tax_tax_category ON tax (tax_category);
-CREATE INDEX idx_tax_created_by_id ON tax (created_by_id);
-CREATE INDEX idx_tax_created_at ON tax (created_at);
-CREATE INDEX idx_tax_updated_at ON tax (updated_at);
-CREATE INDEX idx_tax_deleted_at ON tax (deleted_at);
+CREATE INDEX idx_taxes_country_id ON taxes (country_id);
+CREATE INDEX idx_taxes_tax_category ON taxes (tax_category);
+CREATE INDEX idx_taxes_created_by_id ON taxes (created_by_id);
+CREATE INDEX idx_taxes_created_at ON taxes (created_at);
+CREATE INDEX idx_taxes_updated_at ON taxes (updated_at);
+CREATE INDEX idx_taxes_deleted_at ON taxes (deleted_at);
 
-CREATE TRIGGER update_updated_at_on_tax_table
+CREATE TRIGGER update_updated_at_on_taxes_table
     BEFORE UPDATE
-    ON tax
+    ON taxes
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
+
+create table currencies
+(
+    id            uuid primary key     default uuid_generate_v4(),
+    currency      varchar(3)  not null,
+    created_by_id uuid        not null,
+    created_at    timestamptz not null default now(),
+    deleted_at    timestamptz,
+    foreign key (created_by_id) references users (id),
+    unique nulls not distinct (currency, deleted_at)
+);
+
+CREATE INDEX idx_currencies_created_by_id ON currencies (created_by_id);
+CREATE INDEX idx_currencies_created_at ON currencies (created_at);
 
 create table services
 (
@@ -364,7 +378,7 @@ create table services
     deleted_at     timestamptz,
     foreign key (currency_id) references currencies (id),
     foreign key (created_by_id) references users (id),
-    foreign key (default_tax_id) references tax (id)
+    foreign key (default_tax_id) references taxes (id)
 );
 
 CREATE INDEX idx_services_currency_id ON services (currency_id);
@@ -404,7 +418,7 @@ create table tasks
     foreign key (worksheet_id) references worksheets (id),
     foreign key (service_id) references services (id),
     foreign key (created_by_id) references users (id),
-    foreign key (tax_id) references tax (id),
+    foreign key (tax_id) references taxes (id),
     foreign key (currency_id) references currencies (id)
 );
 
@@ -422,20 +436,6 @@ CREATE TRIGGER update_updated_at_on_tasks_table
     ON tasks
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
-
-create table currencies
-(
-    id            uuid primary key     default uuid_generate_v4(),
-    currency      varchar(3)  not null,
-    created_by_id uuid        not null,
-    created_at    timestamptz not null default now(),
-    deleted_at    timestamptz,
-    foreign key (created_by_id) references users (id),
-    unique nulls not distinct (currency, deleted_at)
-);
-
-CREATE INDEX idx_currencies_created_by_id ON currencies (created_by_id);
-CREATE INDEX idx_currencies_created_at ON currencies (created_at);
 
 create table units_of_measure
 (
@@ -555,7 +555,7 @@ create table inventory
     foreign key (product_id) references products (id),
     foreign key (warehouse_id) references warehouses (id),
     foreign key (created_by_id) references users (id),
-    foreign key (tax_id) references tax (id)
+    foreign key (tax_id) references taxes (id)
 );
 
 CREATE INDEX idx_inventory_price ON inventory (price);

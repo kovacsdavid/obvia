@@ -20,11 +20,13 @@
 import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, update} from "@/components/taxes/slice.ts";
+import {create, get, update,select_list} from "@/components/taxes/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
+import {useSelectList} from "@/hooks/use_select_list.ts";
+import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 
 export default function Edit() {
   const [rate, setRate] = React.useState("");
@@ -36,8 +38,10 @@ export default function Edit() {
   const [reportingCode, setReportingCode] = React.useState("");
   const [isDefault, setIsDefault] = React.useState<boolean>(false);
   const [status, setStatus] = React.useState("");
+  const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
   const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
@@ -95,6 +99,16 @@ export default function Edit() {
       }
     });
   }, [countryId, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
+
+  useEffect(() => {
+    dispatch(select_list("countries")).then(async (response) => {
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setCountryList, setErrors);
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [dispatch, setErrors, setListResponse, unexpectedError]);
 
   useEffect(() => {
     if (typeof id === "string") {
@@ -167,9 +181,9 @@ export default function Edit() {
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="hu">Magyarország</SelectItem>
-            <SelectItem value="at">Ausztria</SelectItem>
-            <SelectItem value="de">Németország</SelectItem>
+            {countryList.map(country => {
+              return <SelectItem key={country.value} value={country.value}>{country.title}</SelectItem>
+            })}
           </SelectContent>
         </Select>
         <FieldError error={errors} field={"country_id"}/>

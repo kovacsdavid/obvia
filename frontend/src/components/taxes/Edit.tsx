@@ -31,9 +31,9 @@ import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 export default function Edit() {
   const [rate, setRate] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [countryId, setCountryId] = React.useState("");
+  const [countryCode, setCountryCode] = React.useState("");
   const [taxCategory, setTaxCategory] = React.useState("");
-  const [isRateApplicable, setIsRateApplicable] = React.useState<boolean>(false);
+  const [isRateApplicable, setIsRateApplicable] = React.useState("");
   const [legalText, setLegalText] = React.useState("");
   const [reportingCode, setReportingCode] = React.useState("");
   const [isDefault, setIsDefault] = React.useState<boolean>(false);
@@ -51,9 +51,9 @@ export default function Edit() {
       id,
       rate,
       description,
-      countryId,
+      countryCode,
       taxCategory,
-      isRateApplicable,
+      isRateApplicable: isRateApplicable === "true",
       legalText,
       reportingCode,
       isDefault,
@@ -71,16 +71,16 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [countryId, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
+  }, [countryCode, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
       id,
       rate,
       description,
-      countryId,
+      countryCode,
       taxCategory,
-      isRateApplicable,
+      isRateApplicable: isRateApplicable === "true",
       legalText,
       reportingCode,
       isDefault,
@@ -98,7 +98,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [countryId, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
+  }, [countryCode, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
 
   useEffect(() => {
     dispatch(select_list("countries")).then(async (response) => {
@@ -119,9 +119,9 @@ export default function Edit() {
               const data = response.payload.jsonData.data;
               setRate(data.rate ?? '');
               setDescription(data.description);
-              setCountryId(data.country_id);
+              setCountryCode(data.country_code);
               setTaxCategory(data.tax_category);
-              setIsRateApplicable(data.is_rate_applicable);
+              setIsRateApplicable(data.is_rate_applicable ? "true" : "false");
               setLegalText(data.legal_text ?? '');
               setReportingCode(data.reporting_code ?? '');
               setIsDefault(data.is_default);
@@ -153,15 +153,32 @@ export default function Edit() {
       <GlobalError error={errors}/>
 
       <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-
-        <Label htmlFor="rate">Adókulcs (%)</Label>
-        <Input
-          id="rate"
-          type="text"
-          value={rate}
-          onChange={e => setRate(e.target.value)}
-        />
-        <FieldError error={errors} field={"rate"}/>
+        <Label htmlFor="country_code">Adókulcs alkalmazandó</Label>
+        <Select
+          value={isRateApplicable}
+          onValueChange={val => setIsRateApplicable(val)}
+        >
+          <SelectTrigger className={"w-full"}>
+            <SelectValue/>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={"true"}>igen</SelectItem>
+            <SelectItem value={"false"}>nem</SelectItem>
+          </SelectContent>
+        </Select>
+        <FieldError error={errors} field={"country_code"}/>
+        {isRateApplicable === "true" ? (
+          <>
+            <Label htmlFor="rate">Adókulcs (%)</Label>
+            <Input
+              id="rate"
+              type="text"
+              value={rate}
+              onChange={e => setRate(e.target.value)}
+            />
+            <FieldError error={errors} field={"rate"}/>
+          </>
+        ) : null}
 
         <Label htmlFor="description">Leírás</Label>
         <Input
@@ -172,10 +189,10 @@ export default function Edit() {
         />
         <FieldError error={errors} field={"description"}/>
 
-        <Label htmlFor="country_id">Ország</Label>
+        <Label htmlFor="country_code">Ország</Label>
         <Select
-          value={countryId}
-          onValueChange={val => setCountryId(val)}
+          value={countryCode}
+          onValueChange={val => setCountryCode(val)}
         >
           <SelectTrigger className={"w-full"}>
             <SelectValue/>
@@ -186,7 +203,7 @@ export default function Edit() {
             })}
           </SelectContent>
         </Select>
-        <FieldError error={errors} field={"country_id"}/>
+        <FieldError error={errors} field={"country_code"}/>
 
         <Label htmlFor="tax_category">Adó kategória</Label>
         <Select

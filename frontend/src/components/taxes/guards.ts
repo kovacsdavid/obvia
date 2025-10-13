@@ -70,8 +70,8 @@ export function isTaxResolved(data: unknown): data is TaxResolved {
     (data.rate === null || typeof data.rate === 'string') &&
     'description' in data &&
     typeof data.description === 'string' &&
-    'country_id' in data &&
-    typeof data.country_id === 'string' &&
+    'country_code' in data &&
+    typeof data.country_code === 'string' &&
     'country' in data &&
     typeof data.country === 'string' &&
     'tax_category' in data &&
@@ -133,8 +133,8 @@ export function isTax(data: unknown): data is Tax {
     (data.rate === null || typeof data.rate === 'string') &&
     'description' in data &&
     typeof data.description === 'string' &&
-    'country_id' in data &&
-    typeof data.country_id === 'string' &&
+    'country_code' in data &&
+    typeof data.country_code === 'string' &&
     'tax_category' in data &&
     typeof data.tax_category === 'string' &&
     'is_rate_applicable' in data &&

@@ -83,7 +83,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.id as id,
                 taxes.rate as rate,
                 taxes.description as description,
-                taxes.country_id as country_id,
+                taxes.country_code as country_code,
                 countries.name as country,
                 taxes.tax_category as tax_category,
                 taxes.is_rate_applicable as is_rate_applicable,
@@ -98,7 +98,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.deleted_at as deleted_at
             FROM taxes
             LEFT JOIN users ON taxes.created_by_id = users.id
-            LEFT JOIN countries ON taxes.country_id = countries.id
+            LEFT JOIN countries ON taxes.country_code = countries.id
             WHERE taxes.deleted_at IS NULL
                 AND taxes.id = $1
             "#,
@@ -130,7 +130,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.id as id,
                 taxes.rate as rate,
                 taxes.description as description,
-                taxes.country_id as country_id,
+                taxes.country_code as country_code,
                 countries.name as country,
                 taxes.tax_category as tax_category,
                 taxes.is_rate_applicable as is_rate_applicable,
@@ -145,7 +145,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.deleted_at as deleted_at
             FROM taxes
             LEFT JOIN users ON taxes.created_by_id = users.id
-            LEFT JOIN countries ON taxes.country_id = countries.id
+            LEFT JOIN countries ON taxes.country_code = countries.id
             WHERE taxes.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
@@ -174,11 +174,20 @@ impl TaxesRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Tax> {
+        let rate = match &tax.rate {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("rate".to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, Tax>(
             "INSERT INTO taxes (
                 rate,
                 description,
-                country_id,
+                country_code,
                 tax_category,
                 is_rate_applicable,
                 legal_text,
@@ -189,9 +198,9 @@ impl TaxesRepository for PoolManagerWrapper {
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
         )
-        .bind(tax.rate.map(|v| v.extract().get_value().clone()))
+        .bind(rate)
         .bind(tax.description.extract().get_value())
-        .bind(tax.country_id)
+        .bind(tax.country_code.extract().get_value())
         .bind(tax.tax_category.extract().get_value())
         .bind(tax.is_rate_applicable)
         .bind(tax.legal_text.map(|v| v.extract().get_value().clone()))
@@ -207,12 +216,21 @@ impl TaxesRepository for PoolManagerWrapper {
         let id = tax
             .id
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let rate = match &tax.rate {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("rate".to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, Tax>(
             r#"
             UPDATE taxes
             SET rate = $1,
                 description = $2,
-                country_id = $3,
+                country_code = $3,
                 tax_category = $4,
                 is_rate_applicable = $5,
                 legal_text = $6,
@@ -224,9 +242,9 @@ impl TaxesRepository for PoolManagerWrapper {
             RETURNING *
             "#,
         )
-        .bind(tax.rate.map(|v| v.extract().get_value().clone()))
+        .bind(rate)
         .bind(tax.description.extract().get_value())
-        .bind(tax.country_id)
+        .bind(tax.country_code.extract().get_value())
         .bind(tax.tax_category.extract().get_value())
         .bind(tax.is_rate_applicable)
         .bind(tax.legal_text.map(|v| v.extract().get_value().clone()))

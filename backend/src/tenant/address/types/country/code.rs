@@ -22,13 +22,17 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Name(pub String);
+pub struct Code(pub String);
 
-impl ValueObjectable for Name {
+impl ValueObjectable for Code {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+        if self.0.trim().len() == 2 {
+            Ok(())
+        } else {
+            Err("Hibás ország azonosító".to_string())
+        }
     }
 
     /// Retrieves a reference to the value contained within the struct.
@@ -40,7 +44,7 @@ impl ValueObjectable for Name {
     }
 }
 
-impl Display for Name {
+impl Display for Code {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -56,7 +60,7 @@ impl Display for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
+impl<'de> Deserialize<'de> for ValueObject<Code> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -83,9 +87,75 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Name(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Code(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+    use crate::common::types::value_object::ValueObject;
+
+    #[test]
+    fn test_valid_postal_code() {
+        let code = Code("HU".to_string());
+        assert!(code.validate().is_ok());
+    }
+
+    #[test]
+    fn test_invalid_postal_code_too_short() {
+        let code = Code("H".to_string());
+        assert!(code.validate().is_err());
+    }
+
+    #[test]
+    fn test_invalid_postal_code_too_long() {
+        let code = Code("HUN".to_string());
+        assert!(code.validate().is_err());
+    }
+
+    #[test]
+    fn test_postal_code_with_spaces() {
+        let code = Code("  HU  ".to_string());
+        assert!(code.validate().is_ok());
+    }
+
+    #[test]
+    fn test_get_value() {
+        let code = Code("HU".to_string());
+        assert_eq!(code.get_value(), "HU");
+    }
+
+    #[test]
+    fn test_display() {
+        let code = Code("HU".to_string());
+        assert_eq!(format!("{}", code), "HU");
+    }
+
+    #[test]
+    fn test_value_object_creation() {
+        let result = ValueObject::new(Code("HU".to_string()));
+        assert!(result.is_ok());
+
+        let result = ValueObject::new(Code("INVALID".to_string()));
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_serialization() {
+        let code = Code("HU".to_string());
+        let serialized = serde_json::to_string(&code).unwrap();
+        assert_eq!(serialized, r#""HU""#);
+    }
+
+    #[test]
+    fn test_deserialization() {
+        let json = r#""HU""#;
+        let deserialized: ValueObject<Code> = serde_json::from_str(json).unwrap();
+        assert_eq!(deserialized.extract().get_value(), "HU");
+
+        let json = r#""INVALID""#;
+        let result: Result<ValueObject<Code>, _> = serde_json::from_str(json);
+        assert!(result.is_err());
+    }
+}

@@ -18,6 +18,7 @@
  */
 use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::address::types::country::CountryCode;
 use crate::tenant::taxes::types::legal_text::LegalText;
 use crate::tenant::taxes::types::reporting_code::ReportingCode;
 use crate::tenant::taxes::types::{
@@ -34,7 +35,7 @@ pub struct TaxUserInputHelper {
     pub id: Option<String>,
     pub rate: String,
     pub description: String,
-    pub country_id: String,
+    pub country_code: String,
     pub tax_category: String,
     pub is_rate_applicable: bool,
     pub legal_text: String,
@@ -48,7 +49,7 @@ pub struct TaxUserInputError {
     pub id: Option<String>,
     pub rate: Option<String>,
     pub description: Option<String>,
-    pub country_id: Option<String>,
+    pub country_code: Option<String>,
     pub tax_category: Option<String>,
     pub is_rate_applicable: Option<String>,
     pub legal_text: Option<String>,
@@ -62,7 +63,7 @@ impl TaxUserInputError {
         self.id.is_none()
             && self.rate.is_none()
             && self.description.is_none()
-            && self.country_id.is_none()
+            && self.country_code.is_none()
             && self.tax_category.is_none()
             && self.is_rate_applicable.is_none()
             && self.legal_text.is_none()
@@ -94,7 +95,7 @@ pub struct TaxUserInput {
     pub id: Option<Uuid>,
     pub rate: Option<ValueObject<TaxRate>>,
     pub description: ValueObject<TaxDescription>,
-    pub country_id: Uuid,
+    pub country_code: ValueObject<CountryCode>,
     pub tax_category: ValueObject<TaxCategory>,
     pub is_rate_applicable: bool,
     pub legal_text: Option<ValueObject<TaxLegalText>>,
@@ -129,8 +130,8 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
             error.description = Some(e.to_string());
         });
 
-        let country_id = Uuid::parse_str(value.country_id.as_str())
-            .inspect_err(|_| error.country_id = Some("Hibás ország azonosító!".to_string()));
+        let country_code = ValueObject::new(CountryCode(value.country_code))
+            .inspect_err(|e| error.country_code = Some(e.to_string()));
 
         let tax_category = ValueObject::new(TaxCategory(value.tax_category)).inspect_err(|e| {
             error.tax_category = Some(e.to_string());
@@ -149,7 +150,7 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
                 id,
                 rate,
                 description: description.map_err(|_| TaxUserInputError::default())?,
-                country_id: country_id.map_err(|_| TaxUserInputError::default())?,
+                country_code: country_code.map_err(|_| TaxUserInputError::default())?,
                 tax_category: tax_category.map_err(|_| TaxUserInputError::default())?,
                 is_rate_applicable: value.is_rate_applicable,
                 legal_text,

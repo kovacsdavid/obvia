@@ -187,7 +187,6 @@ pub async fn init_default_app(
         Router::new()
             .merge(auth::routes::routes(Arc::new(auth_module)))
             .merge(tenants::routes::routes(Arc::new(tenants_module)))
-            .merge(tenant::address::routes::routes(Arc::new(address_module)))
             .merge(tenant::customers::routes::routes(Arc::new(
                 customers_module,
             )))

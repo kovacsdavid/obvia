@@ -29,7 +29,7 @@ export interface TaxUserInput {
   id: string | null;
   rate: string | null;
   description: string;
-  countryId: string;
+  countryCode: string;
   taxCategory: string;
   isRateApplicable: boolean;
   legalText: string | null;
@@ -42,7 +42,7 @@ export interface Tax {
   id: string;
   rate: string | null;
   description: string;
-  country_id: string;
+  country_code: string;
   tax_category: string;
   is_rate_applicable: boolean;
   legal_text: string | null;
@@ -59,7 +59,7 @@ export interface TaxResolved {
   id: string;
   rate: string | null;
   description: string;
-  country_id: string;
+  country_code: string;
   country: string;
   tax_category: string;
   is_rate_applicable: boolean;

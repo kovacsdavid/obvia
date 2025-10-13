@@ -98,7 +98,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.deleted_at as deleted_at
             FROM taxes
             LEFT JOIN users ON taxes.created_by_id = users.id
-            LEFT JOIN countries ON taxes.country_code = countries.id
+            LEFT JOIN countries ON taxes.country_code = countries.code
             WHERE taxes.deleted_at IS NULL
                 AND taxes.id = $1
             "#,
@@ -145,7 +145,7 @@ impl TaxesRepository for PoolManagerWrapper {
                 taxes.deleted_at as deleted_at
             FROM taxes
             LEFT JOIN users ON taxes.created_by_id = users.id
-            LEFT JOIN countries ON taxes.country_code = countries.id
+            LEFT JOIN countries ON taxes.country_code = countries.code
             WHERE taxes.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1

@@ -19,7 +19,7 @@
 use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::ValueObject;
 use crate::common::types::value_object::ValueObjectable;
-use crate::tenant::inventory::types::currency::currency::Currency;
+use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::quantity::Quantity;
 use crate::tenant::inventory::types::inventory::{
     InventoryCost, InventoryPrice, InventoryQuantity,
@@ -38,8 +38,7 @@ pub struct InventoryUserInputHelper {
     pub quantity: String,
     pub price: String,
     pub cost: String,
-    pub currency_id: String,
-    pub new_currency: String,
+    pub currency_code: String,
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -50,8 +49,7 @@ pub struct InventoryUserInputError {
     pub quantity: Option<String>,
     pub price: Option<String>,
     pub cost: Option<String>,
-    pub currency_id: Option<String>,
-    pub new_currency: Option<String>,
+    pub currency_code: Option<String>,
 }
 
 impl InventoryUserInputError {
@@ -62,7 +60,7 @@ impl InventoryUserInputError {
             && self.quantity.is_none()
             && self.price.is_none()
             && self.cost.is_none()
-            && self.currency_id.is_none()
+            && self.currency_code.is_none()
     }
 }
 
@@ -91,8 +89,7 @@ pub struct InventoryUserInput {
     pub quantity: ValueObject<Quantity>,
     pub price: Option<ValueObject<InventoryPrice>>,
     pub cost: Option<ValueObject<InventoryCost>>,
-    pub currency_id: Option<Uuid>,
-    pub new_currency: Option<ValueObject<Currency>>,
+    pub currency_code: ValueObject<CurrencyCode>,
 }
 
 impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
@@ -117,24 +114,8 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
 
         let cost = validate_optional_string!(InventoryCost(value.cost), error.cost);
 
-        let currency_id = match value.currency_id.as_str() {
-            "other" => None,
-            _ => match Uuid::parse_str(value.currency_id.as_str()) {
-                Ok(v) => Some(v),
-                Err(_) => {
-                    error.currency_id = Some("Hibás mértékegység".to_string());
-                    None
-                }
-            },
-        };
-
-        let new_currency = if currency_id.is_some() {
-            None
-        } else {
-            ValueObject::new(Currency(value.new_currency))
-                .inspect_err(|e| error.new_currency = Some(e.to_string()))
-                .ok()
-        };
+        let currency_code = ValueObject::new(CurrencyCode(value.currency_code))
+            .inspect_err(|e| error.currency_code = Some(e.to_string()));
 
         if error.is_empty() {
             Ok(InventoryUserInput {
@@ -144,8 +125,7 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
                 quantity: quantity.map_err(|_| InventoryUserInputError::default())?,
                 price,
                 cost,
-                currency_id,
-                new_currency,
+                currency_code: currency_code.map_err(|_| InventoryUserInputError::default())?,
             })
         } else {
             Err(error)

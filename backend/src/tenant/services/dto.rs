@@ -36,7 +36,7 @@ pub struct ServiceUserInputHelper {
     pub description: String,
     pub default_price: String,
     pub default_tax_id: String,
-    pub currency_id: String,
+    pub currency_code: String,
     pub status: String,
 }
 
@@ -47,7 +47,7 @@ pub struct ServiceUserInputError {
     pub description: Option<String>,
     pub default_price: Option<String>,
     pub default_tax_id: Option<String>,
-    pub currency_id: Option<String>,
+    pub currency_code: Option<String>,
     pub status: Option<String>,
 }
 
@@ -58,7 +58,7 @@ impl ServiceUserInputError {
             && self.description.is_none()
             && self.default_price.is_none()
             && self.default_tax_id.is_none()
-            && self.currency_id.is_none()
+            && self.currency_code.is_none()
             && self.status.is_none()
     }
 }
@@ -87,7 +87,7 @@ pub struct ServiceUserInput {
     pub description: Option<ValueObject<ServiceDescription>>,
     pub default_price: Option<ValueObject<DefaultPrice>>,
     pub default_tax_id: Option<Uuid>,
-    pub currency_id: Option<Uuid>,
+    pub currency_code: Option<Uuid>,
     pub status: ValueObject<ServiceStatus>,
 }
 
@@ -132,13 +132,13 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
             }
         };
 
-        let currency_id = if value.currency_id.trim().is_empty() {
+        let currency_code = if value.currency_code.trim().is_empty() {
             None
         } else {
-            match Uuid::parse_str(&value.currency_id) {
+            match Uuid::parse_str(&value.currency_code) {
                 Ok(uuid) => Some(uuid),
                 Err(_) => {
-                    error.currency_id = Some("Érvénytelen valuta azonosító".to_string());
+                    error.currency_code = Some("Érvénytelen valuta azonosító".to_string());
                     None
                 }
             }
@@ -155,7 +155,7 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
                 description,
                 default_price,
                 default_tax_id,
-                currency_id,
+                currency_code,
                 status: status.map_err(|_| ServiceUserInputError::default())?,
             })
         } else {

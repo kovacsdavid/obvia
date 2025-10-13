@@ -34,8 +34,7 @@ export default function Edit() {
   const [quantity, setQuantity] = React.useState("");
   const [cost, setCost] = React.useState("");
   const [price, setPrice] = React.useState("");
-  const [currencyId, setCurrencyId] = React.useState("");
-  const [newCurrency, setNewCurrecy] = React.useState("");
+  const [currencyCode, setCurrencyCode] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const [productList, setProductList] = React.useState<SelectOptionList>([]);
   const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>([]);
@@ -54,8 +53,7 @@ export default function Edit() {
       quantity,
       cost,
       price,
-      currencyId,
-      newCurrency,
+      currencyCode,
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
@@ -69,7 +67,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [cost, currencyId, dispatch, id, navigate, newCurrency, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [cost, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -79,8 +77,7 @@ export default function Edit() {
       quantity,
       cost,
       price,
-      currencyId,
-      newCurrency,
+      currencyCode,
     })).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
@@ -94,7 +91,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [cost, currencyId, dispatch, id, navigate, newCurrency, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [cost, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
 
   useEffect(() => {
     if (typeof id === "string") {
@@ -108,7 +105,7 @@ export default function Edit() {
               setQuantity(data.quantity.toString());
               setCost(data.cost ?? "");
               setPrice(data.price ?? "");
-              setCurrencyId(data.currency_id);
+              setCurrencyCode(data.currency_code);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors({message: response.payload.jsonData.error.message, fields: {}})
@@ -220,10 +217,10 @@ export default function Edit() {
           onChange={e => setPrice(e.target.value)}
         />
         <FieldError error={errors} field={"price"}/>
-        <Label htmlFor="currency_id">Pénznem</Label>
+        <Label htmlFor="currency_code">Pénznem</Label>
         <Select
-          value={currencyId}
-          onValueChange={val => setCurrencyId(val)}
+          value={currencyCode}
+          onValueChange={val => setCurrencyCode(val)}
         >
           <SelectTrigger className={"w-full"}>
             <SelectValue/>
@@ -232,23 +229,9 @@ export default function Edit() {
             {currencyList.map(currency => {
               return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
             })}
-            <SelectItem value="other">Egyéb</SelectItem>
           </SelectContent>
         </Select>
-        <FieldError error={errors} field={"currency_id"}/>
-
-        {currencyId === "other" ? (
-          <>
-            <Label htmlFor="new_currency">Új pénznem</Label>
-            <Input
-              id="new_currency"
-              type="text"
-              value={newCurrency}
-              onChange={e => setNewCurrecy(e.target.value)}
-            />
-            <FieldError error={errors} field={"new_currency"}/>
-          </>
-        ) : null}
+        <FieldError error={errors} field={"currency_code"}/>
 
         <Button type="submit">Létrehozás</Button>
       </form>

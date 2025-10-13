@@ -84,6 +84,15 @@ export const get_resolved = createAsyncThunk(
   }
 )
 
+export const select_list = createAsyncThunk(
+  "services/select_list",
+  async (list: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await servicesApi.select_list(list, token);
+  }
+)
+
 const servicesSlice = createSlice({
   name: "services",
   initialState,

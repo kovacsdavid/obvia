@@ -64,8 +64,8 @@ export function isInventoryResolved(data: unknown): data is InventoryResolved {
     (data.price === null || typeof data.price === "string") &&
     "cost" in data &&
     (data.cost === null || typeof data.cost === "string") &&
-    "currency_id" in data &&
-    typeof data.currency_id === "string" &&
+    "currency_code" in data &&
+    typeof data.currency_code === "string" &&
     "currency" in data &&
     typeof data.currency === "string" &&
     "created_by_id" in data &&
@@ -119,8 +119,8 @@ export function isInventory(data: unknown): data is Inventory {
     (data.price === null || typeof data.price === "string") &&
     "cost" in data &&
     (data.cost === null || typeof data.cost === "string") &&
-    "currency_id" in data &&
-    typeof data.currency_id === "string" &&
+    "currency_code" in data &&
+    typeof data.currency_code === "string" &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "created_at" in data &&

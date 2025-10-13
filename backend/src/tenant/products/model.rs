@@ -35,7 +35,7 @@ use uuid::Uuid;
 /// - `unit_of_measure` (`Uuid`): Identifier for the unit of measure, referencing related measurement data.
 /// - `price` (`Option<BigDecimal>`): Optional price of the product.
 /// - `cost` (`Option<BigDecimal>`): Optional cost associated with the product.
-/// - `currency_id` (`Uuid`): Identifier representing the currency used for product pricing.
+/// - `currency_code` (`Uuid`): Identifier representing the currency used for product pricing.
 /// - `is_active` (`Option<bool>`): Optional flag indicating if the product is active.
 /// - `created_by` (`Uuid`): Identifier of the user who created the product.
 /// - `created_at` (`Option<DateTime<Local>`): Optional timestamp indicating when the product was created.

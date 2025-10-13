@@ -31,7 +31,7 @@ export interface ServiceUserInput {
   description: string | null,
   defaultPrice: string | null,
   defaultTaxId: string | null,
-  currencyId: string | null,
+  currencyCode: string | null,
   status: string,
 }
 
@@ -41,7 +41,7 @@ export interface Service {
   description: string | null,
   default_price: string | null,
   default_tax_id: string | null,
-  currency_id: string | null,
+  currency_code: string | null,
   status: string,
   created_by_id: string,
   created_at: string,
@@ -56,7 +56,7 @@ export interface ServiceResolved {
   default_price: string | null,
   default_tax_id: string | null,
   default_tax: string | null,
-  currency_id: string | null,
+  currency_code: string | null,
   currency: string | null,
   status: string,
   created_by_id: string,

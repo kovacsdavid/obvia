@@ -18,12 +18,11 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::InventoryUserInput;
-use crate::tenant::inventory::model::{Currency, Inventory, InventoryResolved};
+use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -57,16 +56,6 @@ pub trait InventoryRepository: Send + Sync {
         inventory: InventoryUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory>;
-    async fn insert_currency(
-        &self,
-        currency: &str,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Currency>;
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
@@ -101,7 +90,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 inventory.quantity as quantity,
                 inventory.price as price,
                 inventory.cost as cost,
-                inventory.currency_id as currency_id,
+                inventory.currency_code as currency_code,
                 currencies.currency as currency,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
@@ -111,7 +100,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN currencies ON inventory.currency_id = currencies.id
+            LEFT JOIN currencies ON inventory.currency_code = currencies.id
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
                 AND inventory.id = $1
@@ -149,7 +138,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 inventory.quantity as quantity,
                 inventory.price as price,
                 inventory.cost as cost,
-                inventory.currency_id as currency_id,
+                inventory.currency_code as currency_code,
                 currencies.currency as currency,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
@@ -159,7 +148,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN currencies ON inventory.currency_id = currencies.id
+            LEFT JOIN currencies ON inventory.currency_code = currencies.id
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
             {order_by_clause}
@@ -209,7 +198,7 @@ impl InventoryRepository for PoolManagerWrapper {
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
-            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, cost, currency_id, created_by_id)\
+            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, cost, currency_code, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
             .bind(inventory.product_id)
@@ -225,7 +214,7 @@ impl InventoryRepository for PoolManagerWrapper {
             )
             .bind(price)
             .bind(cost)
-            .bind(inventory.currency_id.ok_or(RepositoryError::InvalidInput("currency_id".to_string()))?)
+            .bind(inventory.currency_code.extract().get_value())
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?
@@ -266,7 +255,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 quantity = $3,
                 price = $4,
                 cost = $5,
-                currency_id = $6
+                currency_code = $6
             WHERE id = $7
                 AND deleted_at IS NULL
             RETURNING *
@@ -286,39 +275,9 @@ impl InventoryRepository for PoolManagerWrapper {
         )
         .bind(price)
         .bind(cost)
-        .bind(
-            inventory
-                .currency_id
-                .ok_or(RepositoryError::InvalidInput("currency_id".to_string()))?,
-        )
+        .bind(inventory.currency_code.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
-        .await?)
-    }
-
-    async fn insert_currency(
-        &self,
-        currency: &str,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Currency> {
-        Ok(sqlx::query_as::<_, Currency>(
-            "INSERT INTO currencies(currency, created_by_id)
-             VALUES ($1, $2) RETURNING *",
-        )
-        .bind(currency.to_string().trim().to_uppercase())
-        .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
-        .await?)
-    }
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
-        Ok(sqlx::query_as::<_, SelectOption>(
-            "SELECT currencies.id::VARCHAR as value, currencies.currency as title FROM currencies WHERE deleted_at IS NULL ORDER BY currency",
-        )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
 

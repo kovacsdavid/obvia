@@ -19,7 +19,6 @@
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::InventoryModule;
@@ -95,34 +94,10 @@ impl InventoryService {
         payload: &InventoryUserInput,
         inventory_module: Arc<InventoryModule>,
     ) -> InventoryServiceResult<()> {
-        let mut inventory = payload.clone();
-        inventory.currency_id = if inventory.currency_id.is_some() {
-            inventory.currency_id
-        } else {
-            Some(
-                inventory_module
-                    .inventory_repo
-                    .insert_currency(
-                        inventory
-                            .new_currency
-                            .as_ref()
-                            .ok_or(InventoryServiceError::InvalidState)?
-                            .extract()
-                            .get_value()
-                            .as_str(),
-                        claims.sub(),
-                        claims
-                            .active_tenant()
-                            .ok_or(InventoryServiceError::Unauthorized)?,
-                    )
-                    .await?
-                    .id,
-            )
-        };
         inventory_module
             .inventory_repo
             .insert(
-                inventory,
+                payload.clone(),
                 claims.sub(),
                 claims
                     .active_tenant()
@@ -146,8 +121,8 @@ impl InventoryService {
                 )
                 .await?),
             InventorySelectLists::Currencies => Ok(inventory_module
-                .inventory_repo
-                .get_select_list_items(
+                .currencies_repo
+                .get_all_countries_select_list_items(
                     claims
                         .active_tenant()
                         .ok_or(InventoryServiceError::Unauthorized)?,

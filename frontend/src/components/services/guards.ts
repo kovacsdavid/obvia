@@ -76,8 +76,8 @@ export function isServiceResolved(data: unknown): data is ServiceResolved {
     (data.default_tax_id === null || typeof data.default_tax_id === 'string') &&
     'default_tax' in data &&
     (data.default_tax === null || typeof data.default_tax === 'string') &&
-    'currency_id' in data &&
-    (data.currency_id === null || typeof data.currency_id === 'string') &&
+    'currency_code' in data &&
+    (data.currency_code === null || typeof data.currency_code === 'string') &&
     'currency' in data &&
     (data.currency === null || typeof data.currency === 'string') &&
     'status' in data &&
@@ -133,8 +133,8 @@ export function isService(data: unknown): data is Service {
     (data.default_price === null || typeof data.default_price === 'string') &&
     'default_tax_id' in data &&
     (data.default_tax_id === null || typeof data.default_tax_id === 'string') &&
-    'currency_id' in data &&
-    (data.currency_id === null || typeof data.currency_id === 'string') &&
+    'currency_code' in data &&
+    (data.currency_code === null || typeof data.currency_code === 'string') &&
     'status' in data &&
     typeof data.status === 'string' &&
     'created_by_id' in data &&

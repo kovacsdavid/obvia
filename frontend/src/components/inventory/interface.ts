@@ -32,8 +32,7 @@ export interface InventoryUserInput {
   quantity: string
   price: string
   cost: string
-  currencyId: string
-  newCurrency: string
+  currencyCode: string
 }
 
 export interface Inventory {
@@ -43,7 +42,7 @@ export interface Inventory {
   quantity: number,
   price: string | null,
   cost: string | null,
-  currency_id: string,
+  currency_code: string,
   created_by_id: string,
   created_at: string,
   updated_at: string,
@@ -59,7 +58,7 @@ export interface InventoryResolved {
   quantity: number,
   price: string | null,
   cost: string | null,
-  currency_id: string,
+  currency_code: string,
   currency: string,
   created_by_id: string,
   created_by: string,

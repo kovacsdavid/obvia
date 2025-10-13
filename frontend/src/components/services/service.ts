@@ -27,7 +27,12 @@ import {
   type ServiceUserInput,
   type UpdateServiceResponse
 } from "@/components/services/interface.ts";
-import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
 import {
   isCreateServiceResponse,
   isDeleteServiceResponse,
@@ -43,7 +48,7 @@ export async function create({
                                description,
                                defaultPrice,
                                defaultTaxId,
-                               currencyId,
+                               currencyCode,
                                status,
                              }: ServiceUserInput, token: string | null): Promise<ProcessedResponse<CreateServiceResponse>> {
   return await fetch(`/api/services/create`, {
@@ -59,7 +64,7 @@ export async function create({
       description,
       default_price: defaultPrice,
       default_tax_id: defaultTaxId,
-      currency_id: currencyId,
+      currency_code: currencyCode,
       status,
     }),
   }).then(async (response: Response) => {
@@ -76,7 +81,7 @@ export async function update({
                                description,
                                defaultPrice,
                                defaultTaxId,
-                               currencyId,
+                               currencyCode,
                                status,
                              }: ServiceUserInput, token: string | null): Promise<ProcessedResponse<UpdateServiceResponse>> {
   return await fetch(`/api/services/update`, {
@@ -92,7 +97,7 @@ export async function update({
       description,
       default_price: defaultPrice,
       default_tax_id: defaultTaxId,
-      currency_id: currencyId,
+      currency_code: currencyCode,
       status,
     }),
   }).then(async (response: Response) => {
@@ -164,6 +169,24 @@ export async function deleteItem(uuid: string, token: string | null): Promise<Pr
     return await ProcessResponse(
       response,
       isDeleteServiceResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function select_list(
+  list: string,
+  token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+  return await fetch(`/api/services/select_list?list=${list}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
     ) ?? unexpectedError;
   });
 }

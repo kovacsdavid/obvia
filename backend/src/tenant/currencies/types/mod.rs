@@ -17,4 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod inventory;
+pub(crate) mod code;
+
+pub(crate) use code::Code as CurrencyCode;

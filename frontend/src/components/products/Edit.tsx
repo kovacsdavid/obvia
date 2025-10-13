@@ -181,7 +181,6 @@ export default function Edit() {
             <FieldError error={errors} field={"new_unit_of_measure"}/>
           </>
         ) : null}
-        <FieldError error={errors} field={"currency_id"}/>
         <Label htmlFor="status">Státusz</Label>
         <Select
           value={status}

@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
     SuccessResponseBuilder, UuidParam,
@@ -35,6 +34,7 @@ use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -158,6 +158,27 @@ pub async fn list(
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+pub async fn select_list(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(inventory_module): State<Arc<ServicesModule>>,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let list_type = payload
+        .get("list")
+        .cloned()
+        .unwrap_or(String::from("missing_list"));
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            ServicesService::get_select_list_items(&list_type, &claims, inventory_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

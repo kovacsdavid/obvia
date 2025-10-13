@@ -21,7 +21,8 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::handler::{
     create as services_create, delete as services_delete, get as services_get,
-    get_resolved as services_get_resolved, list as services_list, update as services_update,
+    get_resolved as services_get_resolved, list as services_list,
+    select_list as services_select_list, update as services_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -35,6 +36,7 @@ pub fn routes(services_module: Arc<ServicesModule>) -> Router {
             .route("/get", get(services_get))
             .route("/get_resolved", get(services_get_resolved))
             .route("/list", get(services_list))
+            .route("/select_list", get(services_select_list))
             .route("/create", post(services_create))
             .route("/update", put(services_update))
             .route("/delete", delete(services_delete))

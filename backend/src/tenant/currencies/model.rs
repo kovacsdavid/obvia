@@ -16,5 +16,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 
-pub(crate) mod currency;
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct Currency {
+    pub code: String,
+    pub number: String,
+    pub name: String,
+}

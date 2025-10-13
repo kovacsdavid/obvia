@@ -19,6 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::currencies::repository::CurrencyRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use std::sync::Arc;
 
@@ -37,16 +38,19 @@ pub fn init_default_services_module(
     ServicesModuleBuilder::default()
         .config(config)
         .services_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct ServicesModule {
     pub config: Arc<AppConfig>,
     pub services_repo: Arc<dyn ServicesRepository>,
+    pub currencies_repo: Arc<dyn CurrencyRepository>,
 }
 
 pub struct ServicesModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub services_repo: Option<Arc<dyn ServicesRepository>>,
+    pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
 }
 
 impl ServicesModuleBuilder {
@@ -54,6 +58,7 @@ impl ServicesModuleBuilder {
         Self {
             config: None,
             services_repo: None,
+            currencies_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -64,12 +69,19 @@ impl ServicesModuleBuilder {
         self.services_repo = Some(services_repo);
         self
     }
+    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrencyRepository>) -> Self {
+        self.currencies_repo = Some(currencies_repo);
+        self
+    }
     pub fn build(self) -> Result<ServicesModule, String> {
         Ok(ServicesModule {
             config: self.config.ok_or("config is required".to_string())?,
             services_repo: self
                 .services_repo
                 .ok_or("services_repo is required".to_string())?,
+            currencies_repo: self
+                .currencies_repo
+                .ok_or("currencies_repo is required".to_string())?,
         })
     }
 }

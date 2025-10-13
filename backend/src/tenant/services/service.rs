@@ -16,17 +16,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
+use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::services::types::service::ServiceOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -41,14 +43,14 @@ pub enum ServicesServiceError {
 
     #[error("A megadott névvel már létezik szolgáltatás a rendszerben!")]
     ServiceExists,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for ServicesServiceError {
     fn into_response(self) -> Response {
         match self {
-            ServicesServiceError::Repository(e) => {
-                FriendlyError::internal(file!(), e.to_string()).into_response()
-            }
             ServicesServiceError::Unauthorized | ServicesServiceError::ServiceExists => {
                 FriendlyError::user_facing(
                     Level::DEBUG,
@@ -60,6 +62,22 @@ impl IntoResponse for ServicesServiceError {
                 )
                 .into_response()
             }
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+        }
+    }
+}
+
+pub enum ServicesSelectLists {
+    Currencies,
+}
+
+impl FromStr for ServicesSelectLists {
+    type Err = ServicesServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "currencies" => Ok(Self::Currencies),
+            _ => Err(ServicesServiceError::InvalidSelectList),
         }
     }
 }
@@ -164,5 +182,21 @@ impl ServicesService {
                     .ok_or(ServicesServiceError::Unauthorized)?,
             )
             .await?)
+    }
+    pub async fn get_select_list_items(
+        select_list: &str,
+        claims: &Claims,
+        services_module: Arc<ServicesModule>,
+    ) -> ServicesServiceResult<Vec<SelectOption>> {
+        match ServicesSelectLists::from_str(select_list)? {
+            ServicesSelectLists::Currencies => Ok(services_module
+                .currencies_repo
+                .get_all_countries_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(ServicesServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
 }

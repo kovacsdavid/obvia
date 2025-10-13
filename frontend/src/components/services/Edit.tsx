@@ -20,21 +20,25 @@
 import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, update} from "@/components/services/slice.ts";
+import {create, get, update, select_list} from "@/components/services/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
+import type {SelectOptionList} from "@/lib/interfaces/common.ts";
+import {useSelectList} from "@/hooks/use_select_list.ts";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [defaultPrice, setDefaultPrice] = React.useState("");
   const [defaultTaxId, setDefaultTaxId] = React.useState("");
-  const [currencyId, setCurrencyId] = React.useState("");
+  const [currencyCode, setCurrencyCode] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const {setListResponse} = useSelectList();
   const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
@@ -46,7 +50,7 @@ export default function Edit() {
       description,
       defaultPrice,
       defaultTaxId,
-      currencyId,
+      currencyCode,
       status,
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
@@ -61,7 +65,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [currencyId, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+  }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -70,7 +74,7 @@ export default function Edit() {
       description,
       defaultPrice,
       defaultTaxId,
-      currencyId,
+      currencyCode,
       status,
     })).then(async (response) => {
       if (update.fulfilled.match(response)) {
@@ -85,8 +89,23 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [currencyId, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
-
+  }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+  
+  useEffect(() => {
+    dispatch(select_list("currencies")).then(async (response) => {
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setCurrencyList, setErrors);
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [
+    dispatch,
+    setErrors,
+    unexpectedError,
+    setListResponse
+  ]);
+  
   useEffect(() => {
     if (typeof id === "string") {
       dispatch(get(id)).then(async (response) => {
@@ -98,7 +117,7 @@ export default function Edit() {
               setDescription(data.description ?? "");
               setDefaultPrice(data.default_price ?? "");
               setDefaultTaxId(data.default_tax_id ?? "");
-              setCurrencyId(data.currency_id ?? "");
+              setCurrencyCode(data.currency_code ?? "");
               setStatus(data.status);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
@@ -168,19 +187,21 @@ export default function Edit() {
         </Select>
         <FieldError error={errors} field={"default_tax_id"}/>
 
-        <Label htmlFor="currency_id">Alapértelmezett pénznem</Label>
+        <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
         <Select
-          value={defaultTaxId}
-          onValueChange={val => setDefaultTaxId(val)}
+          value={currencyCode}
+          onValueChange={val => setCurrencyCode(val)}
         >
           <SelectTrigger className={"w-full"}>
             <SelectValue/>
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="other">Egyéb</SelectItem>
+            {currencyList.map(currency => {
+              return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+            })}
           </SelectContent>
         </Select>
-        <FieldError error={errors} field={"currency_id"}/>
+        <FieldError error={errors} field={"currency_code"}/>
 
         <Label htmlFor="status">Státusz</Label>
         <Select

@@ -17,4 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod inventory;
+pub(crate) mod model;
+pub(crate) mod repository;
+pub(crate) mod types;

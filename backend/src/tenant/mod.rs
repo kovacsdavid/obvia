@@ -22,6 +22,7 @@
 
 pub(crate) mod address;
 pub(crate) mod common;
+pub(crate) mod currencies;
 pub(crate) mod customers;
 pub(crate) mod inventory;
 pub(crate) mod products;

@@ -19,6 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::currencies::repository::CurrencyRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::warehouses::repository::WarehousesRepository;
@@ -41,6 +42,7 @@ pub fn init_default_inventory_module(
         .inventory_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct InventoryModule {
@@ -48,6 +50,7 @@ pub struct InventoryModule {
     pub inventory_repo: Arc<dyn InventoryRepository>,
     pub products_repo: Arc<dyn ProductsRepository>,
     pub warehouses_repo: Arc<dyn WarehousesRepository>,
+    pub currencies_repo: Arc<dyn CurrencyRepository>,
 }
 
 pub struct InventoryModuleBuilder {
@@ -55,6 +58,7 @@ pub struct InventoryModuleBuilder {
     pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
     pub products_repo: Option<Arc<dyn ProductsRepository>>,
     pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
+    pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
 }
 
 impl InventoryModuleBuilder {
@@ -64,6 +68,7 @@ impl InventoryModuleBuilder {
             inventory_repo: None,
             products_repo: None,
             warehouses_repo: None,
+            currencies_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -82,18 +87,25 @@ impl InventoryModuleBuilder {
         self.warehouses_repo = Some(warehouses_repo);
         self
     }
+    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrencyRepository>) -> Self {
+        self.currencies_repo = Some(currencies_repo);
+        self
+    }
     pub fn build(self) -> Result<InventoryModule, String> {
         Ok(InventoryModule {
             config: self.config.ok_or("config is required".to_string())?,
             inventory_repo: self
                 .inventory_repo
-                .ok_or("inventory_repo  is required".to_string())?,
+                .ok_or("inventory_repo is required".to_string())?,
             products_repo: self
                 .products_repo
-                .ok_or("products_repo  is required".to_string())?,
+                .ok_or("products_repo is required".to_string())?,
             warehouses_repo: self
                 .warehouses_repo
-                .ok_or("warehouses_repo  is required".to_string())?,
+                .ok_or("warehouses_repo is required".to_string())?,
+            currencies_repo: self
+                .currencies_repo
+                .ok_or("currencies_repo is required".to_string())?,
         })
     }
 }

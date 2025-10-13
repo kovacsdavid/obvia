@@ -58,7 +58,7 @@ pub struct Inventory {
     pub quantity: i32,
     pub price: Option<BigDecimal>,
     pub cost: Option<BigDecimal>,
-    pub currency_id: Uuid,
+    pub currency_code: Uuid,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
@@ -75,34 +75,11 @@ pub struct InventoryResolved {
     pub quantity: i32,
     pub price: Option<BigDecimal>,
     pub cost: Option<BigDecimal>,
-    pub currency_id: Uuid,
+    pub currency_code: Uuid,
     pub currency: String,
     pub created_by_id: Uuid,
     pub created_by: String,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
-}
-
-/// A struct representing a currency entity.
-///
-/// The `Currency` struct is used to store and manipulate information about a currency, including
-/// a unique identifier, the currency name, and the timestamp when it was created.
-///
-/// This structure derives several traits to enhance its functionality:
-/// - `Debug`: Allows for formatting the struct using the `{:?}` formatter.
-/// - `Clone`: Enables creating deep copies of `Currency` instances.
-/// - `Serialize` and `Deserialize`: Provides serialization and deserialization support, typically for JSON or other formats.
-/// - `FromRow`: Facilitates conversion from a database row to a `Currency` instance, commonly used in database operations.
-///
-/// Fields:
-/// - `id` (`Uuid`): A unique identifier for the currency. It is represented as a UUID.
-/// - `currency` (`String`): The name or code of the currency (e.g., "USD", "EUR").
-/// - `created_at` (`DateTime<Local>`): The timestamp indicating when the currency entry was created.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Currency {
-    pub id: Uuid,
-    pub currency: String,
-    pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }

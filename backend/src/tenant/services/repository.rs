@@ -86,7 +86,7 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.default_price,
                 services.default_tax_id,
                 tax.description as default_tax,
-                services.currency_id,
+                services.currency_code,
                 currencies.currency as currency,
                 services.status,
                 services.created_by_id,
@@ -97,7 +97,7 @@ impl ServicesRepository for PoolManagerWrapper {
             FROM services
             LEFT JOIN users ON services.created_by_id = users.id
             LEFT JOIN tax ON services.default_tax_id = tax.id
-            LEFT JOIN currencies ON services.currency_id = currencies.id
+            LEFT JOIN currencies ON services.currency_code = currencies.id
             WHERE services.id = $1 AND services.deleted_at IS NULL
             "#,
         )
@@ -133,7 +133,7 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.default_price,
                 services.default_tax_id,
                 tax.description as default_tax,
-                services.currency_id,
+                services.currency_code,
                 currencies.currency as currency,
                 services.status,
                 services.created_by_id,
@@ -144,7 +144,7 @@ impl ServicesRepository for PoolManagerWrapper {
             FROM services 
             LEFT JOIN users ON services.created_by_id = users.id
             LEFT JOIN tax ON services.default_tax_id = tax.id
-            LEFT JOIN currencies ON services.currency_id = currencies.id
+            LEFT JOIN currencies ON services.currency_code = currencies.id
             WHERE services.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
@@ -176,7 +176,7 @@ impl ServicesRepository for PoolManagerWrapper {
     ) -> RepositoryResult<Service> {
         Ok(sqlx::query_as::<_, Service>(
             r#"
-            INSERT INTO services (name, description, default_price, default_tax_id, currency_id, status, created_by_id)
+            INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING *
             "#,
@@ -185,7 +185,7 @@ impl ServicesRepository for PoolManagerWrapper {
             .bind(service.description.as_ref().map(|d| d.extract().get_value().as_str()))
             .bind(service.default_price.as_ref().map(|d| d.extract().get_value().as_str()))
             .bind(service.default_tax_id)
-            .bind(service.currency_id)
+            .bind(service.currency_code)
             .bind(service.status.extract().get_value())
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -207,7 +207,7 @@ impl ServicesRepository for PoolManagerWrapper {
                 description = $2,
                 default_price = $3,
                 default_tax_id = $4,
-                currency_id = $5,
+                currency_code = $5,
                 status = $6
             WHERE id = $7 AND deleted_at IS NULL
             RETURNING *
@@ -227,7 +227,7 @@ impl ServicesRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(service.default_tax_id)
-        .bind(service.currency_id)
+        .bind(service.currency_code)
         .bind(service.status.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

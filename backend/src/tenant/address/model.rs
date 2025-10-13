@@ -22,72 +22,23 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Represents an address entity with details about its location and associated metadata.
-///
-/// This struct is typically used for storing and managing address information in a database
-/// or for transferring data across layers of an application.
-///
-/// # Fields
-///
-/// - `id` (`Uuid`): A unique identifier for the address.
-/// - `street_address` (`String`): The primary address line (e.g., house number, street name).
-/// - `city_id` (`Uuid`): A foreign key referencing the city's unique identifier.
-/// - `state_id` (`Uuid`): A foreign key referencing the state's unique identifier.
-/// - `country_id` (`Uuid`): A foreign key referencing the country's unique identifier.
-/// - `additional_info` (`Option<String>`): Additional information about the address (e.g., apartment number, landmark).
-/// - `created_at` (`DateTime<Local>`): The timestamp when the address record was created.
-/// - `updated_at` (`DateTime<Local>`): The timestamp when the address record was last updated.
-/// - `deleted_at` (`Option<DateTime<Local>`): The timestamp when the address record was deleted (if applicable).
-///
-/// # Traits
-///
-/// - `Debug`: Enables formatting of the struct for debugging purposes.
-/// - `Clone`: Provides the ability to create duplicate instances of the struct.
-/// - `Serialize`: Allows the struct to be serialized to formats like JSON.
-/// - `Deserialize`: Allows the struct to be deserialized from formats like JSON.
-/// - `FromRow`: Enables the struct to be used with database query results.
-///
-/// # Notes
-///
-/// - The `#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]` attribute automatically implements
-///   several useful traits for the struct.
-///
-/// This struct is intended to integrate seamlessly with common database libraries and serialization frameworks.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Address {
     pub id: Uuid,
     pub street_address: String,
     pub city_id: Uuid,
     pub state_id: Uuid,
-    pub country_id: Uuid,
+    pub country_code: String,
     pub additional_info: Option<String>,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
 
-///
-/// The `Country` struct represents a country entity with associated metadata.
-/// It is used to store and manipulate country-related information within the system.
-///
-/// # Attributes
-///
-/// * `id` (`Uuid`): A unique identifier for the country.
-/// * `name` (`String`): The name of the country.
-/// * `created_at` (`DateTime<Local>`): The timestamp indicating when the country record was created.
-///
-/// # Derives
-///
-/// * `Debug`: Allows the struct to be formatted using the `fmt::Debug` trait.
-/// * `Clone`: Enables the struct to be cloned, creating copies of its values.
-/// * `Serialize` and `Deserialize`: Enables the struct to be serialized and deserialized,
-///   for example when working with JSON or other data formats.
-/// * `FromRow`: Supports seamless mapping from database query results to the struct.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Country {
-    pub id: Uuid,
+    pub code: String,
     pub name: String,
-    pub created_at: DateTime<Local>,
 }
 
 /// Represents the `State` structure that holds information about a state.

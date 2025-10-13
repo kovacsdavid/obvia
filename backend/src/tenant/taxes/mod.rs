@@ -19,6 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use std::sync::Arc;
 
@@ -37,16 +38,19 @@ pub fn init_default_taxes_module(
     TaxesModuleBuilder::default()
         .config(config)
         .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .address_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct TaxesModule {
     pub config: Arc<AppConfig>,
     pub taxes_repo: Arc<dyn TaxesRepository>,
+    pub address_repo: Arc<dyn AddressRepository>,
 }
 
 pub struct TaxesModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
+    pub address_repo: Option<Arc<dyn AddressRepository>>,
 }
 
 impl TaxesModuleBuilder {
@@ -54,6 +58,7 @@ impl TaxesModuleBuilder {
         Self {
             config: None,
             taxes_repo: None,
+            address_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -64,12 +69,19 @@ impl TaxesModuleBuilder {
         self.taxes_repo = Some(taxes_repo);
         self
     }
+    pub fn address_repo(mut self, address_repo: Arc<dyn AddressRepository>) -> Self {
+        self.address_repo = Some(address_repo);
+        self
+    }
     pub fn build(self) -> Result<TaxesModule, String> {
         Ok(TaxesModule {
             config: self.config.ok_or("config is required".to_string())?,
             taxes_repo: self
                 .taxes_repo
                 .ok_or("taxes_repo is required".to_string())?,
+            address_repo: self
+                .address_repo
+                .ok_or("address_repo is required".to_string())?,
         })
     }
 }

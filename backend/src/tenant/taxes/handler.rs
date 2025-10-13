@@ -35,6 +35,7 @@ use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -154,6 +155,27 @@ pub async fn list(
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+pub async fn select_list(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(taxes_module): State<Arc<TaxesModule>>,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let list_type = payload
+        .get("list")
+        .cloned()
+        .unwrap_or(String::from("missing_list"));
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            TaxesService::get_select_list_items(&list_type, &claims, taxes_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

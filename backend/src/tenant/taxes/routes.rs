@@ -21,7 +21,8 @@ use crate::manager::auth::middleware::require_auth;
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::handler::{
     create as taxes_create, delete as taxes_delete, get as taxes_get,
-    get_resolved as taxes_get_resolved, list as taxes_list, update as taxes_update,
+    get_resolved as taxes_get_resolved, list as taxes_list, select_list as taxes_select_list,
+    update as taxes_update,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -35,6 +36,7 @@ pub fn routes(taxes_module: Arc<TaxesModule>) -> Router {
             .route("/get", get(taxes_get))
             .route("/get_resolved", get(taxes_get_resolved))
             .route("/list", get(taxes_list))
+            .route("/select_list", get(taxes_select_list))
             .route("/create", post(taxes_create))
             .route("/update", put(taxes_update))
             .route("/delete", delete(taxes_delete))

@@ -18,14 +18,17 @@
  */
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
+use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::taxes::types::TaxOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -40,14 +43,14 @@ pub enum TaxesServiceError {
 
     #[error("Az adó már létrehozásra került a rendszerben")]
     TaxExists,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for TaxesServiceError {
     fn into_response(self) -> Response {
         match self {
-            TaxesServiceError::Repository(e) => {
-                FriendlyError::internal(file!(), e.to_string()).into_response()
-            }
             TaxesServiceError::Unauthorized | TaxesServiceError::TaxExists => {
                 FriendlyError::user_facing(
                     Level::DEBUG,
@@ -59,6 +62,22 @@ impl IntoResponse for TaxesServiceError {
                 )
                 .into_response()
             }
+            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+        }
+    }
+}
+
+pub enum TaxesSelectLists {
+    Countries,
+}
+
+impl FromStr for TaxesSelectLists {
+    type Err = TaxesServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "countries" => Ok(Self::Countries),
+            _ => Err(TaxesServiceError::InvalidSelectList),
         }
     }
 }
@@ -163,5 +182,21 @@ impl TaxesService {
                     .ok_or(TaxesServiceError::Unauthorized)?,
             )
             .await?)
+    }
+    pub async fn get_select_list_items(
+        select_list: &str,
+        claims: &Claims,
+        taxes_module: Arc<TaxesModule>,
+    ) -> TaxesServiceResult<Vec<SelectOption>> {
+        match TaxesSelectLists::from_str(select_list)? {
+            TaxesSelectLists::Countries => Ok(taxes_module
+                .address_repo
+                .get_all_countries_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(TaxesServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
     }
 }

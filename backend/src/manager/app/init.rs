@@ -196,7 +196,7 @@ pub async fn init_default_app(
             )))
             .merge(tenant::products::routes::routes(Arc::new(products_module)))
             .merge(tenant::projects::routes::routes(Arc::new(projects_module)))
-            .merge(tenant::services::routes::routes(Arc::new(services_module    )))
+            .merge(tenant::services::routes::routes(Arc::new(services_module)))
             .merge(tenant::tags::routes::routes(Arc::new(tags_module)))
             .merge(tenant::tasks::routes::routes(Arc::new(tasks_module)))
             .merge(tenant::taxes::routes::routes(Arc::new(taxes_module)))

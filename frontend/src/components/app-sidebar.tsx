@@ -34,7 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import {useAuth} from "@/context/AuthContext";
-import {logoutUser} from "@/components/auth/slice.ts";
+import {logoutUser} from "@/components/modules/auth/lib/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";

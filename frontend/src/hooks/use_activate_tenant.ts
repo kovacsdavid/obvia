@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {activate} from "@/components/tenants/slice.ts";
+import {activate} from "@/components/modules/tenants/lib/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {updateToken} from "@/components/auth/slice.ts";
+import {updateToken} from "@/components/modules/auth/lib/slice.ts";
 
 export function useActivateTenant() {
   const dispatch = useAppDispatch();

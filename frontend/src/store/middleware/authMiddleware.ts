@@ -18,7 +18,7 @@
  */
 
 import {type Middleware, type MiddlewareAPI} from '@reduxjs/toolkit';
-import {logoutUser} from '@/components/auth/slice.ts';
+import {logoutUser} from '@/components/modules/auth/lib/slice.ts';
 
 const isSessionExpiredAction = (action: unknown) => (
   typeof action === "object"

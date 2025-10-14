@@ -1,0 +1,102 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import * as worksheetsApi from "@/components/modules/worksheets/lib/service.ts";
+import type {RootState} from "@/store";
+import type {WorksheetUserInput} from "@/components/modules/worksheets/lib/interface.ts";
+
+interface WorksheetsState {
+  status: "idle" | "loading" | "succeeded" | "failed",
+}
+
+const initialState: WorksheetsState = {
+  status: "idle",
+}
+
+export const create = createAsyncThunk(
+  "worksheets/create",
+  async (requestData: WorksheetUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return worksheetsApi.create(requestData, token);
+  }
+)
+
+export const select_list = createAsyncThunk(
+  "worksheets/select_list",
+  async (list: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.select_list(list, token);
+  }
+)
+
+export const list = createAsyncThunk(
+  "worksheets/list",
+  async (query: string | null, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return worksheetsApi.list(query, token);
+  }
+)
+
+export const get_resolved = createAsyncThunk(
+  "worksheets/get_resolved",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.get_resolved(uuid, token);
+  }
+)
+
+export const get = createAsyncThunk(
+  "worksheets/get",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.get(uuid, token);
+  }
+)
+
+export const update = createAsyncThunk(
+  "worksheets/update",
+  async (requestData: WorksheetUserInput, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.update(requestData, token);
+  }
+)
+
+export const deleteItem = createAsyncThunk(
+  "worksheets/deleteItem",
+  async (uuid: string, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await worksheetsApi.deleteItem(uuid, token);
+  }
+);
+
+const worksheetsSlice = createSlice({
+  name: "worksheets",
+  initialState,
+  reducers: {},
+});
+
+export default worksheetsSlice.reducer;

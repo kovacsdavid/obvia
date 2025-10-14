@@ -37,7 +37,7 @@ pub struct TaxUserInputHelper {
     pub description: String,
     pub country_code: String,
     pub tax_category: String,
-    pub is_rate_applicable: bool,
+    pub is_rate_applicable: Option<bool>,
     pub legal_text: String,
     pub reporting_code: String,
     pub is_default: bool,
@@ -117,10 +117,15 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
                 })
                 .ok(),
         };
+        
+        if value.is_rate_applicable.is_none() { 
+            error.is_rate_applicable = Some("A mező kitöltése kötelező!".to_string());
+        }
 
         let rate = ValueObject::new(TaxRate(value.rate))
             .inspect_err(|e| {
-                if value.is_rate_applicable {
+                if let Some(is_rate_applicable) = value.is_rate_applicable 
+                    && is_rate_applicable == true {
                     error.rate = Some(e.to_string())
                 }
             })
@@ -152,7 +157,7 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
                 description: description.map_err(|_| TaxUserInputError::default())?,
                 country_code: country_code.map_err(|_| TaxUserInputError::default())?,
                 tax_category: tax_category.map_err(|_| TaxUserInputError::default())?,
-                is_rate_applicable: value.is_rate_applicable,
+                is_rate_applicable: value.is_rate_applicable.ok_or(TaxUserInputError::default())?,
                 legal_text,
                 reporting_code,
                 is_default: value.is_default,

@@ -31,7 +31,7 @@ export interface TaxUserInput {
   description: string;
   countryCode: string;
   taxCategory: string;
-  isRateApplicable: boolean;
+  isRateApplicable: boolean | null;
   legalText: string | null;
   reportingCode: string | null;
   isDefault: boolean;

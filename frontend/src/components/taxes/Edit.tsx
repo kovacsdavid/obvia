@@ -47,6 +47,17 @@ export default function Edit() {
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
+  const evalIsRateApplicable = (value: string): boolean | null => {
+    switch (value) {
+      case "true":
+        return true;
+      case "false":
+        return false;
+      default:
+        return null;
+    }
+  };
+
   const handleCreate = useCallback(() => {
     dispatch(create({
       id,
@@ -54,7 +65,7 @@ export default function Edit() {
       description,
       countryCode,
       taxCategory,
-      isRateApplicable: isRateApplicable === "true",
+      isRateApplicable: evalIsRateApplicable(isRateApplicable),
       legalText,
       reportingCode,
       isDefault,
@@ -81,7 +92,7 @@ export default function Edit() {
       description,
       countryCode,
       taxCategory,
-      isRateApplicable: isRateApplicable === "true",
+      isRateApplicable: evalIsRateApplicable(isRateApplicable),
       legalText,
       reportingCode,
       isDefault,
@@ -158,7 +169,7 @@ export default function Edit() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="country_code">Adókulcs alkalmazandó</Label>
+            <Label htmlFor="is_rate_applicable">Adókulcs alkalmazandó</Label>
             <Select
               value={isRateApplicable}
               onValueChange={val => setIsRateApplicable(val)}
@@ -171,7 +182,7 @@ export default function Edit() {
                 <SelectItem value={"false"}>nem</SelectItem>
               </SelectContent>
             </Select>
-            <FieldError error={errors} field={"country_code"}/>
+            <FieldError error={errors} field={"is_rate_applicable"}/>
             {isRateApplicable === "true" ? (
               <>
                 <Label htmlFor="rate">Adókulcs (%)</Label>
@@ -185,7 +196,7 @@ export default function Edit() {
               </>
             ) : null}
 
-            <Label htmlFor="description">Leírás</Label>
+            <Label htmlFor="description">Megnevezés</Label>
             <Input
               id="description"
               type="text"

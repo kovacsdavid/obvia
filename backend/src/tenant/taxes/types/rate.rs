@@ -29,7 +29,7 @@ impl ValueObjectable for Rate {
 
     fn validate(&self) -> Result<(), String> {
         if self.0.trim().is_empty() {
-            Ok(())
+            Err("A mező kitöltése kötelező!".to_string())
         } else {
             self.0
                 .trim()

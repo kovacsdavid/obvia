@@ -20,13 +20,14 @@
 import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, update, select_list} from "@/components/services/slice.ts";
+import {create, get, select_list, update} from "@/components/services/slice.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select"
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
 import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
@@ -90,7 +91,7 @@ export default function Edit() {
       }
     });
   }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
-  
+
   useEffect(() => {
     dispatch(select_list("currencies")).then(async (response) => {
       if (select_list.fulfilled.match(response)) {
@@ -105,7 +106,7 @@ export default function Edit() {
     unexpectedError,
     setListResponse
   ]);
-  
+
   useEffect(() => {
     if (typeof id === "string") {
       dispatch(get(id)).then(async (response) => {
@@ -144,82 +145,88 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Szolgáltatás</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="name">Megnevezés</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+            <FieldError error={errors} field={"name"}/>
 
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="name">Megnevezés</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <FieldError error={errors} field={"name"}/>
+            <Label htmlFor="description">Leírás</Label>
+            <Input
+              id="description"
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <FieldError error={errors} field={"description"}/>
 
-        <Label htmlFor="description">Leírás</Label>
-        <Input
-          id="description"
-          type="text"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <FieldError error={errors} field={"description"}/>
+            <Label htmlFor="default_price">Alapértelmezett ár</Label>
+            <Input
+              id="default_price"
+              type="text"
+              value={defaultPrice}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <FieldError error={errors} field={"default_price"}/>
 
-        <Label htmlFor="default_price">Alapértelmezett ár</Label>
-        <Input
-          id="default_price"
-          type="text"
-          value={defaultPrice}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <FieldError error={errors} field={"default_price"}/>
+            <Label htmlFor="default_tax_id">Alapértelmezett adózás</Label>
+            <Select
+              value={defaultTaxId}
+              onValueChange={val => setDefaultTaxId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="other">Egyéb</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"default_tax_id"}/>
 
-        <Label htmlFor="default_tax_id">Alapértelmezett adózás</Label>
-        <Select
-          value={defaultTaxId}
-          onValueChange={val => setDefaultTaxId(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="other">Egyéb</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"default_tax_id"}/>
+            <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
+            <Select
+              value={currencyCode}
+              onValueChange={val => setCurrencyCode(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {currencyList.map(currency => {
+                  return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"currency_code"}/>
 
-        <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
-        <Select
-          value={currencyCode}
-          onValueChange={val => setCurrencyCode(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {currencyList.map(currency => {
-              return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"currency_code"}/>
-
-        <Label htmlFor="status">Státusz</Label>
-        <Select
-          value={status}
-          onValueChange={val => setStatus(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="lead">Érdeklődő</SelectItem>
-            <SelectItem value="prospect">Lehetséges vevő</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"status"}/>
-        <Button type="submit">Létrehozás</Button>
-      </form>
+            <Label htmlFor="status">Státusz</Label>
+            <Select
+              value={status}
+              onValueChange={val => setStatus(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktív</SelectItem>
+                <SelectItem value="lead">Érdeklődő</SelectItem>
+                <SelectItem value="prospect">Lehetséges vevő</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"status"}/>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

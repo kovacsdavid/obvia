@@ -27,6 +27,7 @@ import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function Edit() {
   const [productId, setProductId] = React.useState("");
@@ -160,81 +161,88 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="product_id">Termék</Label>
-        <Select
-          value={productId}
-          onValueChange={val => setProductId(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {productList.map(product => {
-              return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"product_id"}/>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Leltár</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="product_id">Termék</Label>
+            <Select
+              value={productId}
+              onValueChange={val => setProductId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {productList.map(product => {
+                  return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"product_id"}/>
 
-        <Label htmlFor="warehouse_id">Raktár</Label>
-        <Select
-          value={warehouseId}
-          onValueChange={val => setWarehouseId(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {warehouseList.map(warehouse => {
-              return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"warehouse_id"}/>
-        <Label htmlFor="quantity">Mennyiség</Label>
-        <Input
-          id="quantity"
-          type="text"
-          value={quantity}
-          onChange={e => setQuantity(e.target.value)}
-        />
-        <FieldError error={errors} field={"quantity"}/>
-        <FieldError error={errors} field={"unit_of_measure"}/>
-        <Label htmlFor="cost">Bekerülési költség</Label>
-        <Input
-          id="cost"
-          type="text"
-          value={cost}
-          onChange={e => setCost(e.target.value)}
-        />
-        <FieldError error={errors} field={"cost"}/>
-        <Label htmlFor="price">Fogyasztói ár</Label>
-        <Input
-          id="price"
-          type="text"
-          value={price}
-          onChange={e => setPrice(e.target.value)}
-        />
-        <FieldError error={errors} field={"price"}/>
-        <Label htmlFor="currency_code">Pénznem</Label>
-        <Select
-          value={currencyCode}
-          onValueChange={val => setCurrencyCode(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {currencyList.map(currency => {
-              return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"currency_code"}/>
+            <Label htmlFor="warehouse_id">Raktár</Label>
+            <Select
+              value={warehouseId}
+              onValueChange={val => setWarehouseId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {warehouseList.map(warehouse => {
+                  return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"warehouse_id"}/>
+            <Label htmlFor="quantity">Mennyiség</Label>
+            <Input
+              id="quantity"
+              type="text"
+              value={quantity}
+              onChange={e => setQuantity(e.target.value)}
+            />
+            <FieldError error={errors} field={"quantity"}/>
+            <FieldError error={errors} field={"unit_of_measure"}/>
+            <Label htmlFor="cost">Bekerülési költség</Label>
+            <Input
+              id="cost"
+              type="text"
+              value={cost}
+              onChange={e => setCost(e.target.value)}
+            />
+            <FieldError error={errors} field={"cost"}/>
+            <Label htmlFor="price">Fogyasztói ár</Label>
+            <Input
+              id="price"
+              type="text"
+              value={price}
+              onChange={e => setPrice(e.target.value)}
+            />
+            <FieldError error={errors} field={"price"}/>
+            <Label htmlFor="currency_code">Pénznem</Label>
+            <Select
+              value={currencyCode}
+              onValueChange={val => setCurrencyCode(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {currencyList.map(currency => {
+                  return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"currency_code"}/>
 
-        <Button type="submit">Létrehozás</Button>
-      </form>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

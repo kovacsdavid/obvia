@@ -42,6 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -120,124 +121,131 @@ export default function List() {
   return (
     <>
       <GlobalError error={errors}/>
-      <div className={"flex justify-between items-center mb-6"}>
-        <div className="flex gap-2">
-          <Link to={"/szervezeti_egyseg/szerkesztes"}>
-            <Button style={{color: "green"}} variant="outline">
-              <Plus color="green"/> Új
-            </Button>
-          </Link>
-        </div>
-        <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline">Szűrő <Funnel/></Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="leading-none font-medium">Szűrő</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Szűkítsd a találatok listáját szűrőfeltételekkel!
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="name">Név</Label>
-                    <Input
-                      id="name"
-                      onBlur={e => filterSelect("name", e.target.value)}
-                      value={nameFilter}
-                      onChange={e => setNameFilter(e.target.value)}
-                      className="col-span-2 h-8"
-                    />
+      <Card>
+        <CardHeader>
+          <CardTitle>Szervezeti egységek</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={"flex justify-between items-center mb-6"}>
+            <div className="flex gap-2">
+              <Link to={"/szervezeti_egyseg/szerkesztes"}>
+                <Button style={{color: "green"}} variant="outline">
+                  <Plus color="green"/> Új
+                </Button>
+              </Link>
+            </div>
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline">Szűrő <Funnel/></Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="leading-none font-medium">Szűrő</h4>
+                      <p className="text-muted-foreground text-sm">
+                        Szűkítsd a találatok listáját szűrőfeltételekkel!
+                      </p>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="name">Név</Label>
+                        <Input
+                          id="name"
+                          onBlur={e => filterSelect("name", e.target.value)}
+                          value={nameFilter}
+                          onChange={e => setNameFilter(e.target.value)}
+                          className="col-span-2 h-8"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead/>
-            <TableHead
-              style={{cursor: "pointer"}}
-              onClick={() => orderSelect("name")}>
-              Név {orderBy === "name"
-              ? order === "asc"
-                ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                : <ArrowUpAZ style={{display: "inline"}}/>
-              : null}
-            </TableHead>
-            <TableHead>Adatbázis kiszolgáló</TableHead>
-            <TableHead
-              style={{cursor: "pointer"}}
-              onClick={() => orderSelect("created_at")
-              }>
-              Létrehozva {orderBy === "created_at"
-              ? order === "asc"
-                ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                : <ArrowUpAZ style={{display: "inline"}}/>
-              : null}
-            </TableHead>
-            <TableHead
-              style={{cursor: "pointer"}}
-              onClick={() => orderSelect("updated_at")}
-            >
-              Frissítve {orderBy === "updated_at"
-              ? order === "asc"
-                ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                : <ArrowUpAZ style={{display: "inline"}}/>
-              : null}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Menü megnyitása</span>
-                      <MoreHorizontal/>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side={"bottom"} align="start">
-                    <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <Link to={`/szervezeti_egyseg/reszletek/${item.id}`}>
-                      <DropdownMenuItem>
-                        <Eye/> Részletek
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuItem>
-                      <Pencil/> Szerkesztés
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleActivate(item.id)}>
-                      <PlugZap/> Aktiválás
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator/>
-                    <DropdownMenuItem>
-                      <Trash/> Törlés
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-              <TableCell>{item.name}</TableCell>
-              <TableCell>{item.db_host}:{item.db_port}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      <Paginator
-        page={page}
-        totalPages={totalPages}
-        onPageChange={paginatorSelect}
-      />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead/>
+                <TableHead
+                  style={{cursor: "pointer"}}
+                  onClick={() => orderSelect("name")}>
+                  Név {orderBy === "name"
+                  ? order === "asc"
+                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
+                    : <ArrowUpAZ style={{display: "inline"}}/>
+                  : null}
+                </TableHead>
+                <TableHead>Adatbázis kiszolgáló</TableHead>
+                <TableHead
+                  style={{cursor: "pointer"}}
+                  onClick={() => orderSelect("created_at")
+                  }>
+                  Létrehozva {orderBy === "created_at"
+                  ? order === "asc"
+                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
+                    : <ArrowUpAZ style={{display: "inline"}}/>
+                  : null}
+                </TableHead>
+                <TableHead
+                  style={{cursor: "pointer"}}
+                  onClick={() => orderSelect("updated_at")}
+                >
+                  Frissítve {orderBy === "updated_at"
+                  ? order === "asc"
+                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
+                    : <ArrowUpAZ style={{display: "inline"}}/>
+                  : null}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Menü megnyitása</span>
+                          <MoreHorizontal/>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side={"bottom"} align="start">
+                        <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+                        <Link to={`/szervezeti_egyseg/reszletek/${item.id}`}>
+                          <DropdownMenuItem>
+                            <Eye/> Részletek
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuItem>
+                          <Pencil/> Szerkesztés
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleActivate(item.id)}>
+                          <PlugZap/> Aktiválás
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem>
+                          <Trash/> Törlés
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                  <TableCell>{item.name}</TableCell>
+                  <TableCell>{item.db_host}:{item.db_port}</TableCell>
+                  <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <Paginator
+            page={page}
+            totalPages={totalPages}
+            onPageChange={paginatorSelect}
+          />
+        </CardContent>
+      </Card>
     </>
   )
 }

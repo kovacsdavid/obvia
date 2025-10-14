@@ -24,6 +24,7 @@ import {create, get, update} from "@/components/tags/slice.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
@@ -108,25 +109,32 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="name">Név</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <FieldError error={errors} field={"name"}/>
-        <Label htmlFor="description">Leírás</Label>
-        <Input
-          id="description"
-          type="text"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <FieldError error={errors} field={"description"}/>
-        <Button type="submit">Létrehozás</Button>
-      </form>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Címke</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="name">Név</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+            <FieldError error={errors} field={"name"}/>
+            <Label htmlFor="description">Leírás</Label>
+            <Input
+              id="description"
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <FieldError error={errors} field={"description"}/>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

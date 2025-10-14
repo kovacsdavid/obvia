@@ -25,6 +25,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function List() {
   const [name, setName] = React.useState("");
@@ -117,49 +118,56 @@ export default function List() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="name">Név</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <FieldError error={errors} field={"name"}/>
-        <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-        <Input
-          id="contact_name"
-          type="text"
-          value={contactName}
-          onChange={e => setContactName(e.target.value)}
-        />
-        <FieldError error={errors} field={"contact_name"}/>
-        <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
-        <Input
-          id="contact_phone"
-          type="text"
-          value={contactPhone}
-          onChange={e => setContactPhone(e.target.value)}
-        />
-        <FieldError error={errors} field={"contact_phone"}/>
-        <Label htmlFor="status">Státusz</Label>
-        <Select
-          value={status}
-          onValueChange={val => setStatus(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="inactive">Inaktív</SelectItem>
-            <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
-            <SelectItem value="closed">Véglegesen bezárt</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"status"}/>
-        <Button type="submit">Létrehozás</Button>
-      </form>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Raktár</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="name">Név</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+            <FieldError error={errors} field={"name"}/>
+            <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+            <Input
+              id="contact_name"
+              type="text"
+              value={contactName}
+              onChange={e => setContactName(e.target.value)}
+            />
+            <FieldError error={errors} field={"contact_name"}/>
+            <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
+            <Input
+              id="contact_phone"
+              type="text"
+              value={contactPhone}
+              onChange={e => setContactPhone(e.target.value)}
+            />
+            <FieldError error={errors} field={"contact_phone"}/>
+            <Label htmlFor="status">Státusz</Label>
+            <Select
+              value={status}
+              onValueChange={val => setStatus(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktív</SelectItem>
+                <SelectItem value="inactive">Inaktív</SelectItem>
+                <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
+                <SelectItem value="closed">Véglegesen bezárt</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"status"}/>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

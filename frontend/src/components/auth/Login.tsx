@@ -26,6 +26,7 @@ import {useAuth} from "@/context/AuthContext";
 import {isLoginResponse} from "@/components/auth/interface.ts";
 import {loginUser} from "@/components/auth/slice.ts";
 import {type FormError} from "@/lib/interfaces/common.ts";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -95,27 +96,34 @@ export default function Login() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto mt-20 space-y-4" autoComplete={"off"}>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          type="text"
-          autoComplete="email"
-          value={email}
-          onFocus={() => setErrors(null)}
-          onChange={e => setEmail(e.target.value)}
-        />
-        <Label htmlFor="password">Jelszó</Label>
-        <Input
-          type="password"
-          autoComplete="current-password"
-          onFocus={() => setErrors(null)}
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
-        <Button type="submit" disabled={loading}>
-          {loading ? "Bejelentkezés..." : "Bejelentkezés"}
-        </Button>
-      </form>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Bejelentkezés</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              type="text"
+              autoComplete="email"
+              value={email}
+              onFocus={() => setErrors(null)}
+              onChange={e => setEmail(e.target.value)}
+            />
+            <Label htmlFor="password">Jelszó</Label>
+            <Input
+              type="password"
+              autoComplete="current-password"
+              onFocus={() => setErrors(null)}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+            <Button type="submit" disabled={loading}>
+              {loading ? "Bejelentkezés..." : "Bejelentkezés"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

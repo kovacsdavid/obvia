@@ -27,6 +27,7 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
@@ -132,54 +133,61 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-        <Label htmlFor="name">Név</Label>
-        <Input
-          id="name"
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-        />
-        <FieldError error={errors} field={"name"}/>
-        <Label htmlFor="description">Leírás</Label>
-        <Input
-          id="description"
-          type="text"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <FieldError error={errors} field={"description"}/>
-        <Label htmlFor="project_id">Project ID</Label>
-        <Select
-          value={projectId}
-          onValueChange={val => setProjectId(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {projectsList.map(project => {
-              return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"project_id"}/>
-        <Label htmlFor="status">Státusz</Label>
-        <Select
-          value={status}
-          onValueChange={val => setStatus(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="inactive">Inaktív</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"status"}/>
-        <Button type="submit">Létrehozás</Button>
-      </form>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Munkalap</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="name">Név</Label>
+            <Input
+              id="name"
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
+            <FieldError error={errors} field={"name"}/>
+            <Label htmlFor="description">Leírás</Label>
+            <Input
+              id="description"
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <FieldError error={errors} field={"description"}/>
+            <Label htmlFor="project_id">Project ID</Label>
+            <Select
+              value={projectId}
+              onValueChange={val => setProjectId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {projectsList.map(project => {
+                  return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"project_id"}/>
+            <Label htmlFor="status">Státusz</Label>
+            <Select
+              value={status}
+              onValueChange={val => setStatus(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktív</SelectItem>
+                <SelectItem value="inactive">Inaktív</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"status"}/>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

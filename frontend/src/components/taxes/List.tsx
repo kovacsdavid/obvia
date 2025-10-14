@@ -38,6 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -113,129 +114,136 @@ export default function List() {
   return (
     <>
       <GlobalError error={errors}/>
-      <div className={"flex justify-between items-center mb-6"}>
-        <div className="flex gap-2">
-          <Link to={"/ado/szerkesztes"}>
-            <Button style={{color: "green"}} variant="outline">
-              <Plus color="green"/> Új
-            </Button>
-          </Link>
-        </div>
-        <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button className={"justify-self-end"} variant="outline"
-                      style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="leading-none font-medium">Szűrő</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Szűkítsd a találatok listáját szűrőfeltételekkel!
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="name">Szűrő</Label>
-                    <Input
-                      id="name"
-                      defaultValue=""
-                      className="col-span-2 h-8"
-                    />
+      <Card>
+        <CardHeader>
+          <CardTitle>Adók</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className={"flex justify-between items-center mb-6"}>
+            <div className="flex gap-2">
+              <Link to={"/ado/szerkesztes"}>
+                <Button style={{color: "green"}} variant="outline">
+                  <Plus color="green"/> Új
+                </Button>
+              </Link>
+            </div>
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className={"justify-self-end"} variant="outline"
+                          style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <h4 className="leading-none font-medium">Szűrő</h4>
+                      <p className="text-muted-foreground text-sm">
+                        Szűkítsd a találatok listáját szűrőfeltételekkel!
+                      </p>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="grid grid-cols-3 items-center gap-4">
+                        <Label htmlFor="name">Szűrő</Label>
+                        <Input
+                          id="name"
+                          defaultValue=""
+                          className="col-span-2 h-8"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead/>
-            <TableHead>
-              Adókulcs (%)
-            </TableHead>
-            <TableHead>
-              Leírás
-            </TableHead>
-            <TableHead>
-              Ország
-            </TableHead>
-            <TableHead>
-              Adó kategória
-            </TableHead>
-            <TableHead>
-              Jogi szöveg
-            </TableHead>
-            <TableHead>
-              Jelentési kód (NAV)
-            </TableHead>
-            <TableHead>
-              Státusz
-            </TableHead>
-            <TableHead>
-              Létrehozta
-            </TableHead>
-            <TableHead>
-              Létrehozva
-            </TableHead>
-            <TableHead>
-              Frissítve
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id}>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Menü megnyitása</span>
-                      <MoreHorizontal/>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent side={"bottom"} align="start">
-                    <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                    <Link to={`/ado/reszletek/${item.id}`}>
-                      <DropdownMenuItem>
-                        <Eye/> Részletek
-                      </DropdownMenuItem>
-                    </Link>
-                    <Link to={`/ado/szerkesztes/${item.id}`}>
-                      <DropdownMenuItem>
-                        <Pencil/> Szerkesztés
-                      </DropdownMenuItem>
-                    </Link>
-                    <DropdownMenuSeparator/>
-                    <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
-                      <Trash/> Törlés
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-              <TableCell>{item.rate}</TableCell>
-              <TableCell>{item.description}</TableCell>
-              <TableCell>{item.country}</TableCell>
-              <TableCell>{item.tax_category}</TableCell>
-              <TableCell>{item.legal_text}</TableCell>
-              <TableCell>{item.reporting_code}</TableCell>
-              <TableCell>{item.status}</TableCell>
-              <TableCell>{item.created_by}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-              <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead/>
+                <TableHead>
+                  Adókulcs (%)
+                </TableHead>
+                <TableHead>
+                  Leírás
+                </TableHead>
+                <TableHead>
+                  Ország
+                </TableHead>
+                <TableHead>
+                  Adó kategória
+                </TableHead>
+                <TableHead>
+                  Jogi szöveg
+                </TableHead>
+                <TableHead>
+                  Jelentési kód (NAV)
+                </TableHead>
+                <TableHead>
+                  Státusz
+                </TableHead>
+                <TableHead>
+                  Létrehozta
+                </TableHead>
+                <TableHead>
+                  Létrehozva
+                </TableHead>
+                <TableHead>
+                  Frissítve
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Menü megnyitása</span>
+                          <MoreHorizontal/>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side={"bottom"} align="start">
+                        <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+                        <Link to={`/ado/reszletek/${item.id}`}>
+                          <DropdownMenuItem>
+                            <Eye/> Részletek
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link to={`/ado/szerkesztes/${item.id}`}>
+                          <DropdownMenuItem>
+                            <Pencil/> Szerkesztés
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuSeparator/>
+                        <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
+                          <Trash/> Törlés
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                  <TableCell>{item.rate}</TableCell>
+                  <TableCell>{item.description}</TableCell>
+                  <TableCell>{item.country}</TableCell>
+                  <TableCell>{item.tax_category}</TableCell>
+                  <TableCell>{item.legal_text}</TableCell>
+                  <TableCell>{item.reporting_code}</TableCell>
+                  <TableCell>{item.status}</TableCell>
+                  <TableCell>{item.created_by}</TableCell>
+                  <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
+                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
 
-      </Table>
-      <Paginator
-        page={page}
-        totalPages={totalPages}
-        onPageChange={paginatorSelect}
-      />
+          </Table>
+          <Paginator
+            page={page}
+            totalPages={totalPages}
+            onPageChange={paginatorSelect}
+          />
+        </CardContent>
+      </Card>
     </>
   )
 }

@@ -27,6 +27,7 @@ import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useParams} from "react-router";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 
 export default function Edit() {
@@ -140,77 +141,84 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4" autoComplete={"off"}>
-        <Label htmlFor="worksheet_id">Munkalap ID</Label>
-        <Select
-          value={worksheetId}
-          onValueChange={val => setWorksheetId(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            {worksheetList.map((worksheet) => {
-              return <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
-            })}
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"worksheet_id"}/>
-        <Label htmlFor="title">Megnevezés</Label>
-        <Input
-          id="title"
-          type="text"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-        />
-        <FieldError error={errors} field={"title"}/>
-        <Label htmlFor="description">Leírás</Label>
-        <Input
-          id="description"
-          type="text"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-        />
-        <FieldError error={errors} field={"description"}/>
-        <Label htmlFor="status">Státusz</Label>
-        <Select
-          value={status}
-          onValueChange={val => setStatus(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Aktív</SelectItem>
-            <SelectItem value="inactive">Inaktív</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"status"}/>
-        <Label htmlFor="priority">Prioritás</Label>
-        <Select
-          value={priority}
-          onValueChange={val => setPriority(val)}
-        >
-          <SelectTrigger className={"w-full"}>
-            <SelectValue/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="low">Alacsony</SelectItem>
-            <SelectItem value="normal">Normál</SelectItem>
-            <SelectItem value="high">Magas</SelectItem>
-          </SelectContent>
-        </Select>
-        <FieldError error={errors} field={"priority"}/>
-        <Label htmlFor="due_date">Határidő</Label>
-        <Input
-          id="due_date"
-          type="text"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-        />
-        <FieldError error={errors} field={"due_date"}/>
-        <Button type="submit">Létrehozás</Button>
-      </form>
+      <Card className={"max-w-lg mx-auto"}>
+        <CardHeader>
+          <CardTitle>Feladat</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+            <Label htmlFor="worksheet_id">Munkalap ID</Label>
+            <Select
+              value={worksheetId}
+              onValueChange={val => setWorksheetId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {worksheetList.map((worksheet) => {
+                  return <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"worksheet_id"}/>
+            <Label htmlFor="title">Megnevezés</Label>
+            <Input
+              id="title"
+              type="text"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+            />
+            <FieldError error={errors} field={"title"}/>
+            <Label htmlFor="description">Leírás</Label>
+            <Input
+              id="description"
+              type="text"
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+            />
+            <FieldError error={errors} field={"description"}/>
+            <Label htmlFor="status">Státusz</Label>
+            <Select
+              value={status}
+              onValueChange={val => setStatus(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktív</SelectItem>
+                <SelectItem value="inactive">Inaktív</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"status"}/>
+            <Label htmlFor="priority">Prioritás</Label>
+            <Select
+              value={priority}
+              onValueChange={val => setPriority(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Alacsony</SelectItem>
+                <SelectItem value="normal">Normál</SelectItem>
+                <SelectItem value="high">Magas</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"priority"}/>
+            <Label htmlFor="due_date">Határidő</Label>
+            <Input
+              id="due_date"
+              type="text"
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+            />
+            <FieldError error={errors} field={"due_date"}/>
+            <Button type="submit">Létrehozás</Button>
+          </form>
+        </CardContent>
+      </Card>
     </>
   );
 }

@@ -37,6 +37,7 @@ export default function Edit() {
   const [currencyCode, setCurrencyCode] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
+  const [taxesList, setTaxesList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
@@ -96,6 +97,13 @@ export default function Edit() {
     dispatch(select_list("currencies")).then(async (response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setCurrencyList, setErrors);
+      } else {
+        unexpectedError();
+      }
+    });
+    dispatch(select_list("taxes")).then(async (response) => {
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setTaxesList, setErrors);
       } else {
         unexpectedError();
       }
@@ -174,7 +182,7 @@ export default function Edit() {
               id="default_price"
               type="text"
               value={defaultPrice}
-              onChange={e => setDescription(e.target.value)}
+              onChange={e => setDefaultPrice(e.target.value)}
             />
             <FieldError error={errors} field={"default_price"}/>
 
@@ -187,7 +195,9 @@ export default function Edit() {
                 <SelectValue/>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="other">Egyéb</SelectItem>
+                {taxesList.map(tax => {
+                  return <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+                })}
               </SelectContent>
             </Select>
             <FieldError error={errors} field={"default_tax_id"}/>

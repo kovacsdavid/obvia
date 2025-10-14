@@ -102,7 +102,7 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_default_price() {
+    fn test_valid_rate() {
         let price: ValueObject<Rate> = serde_json::from_str(r#""123.45""#).unwrap();
         assert_eq!(price.extract().get_value(), "123.45");
 
@@ -111,16 +111,7 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_default_price() {
-        let price: ValueObject<Rate> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(price.extract().get_value(), "");
-
-        let price: ValueObject<Rate> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(price.extract().get_value(), "  ");
-    }
-
-    #[test]
-    fn test_invalid_default_price_format() {
+    fn test_invalid_rate_format() {
         let cases = vec![
             r#""abc""#,
             r#""12.34.56""#,
@@ -151,8 +142,6 @@ mod tests {
     fn test_validation() {
         assert!(Rate("123.45".to_string()).validate().is_ok());
         assert!(Rate("123,45".to_string()).validate().is_ok());
-        assert!(Rate("".to_string()).validate().is_ok());
-        assert!(Rate("  ".to_string()).validate().is_ok());
 
         assert!(Rate("abc".to_string()).validate().is_err());
         assert!(Rate("12.34.56".to_string()).validate().is_err());

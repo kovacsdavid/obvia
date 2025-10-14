@@ -69,6 +69,7 @@ impl IntoResponse for ServicesServiceError {
 
 pub enum ServicesSelectLists {
     Currencies,
+    Taxes,
 }
 
 impl FromStr for ServicesSelectLists {
@@ -77,6 +78,7 @@ impl FromStr for ServicesSelectLists {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "currencies" => Ok(Self::Currencies),
+            "taxes" => Ok(Self::Taxes),
             _ => Err(ServicesServiceError::InvalidSelectList),
         }
     }
@@ -192,6 +194,14 @@ impl ServicesService {
             ServicesSelectLists::Currencies => Ok(services_module
                 .currencies_repo
                 .get_all_countries_select_list_items(
+                    claims
+                        .active_tenant()
+                        .ok_or(ServicesServiceError::Unauthorized)?,
+                )
+                .await?),
+            ServicesSelectLists::Taxes => Ok(services_module
+                .taxes_repo
+                .get_select_list_items(
                     claims
                         .active_tenant()
                         .ok_or(ServicesServiceError::Unauthorized)?,

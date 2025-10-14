@@ -117,15 +117,16 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
                 })
                 .ok(),
         };
-        
-        if value.is_rate_applicable.is_none() { 
+
+        if value.is_rate_applicable.is_none() {
             error.is_rate_applicable = Some("A mező kitöltése kötelező!".to_string());
         }
 
         let rate = ValueObject::new(TaxRate(value.rate))
             .inspect_err(|e| {
-                if let Some(is_rate_applicable) = value.is_rate_applicable 
-                    && is_rate_applicable == true {
+                if let Some(is_rate_applicable) = value.is_rate_applicable
+                    && is_rate_applicable
+                {
                     error.rate = Some(e.to_string())
                 }
             })
@@ -157,7 +158,9 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
                 description: description.map_err(|_| TaxUserInputError::default())?,
                 country_code: country_code.map_err(|_| TaxUserInputError::default())?,
                 tax_category: tax_category.map_err(|_| TaxUserInputError::default())?,
-                is_rate_applicable: value.is_rate_applicable.ok_or(TaxUserInputError::default())?,
+                is_rate_applicable: value
+                    .is_rate_applicable
+                    .ok_or(TaxUserInputError::default())?,
                 legal_text,
                 reporting_code,
                 is_default: value.is_default,

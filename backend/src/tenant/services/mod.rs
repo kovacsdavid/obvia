@@ -21,6 +21,7 @@ use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
 use crate::tenant::currencies::repository::CurrencyRepository;
 use crate::tenant::services::repository::ServicesRepository;
+use crate::tenant::taxes::repository::TaxesRepository;
 use std::sync::Arc;
 
 mod dto;
@@ -39,18 +40,21 @@ pub fn init_default_services_module(
         .config(config)
         .services_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct ServicesModule {
     pub config: Arc<AppConfig>,
     pub services_repo: Arc<dyn ServicesRepository>,
     pub currencies_repo: Arc<dyn CurrencyRepository>,
+    pub taxes_repo: Arc<dyn TaxesRepository>,
 }
 
 pub struct ServicesModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub services_repo: Option<Arc<dyn ServicesRepository>>,
     pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
+    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
 }
 
 impl ServicesModuleBuilder {
@@ -59,6 +63,7 @@ impl ServicesModuleBuilder {
             config: None,
             services_repo: None,
             currencies_repo: None,
+            taxes_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -73,6 +78,10 @@ impl ServicesModuleBuilder {
         self.currencies_repo = Some(currencies_repo);
         self
     }
+    pub fn taxes_repo(mut self, taxes: Arc<dyn TaxesRepository>) -> Self {
+        self.taxes_repo = Some(taxes);
+        self
+    }
     pub fn build(self) -> Result<ServicesModule, String> {
         Ok(ServicesModule {
             config: self.config.ok_or("config is required".to_string())?,
@@ -82,6 +91,9 @@ impl ServicesModuleBuilder {
             currencies_repo: self
                 .currencies_repo
                 .ok_or("currencies_repo is required".to_string())?,
+            taxes_repo: self
+                .taxes_repo
+                .ok_or("taxes_repo is required".to_string())?,
         })
     }
 }

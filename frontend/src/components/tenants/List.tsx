@@ -21,9 +21,17 @@ import {Link} from "react-router-dom";
 import React, {useCallback, useEffect} from "react";
 import {list} from "@/components/tenants/slice.ts";
 import {useAppDispatch} from "@/store/hooks";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
+import {
+  SortableTableHead,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table.tsx";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {ArrowDownAZ, ArrowUpAZ, Eye, Funnel, MoreHorizontal, Pencil, PlugZap, Plus, Trash} from "lucide-react";
+import {Eye, Funnel, MoreHorizontal, Pencil, PlugZap, Plus, Trash} from "lucide-react";
 import {Button} from "@/components/ui/button"
 import {Input} from "@/components/ui/input"
 import {Label} from "@/components/ui/label"
@@ -168,36 +176,31 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead/>
-                <TableHead
-                  style={{cursor: "pointer"}}
-                  onClick={() => orderSelect("name")}>
-                  Név {orderBy === "name"
-                  ? order === "asc"
-                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                    : <ArrowUpAZ style={{display: "inline"}}/>
-                  : null}
-                </TableHead>
-                <TableHead>Adatbázis kiszolgáló</TableHead>
-                <TableHead
-                  style={{cursor: "pointer"}}
-                  onClick={() => orderSelect("created_at")
-                  }>
-                  Létrehozva {orderBy === "created_at"
-                  ? order === "asc"
-                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                    : <ArrowUpAZ style={{display: "inline"}}/>
-                  : null}
-                </TableHead>
-                <TableHead
-                  style={{cursor: "pointer"}}
-                  onClick={() => orderSelect("updated_at")}
+                <SortableTableHead
+                  field="name"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
                 >
-                  Frissítve {orderBy === "updated_at"
-                  ? order === "asc"
-                    ? (<ArrowDownAZ style={{display: "inline"}}/>)
-                    : <ArrowUpAZ style={{display: "inline"}}/>
-                  : null}
-                </TableHead>
+                  Név
+                </SortableTableHead>
+                <TableHead>Adatbázis kiszolgáló</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

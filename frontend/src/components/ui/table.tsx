@@ -20,6 +20,7 @@
 import * as React from "react"
 
 import {cn} from "@/lib/utils"
+import {ArrowDownAZ, ArrowUpAZ} from "lucide-react";
 
 function Table({className, ...props}: React.ComponentProps<"table">) {
   return (
@@ -121,6 +122,36 @@ function TableCaption({
   )
 }
 
+function SortableTableHead({
+                             field,
+                             children,
+                             orderBy,
+                             order,
+                             onOrderSelect
+                           }: {
+  field: string;
+  children: React.ReactNode;
+  orderBy: string;
+  order: string;
+  onOrderSelect: (field: string) => void;
+}) {
+  const isActive = orderBy === field;
+  const isAscending = order === "asc";
+
+  return (
+    <TableHead
+      style={{cursor: "pointer"}}
+      onClick={() => onOrderSelect(field)}
+    >
+      {children} {isActive && (
+      isAscending
+        ? <ArrowDownAZ style={{display: "inline"}}/>
+        : <ArrowUpAZ style={{display: "inline"}}/>
+    )}
+    </TableHead>
+  );
+}
+
 export {
   Table,
   TableHeader,
@@ -130,4 +161,5 @@ export {
   TableRow,
   TableCell,
   TableCaption,
+  SortableTableHead,
 }

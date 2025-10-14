@@ -57,7 +57,6 @@ export interface ServiceResolved {
   default_tax_id: string | null,
   default_tax: string | null,
   currency_code: string | null,
-  currency: string | null,
   status: string,
   created_by_id: string,
   created_by: string,

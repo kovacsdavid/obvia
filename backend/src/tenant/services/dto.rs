@@ -28,6 +28,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
+use crate::tenant::currencies::types::CurrencyCode;
 
 #[derive(Debug, Deserialize)]
 pub struct ServiceUserInputHelper {
@@ -87,7 +88,7 @@ pub struct ServiceUserInput {
     pub description: Option<ValueObject<ServiceDescription>>,
     pub default_price: Option<ValueObject<DefaultPrice>>,
     pub default_tax_id: Option<Uuid>,
-    pub currency_code: Option<Uuid>,
+    pub currency_code: Option<ValueObject<CurrencyCode>>,
     pub status: ValueObject<ServiceStatus>,
 }
 
@@ -132,17 +133,7 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
             }
         };
 
-        let currency_code = if value.currency_code.trim().is_empty() {
-            None
-        } else {
-            match Uuid::parse_str(&value.currency_code) {
-                Ok(uuid) => Some(uuid),
-                Err(_) => {
-                    error.currency_code = Some("Érvénytelen valuta azonosító".to_string());
-                    None
-                }
-            }
-        };
+        let currency_code = validate_optional_string!(CurrencyCode(value.currency_code), error.currency_code);
 
         let status = ValueObject::new(ServiceStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());

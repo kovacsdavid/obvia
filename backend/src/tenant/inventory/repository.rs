@@ -91,7 +91,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 inventory.price as price,
                 inventory.cost as cost,
                 inventory.currency_code as currency_code,
-                currencies.currency as currency,
+                currencies.code as currency,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 inventory.created_at as created_at,
@@ -100,7 +100,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN currencies ON inventory.currency_code = currencies.id
+            LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
                 AND inventory.id = $1
@@ -139,7 +139,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 inventory.price as price,
                 inventory.cost as cost,
                 inventory.currency_code as currency_code,
-                currencies.currency as currency,
+                currencies.code as currency,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 inventory.created_at as created_at,
@@ -148,7 +148,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN currencies ON inventory.currency_code = currencies.id
+            LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
             {order_by_clause}

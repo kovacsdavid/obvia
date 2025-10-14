@@ -223,7 +223,7 @@ export default function List() {
                   <TableCell>{item.description ?? ''}</TableCell>
                   <TableCell>{item.default_price ?? 'N/A'}</TableCell>
                   <TableCell>{item.default_tax ?? 'N/A'}</TableCell>
-                  <TableCell>{item.currency ?? 'N/A'}</TableCell>
+                  <TableCell>{item.currency_code ?? 'N/A'}</TableCell>
                   <TableCell>{item.status}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>

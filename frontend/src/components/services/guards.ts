@@ -78,8 +78,6 @@ export function isServiceResolved(data: unknown): data is ServiceResolved {
     (data.default_tax === null || typeof data.default_tax === 'string') &&
     'currency_code' in data &&
     (data.currency_code === null || typeof data.currency_code === 'string') &&
-    'currency' in data &&
-    (data.currency === null || typeof data.currency === 'string') &&
     'status' in data &&
     typeof data.status === 'string' &&
     'created_by_id' in data &&

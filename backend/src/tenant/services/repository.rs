@@ -85,9 +85,9 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.description,
                 services.default_price,
                 services.default_tax_id,
-                tax.description as default_tax,
+                taxes.description as default_tax,
                 services.currency_code,
-                currencies.currency as currency,
+                currencies.code as currency,
                 services.status,
                 services.created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
@@ -96,8 +96,8 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.deleted_at
             FROM services
             LEFT JOIN users ON services.created_by_id = users.id
-            LEFT JOIN tax ON services.default_tax_id = tax.id
-            LEFT JOIN currencies ON services.currency_code = currencies.id
+            LEFT JOIN taxes ON services.default_tax_id = taxes.id
+            LEFT JOIN currencies ON services.currency_code = currencies.code
             WHERE services.id = $1 AND services.deleted_at IS NULL
             "#,
         )
@@ -132,9 +132,9 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.description,
                 services.default_price,
                 services.default_tax_id,
-                tax.description as default_tax,
+                taxes.description as default_tax,
                 services.currency_code,
-                currencies.currency as currency,
+                currencies.code as currency,
                 services.status,
                 services.created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
@@ -143,8 +143,8 @@ impl ServicesRepository for PoolManagerWrapper {
                 services.deleted_at
             FROM services 
             LEFT JOIN users ON services.created_by_id = users.id
-            LEFT JOIN tax ON services.default_tax_id = tax.id
-            LEFT JOIN currencies ON services.currency_code = currencies.id
+            LEFT JOIN taxes ON services.default_tax_id = taxes.id
+            LEFT JOIN currencies ON services.currency_code = currencies.code
             WHERE services.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1
@@ -174,6 +174,15 @@ impl ServicesRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Service> {
+        let default_price = match &service.default_price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("default_price".to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, Service>(
             r#"
             INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
@@ -183,9 +192,9 @@ impl ServicesRepository for PoolManagerWrapper {
         )
             .bind(service.name.extract().get_value())
             .bind(service.description.as_ref().map(|d| d.extract().get_value().as_str()))
-            .bind(service.default_price.as_ref().map(|d| d.extract().get_value().as_str()))
+            .bind(default_price)
             .bind(service.default_tax_id)
-            .bind(service.currency_code)
+            .bind(service.currency_code.as_ref().map(|d| d.extract().get_value().as_str()))
             .bind(service.status.extract().get_value())
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -200,6 +209,15 @@ impl ServicesRepository for PoolManagerWrapper {
         let id = service
             .id
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let default_price = match &service.default_price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("default_price".to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, Service>(
             r#"
             UPDATE services
@@ -220,14 +238,9 @@ impl ServicesRepository for PoolManagerWrapper {
                 .as_ref()
                 .map(|d| d.extract().get_value().as_str()),
         )
-        .bind(
-            service
-                .default_price
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(default_price)
         .bind(service.default_tax_id)
-        .bind(service.currency_code)
+        .bind(service.currency_code.as_ref().map(|d| d.extract().get_value().as_str()))
         .bind(service.status.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

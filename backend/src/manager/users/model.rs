@@ -57,3 +57,9 @@ pub struct User {
     pub updated_at: chrono::DateTime<chrono::Local>,
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
 }
+
+impl User {
+    pub fn is_active(&self) -> bool {
+        self.status == "active"
+    }
+}

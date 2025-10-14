@@ -173,7 +173,7 @@ export default function List() {
                   Fogyasztói ár
                 </TableHead>
                 <TableHead>
-                  Bekerülési költség
+                  Adó
                 </TableHead>
                 <TableHead>
                   Pénznem
@@ -223,7 +223,7 @@ export default function List() {
                   <TableCell>{item.warehouse}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>{item.price}</TableCell>
-                  <TableCell>{item.cost}</TableCell>
+                  <TableCell>{item.tax}</TableCell>
                   <TableCell>{item.currency}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>

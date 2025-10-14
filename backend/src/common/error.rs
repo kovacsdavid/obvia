@@ -239,6 +239,9 @@ pub enum RepositoryError {
     #[error("Custom error: {0}")]
     Custom(String),
 
+    #[error("The selected record is inactive")]
+    InactiveRecord,
+
     #[error("RwLockReadGuard error: {0}")]
     RwLockReadGuard(String),
 
@@ -258,6 +261,9 @@ impl RepositoryError {
             return true;
         }
         false
+    }
+    pub fn is_inactive_record(&self) -> bool {
+        matches!(self, RepositoryError::InactiveRecord)
     }
 }
 

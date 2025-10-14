@@ -115,10 +115,10 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Beszerzési ár
+                      Adó
                     </TableCell>
                     <TableCell>
-                      {data.cost ?? 'N/A'}
+                      {data.tax}
                     </TableCell>
                   </TableRow>
                   <TableRow>

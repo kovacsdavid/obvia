@@ -36,7 +36,7 @@ create table users (
     last_name varchar(255),
     phone varchar(32),
     -- possible values e.g.: 'active', 'invited', 'pending', 'suspended', 'disabled', 'locked'
-    status varchar(32) not null default 'active',
+    status varchar(32) not null,
     last_login_at timestamptz,
     profile_picture_url text,
     locale varchar(16) not null default 'hu-HU',

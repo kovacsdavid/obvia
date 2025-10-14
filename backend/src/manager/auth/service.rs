@@ -45,13 +45,16 @@ pub enum AuthServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("User not found")]
+    #[error("Hibás e-mail cím vagy jelszó")]
     UserNotFound,
 
-    #[error("User exists")]
+    #[error("A megadott e-mail cím már foglalt!")]
     UserExists,
 
-    #[error("Invalid password")]
+    #[error("A rendszer jelenleg zárt béta állapotban van. Látogass vissza később!")]
+    UserInactive,
+
+    #[error("Hibás e-mail cím vagy jelszó")]
     InvalidPassword,
 
     #[error("Hash error: {0}")]
@@ -64,23 +67,23 @@ pub enum AuthServiceError {
 impl IntoResponse for AuthServiceError {
     fn into_response(self) -> Response {
         match self {
-            AuthServiceError::UserNotFound | AuthServiceError::InvalidPassword => {
+            Self::UserNotFound | Self::InvalidPassword | Self::UserInactive => {
                 FriendlyError::user_facing(
                     Level::DEBUG,
                     StatusCode::UNAUTHORIZED,
                     file!(),
                     GeneralError {
-                        message: "Hibás e-mail cím vagy jelszó".to_string(),
+                        message: self.to_string(),
                     },
                 )
                 .into_response()
             }
-            AuthServiceError::UserExists => FriendlyError::user_facing(
+            Self::UserExists => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
                 GeneralError {
-                    message: "A megadott e-mail cím már foglalt!".to_string(),
+                    message: self.to_string(),
                 },
             )
             .into_response(),
@@ -139,7 +142,13 @@ impl AuthService {
             .auth_repo
             .get_user_by_email(&payload.email)
             .await
-            .map_err(|_| AuthServiceError::UserNotFound)?;
+            .map_err(|e| {
+                if e.is_inactive_record() {
+                    AuthServiceError::UserInactive
+                } else {
+                    AuthServiceError::UserNotFound
+                }
+            })?;
         let active_user_tenant = auth_module
             .auth_repo
             .get_user_active_tenant(user.id)

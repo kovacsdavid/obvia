@@ -119,8 +119,8 @@ impl AuthRepository for PoolManagerWrapper {
     ) -> Result<(), RepositoryError> {
         sqlx::query(
             "INSERT INTO users (
-                    id, email, password_hash, first_name, last_name
-            ) VALUES ($1, $2, $3, $4, $5)",
+                    id, email, password_hash, first_name, last_name, status
+            ) VALUES ($1, $2, $3, $4, $5, 'pending')",
         )
         .bind(Uuid::new_v4())
         .bind(payload.email.extract().get_value())
@@ -133,12 +133,17 @@ impl AuthRepository for PoolManagerWrapper {
     }
 
     async fn get_user_by_email(&self, email: &str) -> Result<User, RepositoryError> {
-        Ok(
-            sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1")
-                .bind(email)
-                .fetch_one(&self.pool_manager.get_main_pool())
-                .await?,
+        let result = sqlx::query_as::<_, User>(
+            "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
         )
+        .bind(email)
+        .fetch_one(&self.pool_manager.get_main_pool())
+        .await?;
+        if result.is_active() {
+            Ok(result)
+        } else {
+            Err(RepositoryError::InactiveRecord)
+        }
     }
 
     async fn get_user_active_tenant(

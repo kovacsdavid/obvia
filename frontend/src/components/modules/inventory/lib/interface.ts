@@ -31,7 +31,7 @@ export interface InventoryUserInput {
   warehouseId: string
   quantity: string
   price: string
-  cost: string
+  taxId: string
   currencyCode: string
 }
 
@@ -41,7 +41,7 @@ export interface Inventory {
   warehouse_id: string,
   quantity: number,
   price: string | null,
-  cost: string | null,
+  tax_id: string,
   currency_code: string,
   created_by_id: string,
   created_at: string,
@@ -57,7 +57,8 @@ export interface InventoryResolved {
   warehouse: string,
   quantity: number,
   price: string | null,
-  cost: string | null,
+  tax_id: string,
+  tax: string,
   currency_code: string,
   currency: string,
   created_by_id: string,

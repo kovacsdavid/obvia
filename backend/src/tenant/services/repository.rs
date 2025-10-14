@@ -240,7 +240,12 @@ impl ServicesRepository for PoolManagerWrapper {
         )
         .bind(default_price)
         .bind(service.default_tax_id)
-        .bind(service.currency_code.as_ref().map(|d| d.extract().get_value().as_str()))
+        .bind(
+            service
+                .currency_code
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(service.status.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

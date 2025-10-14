@@ -22,6 +22,7 @@ use crate::manager::app::database::PgPoolManagerTrait;
 use crate::tenant::currencies::repository::CurrencyRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::products::repository::ProductsRepository;
+use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use std::sync::Arc;
 
@@ -43,6 +44,7 @@ pub fn init_default_inventory_module(
         .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct InventoryModule {
@@ -51,6 +53,7 @@ pub struct InventoryModule {
     pub products_repo: Arc<dyn ProductsRepository>,
     pub warehouses_repo: Arc<dyn WarehousesRepository>,
     pub currencies_repo: Arc<dyn CurrencyRepository>,
+    pub taxes_repo: Arc<dyn TaxesRepository>,
 }
 
 pub struct InventoryModuleBuilder {
@@ -59,6 +62,7 @@ pub struct InventoryModuleBuilder {
     pub products_repo: Option<Arc<dyn ProductsRepository>>,
     pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
     pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
+    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
 }
 
 impl InventoryModuleBuilder {
@@ -69,6 +73,7 @@ impl InventoryModuleBuilder {
             products_repo: None,
             warehouses_repo: None,
             currencies_repo: None,
+            taxes_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -91,6 +96,10 @@ impl InventoryModuleBuilder {
         self.currencies_repo = Some(currencies_repo);
         self
     }
+    pub fn taxes_repo(mut self, taxes_repo: Arc<dyn TaxesRepository>) -> Self {
+        self.taxes_repo = Some(taxes_repo);
+        self
+    }
     pub fn build(self) -> Result<InventoryModule, String> {
         Ok(InventoryModule {
             config: self.config.ok_or("config is required".to_string())?,
@@ -106,6 +115,9 @@ impl InventoryModuleBuilder {
             currencies_repo: self
                 .currencies_repo
                 .ok_or("currencies_repo is required".to_string())?,
+            taxes_repo: self
+                .taxes_repo
+                .ok_or("taxes_repo is required".to_string())?,
         })
     }
 }

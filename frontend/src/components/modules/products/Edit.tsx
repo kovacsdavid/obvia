@@ -140,7 +140,7 @@ export default function Edit() {
           <CardTitle>Termék</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
             <Label htmlFor="name">Név</Label>
             <Input
               id="name"

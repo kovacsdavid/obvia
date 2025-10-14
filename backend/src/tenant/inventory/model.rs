@@ -22,34 +22,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// The `Inventory` struct represents the inventory record for a product in a specific warehouse.
-///
-/// # Fields
-///
-/// * `id` - A unique identifier for the inventory record, represented as a `Uuid`.
-/// * `product_id` - The unique identifier of the product associated with this inventory, represented as a `Uuid`.
-/// * `warehouse_id` - The unique identifier of the warehouse where the inventory is located, represented as a `Uuid`.
-/// * `quantity` - The quantity of the product available in the inventory, represented as an `i32`.
-/// * `created_by` - The unique identifier of the user who created this inventory record, represented as a `Uuid`.
-/// * `created_at` - The timestamp indicating when the inventory record was created, represented as a `DateTime<Local>`.
-/// * `updated_at` - The timestamp indicating when the inventory record was last updated, represented as a `DateTime<Local>`.
-/// * `deleted_at` - An optional timestamp indicating when the inventory record was deleted, represented as an `Option<DateTime<Local>>`.
-///
-/// # Traits
-///
-/// The `Inventory` struct derives the following traits:
-///
-/// * `Debug` - Allows the struct to be formatted using the `{:?}` formatter.
-/// * `Clone` - Enables the struct to be cloned.
-/// * `Serialize` - Enables the struct to be serialized, typically for use with formats such as JSON.
-/// * `Deserialize` - Enables the struct to be deserialized, typically from formats such as JSON.
-/// * `FromRow` - Allows the struct to be constructed from a database row, typically when using ORM libraries.
-///
-/// # Usage
-///
-/// This struct is typically used to track and manage inventory records in an application
-/// that deals with warehouse and product management. It supports serialization and
-/// deserialization to facilitate data storage and retrieval in various formats.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Inventory {
     pub id: Uuid,
@@ -57,7 +29,7 @@ pub struct Inventory {
     pub warehouse_id: Uuid,
     pub quantity: i32,
     pub price: Option<BigDecimal>,
-    pub cost: Option<BigDecimal>,
+    pub tax_id: Uuid,
     pub currency_code: String,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Local>,
@@ -74,7 +46,8 @@ pub struct InventoryResolved {
     pub warehouse: String,
     pub quantity: i32,
     pub price: Option<BigDecimal>,
-    pub cost: Option<BigDecimal>,
+    pub tax_id: Uuid,
+    pub tax: String,
     pub currency_code: String,
     pub currency: String,
     pub created_by_id: Uuid,

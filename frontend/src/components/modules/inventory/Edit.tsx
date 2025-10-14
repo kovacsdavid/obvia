@@ -33,12 +33,13 @@ export default function Edit() {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
-  const [cost, setCost] = React.useState("");
+  const [taxId, setTaxId] = React.useState("");
   const [price, setPrice] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const [productList, setProductList] = React.useState<SelectOptionList>([]);
   const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>([]);
+  const [taxIdList, setTaxIdList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
@@ -52,7 +53,7 @@ export default function Edit() {
       productId,
       warehouseId,
       quantity,
-      cost,
+      taxId,
       price,
       currencyCode,
     })).then(async (response) => {
@@ -68,7 +69,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [cost, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [taxId, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -76,7 +77,7 @@ export default function Edit() {
       productId,
       warehouseId,
       quantity,
-      cost,
+      taxId,
       price,
       currencyCode,
     })).then(async (response) => {
@@ -92,7 +93,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [cost, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [taxId, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
 
   useEffect(() => {
     if (typeof id === "string") {
@@ -104,7 +105,7 @@ export default function Edit() {
               setProductId(data.product_id);
               setWarehouseId(data.warehouse_id);
               setQuantity(data.quantity.toString());
-              setCost(data.cost ?? "");
+              setTaxId(data.tax_id);
               setPrice(data.price ?? "");
               setCurrencyCode(data.currency_code);
             }
@@ -138,6 +139,13 @@ export default function Edit() {
     dispatch(select_list("warehouses")).then(async (response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setWarehouseList, setErrors);
+      } else {
+        unexpectedError();
+      }
+    });
+    dispatch(select_list("taxes")).then(async (response) => {
+      if (select_list.fulfilled.match(response)) {
+        setListResponse(response.payload, setTaxIdList, setErrors);
       } else {
         unexpectedError();
       }
@@ -207,14 +215,21 @@ export default function Edit() {
             />
             <FieldError error={errors} field={"quantity"}/>
             <FieldError error={errors} field={"unit_of_measure"}/>
-            <Label htmlFor="cost">Bekerülési költség</Label>
-            <Input
-              id="cost"
-              type="text"
-              value={cost}
-              onChange={e => setCost(e.target.value)}
-            />
-            <FieldError error={errors} field={"cost"}/>
+            <Label htmlFor="tax_id">Adó</Label>
+            <Select
+              value={taxId}
+              onValueChange={val => setTaxId(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                {taxIdList.map(tax => {
+                  return <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+                })}
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"tax_id"}/>
             <Label htmlFor="price">Fogyasztói ár</Label>
             <Input
               id="price"

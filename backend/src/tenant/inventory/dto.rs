@@ -21,9 +21,7 @@ use crate::common::types::value_object::ValueObject;
 use crate::common::types::value_object::ValueObjectable;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::quantity::Quantity;
-use crate::tenant::inventory::types::inventory::{
-    InventoryCost, InventoryPrice, InventoryQuantity,
-};
+use crate::tenant::inventory::types::inventory::{InventoryPrice, InventoryQuantity};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
@@ -37,7 +35,7 @@ pub struct InventoryUserInputHelper {
     pub warehouse_id: Uuid,
     pub quantity: String,
     pub price: String,
-    pub cost: String,
+    pub tax_id: Uuid,
     pub currency_code: String,
 }
 
@@ -48,7 +46,7 @@ pub struct InventoryUserInputError {
     pub warehouse_id: Option<String>,
     pub quantity: Option<String>,
     pub price: Option<String>,
-    pub cost: Option<String>,
+    pub tax_id: Option<String>,
     pub currency_code: Option<String>,
 }
 
@@ -59,7 +57,7 @@ impl InventoryUserInputError {
             && self.warehouse_id.is_none()
             && self.quantity.is_none()
             && self.price.is_none()
-            && self.cost.is_none()
+            && self.tax_id.is_none()
             && self.currency_code.is_none()
     }
 }
@@ -88,7 +86,7 @@ pub struct InventoryUserInput {
     pub warehouse_id: Uuid,
     pub quantity: ValueObject<Quantity>,
     pub price: Option<ValueObject<InventoryPrice>>,
-    pub cost: Option<ValueObject<InventoryCost>>,
+    pub tax_id: Uuid,
     pub currency_code: ValueObject<CurrencyCode>,
 }
 
@@ -112,8 +110,6 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
 
         let price = validate_optional_string!(InventoryPrice(value.price), error.price);
 
-        let cost = validate_optional_string!(InventoryCost(value.cost), error.cost);
-
         let currency_code = ValueObject::new(CurrencyCode(value.currency_code))
             .inspect_err(|e| error.currency_code = Some(e.to_string()));
 
@@ -124,7 +120,7 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
                 warehouse_id: value.warehouse_id,
                 quantity: quantity.map_err(|_| InventoryUserInputError::default())?,
                 price,
-                cost,
+                tax_id: value.tax_id,
                 currency_code: currency_code.map_err(|_| InventoryUserInputError::default())?,
             })
         } else {

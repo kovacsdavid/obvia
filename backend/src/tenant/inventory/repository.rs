@@ -89,7 +89,8 @@ impl InventoryRepository for PoolManagerWrapper {
                 warehouses.name as warehouse,
                 inventory.quantity as quantity,
                 inventory.price as price,
-                inventory.cost as cost,
+                inventory.tax_id as tax_id,
+                taxes.description as tax,
                 inventory.currency_code as currency_code,
                 currencies.code as currency,
                 inventory.created_by_id as created_by_id,
@@ -100,6 +101,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+            LEFT JOIN taxes ON inventory.tax_id = taxes.id
             LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
@@ -137,7 +139,8 @@ impl InventoryRepository for PoolManagerWrapper {
                 warehouses.name as warehouse,
                 inventory.quantity as quantity,
                 inventory.price as price,
-                inventory.cost as cost,
+                inventory.tax_id as tax_id,
+                taxes.description as tax,
                 inventory.currency_code as currency_code,
                 currencies.code as currency,
                 inventory.created_by_id as created_by_id,
@@ -148,6 +151,7 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+            LEFT JOIN taxes ON inventory.tax_id = taxes.id
             LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
@@ -187,18 +191,9 @@ impl InventoryRepository for PoolManagerWrapper {
                     .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
             ),
         };
-        let cost = match &inventory.cost {
-            None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("cost".to_string()))?,
-            ),
-        };
 
         Ok(sqlx::query_as::<_, Inventory>(
-            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, cost, currency_code, created_by_id)\
+            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, tax_id, currency_code, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
             .bind(inventory.product_id)
@@ -207,13 +202,13 @@ impl InventoryRepository for PoolManagerWrapper {
                 .quantity
                 .extract()
                 .get_value()
-                      .trim()
-                      .replace(",", ".")
-                      .parse::<i32>()
-                      .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?
+                .trim()
+                .replace(",", ".")
+                .parse::<i32>()
+                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?
             )
             .bind(price)
-            .bind(cost)
+            .bind(inventory.tax_id)
             .bind(inventory.currency_code.extract().get_value())
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
@@ -238,15 +233,6 @@ impl InventoryRepository for PoolManagerWrapper {
                     .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
             ),
         };
-        let cost = match &inventory.cost {
-            None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("cost".to_string()))?,
-            ),
-        };
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             UPDATE inventory
@@ -254,7 +240,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 warehouse_id = $2,
                 quantity = $3,
                 price = $4,
-                cost = $5,
+                tax_id = $5,
                 currency_code = $6
             WHERE id = $7
                 AND deleted_at IS NULL
@@ -274,7 +260,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
         )
         .bind(price)
-        .bind(cost)
+        .bind(inventory.tax_id)
         .bind(inventory.currency_code.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

@@ -71,6 +71,7 @@ pub enum InventorySelectLists {
     Products,
     Currencies,
     Warehouses,
+    Taxes,
 }
 
 impl FromStr for InventorySelectLists {
@@ -81,6 +82,7 @@ impl FromStr for InventorySelectLists {
             "products" => Ok(Self::Products),
             "currencies" => Ok(Self::Currencies),
             "warehouses" => Ok(Self::Warehouses),
+            "taxes" => Ok(Self::Taxes),
             _ => Err(InventoryServiceError::InvalidSelectList),
         }
     }
@@ -111,32 +113,35 @@ impl InventoryService {
         claims: &Claims,
         inventory_module: Arc<InventoryModule>,
     ) -> InventoryServiceResult<Vec<SelectOption>> {
-        match InventorySelectLists::from_str(select_list)? {
-            InventorySelectLists::Products => Ok(inventory_module
-                .products_repo
-                .get_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(InventoryServiceError::Unauthorized)?,
-                )
-                .await?),
-            InventorySelectLists::Currencies => Ok(inventory_module
-                .currencies_repo
-                .get_all_countries_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(InventoryServiceError::Unauthorized)?,
-                )
-                .await?),
-            InventorySelectLists::Warehouses => Ok(inventory_module
-                .warehouses_repo
-                .get_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(InventoryServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
+        let active_tenant = claims
+            .active_tenant()
+            .ok_or(InventoryServiceError::Unauthorized)?;
+        Ok(match InventorySelectLists::from_str(select_list)? {
+            InventorySelectLists::Products => {
+                inventory_module
+                    .products_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            InventorySelectLists::Currencies => {
+                inventory_module
+                    .currencies_repo
+                    .get_all_countries_select_list_items(active_tenant)
+                    .await?
+            }
+            InventorySelectLists::Warehouses => {
+                inventory_module
+                    .warehouses_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            InventorySelectLists::Taxes => {
+                inventory_module
+                    .taxes_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+        })
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

@@ -19,6 +19,7 @@
 
 use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{
     ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus,
@@ -28,7 +29,6 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
-use crate::tenant::currencies::types::CurrencyCode;
 
 #[derive(Debug, Deserialize)]
 pub struct ServiceUserInputHelper {
@@ -133,7 +133,8 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
             }
         };
 
-        let currency_code = validate_optional_string!(CurrencyCode(value.currency_code), error.currency_code);
+        let currency_code =
+            validate_optional_string!(CurrencyCode(value.currency_code), error.currency_code);
 
         let status = ValueObject::new(ServiceStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());

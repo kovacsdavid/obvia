@@ -48,7 +48,7 @@ export async function create({
                                warehouseId,
                                quantity,
                                price,
-                               cost,
+                               taxId,
                                currencyCode,
                              }: InventoryUserInput, token: string | null): Promise<ProcessedResponse<CreateInventoryResponse>> {
   return await fetch(`/api/inventory/create`, {
@@ -64,7 +64,7 @@ export async function create({
       warehouse_id: warehouseId,
       quantity,
       price,
-      cost,
+      tax_id: taxId,
       currency_code: currencyCode,
     })
   }).then(async (response: Response) => {
@@ -132,7 +132,7 @@ export async function update({
                                warehouseId,
                                quantity,
                                price,
-                               cost,
+                               taxId,
                                currencyCode,
                              }: InventoryUserInput, token: string | null): Promise<ProcessedResponse<UpdateInventoryResponse>> {
   return await fetch(`/api/inventory/update`, {
@@ -148,7 +148,7 @@ export async function update({
       warehouse_id: warehouseId,
       quantity,
       price,
-      cost,
+      tax_id: taxId,
       currency_code: currencyCode,
     }),
   }).then(async (response: Response) => {

@@ -31,11 +31,6 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
   const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
   const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
 
-  useEffect(() => {
-    updateCommonQueryParams(parsedQuery);
-    updateSpecialQueryParams(parsedQuery);
-  }, [parsedQuery, updateSpecialQueryParams]);
-
   const updateCommonQueryParams = (parsedQuery: Record<string, string | number>) => {
     if ("page" in parsedQuery) {
       setPage(parsedQuery["page"] as number);
@@ -50,6 +45,15 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
       setOrder(parsedQuery["order"] as string);
     }
   }
+
+  useEffect(() => {
+    // TODO: improve this
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    updateCommonQueryParams(parsedQuery);
+    updateSpecialQueryParams(parsedQuery);
+  }, [parsedQuery, updateSpecialQueryParams]);
+
+
 
   const paginatorSelect = (pageNumber: number) => {
     const current_query = query_parser(searchParams.get("q"));

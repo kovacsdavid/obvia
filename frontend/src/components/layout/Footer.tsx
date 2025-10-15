@@ -40,7 +40,7 @@ export function Footer() {
         Forráskód
       </a>
       {" // "}
-      closed_beta ({gitRevision}) (Nem használható éles környezetben!)
+      {gitRevision}
     </footer>
   );
 }

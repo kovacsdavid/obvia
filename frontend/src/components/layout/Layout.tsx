@@ -31,6 +31,8 @@ import {
 import {Separator} from "@/components/ui/separator"
 import {SidebarInset, SidebarProvider, SidebarTrigger,} from "@/components/ui/sidebar"
 import {useLocation} from "react-router-dom";
+import {Alert, AlertDescription} from "@/components/ui";
+import {FlaskConical} from "lucide-react";
 
 export function Layout({children}: { children: ReactNode }) {
   const breadcrumbMap: Record<string, string> = {
@@ -65,6 +67,12 @@ export function Layout({children}: { children: ReactNode }) {
     <SidebarProvider>
       <AppSidebar/>
       <SidebarInset>
+        <Alert className={"mr-auto ml-auto mt-5 mb-5 max-w-7xl"}>
+          <FlaskConical color={"orange"}/>
+          <AlertDescription className={"text-orange-400"}>
+            Zárt béta verzió: A rendszer jelenleg zártkörű tesztelési fázisban van. A tárolt adatok bármikor törlésre kerülhetnek. Ne használd a rendszert valós adatokkal!
+          </AlertDescription>
+        </Alert>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1"/>
           <Separator

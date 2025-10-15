@@ -26,8 +26,9 @@ import {
   isSimpleError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
+import type {Claims} from "@/components/modules/auth/lib/interface.ts";
+import {isClaims} from "@/components/modules/auth/lib/guards.ts";
 
 export interface CreateDatabase {
   name: string;
@@ -123,13 +124,23 @@ export function isPaginatedDatabaseListResponse(data: unknown): data is Paginate
   );
 }
 
-export type NewTokenResponse = string;
-
-export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
-  return typeof data === "string"
+export interface NewTokenResponse {
+  token: string,
+  claims: Claims,
 }
 
-export type ActiveDatabaseResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "token" in data &&
+    typeof data.token === "string" &&
+    "claims" in data &&
+    isClaims(data.claims)
+  )
+}
+
+export type ActiveDatabaseResponse = CommonResponse<NewTokenResponse, SimpleError>;
 
 export function isActiveDatabaseResponse(data: unknown): data is ActiveDatabaseResponse {
   return isCommonResponse(

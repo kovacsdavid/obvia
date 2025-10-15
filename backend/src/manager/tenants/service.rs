@@ -25,7 +25,7 @@ use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabase
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, FilteringParams, PublicTenantSelfHosted, TenantActivateRequest,
+    CreateTenant, FilteringParams, NewTokenResponse, PublicTenantSelfHosted, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
@@ -279,15 +279,20 @@ impl TenantsService {
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
         config: Arc<AppConfig>,
-    ) -> Result<String, TenantsServiceError> {
+    ) -> Result<NewTokenResponse, TenantsServiceError> {
         let user_tenant = repo
             .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
             .await?
             .ok_or(TenantsServiceError::AccessDenied)?;
-        claims
+        let claims = claims
             .clone()
-            .set_active_tenant(Some(user_tenant.tenant_id))
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .map_err(TenantsServiceError::Token)
+            .set_active_tenant(Some(user_tenant.tenant_id));
+
+        Ok(NewTokenResponse {
+            token: claims
+                .to_token(config.auth().jwt_secret().as_bytes())
+                .map_err(TenantsServiceError::Token)?,
+            claims,
+        })
     }
 }

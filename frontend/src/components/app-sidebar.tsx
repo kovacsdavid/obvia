@@ -61,6 +61,7 @@ interface NavigationItem {
   click?: () => void;
   publicOnly?: boolean;
   private?: boolean;
+  needActiveDatabase: boolean
   icon?: React.ReactNode;
   isActive: boolean;
 }
@@ -78,7 +79,7 @@ interface NavigationData {
 export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const {isLoggedIn} = useAuth();
+  const {isLoggedIn, hasActiveDatabase} = useAuth();
   const handleLogout = () => {
     dispatch(logoutUser());
   }
@@ -99,6 +100,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Adatbázis",
             url: "/adatbazis/lista",
             private: true,
+            needActiveDatabase: false,
             icon: <Database/>,
             isActive: location.pathname.includes("/adatbazis/lista"),
           },
@@ -119,6 +121,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Vevők",
             url: "/vevo/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <UsersRound/>,
             isActive: location.pathname.includes("/vevo/lista"),
           },
@@ -126,6 +129,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Címkék",
             url: "/cimke/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <Tag/>,
             isActive: location.pathname.includes("/cimke/lista"),
           },
@@ -133,6 +137,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Raktárak",
             url: "/raktar/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <Warehouse/>,
             isActive: location.pathname.includes("/raktar/lista"),
           },
@@ -140,6 +145,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Adók",
             url: "/ado/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <HandCoins/>,
             isActive: location.pathname.includes("/ado/lista"),
           },
@@ -153,6 +159,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Termékek",
             url: "/termek/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <Package/>,
             isActive: location.pathname.includes("/termek/lista"),
           },
@@ -160,6 +167,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Leltár",
             url: "/leltar/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <Boxes/>,
             isActive: location.pathname.includes("/leltar/lista"),
           },
@@ -173,6 +181,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Szolgáltatások",
             url: "/szolgaltatas/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <HandPlatter/>,
             isActive: location.pathname.includes("/szolgaltatas/lista"),
           },
@@ -180,6 +189,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Projektek",
             url: "/projekt/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <FolderOpen/>,
             isActive: location.pathname.includes("/projekt/lista"),
           },
@@ -187,6 +197,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Munkalapok",
             url: "/munkalap/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <NotebookText/>,
             isActive: location.pathname.includes("/munkalap/lista"),
           },
@@ -194,6 +205,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Feladatok",
             url: "/feladat/lista",
             private: true,
+            needActiveDatabase: true,
             icon: <ListTodo/>,
             isActive: location.pathname.includes("/feladat/lista"),
           },
@@ -207,6 +219,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             title: "Bejelentkezes",
             url: "/bejelentkezes",
             publicOnly: true,
+            needActiveDatabase: false,
             icon: <KeyRound/>,
             isActive: location.pathname.includes("/bejelentkezes"),
           },
@@ -215,6 +228,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/regisztracio",
             icon: <NotebookPen/>,
             publicOnly: true,
+            needActiveDatabase: false,
             isActive: location.pathname.includes("/regisztracio"),
           },
           {
@@ -222,6 +236,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             click: handleLogout,
             icon: <LogOut/>,
             private: true,
+            needActiveDatabase: false,
             isActive: false,
           },
         ],
@@ -237,6 +252,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
         {data.navMain.map((item) => {
           const filteredItems = item.items.filter((item) => (
             !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
+            && (!item.needActiveDatabase || (item.needActiveDatabase && hasActiveDatabase))
           ));
           return (
             filteredItems.length === 0 ? null :

@@ -27,6 +27,7 @@ import type {PayloadAction} from "@reduxjs/toolkit";
 
 type AuthContextType = {
   isLoggedIn: boolean;
+  hasActiveDatabase: boolean;
   login: (email: string, password: string) => Promise<PayloadAction<any, any, any>>;
   logout: () => void;
 };
@@ -36,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({children}: { children: ReactNode }) {
   const dispach = useAppDispatch();
   const isLoggedIn = useSelector((state: RootState) => state.auth.login.isLoggedIn);
+  const hasActiveDatabase = useSelector((state: RootState) => state.auth.login.hasActiveDatabase);
 
   const login = (email: string, password: string) => {
     return dispach(loginUserRequest({email, password}));
@@ -45,7 +47,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{isLoggedIn, login, logout}}>
+    <AuthContext.Provider value={{isLoggedIn, hasActiveDatabase, login, logout}}>
       {children}
     </AuthContext.Provider>
   );

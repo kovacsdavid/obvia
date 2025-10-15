@@ -20,6 +20,7 @@ use crate::common::dto::QueryParam;
 use crate::common::error::FormErrorResponse;
 use crate::common::types::value_object::ValueObject;
 use crate::manager::app::config::TenantDatabaseConfig;
+use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
 use axum::response::{IntoResponse, Response};
@@ -407,4 +408,10 @@ impl From<&QueryParam> for FilteringParams {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct TenantActivateRequest {
     pub new_tenant_id: Uuid,
+}
+
+#[derive(Serialize, Debug)]
+pub struct NewTokenResponse {
+    pub token: String,
+    pub claims: Claims,
 }

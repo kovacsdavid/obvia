@@ -22,6 +22,7 @@ use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, Succes
 use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
+use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::auth::service::AuthService;
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
@@ -103,6 +104,15 @@ pub async fn register(
         .data(SimpleMessageResponse::new(
             "A felhasználó sikeresen létrehozva",
         ))
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+pub async fn get_claims(AuthenticatedUser(claims): AuthenticatedUser) -> HandlerResult {
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(claims)
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

@@ -20,12 +20,18 @@
 import {
   type CommonResponse,
   type FormError,
-  isCommonResponse,
-  isFormError,
-  isSimpleMessageData,
+  type SimpleError,
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
+
+export interface RegisterRequest {
+  firstName: string,
+  lastName: string,
+  email: string,
+  password: string,
+  passwordConfirm: string,
+}
 
 export interface LoginRequest {
   email: string,
@@ -33,6 +39,7 @@ export interface LoginRequest {
 }
 
 export interface LoginData {
+  claims: Claims,
   user: LoginUser,
   token: string,
 }
@@ -46,61 +53,33 @@ export interface LoginUser {
   profile_picture_url: string | null;
 }
 
-export function isLoginUser(data: unknown): data is LoginUser {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "first_name" in data &&
-    (data.first_name === null || typeof data.first_name === "string") &&
-    "last_name" in data &&
-    (data.last_name === null || typeof data.last_name === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "profile_picture_url" in data &&
-    (data.profile_picture_url === null || typeof data.profile_picture_url === "string")
-  );
-}
+export interface Claims {
+  /** The subject of the token, which represents the user's unique identifier */
+  sub: string;
 
-export function isLoginData(data: unknown): data is LoginData {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "user" in data &&
-    isLoginUser(data.user) &&
-    "token" in data &&
-    typeof data.token === "string"
-  );
-}
+  /** The expiration timestamp of the token in UNIX time */
+  exp: number;
 
-export type LoginResponse = CommonResponse<LoginData, FormError>;
+  /** The issued-at timestamp of the token in UNIX time */
+  iat: number;
 
-export function isLoginResponse(data: unknown): data is LoginResponse {
-  return isCommonResponse<LoginData, FormError>(
-    data,
-    isLoginData,
-    isFormError,
-  );
-}
+  /** The "not valid before" timestamp in UNIX time */
+  nbf: number;
 
-export interface RegisterRequest {
-  firstName: string,
-  lastName: string,
-  email: string,
-  password: string,
-  passwordConfirm: string,
+  /** The issuer of the token, typically representing the domain or service name */
+  iss: string;
+
+  /** The audience for the token, identifying the intended recipient(s) */
+  aud: string;
+
+  /** A unique identifier for the token, typically a UUID */
+  jti: string;
+
+  /** The UUID of the active tenant associated with the current context */
+  active_tenant: string | null;
 }
 
 export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
-
-export function isRegisterResponse(data: unknown): data is RegisterResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError
-  )
-}
+export type LoginResponse = CommonResponse<LoginData, FormError>;
+export type ClaimsResponse = CommonResponse<Claims, SimpleError>;
 

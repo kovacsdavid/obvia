@@ -17,14 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedFormError} from "@/services/utils/consts.ts";
+import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  isRegisterResponse,
+  type ClaimsResponse,
   type LoginRequest,
   type RegisterRequest,
   type RegisterResponse
 } from "@/components/modules/auth/lib/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {isClaimsResponse, isRegisterResponse} from "@/components/modules/auth/lib/guards.ts";
 
 export async function login({email, password}: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
@@ -60,5 +61,21 @@ export async function register({
       response,
       isRegisterResponse
     ) ?? unexpectedFormError;
+  });
+}
+
+export async function get_claims(token: string | null): Promise<ProcessedResponse<ClaimsResponse>> {
+  return await fetch(`/api/auth/get_claims`, {
+    method: 'GET',
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isClaimsResponse,
+    ) ?? unexpectedError;
   });
 }

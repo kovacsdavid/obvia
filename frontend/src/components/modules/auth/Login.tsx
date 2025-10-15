@@ -23,10 +23,10 @@ import type {RootState} from "@/store";
 import {Button, GlobalError, Input, Label} from "@/components/ui";
 import {useNavigate} from 'react-router-dom'
 import {useAuth} from "@/context/AuthContext.tsx";
-import {isLoginResponse} from "@/components/modules/auth/lib/interface.ts";
 import {loginUser} from "@/components/modules/auth/lib/slice.ts";
 import {type FormError} from "@/lib/interfaces/common.ts";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {isLoginResponse} from "@/components/modules/auth/lib/guards.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -49,13 +49,15 @@ export default function Login() {
           switch (payload.status) {
             case 200: {
               if (isLoginResponse(responseData)) {
+                const claims = responseData?.data?.claims;
                 const user = responseData?.data?.user;
                 const token = responseData?.data?.token;
                 if (
                   typeof user !== "undefined"
                   && typeof token !== "undefined"
+                  && typeof claims !== "undefined"
                 ) {
-                  dispatch(loginUser({token, user}))
+                  dispatch(loginUser({token, user, claims}))
                   navigate('/adatbazis/szerkesztes');
                 } else {
                   setErrors({

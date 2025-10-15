@@ -19,7 +19,9 @@
 
 import {createAsyncThunk, createSlice, type PayloadAction} from "@reduxjs/toolkit";
 import * as authApi from "@/components/modules/auth/lib/service.ts";
-import type {LoginRequest, RegisterRequest} from "@/components/modules/auth/lib/interface.ts";
+import type {Claims, LoginRequest, RegisterRequest} from "@/components/modules/auth/lib/interface.ts";
+import type {RootState} from "@/store";
+import type {NewTokenResponse} from "@/components/modules/databases/lib/interface.ts";
 
 interface User {
   id: string;
@@ -33,9 +35,11 @@ interface User {
 interface AuthState {
   login: {
     user: User | null;
+    claims: Claims | null;
     token: string | null;
     status: "idle" | "loading" | "succeeded" | "failed",
     isLoggedIn: boolean;
+    hasActiveDatabase: boolean;
   },
   register: {
     status: "idle" | "loading" | "succeeded" | "failed",
@@ -44,10 +48,12 @@ interface AuthState {
 
 const initialState: AuthState = {
   login: {
+    claims: null,
     user: null,
     token: null,
     status: "idle",
     isLoggedIn: false,
+    hasActiveDatabase: false,
   },
   register: {
     status: "idle",
@@ -72,9 +78,19 @@ export const loginUserRequest = createAsyncThunk(
   }
 );
 
+export const get_claims = createAsyncThunk(
+  "auth/get_claims",
+  async (_, {getState}) => {
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await authApi.get_claims(token);
+  }
+)
+
 interface LoginUser {
   token: string,
-  user: User
+  user: User,
+  claims: Claims,
 }
 
 const authSlice = createSlice({
@@ -82,41 +98,25 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     loginUser(state, action: PayloadAction<LoginUser>) {
+      state.login.claims = action.payload.claims;
       state.login.user = action.payload.user;
       state.login.token = action.payload.token;
       state.login.isLoggedIn = true;
+      state.login.hasActiveDatabase = action.payload.claims.active_tenant !== null;
     },
     logoutUser(state) {
+      state.login.claims = null;
       state.login.user = null;
       state.login.token = null;
       state.login.status = "idle";
       state.login.isLoggedIn = false;
+      state.login.hasActiveDatabase = false;
     },
-    updateToken(state, action) {
-      state.login.token = action.payload;
+    updateToken(state, action: PayloadAction<NewTokenResponse>) {
+      state.login.token = action.payload.token;
+      state.login.claims = action.payload.claims;
+      state.login.hasActiveDatabase = action.payload.claims.active_tenant !== null;
     }
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(loginUserRequest.pending, (state) => {
-        state.login.status = "loading";
-      })
-      .addCase(loginUserRequest.fulfilled, (state) => {
-        state.login.status = "succeeded";
-      })
-      .addCase(loginUserRequest.rejected, (state) => {
-        state.login.status = "failed";
-      });
-    builder
-      .addCase(registerUserRequest.pending, (state) => {
-        state.register.status = "loading";
-      })
-      .addCase(registerUserRequest.fulfilled, (state) => {
-        state.register.status = "succeeded";
-      })
-      .addCase(registerUserRequest.rejected, (state) => {
-        state.register.status = "failed";
-      });
   },
 });
 

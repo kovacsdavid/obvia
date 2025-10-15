@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::manager::auth::dto::claims::Claims;
 use crate::manager::users::model::User;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -120,6 +121,7 @@ impl From<User> for UserPublic {
 ///   user for subsequent requests.
 #[derive(Serialize)]
 pub struct LoginResponse {
+    claims: Claims,
     user: UserPublic,
     token: String,
 }
@@ -133,8 +135,12 @@ impl LoginResponse {
     ///
     /// # Returns
     /// - Returns a new instance of the struct containing the provided `user` and `token`.
-    pub fn new(user: UserPublic, token: String) -> Self {
-        Self { user, token }
+    pub fn new(claims: Claims, user: UserPublic, token: String) -> Self {
+        Self {
+            claims,
+            user,
+            token,
+        }
     }
     /// Returns a reference to the `token` field of the struct.
     ///

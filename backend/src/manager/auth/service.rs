@@ -189,7 +189,7 @@ impl AuthService {
         )
         .map_err(|e| AuthServiceError::Token(e.to_string()))?;
 
-        Ok(LoginResponse::new(UserPublic::from(user), token))
+        Ok(LoginResponse::new(claims, UserPublic::from(user), token))
     }
 
     /// Attempts to register a new user in the system.

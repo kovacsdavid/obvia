@@ -17,9 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::handler::{login, register};
+use super::handler::{get_claims, login, register};
 use crate::manager::auth::AuthModule;
-use axum::{Router, routing::post};
+use axum::{
+    Router,
+    routing::{get, post},
+};
 use std::sync::Arc;
 
 /// Configures and returns a `Router` with authentication-specific routes.
@@ -41,6 +44,7 @@ pub fn routes(auth_module: Arc<AuthModule>) -> Router {
         Router::new()
             .route("/register", post(register))
             .route("/login", post(login))
+            .route("/get_claims", get(get_claims))
             .with_state(auth_module),
     )
 }

@@ -25,8 +25,11 @@ export function useActivateDatabase() {
   const dispatch = useAppDispatch();
   return async (new_tenant_id: string): Promise<boolean> => {
     return dispatch(activate(new_tenant_id)).then(async (response) => {
-      if (activate.fulfilled.match(response)
-        && response.payload.statusCode === 200) {
+      if (
+        activate.fulfilled.match(response)
+        && response.payload.statusCode === 200
+        && typeof response.payload.jsonData.data !== 'undefined'
+      ) {
         dispatch(updateToken(response.payload.jsonData.data));
         return true;
       }

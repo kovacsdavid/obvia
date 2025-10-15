@@ -240,6 +240,7 @@ mod tests {
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
     use crate::manager::tenants::TenantsModuleBuilder;
+    use crate::manager::tenants::dto::NewTokenResponse;
     use crate::manager::tenants::model::{Tenant, UserTenant};
     use crate::manager::tenants::repository::MockTenantsRepository;
     use crate::manager::users::model::User as ManagerUser;
@@ -815,11 +816,12 @@ mod tests {
         let expected_response = serde_json::to_string(
             &SuccessResponseBuilder::<EmptyType, _>::new()
                 .status_code(StatusCode::OK)
-                .data(
-                    claims_new
+                .data(NewTokenResponse {
+                    token: claims_new
                         .to_token(config.auth().jwt_secret().as_bytes())
                         .unwrap(),
-                )
+                    claims: claims_new,
+                })
                 .build()
                 .unwrap(),
         )

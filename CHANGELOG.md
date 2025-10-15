@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.2] - 2025-10-15
+
+### Added
+- Frontend claims handling support and conditional menu rendering based on the user's active database ([c80a249](https://github.com/kovacsdavid/obvia/commit/c80a249))
+
 ## [0.20.1] - 2025-10-15
 
 ### Changed

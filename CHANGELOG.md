@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.20.1] - 2025-10-15
+
+### Changed
+- Rename "Organizational Units" to "Databases" on frontend ([9bccd9d](https://github.com/kovacsdavid/obvia/commit/9bccd9d57c342d5007b50704a3220f279ce747af))
+
 ## [0.20.0] - 2025-10-15
 
 ### Added

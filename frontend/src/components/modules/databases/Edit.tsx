@@ -30,9 +30,9 @@ import {
   Input,
   Label
 } from "@/components/ui";
-import {create} from "@/components/modules/tenants/lib/slice.ts";
+import {create} from "@/components/modules/databases/lib/slice.ts";
 import {AlertCircle, Terminal} from "lucide-react";
-import {useActivateTenant} from "@/hooks/use_activate_tenant.ts";
+import {useActivateDatabase} from "@/hooks/use_activate_database.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
@@ -49,7 +49,7 @@ export default function Edit() {
   const navigate = useNavigate();
   const {errors, setErrors, unexpectedError} = useFormError();
 
-  const activateTenant = useActivateTenant();
+  const activateDatabase = useActivateDatabase();
 
   React.useEffect(() => {
     setDbHost("");
@@ -74,9 +74,9 @@ export default function Edit() {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (typeof response.payload.jsonData.data !== "undefined") {
-            activateTenant(response.payload.jsonData.data.id).then((isOk) => {
+            activateDatabase(response.payload.jsonData.data.id).then((isOk) => {
               if (isOk) {
-                navigate("/szervezeti_egyseg/lista");
+                navigate("/adatbazis/lista");
               } else {
                 unexpectedError();
               }
@@ -98,11 +98,11 @@ export default function Edit() {
       <GlobalError error={errors}/>
       <Card className={"max-w-lg mx-auto"}>
         <CardHeader>
-          <CardTitle>Adók</CardTitle>
+          <CardTitle>Adatbázis</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-            <Label htmlFor="name">Szervezeti egység neve</Label>
+            <Label htmlFor="name">Adatbázis neve</Label>
             <Input
               id="name"
               type="text"
@@ -112,7 +112,7 @@ export default function Edit() {
             <FieldError error={errors} field={"name"}/>
             <div className="flex items-start gap-3 mt-7 mb-5">
               <Checkbox id="self_hosted_db" checked={dbIsSelfHosted} onCheckedChange={setDbIsSelfHosted}/>
-              <Label htmlFor="self_hosted_db">Saját adatbázist használok (haladó)</Label>
+              <Label htmlFor="self_hosted_db">Saját adatbázis kiszolgálót használok (haladó)</Label>
             </div>
             {dbIsSelfHosted === true && (
               <>

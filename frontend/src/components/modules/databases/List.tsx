@@ -19,7 +19,7 @@
 
 import {Link} from "react-router-dom";
 import React, {useCallback, useEffect} from "react";
-import {list} from "@/components/modules/tenants/lib/slice.ts";
+import {list} from "@/components/modules/databases/lib/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {
   SortableTableHead,
@@ -39,8 +39,8 @@ import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover.
 import {GlobalError} from "@/components/ui";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {type TenantList} from "@/components/modules/tenants/lib/interface.ts";
-import {useActivateTenant} from "@/hooks/use_activate_tenant.ts";
+import {type DatabaseList} from "@/components/modules/databases/lib/interface.ts";
+import {useActivateDatabase} from "@/hooks/use_activate_database.ts";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
@@ -55,7 +55,7 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
-  const [data, setData] = React.useState<TenantList>([]);
+  const [data, setData] = React.useState<DatabaseList>([]);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
 
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
@@ -87,7 +87,7 @@ export default function List() {
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
-  const activateTenant = useActivateTenant();
+  const activateDatabase = useActivateDatabase();
 
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
@@ -123,7 +123,7 @@ export default function List() {
   ]);
 
   const handleActivate = async (new_tenant_id: string) => {
-    await activateTenant(new_tenant_id);
+    await activateDatabase(new_tenant_id);
   };
 
   return (
@@ -131,12 +131,12 @@ export default function List() {
       <GlobalError error={errors}/>
       <Card>
         <CardHeader>
-          <CardTitle>Szervezeti egységek</CardTitle>
+          <CardTitle>Adatbázisok</CardTitle>
         </CardHeader>
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/szervezeti_egyseg/szerkesztes"}>
+              <Link to={"/adatbazis/szerkesztes"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -216,7 +216,7 @@ export default function List() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/szervezeti_egyseg/reszletek/${item.id}`}>
+                        <Link to={`/adatbazis/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
                           </DropdownMenuItem>

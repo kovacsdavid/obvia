@@ -56,7 +56,7 @@ export default function Login() {
                   && typeof token !== "undefined"
                 ) {
                   dispatch(loginUser({token, user}))
-                  navigate('/szervezeti_egyseg/szerkesztes');
+                  navigate('/adatbazis/szerkesztes');
                 } else {
                   setErrors({
                     message: "Váratlan hiba történt a feldolgozás során!",

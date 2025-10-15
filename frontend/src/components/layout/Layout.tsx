@@ -40,8 +40,8 @@ export function Layout({children}: { children: ReactNode }) {
     "/bejelentkezes": "Bejelentkezés",
     "/regisztracio": "Regisztráció",
     "/vezerlopult": "Vezérlőpult",
-    "/szervezeti_egyseg/szerkesztes": "Szervezeti egység létrehozása",
-    "/szervezeti_egyseg/lista": "Szervezeti egység lista",
+    "/adatbazis/szerkesztes": "Adatbázis létrehozása",
+    "/adatbazis/lista": "Adatbázis lista",
     "/vevo/szerkesztes": "Vevő létrehozása",
     "/vevo/lista": "Vevő lista",
     "/leltar/szerkesztes": "Leltár létrehozása",
@@ -70,7 +70,8 @@ export function Layout({children}: { children: ReactNode }) {
         <Alert className={"mr-auto ml-auto mt-5 mb-5 max-w-7xl"}>
           <FlaskConical color={"orange"}/>
           <AlertDescription className={"text-orange-400"}>
-            Zárt béta verzió: A rendszer jelenleg zártkörű tesztelési fázisban van. A tárolt adatok bármikor törlésre kerülhetnek. Ne használd a rendszert valós adatokkal!
+            Zárt béta verzió: A rendszer jelenleg zártkörű tesztelési fázisban van. A tárolt adatok bármikor törlésre
+            kerülhetnek. Ne használd a rendszert valós adatokkal!
           </AlertDescription>
         </Alert>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">

@@ -19,16 +19,16 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type ActiveTenantResponse,
-  type CreateTenant,
-  type CreateTenantResponse,
-  isActiveTenantResponse,
-  isCreateTenantResponse,
-  isPaginatedTenantListResponse,
-  isTenantResponse,
-  type PaginatedTenantListResponse,
-  type TenantResponse
-} from "@/components/modules/tenants/lib/interface.ts";
+  type ActiveDatabaseResponse,
+  type CreateDatabase,
+  type CreateDatabaseResponse,
+  type DatabaseResponse,
+  isActiveDatabaseResponse,
+  isCreateDatabaseResponse,
+  isDatabaseResponse,
+  isPaginatedDatabaseListResponse,
+  type PaginatedDatabaseListResponse
+} from "@/components/modules/databases/lib/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
 
 export async function create({
@@ -39,7 +39,7 @@ export async function create({
                                dbName,
                                dbUser,
                                dbPassword
-                             }: CreateTenant, token: string | null): Promise<ProcessedResponse<CreateTenantResponse>> {
+                             }: CreateDatabase, token: string | null): Promise<ProcessedResponse<CreateDatabaseResponse>> {
   return await fetch(`/api/tenants/create`, {
     method: "POST",
     headers: {
@@ -60,13 +60,13 @@ export async function create({
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isCreateTenantResponse
+      isCreateDatabaseResponse
     ) ?? unexpectedFormError;
   });
 }
 
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedTenantListResponse>> {
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedDatabaseListResponse>> {
   const uri = query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`
   return await fetch(uri, {
     method: "GET",
@@ -78,12 +78,12 @@ export async function list(query: string | null, token: string | null): Promise<
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isPaginatedTenantListResponse
+      isPaginatedDatabaseListResponse
     ) ?? unexpectedFormError;
   });
 }
 
-export async function activate(new_tenant_id: string | null, token: string | null): Promise<ProcessedResponse<ActiveTenantResponse>> {
+export async function activate(new_tenant_id: string | null, token: string | null): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
   return await fetch(`/api/tenants/activate`, {
     method: "POST",
     headers: {
@@ -97,13 +97,13 @@ export async function activate(new_tenant_id: string | null, token: string | nul
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isActiveTenantResponse
+      isActiveDatabaseResponse
     ) ?? unexpectedError;
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TenantResponse>> {
-  return await fetch(`/api/products/get?uuid=${uuid}`, {
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<DatabaseResponse>> {
+  return await fetch(`/api/tenants/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -113,7 +113,7 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isTenantResponse,
+      isDatabaseResponse,
     ) ?? unexpectedError;
   });
 }

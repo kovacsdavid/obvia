@@ -29,7 +29,7 @@ import {
   type SimpleMessageData
 } from "@/lib/interfaces/common.ts";
 
-export interface CreateTenant {
+export interface CreateDatabase {
   name: string;
   dbIsSelfHosted: boolean;
   dbHost: string;
@@ -39,17 +39,17 @@ export interface CreateTenant {
   dbPassword: string;
 }
 
-export type CreateTenantResponse = CommonResponse<Tenant, FormError>;
+export type CreateDatabaseResponse = CommonResponse<Database, FormError>;
 
-export function isCreateTenantResponse(data: unknown): data is CreateTenantResponse {
+export function isCreateDatabaseResponse(data: unknown): data is CreateDatabaseResponse {
   return isCommonResponse(
     data,
-    isTenant,
+    isDatabase,
     isFormError,
   )
 }
 
-export interface Tenant {
+export interface Database {
   id: string;
   name: string;
   db_host: string;
@@ -64,19 +64,19 @@ export interface Tenant {
   deleted_at: string | null;
 }
 
-export type TenantResponse = CommonResponse<Tenant, SimpleError>;
+export type DatabaseResponse = CommonResponse<Database, SimpleError>;
 
-export function isTenantResponse(data: unknown): data is TenantResponse {
+export function isDatabaseResponse(data: unknown): data is DatabaseResponse {
   return isCommonResponse(
     data,
-    isTenant,
+    isDatabase,
     isSimpleError
   )
 }
 
-export type TenantList = Tenant[];
+export type DatabaseList = Database[];
 
-export function isTenant(data: unknown): data is Tenant {
+export function isDatabase(data: unknown): data is Database {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -107,19 +107,19 @@ export function isTenant(data: unknown): data is Tenant {
   );
 }
 
-export function isTenantList(data: unknown): data is TenantList {
+export function isDatabaseList(data: unknown): data is DatabaseList {
   return (
     Array.isArray(data) &&
-    data.every(item => isTenant(item))
+    data.every(item => isDatabase(item))
   );
 }
 
-export type PaginatedTenantListResponse = PaginatedDataResponse<TenantList, SimpleError>;
+export type PaginatedDatabaseListResponse = PaginatedDataResponse<DatabaseList, SimpleError>;
 
-export function isPaginatedTenantListResponse(data: unknown): data is PaginatedTenantListResponse {
+export function isPaginatedDatabaseListResponse(data: unknown): data is PaginatedDatabaseListResponse {
   return isPaginatedDataResponse(
     data,
-    isTenantList
+    isDatabaseList
   );
 }
 
@@ -129,9 +129,9 @@ export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
   return typeof data === "string"
 }
 
-export type ActiveTenantResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type ActiveDatabaseResponse = CommonResponse<SimpleMessageData, SimpleError>;
 
-export function isActiveTenantResponse(data: unknown): data is ActiveTenantResponse {
+export function isActiveDatabaseResponse(data: unknown): data is ActiveDatabaseResponse {
   return isCommonResponse(
     data,
     isNewTokenResponse,

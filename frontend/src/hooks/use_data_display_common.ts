@@ -54,7 +54,6 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
   }, [parsedQuery, updateSpecialQueryParams]);
 
 
-
   const paginatorSelect = (pageNumber: number) => {
     const current_query = query_parser(searchParams.get("q"));
     current_query.page = pageNumber;

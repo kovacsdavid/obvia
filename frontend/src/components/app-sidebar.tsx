@@ -40,8 +40,8 @@ import {Link, useLocation} from "react-router-dom";
 import {Button} from "@/components/ui";
 import {
   Boxes,
+  Database,
   FolderOpen,
-  Group,
   HandCoins,
   HandPlatter,
   KeyRound,
@@ -92,50 +92,56 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
   const data: NavigationData = {
     navMain: [
       {
-        title: "Törzsadatok",
+        title: "Adatbázis",
         url: "#",
         items: [
           {
-            title: "Szerzvezeti egységek",
-            url: "/szervezeti_egyseg/lista",
+            title: "Adatbázis",
+            url: "/adatbazis/lista",
             private: true,
-            icon: <Group/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            icon: <Database/>,
+            isActive: location.pathname.includes("/adatbazis/lista"),
           },
+        ]
+      },
+      {
+        title: "Törzsadatok",
+        url: "#",
+        items: [
           // {
           //   title: "Felhasználók",
           //   url: "/felhasznalo/lista",
           //   private: true,
           //   icon: <UserCog/>,
-          //   isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+          //   isActive: location.pathname.includes("/adatbazis/lista"),
           // },
           {
             title: "Vevők",
             url: "/vevo/lista",
             private: true,
             icon: <UsersRound/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/vevo/lista"),
           },
           {
             title: "Címkék",
             url: "/cimke/lista",
             private: true,
             icon: <Tag/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/cimke/lista"),
           },
           {
             title: "Raktárak",
             url: "/raktar/lista",
             private: true,
             icon: <Warehouse/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/raktar/lista"),
           },
           {
             title: "Adók",
             url: "/ado/lista",
             private: true,
             icon: <HandCoins/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/ado/lista"),
           },
         ]
       },
@@ -148,14 +154,14 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/termek/lista",
             private: true,
             icon: <Package/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/termek/lista"),
           },
           {
             title: "Leltár",
             url: "/leltar/lista",
             private: true,
             icon: <Boxes/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/leltar/lista"),
           },
         ]
       },
@@ -168,28 +174,28 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/szolgaltatas/lista",
             private: true,
             icon: <HandPlatter/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/szolgaltatas/lista"),
           },
           {
             title: "Projektek",
             url: "/projekt/lista",
             private: true,
             icon: <FolderOpen/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/projekt/lista"),
           },
           {
             title: "Munkalapok",
             url: "/munkalap/lista",
             private: true,
             icon: <NotebookText/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/munkalap/lista"),
           },
           {
             title: "Feladatok",
             url: "/feladat/lista",
             private: true,
             icon: <ListTodo/>,
-            isActive: location.pathname.includes("/szervezeti_egyseg/lista"),
+            isActive: location.pathname.includes("/feladat/lista"),
           },
         ]
       },

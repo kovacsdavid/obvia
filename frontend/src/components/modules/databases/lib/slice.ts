@@ -18,58 +18,58 @@
  */
 
 import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
-import * as tenantsApi from "@/components/modules/tenants/lib/service.ts";
+import * as databasesApi from "@/components/modules/databases/lib/service.ts";
 import type {RootState} from "@/store";
-import type {CreateTenant} from "@/components/modules/tenants/lib/interface.ts";
+import type {CreateDatabase} from "@/components/modules/databases/lib/interface.ts";
 
-interface TenantsState {
+interface DatabasesState {
   status: "idle" | "loading" | "succeeded" | "failed",
 }
 
-const initialState: TenantsState = {
+const initialState: DatabasesState = {
   status: "idle",
 }
 
 export const create = createAsyncThunk(
-  "tenants/create",
-  async (requestData: CreateTenant, {getState}) => {
+  "databases/create",
+  async (requestData: CreateDatabase, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await tenantsApi.create(requestData, token);
+    return await databasesApi.create(requestData, token);
   }
 )
 
 export const list = createAsyncThunk(
-  "tenants/list",
+  "databases/list",
   async (query: string | null, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await tenantsApi.list(query, token);
+    return await databasesApi.list(query, token);
   }
 )
 
 export const activate = createAsyncThunk(
-  "tenants/activate",
+  "databases/activate",
   async (new_tenant_id: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await tenantsApi.activate(new_tenant_id, token);
+    return await databasesApi.activate(new_tenant_id, token);
   }
 )
 
 export const get = createAsyncThunk(
-  "tenants/get",
+  "databases/get",
   async (uuid: string, {getState}) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await tenantsApi.get_resolved(uuid, token);
+    return await databasesApi.get_resolved(uuid, token);
   }
 )
 
-const tenantsSlice = createSlice({
-  name: "tenants",
+const databasesSlice = createSlice({
+  name: "databases",
   initialState,
   reducers: {},
 });
 
-export default tenantsSlice.reducer;
+export default databasesSlice.reducer;

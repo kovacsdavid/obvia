@@ -20,17 +20,17 @@
 import {useParams} from "react-router";
 import React, {useEffect} from "react";
 import {useAppDispatch} from "@/store/hooks.ts";
-import {get} from "@/components/modules/tenants/lib/slice.ts";
+import {get} from "@/components/modules/databases/lib/slice.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
 import {GlobalError} from "@/components/ui";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import type {Tenant} from "@/components/modules/tenants/lib/interface.ts";
+import type {Database} from "@/components/modules/databases/lib/interface.ts";
 
 
 export default function View() {
-  const [data, setData] = React.useState<Tenant | null>(null);
+  const [data, setData] = React.useState<Database | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Szervezeti egység</CardTitle>
+              <CardTitle>Adatbázis</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>

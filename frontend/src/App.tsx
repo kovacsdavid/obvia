@@ -51,9 +51,9 @@ import WarehousesView from "@/components/modules/warehouses/View.tsx";
 import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
 import WorksheetsList from "@/components/modules/worksheets/List.tsx";
 import WorksheetsView from "@/components/modules/worksheets/View.tsx";
-import TenantsEdit from "@/components/modules/tenants/Edit.tsx";
-import TenantsList from "@/components/modules/tenants/List.tsx";
-import TenantsView from "@/components/modules/tenants/View.tsx";
+import TenantsEdit from "@/components/modules/databases/Edit.tsx";
+import TenantsList from "@/components/modules/databases/List.tsx";
+import TenantsView from "@/components/modules/databases/View.tsx";
 import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
 import TaxesList from "@/components/modules/taxes/List.tsx";
 import TaxesView from "@/components/modules/taxes/View.tsx";
@@ -76,9 +76,9 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/vezerlopult", element: Dashboard, isPrivate: true},
 
   // Tenants
-  {path: "/szervezeti_egyseg/szerkesztes", element: TenantsEdit, isPrivate: true},
-  {path: "/szervezeti_egyseg/lista", element: TenantsList, isPrivate: true},
-  {path: "/szervezeti_egyseg/reszletek/:id", element: TenantsView, isPrivate: true},
+  {path: "/adatbazis/szerkesztes", element: TenantsEdit, isPrivate: true},
+  {path: "/adatbazis/lista", element: TenantsList, isPrivate: true},
+  {path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true},
 
   // Customers
   {path: "/vevo/szerkesztes", element: CustomerEdit, isPrivate: true},

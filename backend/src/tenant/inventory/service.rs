@@ -46,20 +46,25 @@ pub enum InventoryServiceError {
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
+
+    #[error("A megadott termékhez már létezik leltár ebben a raktárban!")]
+    InventoryExists,
 }
 
 impl IntoResponse for InventoryServiceError {
     fn into_response(self) -> Response {
         match self {
-            InventoryServiceError::Unauthorized => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                GeneralError {
-                    message: InventoryServiceError::Unauthorized.to_string(),
-                },
-            )
-            .into_response(),
+            InventoryServiceError::Unauthorized | InventoryServiceError::InventoryExists => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    GeneralError {
+                        message: self.to_string(),
+                    },
+                )
+                .into_response()
+            }
             e => FriendlyError::internal(file!(), e.to_string()).into_response(),
         }
     }
@@ -105,7 +110,14 @@ impl InventoryService {
                     .active_tenant()
                     .ok_or(InventoryServiceError::Unauthorized)?,
             )
-            .await?;
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    InventoryServiceError::InventoryExists
+                } else {
+                    e.into()
+                }
+            })?;
         Ok(())
     }
     pub async fn get_select_list_items(

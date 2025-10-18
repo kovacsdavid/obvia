@@ -32,14 +32,13 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx
 export default function Edit() {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
-  const [quantity, setQuantity] = React.useState("");
-  const [taxId, setTaxId] = React.useState("");
-  const [price, setPrice] = React.useState("");
+  const [minimumStock, setMinimumStock] = React.useState("");
+  const [maximumStock, setMaximumStock] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("");
+  const [status, setStatus] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const [productList, setProductList] = React.useState<SelectOptionList>([]);
   const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>([]);
-  const [taxIdList, setTaxIdList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
@@ -52,10 +51,10 @@ export default function Edit() {
       id,
       productId,
       warehouseId,
-      quantity,
-      taxId,
-      price,
+      minimumStock,
+      maximumStock,
       currencyCode,
+      status,
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
@@ -69,17 +68,17 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [taxId, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [currencyCode, dispatch, id, navigate, productId, minimumStock, maximumStock, setErrors, unexpectedError, warehouseId, status]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
       id,
       productId,
       warehouseId,
-      quantity,
-      taxId,
-      price,
+      minimumStock,
+      maximumStock,
       currencyCode,
+      status,
     })).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
@@ -93,7 +92,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [taxId, currencyCode, dispatch, id, navigate, price, productId, quantity, setErrors, unexpectedError, warehouseId]);
+  }, [currencyCode, dispatch, id, navigate, productId, minimumStock, maximumStock, setErrors, unexpectedError, warehouseId, status]);
 
   useEffect(() => {
     if (typeof id === "string") {
@@ -104,10 +103,10 @@ export default function Edit() {
               const data = response.payload.jsonData.data;
               setProductId(data.product_id);
               setWarehouseId(data.warehouse_id);
-              setQuantity(data.quantity.toString());
-              setTaxId(data.tax_id);
-              setPrice(data.price ?? "");
+              setMinimumStock(data.minimum_stock ? data.minimum_stock.toString() : "");
+              setMaximumStock(data.maximum_stock ? data.maximum_stock.toString() : "");
               setCurrencyCode(data.currency_code);
+              setStatus(data.status);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors({message: response.payload.jsonData.error.message, fields: {}})
@@ -139,13 +138,6 @@ export default function Edit() {
     dispatch(select_list("warehouses")).then(async (response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setWarehouseList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-    dispatch(select_list("taxes")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setTaxIdList, setErrors);
       } else {
         unexpectedError();
       }
@@ -206,38 +198,22 @@ export default function Edit() {
               </SelectContent>
             </Select>
             <FieldError error={errors} field={"warehouse_id"}/>
-            <Label htmlFor="quantity">Mennyiség</Label>
+            <Label htmlFor="minimum_stock">Minimum készlet</Label>
             <Input
-              id="quantity"
-              type="text"
-              value={quantity}
-              onChange={e => setQuantity(e.target.value)}
+              id="minimum_stock"
+              type="number"
+              value={minimumStock}
+              onChange={e => setMinimumStock(e.target.value)}
             />
-            <FieldError error={errors} field={"quantity"}/>
-            <FieldError error={errors} field={"unit_of_measure"}/>
-            <Label htmlFor="tax_id">Adó</Label>
-            <Select
-              value={taxId}
-              onValueChange={val => setTaxId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {taxIdList.map(tax => {
-                  return <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"tax_id"}/>
-            <Label htmlFor="price">Fogyasztói ár</Label>
+            <FieldError error={errors} field={"minimum_stock"}/>
+            <Label htmlFor="maximum_stock">Maximum készlet</Label>
             <Input
-              id="price"
+              id="maximum_stock"
               type="text"
-              value={price}
-              onChange={e => setPrice(e.target.value)}
+              value={maximumStock}
+              onChange={e => setMaximumStock(e.target.value)}
             />
-            <FieldError error={errors} field={"price"}/>
+            <FieldError error={errors} field={"maximum_stock"}/>
             <Label htmlFor="currency_code">Pénznem</Label>
             <Select
               value={currencyCode}
@@ -253,6 +229,22 @@ export default function Edit() {
               </SelectContent>
             </Select>
             <FieldError error={errors} field={"currency_code"}/>
+
+            <Label htmlFor="status">Állapot</Label>
+            <Select
+              value={status}
+              onValueChange={val => setStatus(val)}
+            >
+              <SelectTrigger className={"w-full"}>
+                <SelectValue/>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Aktív</SelectItem>
+                <SelectItem value="inactive">Inaktív</SelectItem>
+                <SelectItem value="discontinued">Kivezetett</SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldError error={errors} field={"status"}/>
 
             <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
           </form>

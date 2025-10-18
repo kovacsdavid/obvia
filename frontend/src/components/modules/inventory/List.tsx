@@ -167,16 +167,25 @@ export default function List() {
                   Raktár
                 </TableHead>
                 <TableHead>
-                  Mennyiség
+                  Készlet (raktáron)
                 </TableHead>
                 <TableHead>
-                  Fogyasztói ár
+                  Foglalt
                 </TableHead>
                 <TableHead>
-                  Adó
+                  Rendelkezésre álló
+                </TableHead>
+                <TableHead>
+                  Minimum készlet
+                </TableHead>
+                <TableHead>
+                  Maximum készlet
                 </TableHead>
                 <TableHead>
                   Pénznem
+                </TableHead>
+                <TableHead>
+                  Állapot
                 </TableHead>
                 <TableHead>
                   Létrehozta
@@ -221,10 +230,13 @@ export default function List() {
                   </TableCell>
                   <TableCell>{item.product}</TableCell>
                   <TableCell>{item.warehouse}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.price}</TableCell>
-                  <TableCell>{item.tax}</TableCell>
+                  <TableCell>{item.quantity_on_hand}</TableCell>
+                  <TableCell>{item.quantity_reserved}</TableCell>
+                  <TableCell>{item.quantity_available}</TableCell>
+                  <TableCell>{item.minimum_stock ?? "-"}</TableCell>
+                  <TableCell>{item.maximum_stock ?? "-"}</TableCell>
                   <TableCell>{item.currency}</TableCell>
+                  <TableCell>{item.status}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

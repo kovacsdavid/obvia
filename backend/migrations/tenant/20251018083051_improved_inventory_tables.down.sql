@@ -17,18 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod currency_code;
-pub(crate) mod ddl_parameter;
-pub(crate) mod email;
-pub(crate) mod first_name;
-pub(crate) mod integer32;
-pub(crate) mod last_name;
-pub(crate) mod order;
-pub(crate) mod password;
-pub(crate) mod value_object;
-
-pub(crate) use ddl_parameter::DdlParameter;
-pub(crate) use email::Email;
-pub(crate) use first_name::FirstName;
-pub(crate) use last_name::LastName;
-pub(crate) use password::Password;
+DROP TABLE IF EXISTS inventory CASCADE;
+DROP TABLE IF EXISTS inventory_movements CASCADE;
+DROP TABLE IF EXISTS inventory_reservations CASCADE;
+DROP TABLE IF EXISTS inventory_audit CASCADE;

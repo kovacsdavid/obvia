@@ -157,7 +157,11 @@ impl TagsRepository for PoolManagerWrapper {
             "INSERT INTO tags (name, description, created_by_id) VALUES ($1, $2, $3) RETURNING *",
         )
         .bind(tag.name.extract().get_value())
-        .bind(tag.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            tag.description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
@@ -178,7 +182,11 @@ impl TagsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(tag.name.extract().get_value())
-        .bind(tag.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            tag.description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

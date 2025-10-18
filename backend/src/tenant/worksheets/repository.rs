@@ -191,7 +191,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .bind(
             worksheet
                 .description
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(worksheet.project_id)
         .bind(sub)
@@ -224,7 +225,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .bind(
             worksheet
                 .description
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(worksheet.project_id)
         .bind(worksheet.status.extract().get_value())

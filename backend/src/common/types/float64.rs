@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Price(pub String);
+pub struct Float64(pub String);
 
-impl ValueObjectable for Price {
+impl ValueObjectable for Float64 {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
@@ -35,7 +35,7 @@ impl ValueObjectable for Price {
                 .trim()
                 .replace(",", ".")
                 .parse::<f64>()
-                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+                .map_err(|_| String::from("Hibás formátum!"))?;
             Ok(())
         }
     }
@@ -49,7 +49,7 @@ impl ValueObjectable for Price {
     }
 }
 
-impl Display for Price {
+impl Display for Float64 {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -65,7 +65,7 @@ impl Display for Price {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Price> {
+impl<'de> Deserialize<'de> for ValueObject<Float64> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for ValueObject<Price> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Price(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Float64(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -103,19 +103,19 @@ mod tests {
 
     #[test]
     fn test_valid_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
+        let price: ValueObject<Float64> = serde_json::from_str(r#""123.45""#).unwrap();
         assert_eq!(price.extract().get_value(), "123.45");
 
-        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
+        let price: ValueObject<Float64> = serde_json::from_str(r#""123,45""#).unwrap();
         assert_eq!(price.extract().get_value(), "123,45");
     }
 
     #[test]
     fn test_empty_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
+        let price: ValueObject<Float64> = serde_json::from_str(r#""""#).unwrap();
         assert_eq!(price.extract().get_value(), "");
 
-        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
+        let price: ValueObject<Float64> = serde_json::from_str(r#""  ""#).unwrap();
         assert_eq!(price.extract().get_value(), "  ");
     }
 
@@ -130,33 +130,33 @@ mod tests {
         ];
 
         for case in cases {
-            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
+            let price: Result<ValueObject<Float64>, _> = serde_json::from_str(case);
             assert!(price.is_err());
         }
     }
 
     #[test]
     fn test_display() {
-        let price = Price("123.45".to_string());
+        let price = Float64("123.45".to_string());
         assert_eq!(format!("{}", price), "123.45");
     }
 
     #[test]
     fn test_get_value() {
-        let price = Price("123.45".to_string());
+        let price = Float64("123.45".to_string());
         assert_eq!(price.get_value(), "123.45");
     }
 
     #[test]
     fn test_validation() {
-        assert!(Price("123.45".to_string()).validate().is_ok());
-        assert!(Price("123,45".to_string()).validate().is_ok());
-        assert!(Price("".to_string()).validate().is_ok());
-        assert!(Price("  ".to_string()).validate().is_ok());
+        assert!(Float64("123.45".to_string()).validate().is_ok());
+        assert!(Float64("123,45".to_string()).validate().is_ok());
+        assert!(Float64("".to_string()).validate().is_ok());
+        assert!(Float64("  ".to_string()).validate().is_ok());
 
-        assert!(Price("abc".to_string()).validate().is_err());
-        assert!(Price("12.34.56".to_string()).validate().is_err());
-        assert!(Price("12,34,56".to_string()).validate().is_err());
-        assert!(Price("$123".to_string()).validate().is_err());
+        assert!(Float64("abc".to_string()).validate().is_err());
+        assert!(Float64("12.34.56".to_string()).validate().is_err());
+        assert!(Float64("12,34,56".to_string()).validate().is_err());
+        assert!(Float64("$123".to_string()).validate().is_err());
     }
 }

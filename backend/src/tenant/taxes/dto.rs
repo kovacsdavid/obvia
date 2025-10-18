@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::address::types::country::CountryCode;
 use crate::tenant::taxes::types::legal_text::LegalText;
 use crate::tenant::taxes::types::reporting_code::ReportingCode;

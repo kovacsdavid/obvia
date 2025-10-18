@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::{BuilderError, BuilderResult};
-use crate::common::types::order::Order;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::Order;
+use crate::common::types::{ValueObject, ValueObjectable};
 use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

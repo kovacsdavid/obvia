@@ -69,6 +69,9 @@ type TasksServiceResult<T> = Result<T, TasksServiceError>;
 
 pub enum TasksSelectLists {
     Worksheets,
+    Services,
+    Taxes,
+    Currencies,
 }
 
 impl FromStr for TasksSelectLists {
@@ -77,6 +80,9 @@ impl FromStr for TasksSelectLists {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "worksheets" => Ok(Self::Worksheets),
+            "services" => Ok(Self::Services),
+            "taxes" => Ok(Self::Taxes),
+            "currencies" => Ok(Self::Currencies),
             _ => Err(Self::Err::InvalidSelectList),
         }
     }
@@ -107,16 +113,35 @@ impl TasksService {
         claims: &Claims,
         tasks_module: Arc<TasksModule>,
     ) -> TasksServiceResult<Vec<SelectOption>> {
-        match TasksSelectLists::from_str(select_list)? {
-            TasksSelectLists::Worksheets => Ok(tasks_module
-                .worksheets_repo
-                .get_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(TasksServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
+        let active_tenant = claims
+            .active_tenant()
+            .ok_or(TasksServiceError::Unauthorized)?;
+        Ok(match TasksSelectLists::from_str(select_list)? {
+            TasksSelectLists::Worksheets => {
+                tasks_module
+                    .worksheets_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            TasksSelectLists::Services => {
+                tasks_module
+                    .services_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            TasksSelectLists::Taxes => {
+                tasks_module
+                    .taxes_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            TasksSelectLists::Currencies => {
+                tasks_module
+                    .currencies_repo
+                    .get_all_countries_select_list_items(active_tenant)
+                    .await?
+            }
+        })
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

@@ -135,7 +135,7 @@ mod tests {
     use uuid::Uuid;
 
     use crate::common::error::RepositoryError;
-    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;

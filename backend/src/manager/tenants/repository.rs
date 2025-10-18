@@ -21,7 +21,7 @@ use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::RepositoryError;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::DdlParameter;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;

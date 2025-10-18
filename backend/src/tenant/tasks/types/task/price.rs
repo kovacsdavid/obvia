@@ -17,21 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Code(pub String);
+pub struct Price(pub String);
 
-impl ValueObjectable for Code {
+impl ValueObjectable for Price {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if self.0.trim().len() == 3 {
+        if self.0.trim().is_empty() {
             Ok(())
         } else {
-            Err("A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF".to_string())
+            self.0
+                .trim()
+                .replace(",", ".")
+                .parse::<f64>()
+                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            Ok(())
         }
     }
 
@@ -44,7 +49,7 @@ impl ValueObjectable for Code {
     }
 }
 
-impl Display for Code {
+impl Display for Price {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -60,7 +65,7 @@ impl Display for Code {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Code> {
+impl<'de> Deserialize<'de> for ValueObject<Price> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -87,7 +92,7 @@ impl<'de> Deserialize<'de> for ValueObject<Code> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Code(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Price(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -97,67 +102,61 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_currency() {
-        let currency: ValueObject<Code> = serde_json::from_str(r#""USD""#).unwrap();
-        assert_eq!(currency.extract().get_value(), "USD");
+    fn test_valid_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123.45");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123,45");
     }
 
     #[test]
-    fn test_invalid_currency_too_short() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""US""#);
-        assert!(currency.is_err());
+    fn test_empty_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(price.extract().get_value(), "");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(price.extract().get_value(), "  ");
     }
 
     #[test]
-    fn test_invalid_currency_too_long() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""USDT""#);
-        assert!(currency.is_err());
+    fn test_invalid_price_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#,
+        ];
+
+        for case in cases {
+            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
+            assert!(price.is_err());
+        }
     }
 
     #[test]
-    fn test_invalid_currency_empty() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""""#);
-        assert!(currency.is_err());
-    }
-
-    #[test]
-    fn test_display_format() {
-        let currency = Code("EUR".to_string());
-        assert_eq!(format!("{}", currency), "EUR");
-    }
-
-    #[test]
-    fn test_validation_with_spaces() {
-        let currency = Code(" USD ".to_string());
-        assert!(currency.validate().is_ok());
+    fn test_display() {
+        let price = Price("123.45".to_string());
+        assert_eq!(format!("{}", price), "123.45");
     }
 
     #[test]
     fn test_get_value() {
-        let currency = Code("GBP".to_string());
-        assert_eq!(currency.get_value(), "GBP");
+        let price = Price("123.45".to_string());
+        assert_eq!(price.get_value(), "123.45");
     }
 
     #[test]
-    fn test_clone() {
-        let currency = Code("JPY".to_string());
-        let cloned = currency.clone();
-        assert_eq!(currency, cloned);
-    }
+    fn test_validation() {
+        assert!(Price("123.45".to_string()).validate().is_ok());
+        assert!(Price("123,45".to_string()).validate().is_ok());
+        assert!(Price("".to_string()).validate().is_ok());
+        assert!(Price("  ".to_string()).validate().is_ok());
 
-    #[test]
-    fn test_debug_format() {
-        let currency = Code("CNY".to_string());
-        assert_eq!(format!("{:?}", currency), r#"Code("CNY")"#);
-    }
-
-    #[test]
-    fn test_deserialization_errors() {
-        let invalid_types = vec!["null", "123", "true", "[]", "{}"];
-
-        for invalid in invalid_types {
-            let result: Result<ValueObject<Code>, _> = serde_json::from_str(invalid);
-            assert!(result.is_err());
-        }
+        assert!(Price("abc".to_string()).validate().is_err());
+        assert!(Price("12.34.56".to_string()).validate().is_err());
+        assert!(Price("12,34,56".to_string()).validate().is_err());
+        assert!(Price("$123".to_string()).validate().is_err());
     }
 }

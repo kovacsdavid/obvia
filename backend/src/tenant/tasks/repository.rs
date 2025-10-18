@@ -26,7 +26,7 @@ use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::TaskOrderBy;
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use chrono::NaiveDate;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -84,8 +84,12 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.id as id,
                 tasks.worksheet_id as worksheet_id,
                 worksheets.name as worksheet,
-                tasks.title as title,
-                tasks.description as description,
+                tasks.service_id as service_id,
+                services.name as service,
+                tasks.currency_code as currency_code,
+                tasks.price as price,
+                tasks.tax_id as tax_id,
+                taxes.description as tax,
                 tasks.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 tasks.status as status,
@@ -96,6 +100,8 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.deleted_at as deleted_at
             FROM tasks
             LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+            LEFT JOIN services ON tasks.service_id = services.id
+            LEFT JOIN taxes ON tasks.tax_id = taxes.id
             LEFT JOIN users ON tasks.created_by_id = users.id
             WHERE tasks.deleted_at IS NULL
                 AND tasks.id = $1
@@ -127,8 +133,12 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.id as id,
                 tasks.worksheet_id as worksheet_id,
                 worksheets.name as worksheet,
-                tasks.title as title,
-                tasks.description as description,
+                tasks.service_id as service_id,
+                services.name as service,
+                tasks.currency_code as currency_code,
+                tasks.price as price, 
+                tasks.tax_id as tax_id,
+                taxes.description as tax,
                 tasks.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 tasks.status as status,
@@ -139,6 +149,8 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.deleted_at as deleted_at
             FROM tasks
             LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+            LEFT JOIN services ON tasks.service_id = services.id
+            LEFT JOIN taxes ON tasks.tax_id = taxes.id
             LEFT JOIN users ON tasks.created_by_id = users.id
             WHERE tasks.deleted_at IS NULL
             {order_by_clause}
@@ -168,23 +180,35 @@ impl TasksRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task> {
+        let price = match &task.price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
+            ),
+        };
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         Ok(sqlx::query_as::<_, Task>(
-            "INSERT INTO tasks (worksheet_id, title, description, created_by_id, status, priority, due_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
-            )
+            "INSERT INTO tasks (worksheet_id, service_id, currency_code, price, tax_id, created_by_id, status, priority, due_date)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *"
+        )
             .bind(task.worksheet_id)
-            .bind(task.title.extract().get_value())
-            .bind(task.description.map(|v| v.extract().get_value().clone()))
+            .bind(task.service_id)
+            .bind(task.currency_code.extract().get_value())
+            .bind(price)
+            .bind(task.tax_id)
             .bind(sub)
             .bind(task.status.extract().get_value())
-            .bind(task.priority.extract().get_value())
+            .bind(task.priority.as_ref()
+                .map(|d| d.extract().get_value().as_str()))
             .bind(due_date)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?
@@ -198,7 +222,7 @@ impl TasksRepository for PoolManagerWrapper {
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -206,21 +230,33 @@ impl TasksRepository for PoolManagerWrapper {
             r#"
             UPDATE tasks
             SET worksheet_id = $1,
-                title = $2,
-                description = $3,
-                status = $4,
-                priority = $5,
-                due_date = $6
-            WHERE id = $7
+                service_id = $2,
+                currency_code = $3,
+                price = $4,
+                tax_id = $5,
+                status = $6,
+                priority = $7,
+                due_date = $8
+            WHERE id = $9
                 AND deleted_at IS NULL
             RETURNING *
             "#,
         )
         .bind(task.worksheet_id)
-        .bind(task.title.extract().get_value())
-        .bind(task.description.map(|v| v.extract().get_value().clone()))
+        .bind(task.service_id)
+        .bind(task.currency_code.extract().get_value())
+        .bind(
+            task.price
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
+        .bind(task.tax_id)
         .bind(task.status.extract().get_value())
-        .bind(task.priority.extract().get_value())
+        .bind(
+            task.priority
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(due_date)
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

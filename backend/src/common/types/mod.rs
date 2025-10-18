@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod currency_code;
 pub(crate) mod ddl_parameter;
 pub(crate) mod email;
 pub(crate) mod first_name;

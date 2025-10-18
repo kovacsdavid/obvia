@@ -19,7 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
-use crate::tenant::currencies::repository::CurrencyRepository;
+use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
@@ -52,7 +52,7 @@ pub struct InventoryModule {
     pub inventory_repo: Arc<dyn InventoryRepository>,
     pub products_repo: Arc<dyn ProductsRepository>,
     pub warehouses_repo: Arc<dyn WarehousesRepository>,
-    pub currencies_repo: Arc<dyn CurrencyRepository>,
+    pub currencies_repo: Arc<dyn CurrenciesRepository>,
     pub taxes_repo: Arc<dyn TaxesRepository>,
 }
 
@@ -61,7 +61,7 @@ pub struct InventoryModuleBuilder {
     pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
     pub products_repo: Option<Arc<dyn ProductsRepository>>,
     pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
-    pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
+    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
     pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
 }
 
@@ -92,7 +92,7 @@ impl InventoryModuleBuilder {
         self.warehouses_repo = Some(warehouses_repo);
         self
     }
-    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrencyRepository>) -> Self {
+    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
         self.currencies_repo = Some(currencies_repo);
         self
     }

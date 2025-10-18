@@ -270,7 +270,7 @@ export default function Edit() {
               </SelectContent>
             </Select>
             <FieldError error={errors} field={"status"}/>
-            <Button type="submit">Létrehozás</Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
           </form>
         </CardContent>
       </Card>

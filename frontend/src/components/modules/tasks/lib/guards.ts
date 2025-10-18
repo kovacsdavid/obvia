@@ -62,10 +62,18 @@ export function isTaskResolved(data: unknown): data is TaskResolved {
     typeof data.worksheet_id === "string" &&
     "worksheet" in data &&
     typeof data.worksheet === "string" &&
-    "title" in data &&
-    typeof data.title === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
+    "service_id" in data &&
+    typeof data.service_id === "string" &&
+    "service" in data &&
+    typeof data.service === "string" &&
+    "currency_code" in data &&
+    typeof data.currency_code === "string" &&
+    "price" in data &&
+    (data.price === null || typeof data.price === "string") &&
+    "tax_id" in data &&
+    typeof data.tax_id === "string" &&
+    "tax" in data &&
+    typeof data.tax === "string" &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "created_by" in data &&
@@ -107,10 +115,14 @@ export function isTask(data: unknown): data is Task {
     typeof data.id === "string" &&
     "worksheet_id" in data &&
     typeof data.worksheet_id === "string" &&
-    "title" in data &&
-    typeof data.title === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
+    "service_id" in data &&
+    typeof data.service_id === "string" &&
+    "currency_code" in data &&
+    typeof data.currency_code === "string" &&
+    "price" in data &&
+    (data.price === null || typeof data.price === "string") &&
+    "tax_id" in data &&
+    typeof data.tax_id === "string" &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "status" in data &&

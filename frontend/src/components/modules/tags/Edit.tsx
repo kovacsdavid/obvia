@@ -131,7 +131,7 @@ export default function Edit() {
               onChange={e => setDescription(e.target.value)}
             />
             <FieldError error={errors} field={"description"}/>
-            <Button type="submit">Létrehozás</Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
           </form>
         </CardContent>
       </Card>

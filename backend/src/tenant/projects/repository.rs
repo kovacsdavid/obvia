@@ -204,7 +204,12 @@ impl ProjectsRepository for PoolManagerWrapper {
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(project.name.extract().get_value())
-        .bind(project.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            project
+                .description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(sub)
         .bind(project.status.extract().get_value())
         .bind(start_date)
@@ -249,7 +254,12 @@ impl ProjectsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(project.name.extract().get_value())
-        .bind(project.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            project
+                .description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(project.status.extract().get_value())
         .bind(start_date)
         .bind(end_date)

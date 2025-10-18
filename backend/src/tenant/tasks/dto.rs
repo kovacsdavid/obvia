@@ -17,10 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
+use crate::common::types::currency_code::CurrencyCode;
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
-use crate::tenant::tasks::types::task::{
-    TaskDescription, TaskDueDate, TaskPriority, TaskStatus, TaskTitle,
-};
+use crate::tenant::tasks::types::task::{TaskDueDate, TaskPrice, TaskPriority, TaskStatus};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
@@ -31,8 +30,10 @@ use uuid::Uuid;
 pub struct TaskUserInputHelper {
     pub id: Option<String>,
     pub worksheet_id: Uuid,
-    pub title: String,
-    pub description: String,
+    pub service_id: Uuid,
+    pub currency_code: String,
+    pub price: String,
+    pub tax_id: Uuid,
     pub status: String,
     pub priority: String,
     pub due_date: String,
@@ -42,8 +43,10 @@ pub struct TaskUserInputHelper {
 pub struct TaskUserInputError {
     pub id: Option<String>,
     pub worksheet_id: Option<String>,
-    pub title: Option<String>,
-    pub description: Option<String>,
+    pub service_id: Option<String>,
+    pub currency_code: Option<String>,
+    pub price: Option<String>,
+    pub tax_id: Option<String>,
     pub status: Option<String>,
     pub priority: Option<String>,
     pub due_date: Option<String>,
@@ -53,8 +56,10 @@ impl TaskUserInputError {
     pub fn is_empty(&self) -> bool {
         self.id.is_none()
             && self.worksheet_id.is_none()
-            && self.title.is_none()
-            && self.description.is_none()
+            && self.service_id.is_none()
+            && self.currency_code.is_none()
+            && self.price.is_none()
+            && self.tax_id.is_none()
             && self.status.is_none()
             && self.priority.is_none()
             && self.due_date.is_none()
@@ -82,10 +87,12 @@ impl IntoResponse for TaskUserInputError {
 pub struct TaskUserInput {
     pub id: Option<Uuid>,
     pub worksheet_id: Uuid,
-    pub title: ValueObject<TaskTitle>,
-    pub description: Option<ValueObject<TaskDescription>>,
+    pub service_id: Uuid,
+    pub currency_code: ValueObject<CurrencyCode>,
+    pub price: Option<ValueObject<TaskPrice>>,
+    pub tax_id: Uuid,
     pub status: ValueObject<TaskStatus>,
-    pub priority: ValueObject<TaskPriority>,
+    pub priority: Option<ValueObject<TaskPriority>>,
     pub due_date: Option<ValueObject<TaskDueDate>>,
 }
 
@@ -103,27 +110,30 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
                 .ok(),
         };
 
-        let title = ValueObject::new(TaskTitle(value.title)).inspect_err(|e| {
-            error.title = Some(e.to_string());
-        });
         let status = ValueObject::new(TaskStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
-        let priority = ValueObject::new(TaskPriority(value.priority)).inspect_err(|e| {
-            error.priority = Some(e.to_string());
-        });
-        let description =
-            validate_optional_string!(TaskDescription(value.description), error.description);
+
+        let priority = validate_optional_string!(TaskPriority(value.priority), error.priority);
+
         let due_date = validate_optional_string!(TaskDueDate(value.due_date), error.due_date);
+
+        let currency_code = ValueObject::new(CurrencyCode(value.currency_code)).inspect_err(|e| {
+            error.currency_code = Some(e.to_string());
+        });
+
+        let price = validate_optional_string!(TaskPrice(value.price), error.price);
 
         if error.is_empty() {
             Ok(TaskUserInput {
                 id,
                 worksheet_id: value.worksheet_id,
-                title: title.map_err(|_| TaskUserInputError::default())?,
-                description,
+                service_id: value.service_id,
+                currency_code: currency_code.map_err(|_| TaskUserInputError::default())?,
+                price,
+                tax_id: value.tax_id,
                 status: status.map_err(|_| TaskUserInputError::default())?,
-                priority: priority.map_err(|_| TaskUserInputError::default())?,
+                priority,
                 due_date,
             })
         } else {

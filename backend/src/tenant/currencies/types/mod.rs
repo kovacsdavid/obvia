@@ -17,6 +17,4 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod code;
-
-pub(crate) use code::Code as CurrencyCode;
+pub(crate) use crate::common::types::currency_code::CurrencyCode;

@@ -16,41 +16,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Represents a task within the system.
-///
-/// This structure is used to model a task with associated metadata
-/// and is designed to be serializable, deserializable, and compatible with database rows.
-///
-/// ## Fields
-/// - `id` (*Uuid*): Unique identifier of the task.
-/// - `worksheet_id` (*Uuid*): Identifier of the worksheet to which this task belongs.
-/// - `title` (*String*): Title or name of the task.
-/// - `description` (*Option<String>*): Optional detailed information or description of the task.
-/// - `created_by` (*Uuid*): Identifier of the user who created the task.
-/// - `status` (*String*): Current status of the task (e.g., "pending", "completed").
-/// - `priority` (*Option<i32>*): Optional priority value of the task. Higher values may indicate higher priority.
-/// - `due_date` (*Option<DateTime<Local>>*): Optional due date and time for the task completion in local time.
-/// - `created_at` (*DateTime<Local>*): Timestamp when the task was created, in local time.
-/// - `updated_at` (*DateTime<Local>*): Timestamp when the task was last updated, in local time.
-/// - `deleted_at` (*Option<DateTime<Local>>*): Optional timestamp indicating when the task was deleted, in local time.
-///
-/// ## Traits
-/// This struct derives the following traits:
-/// - `Debug`: For formatting the task for debugging purposes.
-/// - `Clone`: To allow cloning the `Task` struct.
-/// - `Serialize`/`Deserialize`: For converting the struct to and from formats such as JSON.
-/// - `FromRow`: To map database rows to a `Task` struct using SQLx.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Task {
     pub id: Uuid,
     pub worksheet_id: Uuid,
-    pub title: String,
-    pub description: Option<String>,
+    pub service_id: Uuid,
+    pub currency_code: String,
+    pub price: Option<BigDecimal>,
+    pub tax_id: Uuid,
     pub created_by_id: Uuid,
     pub status: String,
     pub priority: Option<String>,
@@ -65,8 +44,12 @@ pub struct TaskResolved {
     pub id: Uuid,
     pub worksheet_id: Uuid,
     pub worksheet: String,
-    pub title: String,
-    pub description: Option<String>,
+    pub service_id: Uuid,
+    pub service: String,
+    pub currency_code: String,
+    pub price: Option<BigDecimal>,
+    pub tax_id: Uuid,
+    pub tax: String,
     pub created_by_id: Uuid,
     pub created_by: String,
     pub status: String,

@@ -19,6 +19,7 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -39,6 +40,10 @@ pub trait ServicesRepository: Send + Sync + 'static {
         id: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<ServiceResolved>;
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -105,6 +110,24 @@ impl ServicesRepository for PoolManagerWrapper {
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?;
         Ok(service)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+            SELECT
+                services.id::VARCHAR as value,
+                services.name as title
+                FROM services
+                WHERE deleted_at IS NULL
+                ORDER BY services.description
+                "#,
+        )
+        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
     }
 
     async fn get_all_paged(

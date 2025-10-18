@@ -162,13 +162,19 @@ export default function List() {
               <TableRow>
                 <TableHead/>
                 <TableHead>
-                  Megnevezés
-                </TableHead>
-                <TableHead>
-                  Leírás
+                  Szolgáltatás
                 </TableHead>
                 <TableHead>
                   Munkalap
+                </TableHead>
+                <TableHead>
+                  Ár
+                </TableHead>
+                <TableHead>
+                  Pénznem
+                </TableHead>
+                <TableHead>
+                  Adó
                 </TableHead>
                 <TableHead>
                   Státusz
@@ -220,11 +226,13 @@ export default function List() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.title}</TableCell>
-                  <TableCell>{item.description ? item.description : ''}</TableCell>
+                  <TableCell>{item.service}</TableCell>
                   <TableCell>{item.worksheet}</TableCell>
+                  <TableCell>{item.price ? item.price : 'N/A'}</TableCell>
+                  <TableCell>{item.currency_code}</TableCell>
+                  <TableCell>{item.tax}</TableCell>
                   <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.priority ? item.priority : ''}</TableCell>
+                  <TableCell>{item.priority ? item.priority : 'N/A'}</TableCell>
                   <TableCell>{item.due_date ? formatDateToYMDHMS(item.due_date) : 'N/A'}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>

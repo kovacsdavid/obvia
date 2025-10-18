@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::{ValueObject, ValueObjectable};
-use chrono::NaiveDateTime;
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -32,8 +32,7 @@ impl ValueObjectable for DueDate {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
-            NaiveDateTime::parse_from_str(self.0.trim(), "%Y-%m-%d %H:%M:%S")
-                .map_err(|_| String::from("Hibás dátum formátum! (2006-01-02 15:04:05)"))?;
+            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d").map_err(|e| e.to_string())?;
             Ok(())
         }
     }
@@ -100,60 +99,71 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_due_date() {
-        let date: ValueObject<DueDate> = serde_json::from_str(r#""2024-01-01 12:00:00""#).unwrap();
-        assert_eq!(date.extract().get_value(), "2024-01-01 12:00:00");
+    fn test_valid_due_dates() {
+        let cases = vec![
+            "2024-01-01",
+            "2025-12-31",
+            "2000-02-29", // Leap year
+        ];
+
+        for date in cases {
+            let due_date: ValueObject<DueDate> =
+                serde_json::from_str(&format!(r#""{}""#, date)).unwrap();
+            assert_eq!(due_date.extract().get_value(), date);
+        }
     }
 
     #[test]
     fn test_empty_due_date() {
-        let date: ValueObject<DueDate> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(date.extract().get_value(), "");
+        let due_date: ValueObject<DueDate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(due_date.extract().get_value(), "");
+
+        let due_date: ValueObject<DueDate> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(due_date.extract().get_value(), "  ");
     }
 
     #[test]
-    fn test_invalid_date_format() {
+    fn test_invalid_due_date_formats() {
         let cases = vec![
-            r#""2024/01/01 12:00:00""#,
-            r#""2024-01-01""#,
-            r#""12:00:00""#,
-            r#""invalid date""#,
-            r#""2024-13-01 12:00:00""#, // Invalid month
-            r#""2024-01-32 12:00:00""#, // Invalid day
-            r#""2024-01-01 25:00:00""#, // Invalid hour
-            r#""2024-01-01 12:61:00""#, // Invalid minute
-            r#""2024-01-01 12:00:61""#, // Invalid second
+            r#""2024/01/01""#,
+            r#""2024.01.01""#,
+            r#""01-01-2024""#,
+            r#""2024-13-01""#,
+            r#""2024-01-32""#,
+            r#""2024-00-01""#,
+            r#""2024-01-00""#,
+            r#""abc""#,
         ];
 
         for case in cases {
-            let date: Result<ValueObject<DueDate>, _> = serde_json::from_str(case);
-            assert!(date.is_err(), "Should fail for invalid format: {}", case);
+            let due_date: Result<ValueObject<DueDate>, _> = serde_json::from_str(case);
+            assert!(due_date.is_err());
         }
     }
 
     #[test]
-    fn test_display_format() {
-        let date = DueDate("2024-01-01 12:00:00".to_string());
-        assert_eq!(format!("{}", date), "2024-01-01 12:00:00");
+    fn test_display() {
+        let due_date = DueDate("2024-01-01".to_string());
+        assert_eq!(format!("{}", due_date), "2024-01-01");
     }
 
     #[test]
-    fn test_value_retrieval() {
-        let date = DueDate("2024-01-01 12:00:00".to_string());
-        assert_eq!(date.get_value(), "2024-01-01 12:00:00");
+    fn test_get_value() {
+        let due_date = DueDate("2024-01-01".to_string());
+        assert_eq!(due_date.get_value(), "2024-01-01");
     }
 
     #[test]
-    fn test_whitespace_handling() {
-        let cases = vec![
-            r#"" 2024-01-01 12:00:00""#,
-            r#""2024-01-01 12:00:00 ""#,
-            r#"" 2024-01-01 12:00:00 ""#,
-        ];
+    fn test_validation() {
+        assert!(DueDate("2024-01-01".to_string()).validate().is_ok());
+        assert!(DueDate("".to_string()).validate().is_ok());
+        assert!(DueDate("  ".to_string()).validate().is_ok());
 
-        for case in cases {
-            let date: ValueObject<DueDate> = serde_json::from_str(case).unwrap();
-            assert_eq!(date.extract().get_value().trim(), "2024-01-01 12:00:00");
-        }
+        assert!(DueDate("2024/01/01".to_string()).validate().is_err());
+        assert!(DueDate("2024.01.01".to_string()).validate().is_err());
+        assert!(DueDate("01-01-2024".to_string()).validate().is_err());
+        assert!(DueDate("2024-13-01".to_string()).validate().is_err());
+        assert!(DueDate("2024-01-32".to_string()).validate().is_err());
+        assert!(DueDate("abc".to_string()).validate().is_err());
     }
 }

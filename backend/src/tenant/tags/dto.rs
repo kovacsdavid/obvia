@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::tags::types::tag::{TagDescription, TagName};
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};

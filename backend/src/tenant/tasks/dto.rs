@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::currency_code::CurrencyCode;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::CurrencyCode;
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::tasks::types::task::{TaskDueDate, TaskPrice, TaskPriority, TaskStatus};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};

@@ -17,4 +17,4 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) use crate::common::types::currency_code::CurrencyCode;
+pub(crate) use crate::common::types::CurrencyCode;

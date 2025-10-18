@@ -85,7 +85,6 @@ create table inventory_movements
     unit_price     numeric(15, 2) check (unit_price IS NULL OR unit_price >= 0),
     total_price    numeric(15, 2) check (total_price IS NULL OR total_price >= 0),
     tax_id         uuid        not null,
-    notes          text,
     movement_date  timestamptz not null default now(),
     created_by_id  uuid        not null,
     created_at     timestamptz not null default now(),

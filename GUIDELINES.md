@@ -252,7 +252,7 @@ The project extensively uses a ValueObject pattern for type-safe domain modeling
 **Implementation pattern:**
 
 ```rust
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use std::fmt::Display;
 
 // 1. Define your domain type

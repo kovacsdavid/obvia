@@ -18,7 +18,7 @@
  */
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Email;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,

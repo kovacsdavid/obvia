@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::integer32::Integer32;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Integer32;
+use crate::common::types::ValueObject;
 use crate::common::types::value_object::ValueObjectable;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::InventoryStatus;

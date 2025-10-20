@@ -18,6 +18,7 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -38,6 +39,10 @@ pub trait InventoryRepository: Send + Sync {
         id: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryResolved>;
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -113,6 +118,26 @@ impl InventoryRepository for PoolManagerWrapper {
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
+
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+            SELECT
+                inventory.id::VARCHAR as value,
+                products.name || ' (Raktáron: ' || inventory.quantity_on_hand || ' - Lefoglalt: ' || inventory.quantity_reserved || ' - Elérhető: ' || inventory.quantity_available || ')' as title
+                FROM inventory
+                LEFT JOIN products ON inventory.product_id = products.id
+                WHERE inventory.deleted_at IS NULL
+                ORDER BY products.name
+                "#,
+        )
+        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,

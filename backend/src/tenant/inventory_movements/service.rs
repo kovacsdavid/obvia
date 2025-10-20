@@ -19,14 +19,17 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
+use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
 use crate::tenant::inventory_movements::types::InventoryMovementOrderBy;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
+use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -39,6 +42,9 @@ pub enum InventoryMovementsServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
 }
 
 impl IntoResponse for InventoryMovementsServiceError {
@@ -59,6 +65,25 @@ impl IntoResponse for InventoryMovementsServiceError {
 }
 
 pub type InventoryMovementsServiceResult<T> = Result<T, InventoryMovementsServiceError>;
+
+pub enum InventoryMovementsSelectLists {
+    Worksheets,
+    Taxes,
+    Inventory,
+}
+
+impl FromStr for InventoryMovementsSelectLists {
+    type Err = InventoryMovementsServiceError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "worksheets" => Ok(Self::Worksheets),
+            "taxes" => Ok(Self::Taxes),
+            "inventory" => Ok(Self::Inventory),
+            _ => Err(InventoryMovementsServiceError::InvalidSelectList),
+        }
+    }
+}
 
 pub struct InventoryMovementsService;
 
@@ -143,5 +168,36 @@ impl InventoryMovementsService {
                 inventory_id,
             )
             .await?)
+    }
+    pub async fn get_select_list_items(
+        select_list: &str,
+        claims: &Claims,
+        inventory_movements_module: Arc<InventoryMovementsModule>,
+    ) -> InventoryMovementsServiceResult<Vec<SelectOption>> {
+        let active_tenant = claims
+            .active_tenant()
+            .ok_or(InventoryMovementsServiceError::Unauthorized)?;
+        Ok(
+            match InventoryMovementsSelectLists::from_str(select_list)? {
+                InventoryMovementsSelectLists::Worksheets => {
+                    inventory_movements_module
+                        .worksheets_repo
+                        .get_select_list_items(active_tenant)
+                        .await?
+                }
+                InventoryMovementsSelectLists::Taxes => {
+                    inventory_movements_module
+                        .taxes_repo
+                        .get_select_list_items(active_tenant)
+                        .await?
+                }
+                InventoryMovementsSelectLists::Inventory => {
+                    inventory_movements_module
+                        .inventory_repo
+                        .get_select_list_items(active_tenant)
+                        .await?
+                }
+            },
+        )
     }
 }

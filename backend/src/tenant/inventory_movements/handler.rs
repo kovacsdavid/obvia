@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
     SuccessResponseBuilder, UuidParam,
@@ -37,6 +36,7 @@ use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -137,7 +137,7 @@ pub async fn list(
     State(module): State<Arc<InventoryMovementsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let inv_id = payload
+    let inventory_id = payload
         .as_hash_map()
         .and_then(|m| m.get("inventory_id").cloned())
         .and_then(|s| Uuid::parse_str(&s).ok())
@@ -157,7 +157,7 @@ pub async fn list(
         &FilteringParams::from(&payload),
         &claims,
         module.inventory_movements_repo.clone(),
-        inv_id,
+        inventory_id,
     )
     .await
     .map_err(|e| e.into_response())?;
@@ -166,6 +166,31 @@ pub async fn list(
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
+        .build()
+        .map_err(|e| e.into_response())?
+        .into_response())
+}
+
+pub async fn select_list(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(inventory_movements): State<Arc<InventoryMovementsModule>>,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let list_type = payload
+        .get("list")
+        .cloned()
+        .unwrap_or(String::from("missing_list"));
+    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(
+            InventoryMovementsService::get_select_list_items(
+                &list_type,
+                &claims,
+                inventory_movements,
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
-use crate::common::error::RepositoryResult;
+use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -93,7 +93,7 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
                 inventory_movements.unit_price,
                 inventory_movements.total_price,
                 inventory_movements.tax_id,
-                taxes.name as tax,
+                taxes.description as tax,
                 inventory_movements.movement_date,
                 inventory_movements.created_by_id,
                 (users.last_name || ' ' || users.first_name) AS created_by,
@@ -142,7 +142,7 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
                 inventory_movements.unit_price,
                 inventory_movements.total_price,
                 inventory_movements.tax_id,
-                taxes.name as tax,
+                taxes.description as tax,
                 inventory_movements.movement_date,
                 inventory_movements.created_by_id,
                 (users.last_name || ' ' || users.first_name) AS created_by,
@@ -179,18 +179,43 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement> {
+        let unit_price = match &input.unit_price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("unit_price".to_string()))?,
+            ),
+        };
+        let total_price = match &input.total_price {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("total_price".to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, InventoryMovement>(
             r#"
             INSERT INTO inventory_movements (
-                inventory_id, movement_type, quantity, reference_type, reference_id,
-                tax_id, created_by_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+                inventory_id, movement_type, quantity, reference_type, reference_id, unit_price,
+                total_price, tax_id, created_by_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *
             "#,
         )
         .bind(input.inventory_id)
         .bind(input.movement_type.extract().get_value())
-        .bind(input.quantity.extract().get_value())
+        .bind(
+            input
+                .quantity
+                .extract()
+                .get_value()
+                .parse::<i32>()
+                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
+        )
         .bind(
             input
                 .reference_type
@@ -198,6 +223,8 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
                 .map(|v| v.extract().get_value().as_str()),
         )
         .bind(input.reference_id)
+        .bind(unit_price)
+        .bind(total_price)
         .bind(input.tax_id)
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

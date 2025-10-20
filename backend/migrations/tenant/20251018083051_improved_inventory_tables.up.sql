@@ -158,12 +158,16 @@ CREATE OR REPLACE FUNCTION update_inventory_quantities()
 $$
 DECLARE
     calculated_quantity integer;
+    target_inventory_id uuid;
 BEGIN
+    -- Determine which inventory_id to use based on operation
+    target_inventory_id := COALESCE(NEW.inventory_id, OLD.inventory_id);
+
     -- Calculate the new quantity
     SELECT COALESCE(SUM(quantity), 0)
     INTO calculated_quantity
     FROM inventory_movements
-    WHERE inventory_id = NEW.inventory_id;
+    WHERE inventory_id = target_inventory_id;
 
     -- Validate that the calculated quantity is not negative
     IF calculated_quantity < 0 THEN
@@ -174,20 +178,20 @@ BEGIN
     UPDATE inventory
     SET quantity_on_hand = calculated_quantity,
         updated_at       = now()
-    WHERE id = NEW.inventory_id;
+    WHERE id = target_inventory_id;
 
     -- Log a warning if quantity goes below minimum stock
-    IF calculated_quantity <= (SELECT minimum_stock FROM inventory WHERE id = NEW.inventory_id) THEN
-        RAISE NOTICE 'Inventory % is at or below minimum stock level', NEW.inventory_id;
+    IF calculated_quantity <= (SELECT minimum_stock FROM inventory WHERE id = target_inventory_id) THEN
+        RAISE NOTICE 'Inventory % is at or below minimum stock level', target_inventory_id;
     END IF;
 
-    RETURN NEW;
+    RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql;
 
 -- Trigger to automatically update quantities
 CREATE TRIGGER update_inventory_on_movement
-    AFTER INSERT OR UPDATE
+    AFTER INSERT OR UPDATE OR DELETE
     ON inventory_movements
     FOR EACH ROW
 EXECUTE FUNCTION update_inventory_quantities();

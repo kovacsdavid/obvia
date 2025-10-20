@@ -20,8 +20,9 @@
 use crate::manager::auth::middleware::require_auth;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::handler::{
-    create as movement_create, delete as movement_delete, get as movement_get,
-    get_resolved as movement_get_resolved, list as movement_list,
+    create as inventory_movement_create, delete as inventory_movement_delete,
+    get as inventory_movement_get, get_resolved as inventory_movement_get_resolved,
+    list as inventory_movement_list, select_list as inventory_movement_select_list,
 };
 use axum::Router;
 use axum::middleware::from_fn_with_state;
@@ -32,11 +33,12 @@ pub fn routes(module: Arc<InventoryMovementsModule>) -> Router {
     Router::new().nest(
         "/inventory_movements",
         Router::new()
-            .route("/get", get(movement_get))
-            .route("/get_resolved", get(movement_get_resolved))
-            .route("/list", get(movement_list))
-            .route("/create", post(movement_create))
-            .route("/delete", delete(movement_delete))
+            .route("/get", get(inventory_movement_get))
+            .route("/get_resolved", get(inventory_movement_get_resolved))
+            .route("/list", get(inventory_movement_list))
+            .route("/select_list", get(inventory_movement_select_list))
+            .route("/create", post(inventory_movement_create))
+            .route("/delete", delete(inventory_movement_delete))
             .layer(from_fn_with_state(module.config.clone(), require_auth))
             .with_state(module),
     )

@@ -20,8 +20,10 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
 
 pub(crate) mod dto;
@@ -40,18 +42,24 @@ pub fn init_default_inventory_movements_module(
         .config(config)
         .inventory_movements_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .inventory_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct InventoryMovementsModule {
     pub config: Arc<AppConfig>,
     pub inventory_movements_repo: Arc<dyn InventoryMovementsRepository>,
     pub taxes_repo: Arc<dyn TaxesRepository>,
+    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
+    pub inventory_repo: Arc<dyn InventoryRepository>,
 }
 
 pub struct InventoryMovementsModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub inventory_movements_repo: Option<Arc<dyn InventoryMovementsRepository>>,
     pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
+    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
+    pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
 }
 
 impl InventoryMovementsModuleBuilder {
@@ -60,6 +68,8 @@ impl InventoryMovementsModuleBuilder {
             config: None,
             inventory_movements_repo: None,
             taxes_repo: None,
+            worksheets_repo: None,
+            inventory_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -77,6 +87,14 @@ impl InventoryMovementsModuleBuilder {
         self.taxes_repo = Some(taxes_repo);
         self
     }
+    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
+        self.worksheets_repo = Some(worksheets_repo);
+        self
+    }
+    pub fn inventory_repo(mut self, inventory_repo: Arc<dyn InventoryRepository>) -> Self {
+        self.inventory_repo = Some(inventory_repo);
+        self
+    }
     pub fn build(self) -> Result<InventoryMovementsModule, String> {
         Ok(InventoryMovementsModule {
             config: self.config.ok_or("config is required".to_string())?,
@@ -86,6 +104,12 @@ impl InventoryMovementsModuleBuilder {
             taxes_repo: self
                 .taxes_repo
                 .ok_or("taxes_repo is required".to_string())?,
+            worksheets_repo: self
+                .worksheets_repo
+                .ok_or("worksheets_repo is required".to_string())?,
+            inventory_repo: self
+                .inventory_repo
+                .ok_or("inventory_repo is required".to_string())?,
         })
     }
 }

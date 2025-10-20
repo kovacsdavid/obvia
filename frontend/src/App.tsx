@@ -31,6 +31,9 @@ import CustomerView from "@/components/modules/customers/View.tsx";
 import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import InventoryList from "@/components/modules/inventory/List.tsx";
 import InventoryView from "@/components/modules/inventory/View.tsx";
+import InventoryMovementsEdit from "@/components/modules/inventory_movements/Edit.tsx";
+import InventoryMovementsList from "@/components/modules/inventory_movements/List.tsx";
+import InventoryMovementsView from "@/components/modules/inventory_movements/View.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import ProductsList from "@/components/modules/products/List.tsx";
 import ProductsView from "@/components/modules/products/View.tsx";
@@ -91,6 +94,13 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/leltar/szerkesztes/:id", element: InventoryEdit, isPrivate: true},
   {path: "/leltar/lista", element: InventoryList, isPrivate: true},
   {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
+
+  // Inventory
+  {path: "/leltar-mozgas/letrehozas", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/letrehozas/:inventoryId", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/szerkesztes/:id", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/lista", element: InventoryMovementsList, isPrivate: true},
+  {path: "/leltar-mozgas/reszletek/:id", element: InventoryMovementsView, isPrivate: true},
 
   // Products
   {path: "/termek/szerkesztes", element: ProductsEdit, isPrivate: true},

@@ -19,32 +19,29 @@
 
 import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
 import {
-  type CreateWarehouseResponse,
-  type DeleteWarehouseResponse,
-  type PaginatedWarehouseResolvedListResponse,
-  type UpdateWarehouseResponse,
-  type WarehouseResolvedResponse,
-  type WarehouseResponse,
-  type WarehouseUserInput
-} from "@/components/modules/warehouses/lib/interface.ts";
-import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+  type CreateInventoryMovementResponse,
+  type DeleteInventoryMovementResponse,
+  type InventoryMovementResolvedResponse,
+  type InventoryMovementResponse,
+  type InventoryMovementUserInput,
+  type PaginatedInventoryMovementResolvedListResponse
+} from "@/components/modules/inventory_movements/lib/interface.ts";
 import {
-  isCreateWarehouseResponse,
-  isDeleteWarehouseResponse,
-  isPaginatedWarehouseResolvedListResponse,
-  isUpdateWarehouseResponse,
-  isWarehouseResolvedResponse,
-  isWarehouseResponse
-} from "@/components/modules/warehouses/lib/guards.ts";
+  isSelectOptionListResponse,
+  type ProcessedResponse,
+  ProcessResponse,
+  type SelectOptionListResponse
+} from "@/lib/interfaces/common.ts";
+import {
+  isCreateInventoryMovementResponse,
+  isDeleteInventoryMovementResponse,
+  isInventoryMovementResolvedResponse,
+  isInventoryMovementResponse,
+  isPaginatedInventoryMovementResolvedListResponse
+} from "@/components/modules/inventory_movements/lib/guards.ts";
 
-export async function create({
-                               id,
-                               name,
-                               contactName,
-                               contactPhone,
-                               status
-                             }: WarehouseUserInput, token: string | null): Promise<ProcessedResponse<CreateWarehouseResponse>> {
-  return await fetch(`/api/warehouses/create`, {
+export async function create(input: InventoryMovementUserInput, token: string | null): Promise<ProcessedResponse<CreateInventoryMovementResponse>> {
+  return await fetch(`/api/inventory_movements/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -52,22 +49,26 @@ export async function create({
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      id,
-      name,
-      contact_name: contactName,
-      contact_phone: contactPhone,
-      status
+      id: input.id,
+      inventory_id: input.inventoryId,
+      movement_type: input.movementType,
+      quantity: input.quantity,
+      reference_type: input.referenceType,
+      reference_id: input.referenceId,
+      unit_price: input.unitPrice,
+      total_price: input.totalPrice,
+      tax_id: input.taxId,
     })
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isCreateWarehouseResponse
+      isCreateInventoryMovementResponse
     ) ?? unexpectedFormError;
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedWarehouseResolvedListResponse>> {
-  const uri = query === null ? `/api/warehouses/list` : `/api/warehouses/list?q=${query}`;
+export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedInventoryMovementResolvedListResponse>> {
+  const uri = query === null ? `/api/inventory_movements/list` : `/api/inventory_movements/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
@@ -78,13 +79,13 @@ export async function list(query: string | null, token: string | null): Promise<
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isPaginatedWarehouseResolvedListResponse
+      isPaginatedInventoryMovementResolvedListResponse
     ) ?? unexpectedError;
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
-  return await fetch(`/api/warehouses/get_resolved?uuid=${uuid}`, {
+export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryMovementResponse>> {
+  return await fetch(`/api/inventory_movements/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -94,42 +95,13 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isWarehouseResolvedResponse,
+      isInventoryMovementResponse
     ) ?? unexpectedError;
   });
 }
 
-export async function update({
-                               id,
-                               name,
-                               contactName,
-                               contactPhone,
-                               status
-                             }: WarehouseUserInput, token: string | null): Promise<ProcessedResponse<UpdateWarehouseResponse>> {
-  return await fetch(`/api/warehouses/update`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id,
-      name,
-      contact_name: contactName,
-      contact_phone: contactPhone,
-      status
-    }),
-  }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isUpdateWarehouseResponse
-    ) ?? unexpectedFormError;
-  });
-}
-
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResponse>> {
-  return await fetch(`/api/warehouses/get?uuid=${uuid}`, {
+export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryMovementResolvedResponse>> {
+  return await fetch(`/api/inventory_movements/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -139,13 +111,13 @@ export async function get(uuid: string, token: string | null): Promise<Processed
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isWarehouseResponse
+      isInventoryMovementResolvedResponse
     ) ?? unexpectedError;
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
-  return await fetch(`/api/warehouses/delete?uuid=${uuid}`, {
+export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteInventoryMovementResponse>> {
+  return await fetch(`/api/inventory_movements/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
@@ -155,7 +127,25 @@ export async function deleteItem(uuid: string, token: string | null): Promise<Pr
   }).then(async (response: Response) => {
     return await ProcessResponse(
       response,
-      isDeleteWarehouseResponse
+      isDeleteInventoryMovementResponse
+    ) ?? unexpectedError;
+  });
+}
+
+export async function select_list(
+  list: string,
+  token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+  return await fetch(`/api/inventory_movements/select_list?list=${list}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isSelectOptionListResponse
     ) ?? unexpectedError;
   });
 }

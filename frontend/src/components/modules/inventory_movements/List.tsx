@@ -17,19 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
-import {Link} from "react-router-dom";
-import {useAppDispatch} from "@/store/hooks.ts";
 import React, {useCallback, useEffect} from "react";
-import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
+import {useAppDispatch} from "@/store/hooks.ts";
+import {deleteItem, list} from "@/components/modules/inventory_movements/lib/slice.ts";
+import type {InventoryMovementResolvedList} from "@/components/modules/inventory_movements/lib/interface.ts";
+import {Card, CardAction, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
+import {Button, GlobalError} from "@/components/ui";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {deleteItem, list} from "@/components/modules/inventory/lib/slice.ts";
-import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {type InventoryResolvedList,} from "@/components/modules/inventory/lib/interface.ts";
-import {formatDateToYMDHMS, query_encoder} from "@/lib/utils.ts";
+import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
+import type {SimpleError} from "@/lib/interfaces/common.ts";
+import {Eye, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
+import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {useParams} from "react-router";
+import {Link} from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,12 +39,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu.tsx";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
 
-export default function List() {
+export default function InventoryMovementsList() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
-  const [data, setData] = React.useState<InventoryResolvedList>([]);
+  const [data, setData] = React.useState<InventoryMovementResolvedList>([]);
+  const params = useParams();
+  const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
+
   const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
     console.log(parsedQuery);
   }, []);
@@ -93,7 +96,7 @@ export default function List() {
         unexpectedError();
       }
     })
-  }, [dispatch, rawQuery, setLimit, setPage, setTotal])
+  }, [dispatch, rawQuery, setPage, setLimit, setTotal])
 
   const handleDelete = (id: string) => {
     dispatch(deleteItem(id)).then(async (response) => {
@@ -107,95 +110,35 @@ export default function List() {
 
   useEffect(() => {
     refresh();
-  }, [
-    refresh
-  ])
+  }, [refresh]);
 
   return (
     <>
       <GlobalError error={errors}/>
       <Card>
         <CardHeader>
-          <CardTitle>Leltár</CardTitle>
+          <CardTitle>Készletmozgások</CardTitle>
+          <CardAction>
+            <Link to={`/leltar-mozgas/letrehozas/${routeInventoryId}`}>
+              <Button style={{color: "green"}} variant="outline">
+                <Plus color="green"/> Új
+              </Button>
+            </Link>
+          </CardAction>
         </CardHeader>
         <CardContent>
-          <div className={"flex justify-between items-center mb-6"}>
-            <div className="flex gap-2">
-              <Link to={"/leltar/szerkesztes"}>
-                <Button style={{color: "green"}} variant="outline">
-                  <Plus color="green"/> Új
-                </Button>
-              </Link>
-            </div>
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button className={"justify-self-end"} variant="outline"
-                          style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <h4 className="leading-none font-medium">Szűrő</h4>
-                      <p className="text-muted-foreground text-sm">
-                        Szűkítsd a találatok listáját szűrőfeltételekkel!
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
-                        <Input
-                          id="name"
-                          defaultValue=""
-                          className="col-span-2 h-8"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead/>
-                <TableHead>
-                  Termék
-                </TableHead>
-                <TableHead>
-                  Raktár
-                </TableHead>
-                <TableHead>
-                  Készlet (raktáron)
-                </TableHead>
-                <TableHead>
-                  Foglalt
-                </TableHead>
-                <TableHead>
-                  Rendelkezésre álló
-                </TableHead>
-                <TableHead>
-                  Minimum készlet
-                </TableHead>
-                <TableHead>
-                  Maximum készlet
-                </TableHead>
-                <TableHead>
-                  Pénznem
-                </TableHead>
-                <TableHead>
-                  Állapot
-                </TableHead>
-                <TableHead>
-                  Létrehozta
-                </TableHead>
-                <TableHead>
-                  Létrehozva
-                </TableHead>
-                <TableHead>
-                  Frissítve
-                </TableHead>
+                <TableHead>Típus</TableHead>
+                <TableHead>Mennyiség</TableHead>
+                <TableHead>Egységár</TableHead>
+                <TableHead>Összeg</TableHead>
+                <TableHead>Adó</TableHead>
+                <TableHead>Mozgás dátuma</TableHead>
+                <TableHead>Létrehozta</TableHead>
+                <TableHead>Létrehozva</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -211,20 +154,14 @@ export default function List() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/leltar/reszletek/${item.id}`}>
+                        <Link to={`/leltar-mozgas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/leltar/szerkesztes/${item.id}`}>
+                        <Link to={`/leltar-mozgas/szerkesztes/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuSeparator/>
-                        <Link to={`/leltar-mozgas/lista?q=${query_encoder({inventory_id: item.id})}`}>
-                          <DropdownMenuItem>
-                            <Pencil/> Készletmozgatás
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator/>
@@ -234,18 +171,14 @@ export default function List() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.product}</TableCell>
-                  <TableCell>{item.warehouse}</TableCell>
-                  <TableCell>{item.quantity_on_hand}</TableCell>
-                  <TableCell>{item.quantity_reserved}</TableCell>
-                  <TableCell>{item.quantity_available}</TableCell>
-                  <TableCell>{item.minimum_stock ?? "-"}</TableCell>
-                  <TableCell>{item.maximum_stock ?? "-"}</TableCell>
-                  <TableCell>{item.currency}</TableCell>
-                  <TableCell>{item.status}</TableCell>
+                  <TableCell>{item.movement_type}</TableCell>
+                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>{item.unit_price ?? 'N/A'}</TableCell>
+                  <TableCell>{item.total_price ?? 'N/A'}</TableCell>
+                  <TableCell>{item.tax ?? 'N/A'}</TableCell>
+                  <TableCell>{formatDateToYMDHMS(item.movement_date)}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -258,5 +191,5 @@ export default function List() {
         </CardContent>
       </Card>
     </>
-  )
+  );
 }

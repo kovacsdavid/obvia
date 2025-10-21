@@ -1,0 +1,159 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use crate::common::types::{ValueObject, ValueObjectable};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct Status(pub String);
+
+impl ValueObjectable for Status {
+    type DataType = String;
+
+    fn validate(&self) -> Result<(), String> {
+        match self.0.as_str() {
+            "active" => Ok(()),
+            "fulfilled" => Ok(()),
+            "cancelled" => Ok(()),
+            "expired" => Ok(()),
+            _ => Err(String::from("Hibás foglalás státusz")),
+        }
+    }
+
+    /// Retrieves a reference to the value contained within the struct.
+    ///
+    /// # Returns
+    /// A reference to the internal value of type `Self::DataType`.
+    fn get_value(&self) -> &Self::DataType {
+        &self.0
+    }
+}
+
+impl Display for Status {
+    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
+    /// enabling a custom display of the struct or type.
+    ///
+    /// # Parameters
+    /// - `&self`: A reference to the instance of the type implementing this method.
+    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
+    ///
+    /// # Returns
+    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
+    ///   (`Ok(())`) or an error occurred (`Err`).
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl<'de> Deserialize<'de> for ValueObject<Status> {
+    /// Custom deserialization function for a type that implements deserialization using Serde.
+    ///
+    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
+    /// It then wraps the string in a `Name` and validates it by calling `ValueObject::new`.
+    /// If the validation fails, a custom deserialization error is returned.
+    ///
+    /// # Type Parameters
+    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
+    ///
+    /// # Parameters
+    /// - `deserializer`: The deserializer used to deserialize the input.
+    ///
+    /// # Returns
+    /// - `Result<Self, D::Error>`:
+    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
+    ///   - On failure, returns a custom error wrapped in `Err`.
+    ///
+    /// # Errors
+    /// - Returns a deserialization error if:
+    ///   - The input cannot be deserialized into a `String`.
+    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        ValueObject::new(Status(s)).map_err(serde::de::Error::custom)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::types::ValueObject;
+
+    #[test]
+    fn test_validate_valid_status() {
+        let valid_statuses = vec!["active", "fulfilled", "cancelled", "expired"];
+
+        for status in valid_statuses {
+            let status = Status(status.to_string());
+            assert_eq!(status.validate(), Ok(()));
+        }
+    }
+
+    #[test]
+    fn test_validate_invalid_status() {
+        let invalid_status = Status("invalid".to_string());
+        assert_eq!(
+            invalid_status.validate(),
+            Err("Hibás foglalás státusz".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_value() {
+        let status = Status("active".to_string());
+        assert_eq!(status.get_value(), &"active".to_string());
+    }
+
+    #[test]
+    fn test_display() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
+    }
+
+    #[test]
+    fn test_deserialize_valid_status() {
+        let json = r#""active""#;
+        let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_deserialize_invalid_status() {
+        let json = r#""invalid""#;
+        let result: Result<ValueObject<Status>, _> = serde_json::from_str(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_serialize() {
+        let status = Status("active".to_string());
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert_eq!(serialized, r#""active""#);
+    }
+
+    #[test]
+    fn test_clone() {
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
+    }
+}

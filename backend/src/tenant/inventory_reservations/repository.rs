@@ -28,6 +28,7 @@ use crate::tenant::inventory_reservations::model::{
 };
 use crate::tenant::inventory_reservations::types::InventoryReservationOrderBy;
 use async_trait::async_trait;
+use chrono::NaiveDate;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -176,6 +177,13 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryReservation> {
+        let reserved_until = match input.reserved_until {
+            None => None,
+            Some(v) => Some(
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
+            ),
+        };
         Ok(sqlx::query_as::<_, InventoryReservation>(
             r#"
             INSERT INTO inventory_reservations (
@@ -201,12 +209,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(input.reference_id)
-        .bind(
-            input
-                .reserved_until
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(reserved_until)
         .bind(input.status.extract().get_value())
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

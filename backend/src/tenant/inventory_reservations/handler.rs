@@ -153,8 +153,10 @@ pub async fn list(
     let (meta, data) = InventoryReservationsService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(InventoryReservationOrderBy("movement_date".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+            order_by: ValueObject::new(InventoryReservationOrderBy("reserved_until".to_string()))
+                .map_err(|e| {
+                FriendlyError::internal(file!(), e.to_string()).into_response()
+            })?,
             order: ValueObject::new(Order("desc".to_string()))
                 .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         }),

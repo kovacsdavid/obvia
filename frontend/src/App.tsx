@@ -34,6 +34,9 @@ import InventoryView from "@/components/modules/inventory/View.tsx";
 import InventoryMovementsEdit from "@/components/modules/inventory_movements/Edit.tsx";
 import InventoryMovementsList from "@/components/modules/inventory_movements/List.tsx";
 import InventoryMovementsView from "@/components/modules/inventory_movements/View.tsx";
+import InventoryReservationsEdit from "@/components/modules/inventory_reservations/Edit.tsx";
+import InventoryReservationsList from "@/components/modules/inventory_reservations/List.tsx";
+import InventoryReservationsView from "@/components/modules/inventory_reservations/View.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import ProductsList from "@/components/modules/products/List.tsx";
 import ProductsView from "@/components/modules/products/View.tsx";
@@ -95,12 +98,19 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/leltar/lista", element: InventoryList, isPrivate: true},
   {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
 
-  // Inventory
+  // InventoryMovements
   {path: "/leltar-mozgas/letrehozas", element: InventoryMovementsEdit, isPrivate: true},
   {path: "/leltar-mozgas/letrehozas/:inventoryId", element: InventoryMovementsEdit, isPrivate: true},
   {path: "/leltar-mozgas/szerkesztes/:id", element: InventoryMovementsEdit, isPrivate: true},
   {path: "/leltar-mozgas/lista", element: InventoryMovementsList, isPrivate: true},
   {path: "/leltar-mozgas/reszletek/:id", element: InventoryMovementsView, isPrivate: true},
+
+  // InventoryReservations
+  {path: "/leltar-foglalas/letrehozas", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/letrehozas/:inventoryId", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/szerkesztes/:id", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/lista", element: InventoryReservationsList, isPrivate: true},
+  {path: "/leltar-foglalas/reszletek/:id", element: InventoryReservationsView, isPrivate: true},
 
   // Products
   {path: "/termek/szerkesztes", element: ProductsEdit, isPrivate: true},

@@ -35,6 +35,7 @@ use crate::tenant::address::init_default_address_module;
 use crate::tenant::customers::init_default_customers_module;
 use crate::tenant::inventory::init_default_inventory_module;
 use crate::tenant::inventory_movements::init_default_inventory_movements_module;
+use crate::tenant::inventory_reservations::init_default_inventory_reservations_module;
 use crate::tenant::products::init_default_products_module;
 use crate::tenant::projects::init_default_projects_module;
 use crate::tenant::services::init_default_services_module;
@@ -163,6 +164,10 @@ pub async fn init_default_app(
         init_default_inventory_movements_module(pool_manager.clone(), config.clone())
             .build()
             .map_err(|e| anyhow!("{e}"))?;
+    let inventory_reservations_module =
+        init_default_inventory_reservations_module(pool_manager.clone(), config.clone())
+            .build()
+            .map_err(|e| anyhow!("{e}"))?;
     let products_module = init_default_products_module(pool_manager.clone(), config.clone())
         .build()
         .map_err(|e| anyhow!("{e}"))?;
@@ -200,6 +205,9 @@ pub async fn init_default_app(
             )))
             .merge(tenant::inventory_movements::routes::routes(Arc::new(
                 inventory_movements_module,
+            )))
+            .merge(tenant::inventory_reservations::routes::routes(Arc::new(
+                inventory_reservations_module,
             )))
             .merge(tenant::products::routes::routes(Arc::new(products_module)))
             .merge(tenant::projects::routes::routes(Arc::new(projects_module)))

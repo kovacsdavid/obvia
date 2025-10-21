@@ -19,7 +19,7 @@
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
 import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
+import {Combine, Eye, Funnel, MoreHorizontal, Pencil, Plus, Timer, Trash} from "lucide-react";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
 import {Link} from "react-router-dom";
 import {useAppDispatch} from "@/store/hooks.ts";
@@ -224,7 +224,12 @@ export default function List() {
                         <DropdownMenuSeparator/>
                         <Link to={`/leltar-mozgas/lista?q=${query_encoder({inventory_id: item.id})}`}>
                           <DropdownMenuItem>
-                            <Pencil/> Készletmozgatás
+                            <Combine/> Készletmozgatás
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link to={`/leltar-foglalas/lista?q=${query_encoder({inventory_id: item.id})}`}>
+                          <DropdownMenuItem>
+                            <Timer/> Készletfoglalás
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator/>

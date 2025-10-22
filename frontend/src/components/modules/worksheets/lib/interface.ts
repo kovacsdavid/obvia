@@ -58,6 +58,10 @@ export interface WorksheetResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  net_material_cost: string,
+  gross_material_cost: string,
+  net_work_cost: string,
+  gross_work_cost: string
 }
 
 export type CreateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;

@@ -140,21 +140,49 @@ impl WorksheetsRepository for PoolManagerWrapper {
 
         let sql = format!(
             r#"
-            SELECT
-                worksheets.id as id,
-                worksheets.name as name,
-                worksheets.description as description,
-                worksheets.project_id as project_id,
-                projects.name as project,
-                worksheets.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                worksheets.status as status,
-                worksheets.created_at as created_at,
-                worksheets.updated_at as updated_at,
-                worksheets.deleted_at as deleted_at
+            WITH material_costs AS (SELECT reference_id                                                                         as worksheet_id,
+                                           sum(abs(inventory_movements.quantity) *
+                                               COALESCE(inventory_movements.unit_price, 0))                                     as net_material_cost,
+                                           sum((abs(inventory_movements.quantity) * COALESCE(inventory_movements.unit_price, 0)) *
+                                               (CASE
+                                                    WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                    ELSE 1
+                                                   END))                                                                        as gross_material_cost
+                                    FROM inventory_movements
+                                             LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+                                    WHERE reference_type = 'worksheets'
+                                      AND movement_type = 'out'
+                                    GROUP BY reference_id),
+                 work_costs AS (SELECT worksheet_id,
+                                       sum(COALESCE(price, 0)) as net_work_cost,
+                                       sum(COALESCE(price, 0) * (CASE
+                                                                     WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                                     ELSE 1
+                                           END))               as gross_work_cost
+                                FROM tasks
+                                         LEFT JOIN taxes ON tasks.tax_id = taxes.id
+                                WHERE tasks.deleted_at IS NULL
+                                GROUP BY worksheet_id)
+            SELECT worksheets.id                              as id,
+                   worksheets.name                            as name,
+                   worksheets.description                     as description,
+                   worksheets.project_id                      as project_id,
+                   projects.name                              as project,
+                   worksheets.created_by_id                   as created_by_id,
+                   users.last_name || ' ' || users.first_name as created_by,
+                   worksheets.status                          as status,
+                   worksheets.created_at                      as created_at,
+                   worksheets.updated_at                      as updated_at,
+                   worksheets.deleted_at                      as deleted_at,
+                   COALESCE(mc.net_material_cost, 0)          as net_material_cost,
+                   COALESCE(mc.gross_material_cost, 0)        as gross_material_cost,
+                   COALESCE(wc.net_work_cost, 0)              as net_work_cost,
+                   COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
             FROM worksheets
             LEFT JOIN projects ON worksheets.project_id = projects.id
             LEFT JOIN users ON worksheets.created_by_id = users.id
+            LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
+            LEFT JOIN work_costs wc ON wc.worksheet_id = worksheets.id
             WHERE worksheets.deleted_at IS NULL
             {order_by_clause}
             LIMIT $1

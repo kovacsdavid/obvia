@@ -77,7 +77,15 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
+    (data.deleted_at === null || typeof data.deleted_at === "string") &&
+    "net_material_cost" in data &&
+    typeof data.net_material_cost === "string" &&
+    "gross_material_cost" in data &&
+    typeof data.gross_material_cost === "string" &&
+    "net_work_cost" in data &&
+    typeof data.net_work_cost === "string" &&
+    "gross_work_cost" in data &&
+    typeof data.gross_work_cost === "string"
   );
 }
 

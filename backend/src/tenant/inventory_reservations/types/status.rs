@@ -17,21 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Code(pub String);
+pub struct Status(pub String);
 
-impl ValueObjectable for Code {
+impl ValueObjectable for Status {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if self.0.trim().len() == 3 {
-            Ok(())
-        } else {
-            Err("A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF".to_string())
+        match self.0.as_str() {
+            "active" => Ok(()),
+            "fulfilled" => Ok(()),
+            "cancelled" => Ok(()),
+            "expired" => Ok(()),
+            _ => Err(String::from("Hibás foglalás státusz")),
         }
     }
 
@@ -44,7 +46,7 @@ impl ValueObjectable for Code {
     }
 }
 
-impl Display for Code {
+impl Display for Status {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -60,7 +62,7 @@ impl Display for Code {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Code> {
+impl<'de> Deserialize<'de> for ValueObject<Status> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -87,77 +89,71 @@ impl<'de> Deserialize<'de> for ValueObject<Code> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Code(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Status(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
+    use crate::common::types::ValueObject;
 
     #[test]
-    fn test_valid_currency() {
-        let currency: ValueObject<Code> = serde_json::from_str(r#""USD""#).unwrap();
-        assert_eq!(currency.extract().get_value(), "USD");
+    fn test_validate_valid_status() {
+        let valid_statuses = vec!["active", "fulfilled", "cancelled", "expired"];
+
+        for status in valid_statuses {
+            let status = Status(status.to_string());
+            assert_eq!(status.validate(), Ok(()));
+        }
     }
 
     #[test]
-    fn test_invalid_currency_too_short() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""US""#);
-        assert!(currency.is_err());
-    }
-
-    #[test]
-    fn test_invalid_currency_too_long() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""USDT""#);
-        assert!(currency.is_err());
-    }
-
-    #[test]
-    fn test_invalid_currency_empty() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""""#);
-        assert!(currency.is_err());
-    }
-
-    #[test]
-    fn test_display_format() {
-        let currency = Code("EUR".to_string());
-        assert_eq!(format!("{}", currency), "EUR");
-    }
-
-    #[test]
-    fn test_validation_with_spaces() {
-        let currency = Code(" USD ".to_string());
-        assert!(currency.validate().is_ok());
+    fn test_validate_invalid_status() {
+        let invalid_status = Status("invalid".to_string());
+        assert_eq!(
+            invalid_status.validate(),
+            Err("Hibás foglalás státusz".to_string())
+        );
     }
 
     #[test]
     fn test_get_value() {
-        let currency = Code("GBP".to_string());
-        assert_eq!(currency.get_value(), "GBP");
+        let status = Status("active".to_string());
+        assert_eq!(status.get_value(), &"active".to_string());
+    }
+
+    #[test]
+    fn test_display() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
+    }
+
+    #[test]
+    fn test_deserialize_valid_status() {
+        let json = r#""active""#;
+        let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
+    }
+
+    #[test]
+    fn test_deserialize_invalid_status() {
+        let json = r#""invalid""#;
+        let result: Result<ValueObject<Status>, _> = serde_json::from_str(json);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_serialize() {
+        let status = Status("active".to_string());
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert_eq!(serialized, r#""active""#);
     }
 
     #[test]
     fn test_clone() {
-        let currency = Code("JPY".to_string());
-        let cloned = currency.clone();
-        assert_eq!(currency, cloned);
-    }
-
-    #[test]
-    fn test_debug_format() {
-        let currency = Code("CNY".to_string());
-        assert_eq!(format!("{:?}", currency), r#"Code("CNY")"#);
-    }
-
-    #[test]
-    fn test_deserialization_errors() {
-        let invalid_types = vec!["null", "123", "true", "[]", "{}"];
-
-        for invalid in invalid_types {
-            let result: Result<ValueObject<Code>, _> = serde_json::from_str(invalid);
-            assert!(result.is_err());
-        }
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
     }
 }

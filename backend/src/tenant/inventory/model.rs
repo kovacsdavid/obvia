@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use bigdecimal::BigDecimal;
+
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -27,10 +27,13 @@ pub struct Inventory {
     pub id: Uuid,
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
-    pub quantity: i32,
-    pub price: Option<BigDecimal>,
-    pub tax_id: Uuid,
+    pub quantity_on_hand: i32,
+    pub quantity_reserved: i32,
+    pub quantity_available: i32,
+    pub minimum_stock: Option<i32>,
+    pub maximum_stock: Option<i32>,
     pub currency_code: String,
+    pub status: String,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
@@ -44,12 +47,14 @@ pub struct InventoryResolved {
     pub product: String,
     pub warehouse_id: Uuid,
     pub warehouse: String,
-    pub quantity: i32,
-    pub price: Option<BigDecimal>,
-    pub tax_id: Uuid,
-    pub tax: String,
+    pub quantity_on_hand: i32,
+    pub quantity_reserved: i32,
+    pub quantity_available: i32,
+    pub minimum_stock: Option<i32>,
+    pub maximum_stock: Option<i32>,
     pub currency_code: String,
     pub currency: String,
+    pub status: String,
     pub created_by_id: Uuid,
     pub created_by: String,
     pub created_at: DateTime<Local>,

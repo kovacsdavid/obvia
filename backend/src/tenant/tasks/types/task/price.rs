@@ -17,26 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Title(pub String);
+pub struct Price(pub String);
 
-impl ValueObjectable for Title {
+impl ValueObjectable for Price {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
         if self.0.trim().is_empty() {
-            return Err(String::from("A mező kitöltése kötelező"));
-        }
-        if self.0.len() <= 500 {
             Ok(())
         } else {
-            Err(String::from(
-                "A megnevezés nem lehet 500 karakternél hosszabb!",
-            ))
+            self.0
+                .trim()
+                .replace(",", ".")
+                .parse::<f64>()
+                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            Ok(())
         }
     }
 
@@ -49,7 +49,7 @@ impl ValueObjectable for Title {
     }
 }
 
-impl Display for Title {
+impl Display for Price {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -65,7 +65,7 @@ impl Display for Title {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Title> {
+impl<'de> Deserialize<'de> for ValueObject<Price> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -92,7 +92,7 @@ impl<'de> Deserialize<'de> for ValueObject<Title> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Title(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Price(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -102,92 +102,61 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_title() {
-        let title: ValueObject<Title> = serde_json::from_str(r#""Test Title""#).unwrap();
-        assert_eq!(title.extract().get_value(), "Test Title");
+    fn test_valid_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123.45");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
+        assert_eq!(price.extract().get_value(), "123,45");
     }
 
     #[test]
-    fn test_empty_title() {
-        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""""#);
-        assert!(title.is_err());
+    fn test_empty_price() {
+        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(price.extract().get_value(), "");
+
+        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(price.extract().get_value(), "  ");
     }
 
     #[test]
-    fn test_whitespace_only_title() {
-        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""   ""#);
-        assert!(title.is_err());
+    fn test_invalid_price_format() {
+        let cases = vec![
+            r#""abc""#,
+            r#""12.34.56""#,
+            r#""12,34,56""#,
+            r#""12a34""#,
+            r#""$123""#,
+        ];
+
+        for case in cases {
+            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
+            assert!(price.is_err());
+        }
     }
 
     #[test]
-    fn test_title_too_long() {
-        let long_title = "a".repeat(501);
-        let title: Result<ValueObject<Title>, _> =
-            serde_json::from_str(&format!(r#""{}""#, long_title));
-        assert!(title.is_err());
+    fn test_display() {
+        let price = Price("123.45".to_string());
+        assert_eq!(format!("{}", price), "123.45");
     }
 
     #[test]
-    fn test_title_max_length() {
-        let max_title = "a".repeat(500);
-        let title: ValueObject<Title> =
-            serde_json::from_str(&format!(r#""{}""#, max_title)).unwrap();
-        assert_eq!(title.extract().get_value().len(), 500);
+    fn test_get_value() {
+        let price = Price("123.45".to_string());
+        assert_eq!(price.get_value(), "123.45");
     }
 
     #[test]
-    fn test_title_display() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(format!("{}", title), "Test Title");
-    }
+    fn test_validation() {
+        assert!(Price("123.45".to_string()).validate().is_ok());
+        assert!(Price("123,45".to_string()).validate().is_ok());
+        assert!(Price("".to_string()).validate().is_ok());
+        assert!(Price("  ".to_string()).validate().is_ok());
 
-    #[test]
-    fn test_title_validate_success() {
-        let title = Title("Valid Title".to_string());
-        assert!(title.validate().is_ok());
-    }
-
-    #[test]
-    fn test_title_validate_failure_empty() {
-        let title = Title("".to_string());
-        assert!(title.validate().is_err());
-    }
-
-    #[test]
-    fn test_title_validate_failure_too_long() {
-        let title = Title("a".repeat(501));
-        assert!(title.validate().is_err());
-    }
-
-    #[test]
-    fn test_title_get_value() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(title.get_value(), "Test Title");
-    }
-
-    #[test]
-    fn test_title_clone() {
-        let title = Title("Test Title".to_string());
-        let cloned = title.clone();
-        assert_eq!(title, cloned);
-    }
-
-    #[test]
-    fn test_title_debug() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(format!("{:?}", title), r#"Title("Test Title")"#);
-    }
-
-    #[test]
-    fn test_title_serialization() {
-        let title = Title("Test Title".to_string());
-        let serialized = serde_json::to_string(&title).unwrap();
-        assert_eq!(serialized, r#""Test Title""#);
-    }
-
-    #[test]
-    fn test_title_deserialization_invalid_json() {
-        let result: Result<ValueObject<Title>, _> = serde_json::from_str("invalid");
-        assert!(result.is_err());
+        assert!(Price("abc".to_string()).validate().is_err());
+        assert!(Price("12.34.56".to_string()).validate().is_err());
+        assert!(Price("12,34,56".to_string()).validate().is_err());
+        assert!(Price("$123".to_string()).validate().is_err());
     }
 }

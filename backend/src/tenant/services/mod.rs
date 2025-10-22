@@ -19,7 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
-use crate::tenant::currencies::repository::CurrencyRepository;
+use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use std::sync::Arc;
@@ -46,14 +46,14 @@ pub fn init_default_services_module(
 pub struct ServicesModule {
     pub config: Arc<AppConfig>,
     pub services_repo: Arc<dyn ServicesRepository>,
-    pub currencies_repo: Arc<dyn CurrencyRepository>,
+    pub currencies_repo: Arc<dyn CurrenciesRepository>,
     pub taxes_repo: Arc<dyn TaxesRepository>,
 }
 
 pub struct ServicesModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub services_repo: Option<Arc<dyn ServicesRepository>>,
-    pub currencies_repo: Option<Arc<dyn CurrencyRepository>>,
+    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
     pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
 }
 
@@ -74,7 +74,7 @@ impl ServicesModuleBuilder {
         self.services_repo = Some(services_repo);
         self
     }
-    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrencyRepository>) -> Self {
+    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
         self.currencies_repo = Some(currencies_repo);
         self
     }

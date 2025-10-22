@@ -177,13 +177,15 @@ impl CustomersRepository for PoolManagerWrapper {
         .bind(
             customer
                 .contact_name
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(customer.email.extract().get_value())
         .bind(
             customer
                 .phone_number
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(customer.status.extract().get_value())
         .bind(customer.customer_type.extract().get_value())
@@ -218,13 +220,15 @@ impl CustomersRepository for PoolManagerWrapper {
         .bind(
             customer
                 .contact_name
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(customer.email.extract().get_value())
         .bind(
             customer
                 .phone_number
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(customer.status.extract().get_value())
         .bind(customer.customer_type.extract().get_value())

@@ -36,6 +36,7 @@ import {useActivateDatabase} from "@/hooks/use_activate_database.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {useParams} from "react-router";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
@@ -48,6 +49,8 @@ export default function Edit() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {errors, setErrors, unexpectedError} = useFormError();
+  const params = useParams();
+  const id = React.useMemo(() => params["id"] ?? null, [params]);
 
   const activateDatabase = useActivateDatabase();
 
@@ -237,7 +240,7 @@ export default function Edit() {
               </>
             )}
             <FieldError error={errors} field={"db_password"}/>
-            <Button type="submit">Létrehozás</Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
           </form>
         </CardContent>
       </Card>

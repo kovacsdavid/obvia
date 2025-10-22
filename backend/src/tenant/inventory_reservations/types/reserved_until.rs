@@ -17,25 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Price(pub String);
+pub struct ReservedUntil(pub String);
 
-impl ValueObjectable for Price {
+impl ValueObjectable for ReservedUntil {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
-            self.0
-                .trim()
-                .replace(",", ".")
-                .parse::<f64>()
-                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d").map_err(|e| e.to_string())?;
             Ok(())
         }
     }
@@ -49,7 +46,7 @@ impl ValueObjectable for Price {
     }
 }
 
-impl Display for Price {
+impl Display for ReservedUntil {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -65,7 +62,7 @@ impl Display for Price {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Price> {
+impl<'de> Deserialize<'de> for ValueObject<ReservedUntil> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -92,7 +89,7 @@ impl<'de> Deserialize<'de> for ValueObject<Price> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Price(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(ReservedUntil(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -102,61 +99,71 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123.45");
-
-        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123,45");
-    }
-
-    #[test]
-    fn test_empty_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(price.extract().get_value(), "");
-
-        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(price.extract().get_value(), "  ");
-    }
-
-    #[test]
-    fn test_invalid_price_format() {
+    fn test_valid_due_dates() {
         let cases = vec![
+            "2024-01-01",
+            "2025-12-31",
+            "2000-02-29", // Leap year
+        ];
+
+        for date in cases {
+            let due_date: ValueObject<ReservedUntil> =
+                serde_json::from_str(&format!(r#""{}""#, date)).unwrap();
+            assert_eq!(due_date.extract().get_value(), date);
+        }
+    }
+
+    #[test]
+    fn test_empty_due_date() {
+        let due_date: ValueObject<ReservedUntil> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(due_date.extract().get_value(), "");
+
+        let due_date: ValueObject<ReservedUntil> = serde_json::from_str(r#""  ""#).unwrap();
+        assert_eq!(due_date.extract().get_value(), "  ");
+    }
+
+    #[test]
+    fn test_invalid_due_date_formats() {
+        let cases = vec![
+            r#""2024/01/01""#,
+            r#""2024.01.01""#,
+            r#""01-01-2024""#,
+            r#""2024-13-01""#,
+            r#""2024-01-32""#,
+            r#""2024-00-01""#,
+            r#""2024-01-00""#,
             r#""abc""#,
-            r#""12.34.56""#,
-            r#""12,34,56""#,
-            r#""12a34""#,
-            r#""$123""#,
         ];
 
         for case in cases {
-            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
-            assert!(price.is_err());
+            let due_date: Result<ValueObject<ReservedUntil>, _> = serde_json::from_str(case);
+            assert!(due_date.is_err());
         }
     }
 
     #[test]
     fn test_display() {
-        let price = Price("123.45".to_string());
-        assert_eq!(format!("{}", price), "123.45");
+        let due_date = ReservedUntil("2024-01-01".to_string());
+        assert_eq!(format!("{}", due_date), "2024-01-01");
     }
 
     #[test]
     fn test_get_value() {
-        let price = Price("123.45".to_string());
-        assert_eq!(price.get_value(), "123.45");
+        let due_date = ReservedUntil("2024-01-01".to_string());
+        assert_eq!(due_date.get_value(), "2024-01-01");
     }
 
     #[test]
     fn test_validation() {
-        assert!(Price("123.45".to_string()).validate().is_ok());
-        assert!(Price("123,45".to_string()).validate().is_ok());
-        assert!(Price("".to_string()).validate().is_ok());
-        assert!(Price("  ".to_string()).validate().is_ok());
+        assert!(ReservedUntil("2024-01-01".to_string()).validate().is_ok());
+        assert!(ReservedUntil("".to_string()).validate().is_ok());
+        assert!(ReservedUntil("  ".to_string()).validate().is_ok());
 
-        assert!(Price("abc".to_string()).validate().is_err());
-        assert!(Price("12.34.56".to_string()).validate().is_err());
-        assert!(Price("12,34,56".to_string()).validate().is_err());
-        assert!(Price("$123".to_string()).validate().is_err());
+        assert!(ReservedUntil("2024/01/01".to_string()).validate().is_err());
+        assert!(ReservedUntil("2024.01.01".to_string()).validate().is_err());
+        assert!(ReservedUntil("01-01-2024".to_string()).validate().is_err());
+        assert!(ReservedUntil("2024-13-01".to_string()).validate().is_err());
+        assert!(ReservedUntil("2024-01-32".to_string()).validate().is_err());
+        assert!(ReservedUntil("abc".to_string()).validate().is_err());
     }
 }

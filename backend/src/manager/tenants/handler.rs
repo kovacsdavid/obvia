@@ -22,8 +22,8 @@ use crate::common::dto::{
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
-use crate::common::types::order::Order;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Order;
+use crate::common::types::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{

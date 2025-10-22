@@ -66,8 +66,8 @@ impl ProjectsService {
         claims: &Claims,
         payload: &ProjectUserInput,
         projects_module: Arc<ProjectsModule>,
-    ) -> ProjectsServiceResult<()> {
-        projects_module
+    ) -> ProjectsServiceResult<Project> {
+        Ok(projects_module
             .projects_repo
             .insert(
                 payload.clone(),
@@ -76,8 +76,7 @@ impl ProjectsService {
                     .active_tenant()
                     .ok_or(ProjectsServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

@@ -28,18 +28,22 @@ import {
 export interface TaskUserInput {
   id: string | null
   worksheetId: string
-  title: string
-  description: string
+  serviceId: string
+  currencyCode: string
+  price: string | null
+  taxId: string
   status: string
-  priority: string
-  dueDate: string
+  priority: string | null
+  dueDate: string | null
 }
 
 export interface Task {
   id: string,
   worksheet_id: string,
-  title: string,
-  description: string | null,
+  service_id: string,
+  currency_code: string,
+  price: string | null,
+  tax_id: string,
   created_by_id: string,
   status: string,
   priority: string | null,
@@ -53,8 +57,12 @@ export interface TaskResolved {
   id: string,
   worksheet_id: string,
   worksheet: string,
-  title: string,
-  description: string | null,
+  service_id: string,
+  service: string,
+  currency_code: string,
+  price: string | null,
+  tax_id: string,
+  tax: string,
   created_by_id: string,
   created_by: string,
   status: string,

@@ -83,18 +83,50 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Megnevezés
+                      Munkalap
                     </TableCell>
                     <TableCell>
-                      {data.title}
+                      {data.worksheet} ({data.worksheet_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Leírás
+                      Szolgáltatás
                     </TableCell>
                     <TableCell>
-                      {data.description ?? ''}
+                      {data.service} ({data.service_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Pénznem
+                    </TableCell>
+                    <TableCell>
+                      {data.currency_code}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Ár
+                    </TableCell>
+                    <TableCell>
+                      {data.price ?? ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Adó
+                    </TableCell>
+                    <TableCell>
+                      {data.tax} ({data.tax_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Státusz
+                    </TableCell>
+                    <TableCell>
+                      {data.status}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -115,26 +147,10 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Munkalap
-                    </TableCell>
-                    <TableCell>
-                      {data.worksheet} ({data.worksheet_id})
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Státusz
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
                       Létrehozta
                     </TableCell>
                     <TableCell>
-                      {data.created_by}
+                      {data.created_by} ({data.created_by_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>

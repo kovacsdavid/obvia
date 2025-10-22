@@ -61,7 +61,7 @@ export interface ProjectResolved {
   deleted_at: string | null,
 }
 
-export type CreateProjectResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateProjectResponse = CommonResponse<Project, FormError>;
 export type UpdateProjectResponse = CommonResponse<SimpleMessageData, FormError>;
 export type DeleteProjectResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type ProjectResponse = CommonResponse<Project, SimpleError>;

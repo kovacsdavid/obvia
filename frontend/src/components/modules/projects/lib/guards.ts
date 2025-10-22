@@ -39,7 +39,7 @@ import type {
 export function isCreateProjectResponse(data: unknown): data is CreateProjectResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProject,
     isFormError
   )
 }

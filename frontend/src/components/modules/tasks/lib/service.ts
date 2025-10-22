@@ -45,8 +45,10 @@ import {
 export async function create({
                                id,
                                worksheetId,
-                               title,
-                               description,
+                               serviceId,
+                               currencyCode,
+                               price,
+                               taxId,
                                status,
                                priority,
                                dueDate
@@ -61,8 +63,10 @@ export async function create({
     body: JSON.stringify({
       id,
       worksheet_id: worksheetId,
-      title,
-      description,
+      service_id: serviceId,
+      currency_code: currencyCode,
+      price,
+      tax_id: taxId,
       status,
       priority,
       due_date: dueDate
@@ -109,7 +113,7 @@ export async function select_list(list: string, token: string | null): Promise<P
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TaskResolvedResponse>> {
-  return await fetch(`/api/tasks/get?uuid=${uuid}`, {
+  return await fetch(`/api/tasks/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -127,8 +131,10 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
 export async function update({
                                id,
                                worksheetId,
-                               title,
-                               description,
+                               serviceId,
+                               currencyCode,
+                               price,
+                               taxId,
                                status,
                                priority,
                                dueDate
@@ -143,8 +149,10 @@ export async function update({
     body: JSON.stringify({
       id,
       worksheet_id: worksheetId,
-      title,
-      description,
+      service_id: serviceId,
+      currency_code: currencyCode,
+      price,
+      tax_id: taxId,
       status,
       priority,
       due_date: dueDate

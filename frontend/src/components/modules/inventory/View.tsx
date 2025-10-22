@@ -99,26 +99,50 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Mennyiség
+                      Készlet (raktáron)
                     </TableCell>
                     <TableCell>
-                      {data.quantity}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Fogyasztói ár
-                    </TableCell>
-                    <TableCell>
-                      {data.price ?? 'N/A'}
+                      {data.quantity_on_hand}
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>
-                      Adó
+                      Foglalt
                     </TableCell>
                     <TableCell>
-                      {data.tax}
+                      {data.quantity_reserved}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Rendelkezésre álló
+                    </TableCell>
+                    <TableCell>
+                      {data.quantity_available}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Minimum készlet
+                    </TableCell>
+                    <TableCell>
+                      {data.minimum_stock ?? '-'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Maximum készlet
+                    </TableCell>
+                    <TableCell>
+                      {data.maximum_stock ?? '-'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Állapot
+                    </TableCell>
+                    <TableCell>
+                      {data.status}
                     </TableCell>
                   </TableRow>
                   <TableRow>

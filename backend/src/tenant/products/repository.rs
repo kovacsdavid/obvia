@@ -198,7 +198,12 @@ impl ProductsRepository for PoolManagerWrapper {
                  VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
         .bind(product.name.extract().get_value())
-        .bind(product.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            product
+                .description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(
             product
                 .unit_of_measure_id
@@ -233,7 +238,12 @@ impl ProductsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(product.name.extract().get_value())
-        .bind(product.description.map(|v| v.extract().get_value().clone()))
+        .bind(
+            product
+                .description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(
             product
                 .unit_of_measure_id

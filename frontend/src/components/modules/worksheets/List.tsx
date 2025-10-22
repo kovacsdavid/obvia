@@ -170,6 +170,21 @@ export default function List() {
                   Projekt
                 </TableHead>
                 <TableHead>
+                  Nettó anyagköltség
+                </TableHead>
+                <TableHead>
+                  Bruttó anyagköltség
+                </TableHead>
+                <TableHead>
+                  Nettó munkadíj
+                </TableHead>
+                <TableHead>
+                  Bruttó munkadíj
+                </TableHead>
+                <TableHead>
+                  Létrehozta
+                </TableHead>
+                <TableHead>
                   Létrehozva
                 </TableHead>
                 <TableHead>
@@ -210,6 +225,10 @@ export default function List() {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.description ? item.description : ''}</TableCell>
                   <TableCell>{item.project}</TableCell>
+                  <TableCell>{item.net_material_cost}</TableCell>
+                  <TableCell>{item.gross_material_cost}</TableCell>
+                  <TableCell>{item.net_work_cost}</TableCell>
+                  <TableCell>{item.gross_work_cost}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

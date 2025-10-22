@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait CurrencyRepository: Send + Sync {
+pub trait CurrenciesRepository: Send + Sync {
     async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Currency>>;
     async fn get_all_countries_select_list_items(
         &self,
@@ -37,7 +37,7 @@ pub trait CurrencyRepository: Send + Sync {
 }
 
 #[async_trait]
-impl CurrencyRepository for PoolManagerWrapper {
+impl CurrenciesRepository for PoolManagerWrapper {
     async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Currency>> {
         Ok(sqlx::query_as::<_, Currency>(r#"SELECT * FROM currencies"#)
             .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)

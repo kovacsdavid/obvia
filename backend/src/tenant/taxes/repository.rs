@@ -223,8 +223,16 @@ impl TaxesRepository for PoolManagerWrapper {
         .bind(tax.country_code.extract().get_value())
         .bind(tax.tax_category.extract().get_value())
         .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.map(|v| v.extract().get_value().clone()))
-        .bind(tax.reporting_code.map(|v| v.extract().get_value().clone()))
+        .bind(
+            tax.legal_text
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
+        .bind(
+            tax.reporting_code
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(tax.is_default)
         .bind(tax.status.extract().get_value())
         .bind(sub)
@@ -267,8 +275,16 @@ impl TaxesRepository for PoolManagerWrapper {
         .bind(tax.country_code.extract().get_value())
         .bind(tax.tax_category.extract().get_value())
         .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.map(|v| v.extract().get_value().clone()))
-        .bind(tax.reporting_code.map(|v| v.extract().get_value().clone()))
+        .bind(
+            tax.legal_text
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
+        .bind(
+            tax.reporting_code
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(tax.is_default)
         .bind(tax.status.extract().get_value())
         .bind(id)

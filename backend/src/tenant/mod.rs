@@ -25,6 +25,8 @@ pub(crate) mod common;
 pub(crate) mod currencies;
 pub(crate) mod customers;
 pub(crate) mod inventory;
+pub(crate) mod inventory_movements;
+pub(crate) mod inventory_reservations;
 pub(crate) mod products;
 pub(crate) mod projects;
 pub(crate) mod services;

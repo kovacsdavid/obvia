@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -78,4 +78,8 @@ pub struct WorksheetResolved {
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
+    pub net_material_cost: BigDecimal,
+    pub gross_material_cost: BigDecimal,
+    pub net_work_cost: BigDecimal,
+    pub gross_work_cost: BigDecimal,
 }

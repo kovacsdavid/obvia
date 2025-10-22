@@ -28,6 +28,10 @@ import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {Plus} from "lucide-react";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
+import type {Project} from "@/components/modules/projects/lib/interface.ts";
 
 export default function Edit() {
   const [name, setName] = React.useState("");
@@ -36,6 +40,7 @@ export default function Edit() {
   const [status, setStatus] = React.useState("active");
   const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
   const {errors, setErrors, unexpectedError} = useFormError();
+  const [openNewProjectDialog, setOpenNewProjectDialog] = React.useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const {setListResponse} = useSelectList();
@@ -110,16 +115,20 @@ export default function Edit() {
     }
   }, [dispatch, id, setErrors, unexpectedError]);
 
-
-  useEffect(() => {
-    dispatch(select_list("projects")).then(async (response) => {
+  const loadLists = useCallback(async () => {
+    return dispatch(select_list("projects")).then(async (response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setProjectsList, setErrors);
       } else {
         unexpectedError();
       }
     });
-  }, [dispatch, setListResponse, setErrors, unexpectedError]);
+  }, [dispatch, setErrors, setListResponse, unexpectedError]);
+
+  useEffect(() => {
+    loadLists().then(() => {
+    })
+  }, [dispatch, setListResponse, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,9 +139,24 @@ export default function Edit() {
     }
   };
 
+  const handleEditProjectsSuccess = (project: Project) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setProjectId(project.id);
+      }, 0);
+      setOpenNewProjectDialog(false);
+    })
+  };
+
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewProjectDialog} onOpenChange={setOpenNewProjectDialog}>
+        <DialogContent>
+          <DialogTitle>Új projekt létrehozása</DialogTitle>
+          <ProjectsEdit showCard={false} onSuccess={handleEditProjectsSuccess}/>
+        </DialogContent>
+      </Dialog>
       <Card className={"max-w-lg mx-auto"}>
         <CardHeader>
           <CardTitle>Munkalap</CardTitle>
@@ -170,6 +194,9 @@ export default function Edit() {
               </SelectContent>
             </Select>
             <FieldError error={errors} field={"project_id"}/>
+            <Button type="button" variant="outline" onClick={() => setOpenNewProjectDialog(true)}>
+              <Plus/> Új projekt
+            </Button>
             <Label htmlFor="status">Státusz</Label>
             <Select
               value={status}

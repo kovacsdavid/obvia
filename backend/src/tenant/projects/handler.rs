@@ -121,14 +121,13 @@ pub async fn create(
     State(projects_module): State<Arc<ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    ProjectsService::create(&claims, &user_input, projects_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A projekt létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            ProjectsService::create(&claims, &user_input, projects_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

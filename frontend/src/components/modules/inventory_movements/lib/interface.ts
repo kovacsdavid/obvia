@@ -69,7 +69,7 @@ export interface InventoryMovementResolved {
   created_at: string;
 }
 
-export type CreateInventoryMovementResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateInventoryMovementResponse = CommonResponse<InventoryMovement, FormError>;
 export type DeleteInventoryMovementResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type InventoryMovementResponse = CommonResponse<InventoryMovement, SimpleError>;
 export type InventoryMovementResolvedResponse = CommonResponse<InventoryMovementResolved, SimpleError>;

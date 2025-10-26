@@ -86,8 +86,8 @@ impl WorksheetsService {
         claims: &Claims,
         payload: &WorksheetUserInput,
         worksheets_module: Arc<WorksheetsModule>,
-    ) -> WorksheetsServiceResult<()> {
-        worksheets_module
+    ) -> WorksheetsServiceResult<Worksheet> {
+        Ok(worksheets_module
             .worksheets_repo
             .insert(
                 payload.clone(),
@@ -96,8 +96,7 @@ impl WorksheetsService {
                     .active_tenant()
                     .ok_or(WorksheetsServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_select_list_items(
         select_list: &str,

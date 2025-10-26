@@ -73,8 +73,8 @@ export interface InventoryResolved {
   deleted_at: string | null,
 }
 
-export type CreateInventoryResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateInventoryResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateInventoryResponse = CommonResponse<Inventory, FormError>;
+export type UpdateInventoryResponse = CommonResponse<Inventory, FormError>;
 export type DeleteInventoryResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type InventoryResolvedList = InventoryResolved[];
 export type InventoryResponse = CommonResponse<Inventory, SimpleError>;

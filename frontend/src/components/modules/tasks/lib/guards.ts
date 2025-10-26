@@ -39,7 +39,7 @@ import type {
 export function isCreateTaskResponse(data: unknown): data is CreateTaskResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTask,
     isFormError
   )
 }
@@ -151,7 +151,7 @@ export function isTaskResponse(data: unknown): data is TaskResponse {
 export function isUpdateTaskResponse(data: unknown): data is UpdateTaskResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTask,
     isFormError
   )
 }

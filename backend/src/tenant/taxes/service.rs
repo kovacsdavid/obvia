@@ -91,7 +91,7 @@ impl TaxesService {
         claims: &Claims,
         payload: &TaxUserInput,
         repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<()> {
+    ) -> TaxesServiceResult<Tax> {
         repo.insert(
             payload.clone(),
             claims.sub(),
@@ -106,8 +106,7 @@ impl TaxesService {
             } else {
                 e.into()
             }
-        })?;
-        Ok(())
+        })
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

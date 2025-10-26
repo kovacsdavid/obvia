@@ -39,7 +39,7 @@ import type {
 export function isCreateWorksheetResponse(data: unknown): data is CreateWorksheetResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWorksheet,
     isFormError,
   )
 }
@@ -139,7 +139,7 @@ export function isWorksheetResponse(data: unknown): data is WorksheetResponse {
 export function isUpdateWorksheetResponse(data: unknown): data is UpdateWorksheetResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWorksheet,
     isFormError
   )
 }

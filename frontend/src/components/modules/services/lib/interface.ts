@@ -65,8 +65,8 @@ export interface ServiceResolved {
   deleted_at: string | null,
 }
 
-export type CreateServiceResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateServiceResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateServiceResponse = CommonResponse<Service, FormError>;
+export type UpdateServiceResponse = CommonResponse<Service, FormError>;
 export type DeleteServiceResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type ServiceResolvedList = ServiceResolved[];
 export type ServiceResponse = CommonResponse<Service, SimpleError>;

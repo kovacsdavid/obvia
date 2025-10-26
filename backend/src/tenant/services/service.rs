@@ -93,7 +93,7 @@ impl ServicesService {
         claims: &Claims,
         payload: &ServiceUserInput,
         repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<()> {
+    ) -> ServicesServiceResult<Service> {
         repo.insert(
             payload.clone(),
             claims.sub(),
@@ -108,8 +108,7 @@ impl ServicesService {
             } else {
                 e.into()
             }
-        })?;
-        Ok(())
+        })
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

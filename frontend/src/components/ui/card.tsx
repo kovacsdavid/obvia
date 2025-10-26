@@ -100,6 +100,38 @@ function CardFooter({className, ...props}: React.ComponentProps<"div">) {
   )
 }
 
+
+interface ConditionalCardProps {
+  showCard?: boolean;
+  title?: string;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function ConditionalCard({
+                           showCard = true,
+                           title,
+                           children,
+                           className,
+                         }: ConditionalCardProps) {
+  if (showCard) {
+    return (
+      <Card className={className}>
+        {title && (
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+        )}
+        <CardContent>
+          {children}
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 export {
   Card,
   CardHeader,
@@ -108,4 +140,5 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  ConditionalCard,
 }

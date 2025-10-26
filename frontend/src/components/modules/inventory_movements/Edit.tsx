@@ -19,7 +19,7 @@
 
 import React, {useCallback, useEffect} from "react";
 import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {create, get, select_list} from "@/components/modules/inventory_movements/lib/slice.ts";
 import {useNavigate, useParams} from "react-router-dom";
@@ -27,8 +27,14 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {type SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
+import type {InventoryMovement} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (inventory_movement: InventoryMovement) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [inventoryId, setInventoryId] = React.useState("");
   const [movementType, setMovementType] = React.useState("");
   const [quantity, setQuantity] = React.useState("");
@@ -140,7 +146,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate(-1);
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate(-1);
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -150,120 +163,119 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [dispatch, inventoryId, movementType, quantity, referenceType, referenceId, unitPrice, totalPrice, taxId, navigate, setErrors, unexpectedError]);
+  }, [dispatch, inventoryId, movementType, quantity, referenceType, referenceId, unitPrice, totalPrice, taxId, onSuccess, navigate, setErrors, unexpectedError]);
 
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Készletmozgás rögzítése</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            {!routeInventoryId && (
-              <>
-                <Label htmlFor="inventoryId">Leltár azonosító</Label>
-                <Select disabled={inventoryIdList.length === 0} value={inventoryId ?? ""}
-                        onValueChange={val => setInventoryId(val)}>
-                  <SelectTrigger className={"w-full"}>
-                    <SelectValue/>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {inventoryIdList.map(inventoryIdListItem => (
-                      <SelectItem key={inventoryIdListItem.value}
-                                  value={inventoryIdListItem.value}>{inventoryIdListItem.title}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"reference_id"}/>
-              </>
-            )}
+      <ConditionalCard
+        showCard={showCard}
+        title={`Készletmozgás ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          {!routeInventoryId && (
+            <>
+              <Label htmlFor="inventoryId">Leltár azonosító</Label>
+              <Select disabled={inventoryIdList.length === 0} value={inventoryId ?? ""}
+                      onValueChange={val => setInventoryId(val)}>
+                <SelectTrigger className={"w-full"}>
+                  <SelectValue/>
+                </SelectTrigger>
+                <SelectContent>
+                  {inventoryIdList.map(inventoryIdListItem => (
+                    <SelectItem key={inventoryIdListItem.value}
+                                value={inventoryIdListItem.value}>{inventoryIdListItem.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FieldError error={errors} field={"reference_id"}/>
+            </>
+          )}
 
-            <Label htmlFor="referenceType">Hivatkozás típusa</Label>
-            <Select value={referenceType ?? ""} onValueChange={val => handleReferenceTypeChange(val)}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="worksheets">Munkalap</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"reference_type"}/>
+          <Label htmlFor="referenceType">Hivatkozás típusa</Label>
+          <Select value={referenceType ?? ""} onValueChange={val => handleReferenceTypeChange(val)}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="worksheets">Munkalap</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"reference_type"}/>
 
-            <Label htmlFor="referenceId">Hivatkozás azonosító</Label>
-            <Select disabled={referenceIdList.length === 0} value={referenceId ?? ""}
-                    onValueChange={val => setReferenceId(val)}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {referenceIdList.map(referenceIdListItem => (
-                  <SelectItem key={referenceIdListItem.value}
-                              value={referenceIdListItem.value}>{referenceIdListItem.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"reference_id"}/>
+          <Label htmlFor="referenceId">Hivatkozás azonosító</Label>
+          <Select disabled={referenceIdList.length === 0} value={referenceId ?? ""}
+                  onValueChange={val => setReferenceId(val)}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {referenceIdList.map(referenceIdListItem => (
+                <SelectItem key={referenceIdListItem.value}
+                            value={referenceIdListItem.value}>{referenceIdListItem.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"reference_id"}/>
 
-            <Label htmlFor="quantity">Mennyiség</Label>
-            <Input
-              id="quantity"
-              type="number"
-              value={quantity}
-              onChange={e => setQuantity(e.target.value)}
-            />
-            <FieldError error={errors} field={"quantity"}/>
+          <Label htmlFor="quantity">Mennyiség</Label>
+          <Input
+            id="quantity"
+            type="number"
+            value={quantity}
+            onChange={e => setQuantity(e.target.value)}
+          />
+          <FieldError error={errors} field={"quantity"}/>
 
-            <Label htmlFor="unitPrice">Egységár (nettó)</Label>
-            <Input
-              id="unitPrice"
-              type="number"
-              value={unitPrice ?? ""}
-              onChange={e => setUnitPrice(e.target.value)}
-            />
-            <FieldError error={errors} field={"unit_price"}/>
+          <Label htmlFor="unitPrice">Egységár (nettó)</Label>
+          <Input
+            id="unitPrice"
+            type="number"
+            value={unitPrice ?? ""}
+            onChange={e => setUnitPrice(e.target.value)}
+          />
+          <FieldError error={errors} field={"unit_price"}/>
 
-            <Label htmlFor="totalPrice">Összesen (nettó)</Label>
-            <Input
-              id="totalPrice"
-              type="number"
-              value={totalPrice ?? ""}
-              disabled={true}
-            />
+          <Label htmlFor="totalPrice">Összesen (nettó)</Label>
+          <Input
+            id="totalPrice"
+            type="number"
+            value={totalPrice ?? ""}
+            disabled={true}
+          />
 
-            <FieldError error={errors} field={"total_price"}/>
-            <Label htmlFor="taxId">Adó</Label>
-            <Select value={taxId} onValueChange={val => setTaxId(val)}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {taxList.map(tax => (
-                  <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"tax_id"}/>
+          <FieldError error={errors} field={"total_price"}/>
+          <Label htmlFor="taxId">Adó</Label>
+          <Select value={taxId} onValueChange={val => setTaxId(val)}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {taxList.map(tax => (
+                <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"tax_id"}/>
 
-            <Label htmlFor="movementType">Művelet</Label>
-            <Select value={movementType} onValueChange={val => setMovementType(val)}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="in">Bevétel</SelectItem>
-                <SelectItem value="out">Kiadás</SelectItem>
-                <SelectItem value="adjustment">Korrekció</SelectItem>
-                <SelectItem value="transfer">Raktárak közötti mozgatás</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"movement_type"}/>
+          <Label htmlFor="movementType">Művelet</Label>
+          <Select value={movementType} onValueChange={val => setMovementType(val)}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="in">Bevétel</SelectItem>
+              <SelectItem value="out">Kiadás</SelectItem>
+              <SelectItem value="adjustment">Korrekció</SelectItem>
+              <SelectItem value="transfer">Raktárak közötti mozgatás</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"movement_type"}/>
 
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

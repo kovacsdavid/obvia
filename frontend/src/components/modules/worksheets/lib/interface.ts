@@ -64,8 +64,8 @@ export interface WorksheetResolved {
   gross_work_cost: string
 }
 
-export type CreateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateWorksheetResponse = CommonResponse<Worksheet, FormError>;
+export type UpdateWorksheetResponse = CommonResponse<Worksheet, FormError>;
 export type DeleteWorksheetResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type WorksheetResponse = CommonResponse<Worksheet, SimpleError>;
 export type WorksheetResolvedResponse = CommonResponse<WorksheetResolved, SimpleError>;

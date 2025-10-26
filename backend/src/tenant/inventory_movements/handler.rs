@@ -93,19 +93,17 @@ pub async fn create(
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    InventoryMovementsService::create(
-        &claims,
-        &user_input,
-        module.inventory_movements_repo.clone(),
-    )
-    .await
-    .map_err(|e| e.into_response())?;
-
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A készletmozgás létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            InventoryMovementsService::create(
+                &claims,
+                &user_input,
+                module.inventory_movements_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

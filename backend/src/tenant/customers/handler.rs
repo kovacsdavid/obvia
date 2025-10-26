@@ -83,18 +83,17 @@ pub async fn create(
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    CustomersService::create(
-        &claims,
-        &user_input,
-        customers_module.customers_repo.clone(),
-    )
-    .await
-    .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A vevő létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            CustomersService::create(
+                &claims,
+                &user_input,
+                customers_module.customers_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -106,18 +105,17 @@ pub async fn update(
     State(customers_module): State<Arc<CustomersModule>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    CustomersService::update(
-        &claims,
-        &user_input,
-        customers_module.customers_repo.clone(),
-    )
-    .await
-    .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A vevő frissítése sikeresen megtörtént",
-        ))
+        .data(
+            CustomersService::update(
+                &claims,
+                &user_input,
+                customers_module.customers_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

@@ -27,9 +27,15 @@ import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
+import type {Inventory} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (inventory: Inventory) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
   const [minimumStock, setMinimumStock] = React.useState("");
@@ -58,7 +64,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/leltar/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/leltar/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -68,7 +81,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [currencyCode, dispatch, id, navigate, productId, minimumStock, maximumStock, setErrors, unexpectedError, warehouseId, status]);
+  }, [dispatch, id, productId, warehouseId, minimumStock, maximumStock, currencyCode, status, onSuccess, navigate, setErrors, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -161,95 +174,94 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Leltár</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="product_id">Termék</Label>
-            <Select
-              value={productId}
-              onValueChange={val => setProductId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {productList.map(product => {
-                  return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"product_id"}/>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Leltár ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="product_id">Termék</Label>
+          <Select
+            value={productId}
+            onValueChange={val => setProductId(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {productList.map(product => {
+                return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"product_id"}/>
 
-            <Label htmlFor="warehouse_id">Raktár</Label>
-            <Select
-              value={warehouseId}
-              onValueChange={val => setWarehouseId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {warehouseList.map(warehouse => {
-                  return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"warehouse_id"}/>
-            <Label htmlFor="minimum_stock">Minimum készlet</Label>
-            <Input
-              id="minimum_stock"
-              type="number"
-              value={minimumStock}
-              onChange={e => setMinimumStock(e.target.value)}
-            />
-            <FieldError error={errors} field={"minimum_stock"}/>
-            <Label htmlFor="maximum_stock">Maximum készlet</Label>
-            <Input
-              id="maximum_stock"
-              type="text"
-              value={maximumStock}
-              onChange={e => setMaximumStock(e.target.value)}
-            />
-            <FieldError error={errors} field={"maximum_stock"}/>
-            <Label htmlFor="currency_code">Pénznem</Label>
-            <Select
-              value={currencyCode}
-              onValueChange={val => setCurrencyCode(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {currencyList.map(currency => {
-                  return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"currency_code"}/>
+          <Label htmlFor="warehouse_id">Raktár</Label>
+          <Select
+            value={warehouseId}
+            onValueChange={val => setWarehouseId(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {warehouseList.map(warehouse => {
+                return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"warehouse_id"}/>
+          <Label htmlFor="minimum_stock">Minimum készlet</Label>
+          <Input
+            id="minimum_stock"
+            type="number"
+            value={minimumStock}
+            onChange={e => setMinimumStock(e.target.value)}
+          />
+          <FieldError error={errors} field={"minimum_stock"}/>
+          <Label htmlFor="maximum_stock">Maximum készlet</Label>
+          <Input
+            id="maximum_stock"
+            type="text"
+            value={maximumStock}
+            onChange={e => setMaximumStock(e.target.value)}
+          />
+          <FieldError error={errors} field={"maximum_stock"}/>
+          <Label htmlFor="currency_code">Pénznem</Label>
+          <Select
+            value={currencyCode}
+            onValueChange={val => setCurrencyCode(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {currencyList.map(currency => {
+                return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"currency_code"}/>
 
-            <Label htmlFor="status">Állapot</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="inactive">Inaktív</SelectItem>
-                <SelectItem value="discontinued">Kivezetett</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
+          <Label htmlFor="status">Állapot</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+              <SelectItem value="discontinued">Kivezetett</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
 
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

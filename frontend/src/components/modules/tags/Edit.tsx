@@ -24,9 +24,15 @@ import {create, get, update} from "@/components/modules/tags/lib/slice.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
+import type {Tag} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (tag: Tag) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const {errors, setErrors, unexpectedError} = useFormError();
@@ -43,7 +49,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/cimke/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/cimke/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -53,7 +66,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, setErrors, unexpectedError]);
+  }, [description, dispatch, id, name, navigate, onSuccess, setErrors, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -109,32 +122,31 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Címke</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="name">Név</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-            <FieldError error={errors} field={"name"}/>
-            <Label htmlFor="description">Leírás</Label>
-            <Input
-              id="description"
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-            <FieldError error={errors} field={"description"}/>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Címke ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="name">Név</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          <Label htmlFor="description">Leírás</Label>
+          <Input
+            id="description"
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <FieldError error={errors} field={"description"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

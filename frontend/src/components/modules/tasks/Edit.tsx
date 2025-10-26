@@ -27,11 +27,16 @@ import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import type {TaskUserInput} from "./lib/interface";
+import type {Task, TaskUserInput} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (task: Task) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [worksheetId, setWorksheetId] = React.useState("");
   const [serviceId, setServiceId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("HUF");
@@ -67,7 +72,14 @@ export default function Edit() {
     dispatch(create(prepareTaskInput())).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/feladat/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/feladat/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -77,7 +89,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [dispatch, navigate, prepareTaskInput, setErrors, unexpectedError]);
+  }, [dispatch, navigate, onSuccess, prepareTaskInput, setErrors, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update(prepareTaskInput())).then(async (response) => {
@@ -166,114 +178,113 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Feladat</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="worksheet_id">Munkalap</Label>
-            <Select value={worksheetId} onValueChange={setWorksheetId}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {worksheetList.map((worksheet) => (
-                  <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"worksheet_id"}/>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Feladat ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="worksheet_id">Munkalap</Label>
+          <Select value={worksheetId} onValueChange={setWorksheetId}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {worksheetList.map((worksheet) => (
+                <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"worksheet_id"}/>
 
-            <Label htmlFor="service_id">Szolgáltatás</Label>
-            <Select value={serviceId} onValueChange={setServiceId}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {serviceList.map((service) => (
-                  <SelectItem key={service.value} value={service.value}>{service.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"service_id"}/>
+          <Label htmlFor="service_id">Szolgáltatás</Label>
+          <Select value={serviceId} onValueChange={setServiceId}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {serviceList.map((service) => (
+                <SelectItem key={service.value} value={service.value}>{service.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"service_id"}/>
 
-            <Label htmlFor="currency_code">Pénznem</Label>
-            <Select
-              value={currencyCode}
-              onValueChange={val => setCurrencyCode(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {currencyList.map(currency => {
-                  return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"currency_code"}/>
+          <Label htmlFor="currency_code">Pénznem</Label>
+          <Select
+            value={currencyCode}
+            onValueChange={val => setCurrencyCode(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {currencyList.map(currency => {
+                return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"currency_code"}/>
 
-            <Label htmlFor="price">Ár</Label>
-            <Input
-              id="price"
-              type="text"
-              value={price ?? ""}
-              onChange={e => setPrice(e.target.value)}
-            />
-            <FieldError error={errors} field={"price"}/>
+          <Label htmlFor="price">Ár</Label>
+          <Input
+            id="price"
+            type="text"
+            value={price ?? ""}
+            onChange={e => setPrice(e.target.value)}
+          />
+          <FieldError error={errors} field={"price"}/>
 
-            <Label htmlFor="tax_id">Adó</Label>
-            <Select value={taxId} onValueChange={setTaxId}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {taxList.map((tax) => (
-                  <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"tax_id"}/>
+          <Label htmlFor="tax_id">Adó</Label>
+          <Select value={taxId} onValueChange={setTaxId}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {taxList.map((tax) => (
+                <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"tax_id"}/>
 
-            <Label htmlFor="status">Státusz</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="inactive">Inaktív</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
+          <Label htmlFor="status">Státusz</Label>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
 
-            <Label htmlFor="priority">Prioritás</Label>
-            <Select value={priority ?? ""} onValueChange={setPriority}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="low">Alacsony</SelectItem>
-                <SelectItem value="normal">Normál</SelectItem>
-                <SelectItem value="high">Magas</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"priority"}/>
+          <Label htmlFor="priority">Prioritás</Label>
+          <Select value={priority ?? ""} onValueChange={setPriority}>
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Alacsony</SelectItem>
+              <SelectItem value="normal">Normál</SelectItem>
+              <SelectItem value="high">Magas</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"priority"}/>
 
-            <Label htmlFor="due_date">Határidő</Label>
-            <Input
-              id="due_date"
-              type="date"
-              value={dueDate ?? ""}
-              onChange={e => setDueDate(e.target.value)}
-            />
-            <FieldError error={errors} field={"due_date"}/>
+          <Label htmlFor="due_date">Határidő</Label>
+          <Input
+            id="due_date"
+            type="date"
+            value={dueDate ?? ""}
+            onChange={e => setDueDate(e.target.value)}
+          />
+          <FieldError error={errors} field={"due_date"}/>
 
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

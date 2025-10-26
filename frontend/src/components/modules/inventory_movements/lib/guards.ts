@@ -131,7 +131,7 @@ export function isPaginatedInventoryMovementResolvedListResponse(data: unknown):
 export function isCreateInventoryMovementResponse(data: unknown): data is CreateInventoryMovementResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventoryMovement,
     isFormError,
   );
 }

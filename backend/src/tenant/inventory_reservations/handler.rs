@@ -93,19 +93,17 @@ pub async fn create(
         InventoryReservationUserInputHelper,
     >,
 ) -> HandlerResult {
-    InventoryReservationsService::create(
-        &claims,
-        &user_input,
-        module.inventory_reservations_repo.clone(),
-    )
-    .await
-    .map_err(|e| e.into_response())?;
-
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A készletfoglalás létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            InventoryReservationsService::create(
+                &claims,
+                &user_input,
+                module.inventory_reservations_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

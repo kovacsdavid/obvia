@@ -74,8 +74,8 @@ export interface TaxResolved {
   deleted_at: string | null;
 }
 
-export type CreateTaxResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateTaxResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateTaxResponse = CommonResponse<Tax, FormError>;
+export type UpdateTaxResponse = CommonResponse<Tax, FormError>;
 export type DeleteTaxResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TaxResolvedList = TaxResolved[];
 export type TaxResponse = CommonResponse<Tax, SimpleError>;

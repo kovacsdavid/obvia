@@ -79,14 +79,13 @@ pub async fn update(
     State(tags_module): State<Arc<TagsModule>>,
     UserInput(user_input, _): UserInput<TagUserInput, TagUserInputHelper>,
 ) -> HandlerResult {
-    TagsService::update(&claims, &user_input, tags_module.tags_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A címke frissítése sikeresen megtörtént",
-        ))
+        .data(
+            TagsService::update(&claims, &user_input, tags_module.tags_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -117,14 +116,13 @@ pub async fn create(
     State(tags_module): State<Arc<TagsModule>>,
     UserInput(user_input, _): UserInput<TagUserInput, TagUserInputHelper>,
 ) -> HandlerResult {
-    TagsService::try_create(&claims, &user_input, tags_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A címke létrehozása sikeresen megtörtént!",
-        ))
+        .data(
+            TagsService::try_create(&claims, &user_input, tags_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

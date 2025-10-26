@@ -25,7 +25,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import type {Project} from "@/components/modules/projects/lib/interface.ts";
 
@@ -133,73 +133,64 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     }
   };
 
-  const formContent = (
-    <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-      <Label htmlFor="name">Név</Label>
-      <Input
-        id="name"
-        type="text"
-        value={name}
-        onChange={e => setName(e.target.value)}
-      />
-      <FieldError error={errors} field={"name"}/>
-      <Label htmlFor="description">Leírás</Label>
-      <Input
-        id="description"
-        type="text"
-        value={description}
-        onChange={e => setDescription(e.target.value)}
-      />
-      <FieldError error={errors} field={"description"}/>
-      <Label htmlFor="start_date">Kezdődátum</Label>
-      <Input
-        id="start_date"
-        type="text"
-        value={startDate}
-        onChange={e => setStartDate(e.target.value)}
-      />
-      <FieldError error={errors} field={"start_date"}/>
-      <Label htmlFor="end_date">Határidő</Label>
-      <Input
-        id="end_date"
-        type="text"
-        value={endDate}
-        onChange={e => setEndDate(e.target.value)}
-      />
-      <FieldError error={errors} field={"end_date"}/>
-      <Label htmlFor="status">Státusz</Label>
-      <Select
-        value={status}
-        onValueChange={val => setStatus(val)}
-      >
-        <SelectTrigger className={"w-full"}>
-          <SelectValue/>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="active">Aktív</SelectItem>
-          <SelectItem value="inactive">Inaktív</SelectItem>
-        </SelectContent>
-      </Select>
-      <FieldError error={errors} field={"status"}/>
-      <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-    </form>
-  );
-
   return (
     <>
       <GlobalError error={errors}/>
-      {showCard ? (
-        <Card className={"max-w-lg mx-auto"}>
-          <CardHeader>
-            <CardTitle>Projekt</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {formContent}
-          </CardContent>
-        </Card>
-      ) : (
-        formContent
-      )}
+      <ConditionalCard
+        showCard={showCard}
+        title={`Projekt ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="name">Név</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          <Label htmlFor="description">Leírás</Label>
+          <Input
+            id="description"
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <FieldError error={errors} field={"description"}/>
+          <Label htmlFor="start_date">Kezdődátum</Label>
+          <Input
+            id="start_date"
+            type="text"
+            value={startDate}
+            onChange={e => setStartDate(e.target.value)}
+          />
+          <FieldError error={errors} field={"start_date"}/>
+          <Label htmlFor="end_date">Határidő</Label>
+          <Input
+            id="end_date"
+            type="text"
+            value={endDate}
+            onChange={e => setEndDate(e.target.value)}
+          />
+          <FieldError error={errors} field={"end_date"}/>
+          <Label htmlFor="status">Státusz</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

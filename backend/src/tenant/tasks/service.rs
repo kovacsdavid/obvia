@@ -95,8 +95,8 @@ impl TasksService {
         claims: &Claims,
         payload: &TaskUserInput,
         tasks_module: Arc<TasksModule>,
-    ) -> TasksServiceResult<()> {
-        tasks_module
+    ) -> TasksServiceResult<Task> {
+        Ok(tasks_module
             .tasks_repo
             .insert(
                 payload.clone(),
@@ -105,8 +105,7 @@ impl TasksService {
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_select_list_items(
         select_list: &str,

@@ -83,14 +83,13 @@ pub async fn update(
     State(projects_module): State<Arc<ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    ProjectsService::update(&claims, &user_input, projects_module.projects_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A projekt frissítése sikeresen megtörtént",
-        ))
+        .data(
+            ProjectsService::update(&claims, &user_input, projects_module.projects_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

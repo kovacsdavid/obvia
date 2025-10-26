@@ -39,7 +39,7 @@ import type {
 export function isCreateInventoryResponse(data: unknown): data is CreateInventoryResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventory,
     isFormError,
   )
 }
@@ -155,7 +155,7 @@ export function isInventoryResponse(data: unknown): data is InventoryResponse {
 export function isUpdateInventoryResponse(data: unknown): data is UpdateInventoryResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventory,
     isFormError
   )
 }

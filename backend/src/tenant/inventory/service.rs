@@ -100,7 +100,7 @@ impl InventoryService {
         claims: &Claims,
         payload: &InventoryUserInput,
         inventory_module: Arc<InventoryModule>,
-    ) -> InventoryServiceResult<()> {
+    ) -> InventoryServiceResult<Inventory> {
         inventory_module
             .inventory_repo
             .insert(
@@ -117,8 +117,7 @@ impl InventoryService {
                 } else {
                     e.into()
                 }
-            })?;
-        Ok(())
+            })
     }
     pub async fn get_select_list_items(
         select_list: &str,

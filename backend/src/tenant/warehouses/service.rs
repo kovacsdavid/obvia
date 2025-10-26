@@ -67,8 +67,8 @@ impl WarehousesService {
         claims: &Claims,
         payload: &WarehouseUserInput,
         warehouses_module: Arc<WarehousesModule>,
-    ) -> WarehousesServiceResult<()> {
-        warehouses_module
+    ) -> WarehousesServiceResult<Warehouse> {
+        Ok(warehouses_module
             .warehouses_repo
             .insert(
                 payload.clone(),
@@ -77,8 +77,7 @@ impl WarehousesService {
                     .active_tenant()
                     .ok_or(WarehousesServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

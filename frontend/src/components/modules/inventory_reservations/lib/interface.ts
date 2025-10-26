@@ -62,7 +62,7 @@ export interface InventoryReservationResolved {
   updated_at: string;
 }
 
-export type CreateInventoryReservationResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateInventoryReservationResponse = CommonResponse<InventoryReservation, FormError>;
 export type DeleteInventoryReservationResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type InventoryReservationResponse = CommonResponse<InventoryReservation, SimpleError>;
 export type InventoryReservationResolvedResponse = CommonResponse<InventoryReservationResolved, SimpleError>;

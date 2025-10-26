@@ -80,14 +80,13 @@ pub async fn create(
     State(taxes_module): State<Arc<TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    TaxesService::create(&claims, &user_input, taxes_module.taxes_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "Az adó létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            TaxesService::create(&claims, &user_input, taxes_module.taxes_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -99,14 +98,13 @@ pub async fn update(
     State(taxes_module): State<Arc<TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    TaxesService::update(&claims, &user_input, taxes_module.taxes_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "Az adó frissítése sikeresen megtörtént",
-        ))
+        .data(
+            TaxesService::update(&claims, &user_input, taxes_module.taxes_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

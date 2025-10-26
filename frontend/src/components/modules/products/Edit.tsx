@@ -27,9 +27,15 @@ import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
+import type {Product} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (products: Product) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
@@ -54,7 +60,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/termek/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/termek/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -64,7 +77,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, newUnitOfMeasure, setErrors, status, unexpectedError, unitOfMeasureId]);
+  }, [description, dispatch, id, name, navigate, newUnitOfMeasure, onSuccess, setErrors, status, unexpectedError, unitOfMeasureId]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -135,76 +148,75 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Termék</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="name">Név</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-            <FieldError error={errors} field={"name"}/>
-            <Label htmlFor="description">Leírás</Label>
-            <Input
-              id="description"
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-            <FieldError error={errors} field={"description"}/>
-            <Label htmlFor="unit_of_measure">Mértékegység</Label>
-            <Select
-              value={unitOfMeasureId}
-              onValueChange={val => setUnitOfMeasureId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {unitsOfMeasureList.map(unit_of_measure => {
-                  return <SelectItem key={unit_of_measure.value}
-                                     value={unit_of_measure.value}>{unit_of_measure.title}</SelectItem>
-                })}
-                <SelectItem value="other">Egyéb</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"unit_of_measure"}/>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Termék ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="name">Név</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          <Label htmlFor="description">Leírás</Label>
+          <Input
+            id="description"
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <FieldError error={errors} field={"description"}/>
+          <Label htmlFor="unit_of_measure">Mértékegység</Label>
+          <Select
+            value={unitOfMeasureId}
+            onValueChange={val => setUnitOfMeasureId(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {unitsOfMeasureList.map(unit_of_measure => {
+                return <SelectItem key={unit_of_measure.value}
+                                   value={unit_of_measure.value}>{unit_of_measure.title}</SelectItem>
+              })}
+              <SelectItem value="other">Egyéb</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"unit_of_measure"}/>
 
-            {unitOfMeasureId === "other" ? (
-              <>
-                <Label htmlFor="new_unit_of_measure">Egyéb mértékegység</Label>
-                <Input
-                  id="new_unit_of_measure"
-                  type="text"
-                  value={newUnitOfMeasure}
-                  onChange={e => setNewUnitOfMeasure(e.target.value)}
-                />
-                <FieldError error={errors} field={"new_unit_of_measure"}/>
-              </>
-            ) : null}
-            <Label htmlFor="status">Státusz</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="inactive">Inaktív</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+          {unitOfMeasureId === "other" ? (
+            <>
+              <Label htmlFor="new_unit_of_measure">Egyéb mértékegység</Label>
+              <Input
+                id="new_unit_of_measure"
+                type="text"
+                value={newUnitOfMeasure}
+                onChange={e => setNewUnitOfMeasure(e.target.value)}
+              />
+              <FieldError error={errors} field={"new_unit_of_measure"}/>
+            </>
+          ) : null}
+          <Label htmlFor="status">Státusz</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

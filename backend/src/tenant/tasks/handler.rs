@@ -79,14 +79,13 @@ pub async fn update(
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A feladat frissítése sikeresen megtörtént",
-        ))
+        .data(
+            TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -117,14 +116,13 @@ pub async fn create(
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    TasksService::create(&claims, &user_input, tasks_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A feladat létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            TasksService::create(&claims, &user_input, tasks_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

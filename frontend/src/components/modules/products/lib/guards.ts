@@ -39,7 +39,7 @@ import type {
 export function isCreateProductResponse(data: unknown): data is CreateProductResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProduct,
     isFormError,
   )
 }
@@ -131,7 +131,7 @@ export function isProductResponse(data: unknown): data is ProductResponse {
 export function isUpdateProductResponse(data: unknown): data is UpdateProductResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProduct,
     isFormError
   )
 }

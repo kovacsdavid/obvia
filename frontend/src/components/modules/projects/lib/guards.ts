@@ -135,7 +135,7 @@ export function isProjectResponse(data: unknown): data is ProjectResponse {
 export function isUpdateProjectResponse(data: unknown): data is UpdateProjectResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProject,
     isFormError
   )
 }

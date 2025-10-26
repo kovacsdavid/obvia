@@ -39,7 +39,7 @@ import type {
 export function isCreateWarehouseResponse(data: unknown): data is CreateWarehouseResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWarehouse,
     isFormError,
   )
 }
@@ -129,7 +129,7 @@ export function isWarehouseResponse(data: unknown): data is WarehouseResponse {
 export function isUpdateWarehouseResponse(data: unknown): data is UpdateWarehouseResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWarehouse,
     isFormError
   )
 }

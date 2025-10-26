@@ -121,7 +121,7 @@ export function isPaginatedInventoryReservationResolvedListResponse(data: unknow
 export function isCreateInventoryReservationResponse(data: unknown): data is CreateInventoryReservationResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventoryReservation,
     isFormError,
   );
 }

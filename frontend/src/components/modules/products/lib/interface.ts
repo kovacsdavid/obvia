@@ -60,8 +60,8 @@ export interface ProductResolved {
   deleted_at: string | null,
 }
 
-export type CreateProductResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateProductResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateProductResponse = CommonResponse<Product, FormError>;
+export type UpdateProductResponse = CommonResponse<Product, FormError>;
 export type DeleteProductResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type ProductResponse = CommonResponse<Product, SimpleError>;
 export type ProductResolvedResponse = CommonResponse<ProductResolved, SimpleError>;

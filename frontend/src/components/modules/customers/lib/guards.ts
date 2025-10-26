@@ -39,7 +39,7 @@ import type {
 export function isCreateCustomerResponse(data: unknown): data is CreateCustomerResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isCustomer,
     isFormError
   )
 }
@@ -47,7 +47,7 @@ export function isCreateCustomerResponse(data: unknown): data is CreateCustomerR
 export function isUpdateCustomerResponse(data: unknown): data is UpdateCustomerResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isCustomer,
     isFormError
   )
 }

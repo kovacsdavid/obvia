@@ -73,8 +73,8 @@ export interface TaskResolved {
   deleted_at: string | null,
 }
 
-export type CreateTaskResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateTaskResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateTaskResponse = CommonResponse<Task, FormError>;
+export type UpdateTaskResponse = CommonResponse<Task, FormError>;
 export type DeleteTaskResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TaskResponse = CommonResponse<Task, SimpleError>;
 export type TaskResolvedResponse = CommonResponse<TaskResolved, SimpleError>;

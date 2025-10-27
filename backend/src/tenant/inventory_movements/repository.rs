@@ -197,6 +197,10 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
                     .map_err(|_| RepositoryError::InvalidInput("total_price".to_string()))?,
             ),
         };
+        let movement_type = input.movement_type.extract().get_value();
+        let quantity = input
+            .quantity(movement_type == "out")
+            .map_err(|e| RepositoryError::InvalidInput("quantity".to_string()))?;
         Ok(sqlx::query_as::<_, InventoryMovement>(
             r#"
             INSERT INTO inventory_movements (
@@ -207,15 +211,8 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(input.inventory_id)
-        .bind(input.movement_type.extract().get_value())
-        .bind(
-            input
-                .quantity
-                .extract()
-                .get_value()
-                .parse::<i32>()
-                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
-        )
+        .bind(movement_type)
+        .bind(quantity)
         .bind(
             input
                 .reference_type

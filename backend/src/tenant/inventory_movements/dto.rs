@@ -18,13 +18,14 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{Float64, Integer32};
+use crate::common::types::{Float64, PositiveInteger32};
 use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::inventory_movements::types::{InventoryMovementType, InventoryReferenceType};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::num::ParseIntError;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -89,12 +90,22 @@ pub struct InventoryMovementUserInput {
     pub id: Option<Uuid>,
     pub inventory_id: Uuid,
     pub movement_type: ValueObject<InventoryMovementType>,
-    pub quantity: ValueObject<Integer32>,
+    pub quantity: ValueObject<PositiveInteger32>,
     pub reference_type: Option<ValueObject<InventoryReferenceType>>,
     pub reference_id: Option<Uuid>,
     pub unit_price: Option<ValueObject<Float64>>,
     pub total_price: Option<ValueObject<Float64>>,
     pub tax_id: Uuid,
+}
+
+impl InventoryMovementUserInput {
+    pub fn quantity(&self, negate: bool) -> Result<i32, ParseIntError> {
+        if negate {
+            Ok(-self.quantity.extract().get_value().parse::<i32>()?)
+        } else {
+            Ok(self.quantity.extract().get_value().parse::<i32>()?)
+        }
+    }
 }
 
 impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
@@ -114,7 +125,7 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
         let movement_type = ValueObject::new(InventoryMovementType(value.movement_type))
             .inspect_err(|e| error.movement_type = Some(e.to_string()));
 
-        let quantity = ValueObject::new(Integer32(value.quantity))
+        let quantity = ValueObject::new(PositiveInteger32(value.quantity))
             .inspect_err(|e| error.quantity = Some(e.to_string()));
 
         let reference_id = Uuid::parse_str(&value.reference_id)

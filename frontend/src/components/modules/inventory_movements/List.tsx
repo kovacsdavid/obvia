@@ -108,6 +108,17 @@ export default function InventoryMovementsList() {
     });
   }
 
+  const resolveMovementType = (movementType: string): string => {
+    switch (movementType) {
+      case "in":
+        return "Bevétel";
+      case "out":
+        return "Kiadás";
+      default:
+        return "N/A";
+    }
+  };
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -171,8 +182,8 @@ export default function InventoryMovementsList() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.movement_type}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
+                  <TableCell>{resolveMovementType(item.movement_type)}</TableCell>
+                  <TableCell>{Math.abs(item.quantity)}</TableCell>
                   <TableCell>{item.unit_price ?? 'N/A'}</TableCell>
                   <TableCell>{item.total_price ?? 'N/A'}</TableCell>
                   <TableCell>{item.tax ?? 'N/A'}</TableCell>

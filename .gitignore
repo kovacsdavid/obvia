@@ -1,5 +1,5 @@
 .idea
 .junie
-./frontend/node_modules
-./backend/target
-./tags
+frontend/node_modules
+backend/target
+tags

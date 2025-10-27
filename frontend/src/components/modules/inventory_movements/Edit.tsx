@@ -69,10 +69,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const handleReferenceTypeChange = useCallback(async (newReferenceType: string) => {
     setReferenceType(newReferenceType);
     setReferenceIdList([]);
-    return dispatch(select_list(newReferenceType)).then(async (response) => {
+    return dispatch(select_list(newReferenceType)).then((response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setReferenceIdList, setErrors);
-        return response.payload;
       } else {
         unexpectedError();
       }
@@ -81,14 +80,14 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   const loadLists = useCallback(() => {
     return Promise.all(
-      [!routeInventoryId && dispatch(select_list("inventory")).then(async (response) => {
+      [!routeInventoryId && dispatch(select_list("inventory")).then((response) => {
         if (select_list.fulfilled.match(response)) {
           setListResponse(response.payload, setInventoryIdList, setErrors);
         } else {
           unexpectedError();
         }
       }),
-        dispatch(select_list("taxes")).then(async (response) => {
+        dispatch(select_list("taxes")).then((response) => {
           if (select_list.fulfilled.match(response)) {
             setListResponse(response.payload, setTaxList, setErrors);
           } else {
@@ -110,10 +109,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setMovementType(data.movement_type);
                 setQuantity(data.quantity ? data.quantity.toString() : "");
                 handleReferenceTypeChange(data.reference_type ?? "").then(() => {
-                  // TODO: there should be a better solution
-                  setTimeout(() => {
-                    setReferenceId(data.reference_id ?? "");
-                  }, 0);
+                  setReferenceId(data.reference_id ?? "");
                 });
                 setUnitPrice(data.unit_price ?? "");
                 setTaxId(data.tax_id);

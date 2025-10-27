@@ -29,6 +29,12 @@ import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
 import {ConditionalCard} from "@/components/ui/card.tsx";
 import type {Inventory} from "./lib/interface";
+import type {Product} from "../products/lib/interface";
+import type {Warehouse} from "../warehouses/lib/interface";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
+import ProductsEdit from "@/components/modules/products/Edit.tsx";
+import {Plus} from "lucide-react";
 
 interface EditProps {
   showCard?: boolean;
@@ -51,6 +57,26 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
+  const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
+  const [openNewWarehouseDialog, setOpenNewWarehouseDialog] = React.useState(false);
+
+  const handleEditProductsSuccess = async (product: Product) => {
+    return loadLists().then(() => {
+      setTimeout(() => {
+        setProductId(product.id);
+      }, 0);
+      setOpenNewProductDialog(false);
+    });
+  };
+
+  const handleEditWarehousesSuccess = async (warehouse: Warehouse) => {
+    return loadLists().then(() => {
+      setTimeout(() => {
+        setWarehouseId(warehouse.id);
+      }, 0);
+      setOpenNewWarehouseDialog(false);
+    });
+  };
 
   const handleCreate = useCallback(() => {
     dispatch(create({
@@ -107,60 +133,59 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   }, [currencyCode, dispatch, id, navigate, productId, minimumStock, maximumStock, setErrors, unexpectedError, warehouseId, status]);
 
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setProductId(data.product_id);
-              setWarehouseId(data.warehouse_id);
-              setMinimumStock(data.minimum_stock ? data.minimum_stock.toString() : "");
-              setMaximumStock(data.maximum_stock ? data.maximum_stock.toString() : "");
-              setCurrencyCode(data.currency_code);
-              setStatus(data.status);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
-          } else {
-            unexpectedError();
-          }
+  const loadLists = useCallback(async () => {
+    return Promise.all([
+      dispatch(select_list("currencies")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setCurrencyList, setErrors);
         } else {
           unexpectedError();
         }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+      }),
+      dispatch(select_list("products")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setProductList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+      dispatch(select_list("warehouses")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setWarehouseList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+    ]);
+  }, [dispatch, setListResponse, setErrors, unexpectedError]);
 
   useEffect(() => {
-    dispatch(select_list("currencies")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setCurrencyList, setErrors);
-      } else {
-        unexpectedError();
+    loadLists().then(() => {
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setProductId(data.product_id);
+                setWarehouseId(data.warehouse_id);
+                setMinimumStock(data.minimum_stock ? data.minimum_stock.toString() : "");
+                setMaximumStock(data.maximum_stock ? data.maximum_stock.toString() : "");
+                setCurrencyCode(data.currency_code);
+                setStatus(data.status);
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
+            }
+          } else {
+            unexpectedError();
+          }
+        });
       }
     });
-    dispatch(select_list("products")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setProductList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-    dispatch(select_list("warehouses")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setWarehouseList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    dispatch,
-    setErrors,
-    unexpectedError,
-    setListResponse
-  ]);
+  }, [dispatch, id, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +199,18 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewProductDialog} onOpenChange={setOpenNewProductDialog}>
+        <DialogContent>
+          <DialogTitle>Új termék létrehozása</DialogTitle>
+          <ProductsEdit showCard={false} onSuccess={handleEditProductsSuccess}/>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openNewWarehouseDialog} onOpenChange={setOpenNewWarehouseDialog}>
+        <DialogContent>
+          <DialogTitle>Új raktár létrehozása</DialogTitle>
+          <WarehousesEdit showCard={false} onSuccess={handleEditWarehousesSuccess}/>
+        </DialogContent>
+      </Dialog>
       <ConditionalCard
         showCard={showCard}
         title={`Leltár ${id ? "létrehozás" : "módosítás"}`}
@@ -195,6 +232,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"product_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewProductDialog(true)}>
+            <Plus/> Új termék
+          </Button>
 
           <Label htmlFor="warehouse_id">Raktár</Label>
           <Select
@@ -211,6 +251,10 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"warehouse_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewWarehouseDialog(true)}>
+            <Plus/> Új raktár
+          </Button>
+
           <Label htmlFor="minimum_stock">Minimum készlet</Label>
           <Input
             id="minimum_stock"

@@ -29,15 +29,6 @@ export function Footer() {
       >
         Forráskód
       </a>
-      {" // "}
-      <a
-        href="https://github.com/kovacsdavid/obvia/blob/main/LICENSE"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline"
-      >
-        Licence
-      </a>
       {gitRevision && (" // ")}
       {gitRevision}
     </footer>

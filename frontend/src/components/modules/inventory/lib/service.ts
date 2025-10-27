@@ -111,7 +111,7 @@ export async function select_list(
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryResolvedResponse>> {
-  return await fetch(`/api/inventory/get?uuid=${uuid}`, {
+  return await fetch(`/api/inventory/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

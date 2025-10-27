@@ -27,6 +27,10 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
 import {type SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
+import type {Inventory} from "../inventory/lib/interface";
+import {Plus} from "lucide-react";
 
 export default function Edit() {
   const [inventoryId, setInventoryId] = React.useState("");
@@ -37,7 +41,6 @@ export default function Edit() {
   const [status, setStatus] = React.useState("");
   const [inventoryIdList, setInventoryIdList] = React.useState<SelectOptionList>([])
   const [referenceIdList, setReferenceIdList] = React.useState<SelectOptionList>([])
-
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const params = useParams();
@@ -45,6 +48,16 @@ export default function Edit() {
   const {errors, setErrors, unexpectedError} = useFormError();
   const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
   const id = React.useMemo(() => params["id"] ?? "", [params]);
+  const [openNewInventoryDialog, setOpenNewInventoryDialog] = React.useState(false);
+
+  const handleEditInventorySuccess = (inventory: Inventory) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setInventoryId(inventory.id);
+      }, 0);
+      setOpenNewInventoryDialog(false);
+    })
+  };
 
   useEffect(() => {
     setInventoryId(routeInventoryId);
@@ -53,10 +66,9 @@ export default function Edit() {
   const handleReferenceTypeChange = useCallback(async (newReferenceType: string) => {
     setReferenceType(newReferenceType);
     setReferenceIdList([]);
-    return dispatch(select_list(newReferenceType)).then(async (response) => {
+    return dispatch(select_list(newReferenceType)).then((response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setReferenceIdList, setErrors);
-        return response.payload;
       } else {
         unexpectedError();
       }
@@ -65,7 +77,7 @@ export default function Edit() {
 
   const loadLists = useCallback(async () => {
     if (!routeInventoryId) {
-      return dispatch(select_list("inventory")).then(async (response) => {
+      return dispatch(select_list("inventory")).then((response) => {
         if (select_list.fulfilled.match(response)) {
           setListResponse(response.payload, setInventoryIdList, setErrors);
         } else {
@@ -87,10 +99,7 @@ export default function Edit() {
                 setInventoryId(data.inventory_id);
                 setQuantity(data.quantity.toString());
                 handleReferenceTypeChange(data.reference_type ?? "").then(() => {
-                  // TODO: there should be a better solution
-                  setTimeout(() => {
-                    setReferenceId(data.reference_id ?? "");
-                  }, 0);
+                  setReferenceId(data.reference_id ?? "");
                 });
                 setReservedUntil(data.reserved_until);
                 setStatus(data.status);
@@ -136,6 +145,12 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewInventoryDialog} onOpenChange={setOpenNewInventoryDialog}>
+        <DialogContent>
+          <DialogTitle>Új munkalap létrehozása</DialogTitle>
+          <InventoryEdit showCard={false} onSuccess={handleEditInventorySuccess}/>
+        </DialogContent>
+      </Dialog>
       <Card className={"max-w-lg mx-auto"}>
         <CardHeader>
           <CardTitle>Készlet foglalás</CardTitle>
@@ -158,6 +173,9 @@ export default function Edit() {
                   </SelectContent>
                 </Select>
                 <FieldError error={errors} field={"inventory_id"}/>
+                <Button type="button" variant="outline" onClick={() => setOpenNewInventoryDialog(true)}>
+                  <Plus/> Új leltár
+                </Button>
               </>
             )}
 

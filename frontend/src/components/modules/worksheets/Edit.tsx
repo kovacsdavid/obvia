@@ -27,16 +27,22 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
 import {Plus} from "lucide-react";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
 import type {Project} from "@/components/modules/projects/lib/interface.ts";
+import type {Worksheet} from "./lib/interface";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (worksheet: Worksheet) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [projectId, setProjectId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [projectId, setProjectId] = React.useState("");
   const [status, setStatus] = React.useState("active");
   const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
   const {errors, setErrors, unexpectedError} = useFormError();
@@ -57,7 +63,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/munkalap/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/munkalap/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -67,7 +80,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
+  }, [description, onSuccess, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -91,32 +104,8 @@ export default function Edit() {
     });
   }, [description, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
 
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setName(data.name);
-              setDescription(data.description ?? "");
-              setProjectId(data.project_id);
-              setStatus(data.status ?? "");
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
-          } else {
-            unexpectedError();
-          }
-        } else {
-          unexpectedError();
-        }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
-
   const loadLists = useCallback(async () => {
-    return dispatch(select_list("projects")).then(async (response) => {
+    return dispatch(select_list("projects")).then((response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setProjectsList, setErrors);
       } else {
@@ -127,8 +116,29 @@ export default function Edit() {
 
   useEffect(() => {
     loadLists().then(() => {
-    })
-  }, [dispatch, setListResponse, setErrors, unexpectedError, loadLists]);
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setName(data.name);
+                setDescription(data.description ?? "");
+                setProjectId(data.project_id);
+                setStatus(data.status ?? "");
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
+            }
+          } else {
+            unexpectedError();
+          }
+        });
+      }
+    });
+  }, [dispatch, id, setErrors, unexpectedError, setListResponse, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,64 +167,63 @@ export default function Edit() {
           <ProjectsEdit showCard={false} onSuccess={handleEditProjectsSuccess}/>
         </DialogContent>
       </Dialog>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Munkalap</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="name">Név</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-            <FieldError error={errors} field={"name"}/>
-            <Label htmlFor="description">Leírás</Label>
-            <Input
-              id="description"
-              type="text"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-            />
-            <FieldError error={errors} field={"description"}/>
-            <Label htmlFor="project_id">Project ID</Label>
-            <Select
-              value={projectId}
-              onValueChange={val => setProjectId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                {projectsList.map(project => {
-                  return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
-                })}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"project_id"}/>
-            <Button type="button" variant="outline" onClick={() => setOpenNewProjectDialog(true)}>
-              <Plus/> Új projekt
-            </Button>
-            <Label htmlFor="status">Státusz</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="inactive">Inaktív</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Feladat ${id ? "létrehozás" : "módosítás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="name">Név</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          <Label htmlFor="description">Leírás</Label>
+          <Input
+            id="description"
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <FieldError error={errors} field={"description"}/>
+          <Label htmlFor="project_id">Project ID</Label>
+          <Select
+            value={projectId}
+            onValueChange={val => setProjectId(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {projectsList.map(project => {
+                return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"project_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewProjectDialog(true)}>
+            <Plus/> Új projekt
+          </Button>
+          <Label htmlFor="status">Státusz</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

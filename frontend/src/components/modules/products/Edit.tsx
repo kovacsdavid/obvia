@@ -102,32 +102,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   }, [description, dispatch, id, name, navigate, newUnitOfMeasure, setErrors, status, unexpectedError, unitOfMeasureId]);
 
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setName(data.name);
-              setDescription(data.description ?? "");
-              setUnitOfMeasureId(data.unit_of_measure_id);
-              setStatus(data.status);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
-          } else {
-            unexpectedError();
-          }
-        } else {
-          unexpectedError();
-        }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
-
-  useEffect(() => {
-    dispatch(select_list("units_of_measure")).then(async (response) => {
+  const loadLists = useCallback(async () => {
+    return dispatch(select_list("units_of_measure")).then((response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setUnitsOfMeasureList, setErrors);
       } else {
@@ -135,6 +111,32 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       }
     });
   }, [dispatch, setErrors, setListResponse, unexpectedError]);
+
+  useEffect(() => {
+    loadLists().then(() => {
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setName(data.name);
+                setDescription(data.description ?? "");
+                setUnitOfMeasureId(data.unit_of_measure_id);
+                setStatus(data.status);
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
+            }
+          } else {
+            unexpectedError();
+          }
+        });
+      }
+    });
+  }, [dispatch, id, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

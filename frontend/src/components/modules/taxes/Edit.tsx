@@ -125,8 +125,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   }, [countryCode, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
 
-  useEffect(() => {
-    dispatch(select_list("countries")).then(async (response) => {
+  const loadLists = useCallback(async () => {
+    return dispatch(select_list("countries")).then((response) => {
       if (select_list.fulfilled.match(response)) {
         setListResponse(response.payload, setCountryList, setErrors);
       } else {
@@ -136,33 +136,35 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   }, [dispatch, setErrors, setListResponse, unexpectedError]);
 
   useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setRate(data.rate ?? '');
-              setDescription(data.description);
-              setCountryCode(data.country_code);
-              setTaxCategory(data.tax_category);
-              setIsRateApplicable(data.is_rate_applicable ? "true" : "false");
-              setLegalText(data.legal_text ?? '');
-              setReportingCode(data.reporting_code ?? '');
-              setIsDefault(data.is_default);
-              setStatus(data.status);
+    loadLists().then(() => {
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setRate(data.rate ?? '');
+                setDescription(data.description);
+                setCountryCode(data.country_code);
+                setTaxCategory(data.tax_category);
+                setIsRateApplicable(data.is_rate_applicable ? "true" : "false");
+                setLegalText(data.legal_text ?? '');
+                setReportingCode(data.reporting_code ?? '');
+                setIsDefault(data.is_default);
+                setStatus(data.status);
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
             }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
           } else {
             unexpectedError();
           }
-        } else {
-          unexpectedError();
-        }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+        });
+      }
+    });
+  }, [dispatch, id, setErrors, unexpectedError, setListResponse, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -30,6 +30,14 @@ import {useParams} from "react-router";
 import {ConditionalCard} from "@/components/ui/card.tsx";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import type {Task, TaskUserInput} from "./lib/interface";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
+import ServicesEdit from "@/components/modules/services/Edit.tsx";
+import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
+import type {Worksheet} from "../worksheets/lib/interface";
+import type {Service} from "../services/lib/interface";
+import type {Tax} from "../taxes/lib/interface";
+import {Plus} from "lucide-react";
 
 interface EditProps {
   showCard?: boolean;
@@ -55,6 +63,37 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
+  const [openNewWorksheetDialog, setOpenNewWorksheetDialog] = React.useState(false);
+  const [openNewServiceDialog, setOpenNewServiceDialog] = React.useState(false);
+  const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
+
+  const handleEditWorksheetsSuccess = (worksheet: Worksheet) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setWorksheetId(worksheet.id);
+      }, 0);
+      setOpenNewWorksheetDialog(false);
+    })
+  };
+
+  const handleEditServicesSuccess = (service: Service) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setServiceId(service.id);
+      }, 0);
+      setOpenNewServiceDialog(false);
+    })
+  };
+
+
+  const handleEditTaxesSuccess = (tax: Tax) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setTaxId(tax.id);
+      }, 0);
+      setOpenNewTaxDialog(false);
+    });
+  };
 
   const prepareTaskInput = useCallback((): TaskUserInput => ({
     id,
@@ -107,64 +146,68 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   }, [dispatch, navigate, prepareTaskInput, setErrors, unexpectedError]);
 
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setWorksheetId(data.worksheet_id);
-              setServiceId(data.service_id);
-              setCurrencyCode(data.currency_code);
-              setPrice(data.price ?? "");
-              setTaxId(data.tax_id);
-              setStatus(data.status);
-              setPriority(data.priority);
-              setDueDate(data.due_date ? formatDateToYMDHMS(data.due_date) : null);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
-          } else {
-            unexpectedError();
-          }
+  const loadLists = useCallback(async () => {
+    return Promise.all([
+      dispatch(select_list("worksheets")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setWorksheetList, setErrors);
         } else {
           unexpectedError();
         }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+      }),
+      dispatch(select_list("services")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setServiceList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+      dispatch(select_list("taxes")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setTaxList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+      dispatch(select_list("currencies")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setCurrencyList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+    ])
+  }, [dispatch, setErrors, setListResponse, unexpectedError])
 
   useEffect(() => {
-    dispatch(select_list("worksheets")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setWorksheetList, setErrors);
-      } else {
-        unexpectedError();
+    loadLists().then(() => {
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setWorksheetId(data.worksheet_id);
+                setServiceId(data.service_id);
+                setCurrencyCode(data.currency_code);
+                setPrice(data.price ?? "");
+                setTaxId(data.tax_id);
+                setStatus(data.status);
+                setPriority(data.priority);
+                setDueDate(data.due_date ? formatDateToYMDHMS(data.due_date) : null);
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
+            }
+          } else {
+            unexpectedError();
+          }
+        });
       }
     });
-    dispatch(select_list("services")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setServiceList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-    dispatch(select_list("taxes")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setTaxList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-    dispatch(select_list("currencies")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setCurrencyList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [dispatch, setListResponse, setErrors, unexpectedError]);
+  }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,6 +221,24 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewWorksheetDialog} onOpenChange={setOpenNewWorksheetDialog}>
+        <DialogContent>
+          <DialogTitle>Új munkalap létrehozása</DialogTitle>
+          <WorksheetsEdit showCard={false} onSuccess={handleEditWorksheetsSuccess}/>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openNewServiceDialog} onOpenChange={setOpenNewServiceDialog}>
+        <DialogContent>
+          <DialogTitle>Új szolgáltatás létrehozása</DialogTitle>
+          <ServicesEdit showCard={false} onSuccess={handleEditServicesSuccess}/>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
+        <DialogContent>
+          <DialogTitle>Új adó létrehozása</DialogTitle>
+          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess}/>
+        </DialogContent>
+      </Dialog>
       <ConditionalCard
         showCard={showCard}
         title={`Feladat ${id ? "létrehozás" : "módosítás"}`}
@@ -196,6 +257,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"worksheet_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewWorksheetDialog(true)}>
+            <Plus/> Új munkalap
+          </Button>
 
           <Label htmlFor="service_id">Szolgáltatás</Label>
           <Select value={serviceId} onValueChange={setServiceId}>
@@ -209,6 +273,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"service_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewServiceDialog(true)}>
+            <Plus/> Új szolgáltatás
+          </Button>
 
           <Label htmlFor="currency_code">Pénznem</Label>
           <Select
@@ -247,6 +314,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"tax_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewTaxDialog(true)}>
+            <Plus/> Új adó
+          </Button>
 
           <Label htmlFor="status">Státusz</Label>
           <Select value={status} onValueChange={setStatus}>

@@ -29,6 +29,10 @@ import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import {ConditionalCard} from "@/components/ui/card.tsx";
 import type {Service} from "./lib/interface";
+import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
+import {Plus} from "lucide-react";
+import type {Tax} from "../taxes/lib/interface";
 
 interface EditProps {
   showCard?: boolean;
@@ -50,6 +54,16 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const {errors, setErrors, unexpectedError} = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
+  const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
+
+  const handleEditTaxesSuccess = async (tax: Tax) => {
+    return loadLists().then(() => {
+      setTimeout(() => {
+        setDefaultTaxId(tax.id);
+      }, 0);
+      setOpenNewTaxDialog(false);
+    })
+  };
 
   const handleCreate = useCallback(() => {
     dispatch(create({
@@ -106,21 +120,23 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
 
-  useEffect(() => {
-    dispatch(select_list("currencies")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setCurrencyList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-    dispatch(select_list("taxes")).then(async (response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setTaxesList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
+  const loadLists = useCallback(async () => {
+    return Promise.all([
+      dispatch(select_list("currencies")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setCurrencyList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+      dispatch(select_list("taxes")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setTaxesList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+    ]);
   }, [
     dispatch,
     setErrors,
@@ -129,30 +145,32 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   ]);
 
   useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setName(data.name);
-              setDescription(data.description ?? "");
-              setDefaultPrice(data.default_price ?? "");
-              setDefaultTaxId(data.default_tax_id ?? "");
-              setCurrencyCode(data.currency_code ?? "");
-              setStatus(data.status);
+    loadLists().then(() => {
+      if (typeof id === "string") {
+        dispatch(get(id)).then(async (response) => {
+          if (get.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+              if (typeof response.payload.jsonData.data !== "undefined") {
+                const data = response.payload.jsonData.data;
+                setName(data.name);
+                setDescription(data.description ?? "");
+                setDefaultPrice(data.default_price ?? "");
+                setDefaultTaxId(data.default_tax_id ?? "");
+                setCurrencyCode(data.currency_code ?? "");
+                setStatus(data.status);
+              }
+            } else if (typeof response.payload.jsonData?.error !== "undefined") {
+              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else {
+              unexpectedError();
             }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
           } else {
             unexpectedError();
           }
-        } else {
-          unexpectedError();
-        }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+        });
+      }
+    });
+  }, [dispatch, id, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +184,12 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
+        <DialogContent>
+          <DialogTitle>Új adó létrehozása</DialogTitle>
+          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess}/>
+        </DialogContent>
+      </Dialog>
       <ConditionalCard
         showCard={showCard}
         title={`Szolgáltatás ${id ? "létrehozás" : "módosítás"}`}
@@ -214,6 +238,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"default_tax_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewTaxDialog(true)}>
+            <Plus/> Új adó
+          </Button>
 
           <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
           <Select

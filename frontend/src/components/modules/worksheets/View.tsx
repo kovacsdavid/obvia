@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Munkalap</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -103,6 +103,38 @@ export default function View() {
                     </TableCell>
                     <TableCell>
                       {data.project} ({data.project_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Nettó anyagköltség
+                    </TableCell>
+                    <TableCell>
+                      {data.net_material_cost}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Bruttó anyagköltség
+                    </TableCell>
+                    <TableCell>
+                      {data.gross_material_cost}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Nettó munkadíj
+                    </TableCell>
+                    <TableCell>
+                      {data.net_work_cost}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Bruttó munkadíj
+                    </TableCell>
+                    <TableCell>
+                      {data.gross_work_cost}
                     </TableCell>
                   </TableRow>
                   <TableRow>

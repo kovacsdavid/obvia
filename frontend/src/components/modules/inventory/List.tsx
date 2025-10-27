@@ -121,7 +121,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/leltar/szerkesztes"}>
+              <Link to={"/leltar/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>

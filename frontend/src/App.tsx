@@ -82,18 +82,18 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/vezerlopult", element: Dashboard, isPrivate: true},
 
   // Tenants
-  {path: "/adatbazis/szerkesztes", element: TenantsEdit, isPrivate: true},
+  {path: "/adatbazis/letrehozas", element: TenantsEdit, isPrivate: true},
   {path: "/adatbazis/lista", element: TenantsList, isPrivate: true},
   {path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true},
 
   // Customers
-  {path: "/vevo/szerkesztes", element: CustomerEdit, isPrivate: true},
+  {path: "/vevo/letrehozas", element: CustomerEdit, isPrivate: true},
   {path: "/vevo/szerkesztes/:id", element: CustomerEdit, isPrivate: true},
   {path: "/vevo/lista", element: CustomerList, isPrivate: true},
   {path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true},
 
   // Inventory
-  {path: "/leltar/szerkesztes", element: InventoryEdit, isPrivate: true},
+  {path: "/leltar/letrehozas", element: InventoryEdit, isPrivate: true},
   {path: "/leltar/szerkesztes/:id", element: InventoryEdit, isPrivate: true},
   {path: "/leltar/lista", element: InventoryList, isPrivate: true},
   {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
@@ -113,25 +113,25 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/leltar-foglalas/reszletek/:id", element: InventoryReservationsView, isPrivate: true},
 
   // Products
-  {path: "/termek/szerkesztes", element: ProductsEdit, isPrivate: true},
+  {path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true},
   {path: "/termek/szerkesztes/:id", element: ProductsEdit, isPrivate: true},
   {path: "/termek/lista", element: ProductsList, isPrivate: true},
   {path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true},
 
   // Projects
-  {path: "/projekt/szerkesztes", element: ProjectsEdit, isPrivate: true},
+  {path: "/projekt/letrehozas", element: ProjectsEdit, isPrivate: true},
   {path: "/projekt/szerkesztes/:id", element: ProjectsEdit, isPrivate: true},
   {path: "/projekt/lista", element: ProjectsList, isPrivate: true},
   {path: "/projekt/reszletek/:id", element: ProjectsView, isPrivate: true},
 
   // Tags
-  {path: "/cimke/szerkesztes", element: TagsEdit, isPrivate: true},
+  {path: "/cimke/letrehozas", element: TagsEdit, isPrivate: true},
   {path: "/cimke/szerkesztes/:id", element: TagsEdit, isPrivate: true},
   {path: "/cimke/lista", element: TagsList, isPrivate: true},
   {path: "/cimke/reszletek/:id", element: TagsView, isPrivate: true},
 
   // Tasks
-  {path: "/feladat/szerkesztes", element: TasksEdit, isPrivate: true},
+  {path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true},
   {path: "/feladat/szerkesztes/:id", element: TasksEdit, isPrivate: true},
   {path: "/feladat/lista", element: TasksList, isPrivate: true},
   {path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true},
@@ -142,25 +142,25 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   // {path: "/felhasznalo/lista", element: UsersList, isPrivate: true},
 
   // Warehouses
-  {path: "/raktar/szerkesztes", element: WarehousesEdit, isPrivate: true},
+  {path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true},
   {path: "/raktar/szerkesztes/:id", element: WarehousesEdit, isPrivate: true},
   {path: "/raktar/lista", element: WarehousesList, isPrivate: true},
   {path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true},
 
   // Worksheets
-  {path: "/munkalap/szerkesztes", element: WorksheetsEdit, isPrivate: true},
+  {path: "/munkalap/letrehozas", element: WorksheetsEdit, isPrivate: true},
   {path: "/munkalap/szerkesztes/:id", element: WorksheetsEdit, isPrivate: true},
   {path: "/munkalap/lista", element: WorksheetsList, isPrivate: true},
   {path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true},
 
   // Taxes
-  {path: "/ado/szerkesztes", element: TaxesEdit, isPrivate: true},
+  {path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true},
   {path: "/ado/szerkesztes/:id", element: TaxesEdit, isPrivate: true},
   {path: "/ado/lista", element: TaxesList, isPrivate: true},
   {path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true},
 
   // Services
-  {path: "/szolgaltatas/szerkesztes", element: ServicesEdit, isPrivate: true},
+  {path: "/szolgaltatas/letrehozas", element: ServicesEdit, isPrivate: true},
   {path: "/szolgaltatas/szerkesztes/:id", element: ServicesEdit, isPrivate: true},
   {path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true},
   {path: "/szolgaltatas/reszletek/:id", element: ServicesView, isPrivate: true},

@@ -31,7 +31,7 @@ import {
   TableRow
 } from "@/components/ui/table.tsx";
 import {Paginator} from "@/components/ui/pagination.tsx";
-import {Eye, Funnel, MoreHorizontal, Pencil, PlugZap, Plus, Trash} from "lucide-react";
+import {Funnel, MoreHorizontal, PlugZap, Plus, Trash} from "lucide-react";
 import {Button} from "@/components/ui/button.tsx"
 import {Input} from "@/components/ui/input.tsx"
 import {Label} from "@/components/ui/label.tsx"
@@ -136,7 +136,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/adatbazis/szerkesztes"}>
+              <Link to={"/adatbazis/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -216,14 +216,6 @@ export default function List() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/adatbazis/reszletek/${item.id}`}>
-                          <DropdownMenuItem>
-                            <Eye/> Részletek
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuItem>
-                          <Pencil/> Szerkesztés
-                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleActivate(item.id)}>
                           <PlugZap/> Aktiválás
                         </DropdownMenuItem>

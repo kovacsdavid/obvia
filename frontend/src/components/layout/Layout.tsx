@@ -36,33 +36,75 @@ import {FlaskConical} from "lucide-react";
 
 export function Layout({children}: { children: ReactNode }) {
   const breadcrumbMap: Record<string, string> = {
-    "/": "Kezdőoldal",
     "/bejelentkezes": "Bejelentkezés",
     "/regisztracio": "Regisztráció",
     "/vezerlopult": "Vezérlőpult",
-    "/adatbazis/szerkesztes": "Adatbázis létrehozása",
+    "/adatbazis/letrehozas": "Adatbázis létrehozása",
+    "/adatbazis/szerkesztes": "Adatbázis szerkesztés",
     "/adatbazis/lista": "Adatbázis lista",
-    "/vevo/szerkesztes": "Vevő létrehozása",
+    "/adatbazis/reszletek": "Adatbázis részletek",
+    "/vevo/letrehozas": "Vevő létrehozása",
+    "/vevo/szerkesztes": "Vevő szerkesztés",
     "/vevo/lista": "Vevő lista",
-    "/leltar/szerkesztes": "Leltár létrehozása",
+    "/vevo/reszletek": "Vevő részletek",
+    "/leltar/letrehozas": "Leltár létrehozása",
+    "/leltar/szerkesztes": "Leltár szerkesztés",
     "/leltar/lista": "Leltár lista",
-    "/termek/szerkesztes": "Termék létrehozása",
+    "/leltar/reszletek": "Leltár részletek",
+    "/leltar-mozgas/letrehozas": "Készletmozgás létrehozása",
+    "/leltar-mozgas/szerkesztes": "Készletmozgás szerkesztés",
+    "/leltar-mozgas/lista": "Készletmozgás lista",
+    "/leltar-mozgas/reszletek": "Készletmozgás részletek",
+    "/leltar-foglalas/letrehozas": "Készletfoglalás létrehozása",
+    "/leltar-foglalas/szerkesztes": "Készletfoglalás szerkesztés",
+    "/leltar-foglalas/lista": "Készletfoglalás lista",
+    "/leltar-foglalas/reszletek": "Készletfoglalás részletek",
+    "/termek/letrehozas": "Termék létrehozása",
+    "/termek/szerkesztes": "Termék szerkesztés",
     "/termek/lista": "Termék lista",
-    "/projekt/szerkesztes": "Projekt létrehozása",
+    "/termek/reszletek": "Termék részletek",
+    "/projekt/letrehozas": "Projekt létrehozása",
+    "/projekt/szerkesztes": "Projekt szerkesztés",
     "/projekt/lista": "Projekt lista",
-    "/cimke/szerkesztes": "Címke létrehozása",
+    "/projekt/reszletek": "Projekt részletek",
+    "/cimke/letrehozas": "Címke létrehozása",
+    "/cimke/szerkesztes": "Címke szerkesztés",
     "/cimke/lista": "Címke lista",
-    "/feladat/szerkesztes": "Feladat létrehozása",
+    "/cimke/reszletek": "Címke részletek",
+    "/feladat/letrehozas": "Feladat létrehozása",
+    "/feladat/szerkesztes": "Feladat szerkesztés",
     "/feladat/lista": "Feladat lista",
-    "/felhasznalo/szerkesztes": "Felhasználó létrehozása",
+    "/feladat/reszletek": "Feladat részletek",
+    "/felhasznalo/letrehozas": "Felhasználó létrehozása",
+    "/felhasznalo/szerkesztes": "Felhasználó szerkesztés",
     "/felhasznalo/lista": "Felhasználó lista",
-    "/raktar/szerkesztes": "Raktár létrehozása",
+    "/felhasznalo/reszletek": "Felhasználó részletek",
+    "/raktar/letrehozas": "Raktár létrehozása",
+    "/raktar/szerkesztes": "Raktár szerkesztés",
     "/raktar/lista": "Raktár lista",
-    "/munkalap/szerkesztes": "Munkalap létrehozása",
+    "/raktar/reszletek": "Raktár részletek",
+    "/szolgaltatas/letrehozas": "Szolgáltatás létrehozása",
+    "/szolgaltatas/szerkesztes": "Szolgáltatás szerkesztés",
+    "/szolgaltatas/lista": "Szolgáltatás lista",
+    "/szolgaltatas/reszletek": "Szolgáltatás részletek",
+    "/munkalap/letrehozas": "Munkalap létrehozása",
+    "/munkalap/szerkesztes": "Munkalap szerkesztés",
     "/munkalap/lista": "Munkalap lista",
+    "/munkalap/reszletek": "Munkalap részletek",
+    "/ado/letrehozas": "Adó létrehozása",
+    "/ado/szerkesztes": "Adó szerkesztés",
+    "/ado/lista": "Adó lista",
+    "/ado/reszletek": "Adó részletek",
+    "/": "Kezdőoldal",
   };
   const {pathname} = useLocation();
-  const currentTitle = breadcrumbMap[pathname] || "Ismeretlen oldal";
+  let currentTitle = "";
+  const match = Object.keys(breadcrumbMap).filter(key => {
+    return pathname.includes(key);
+  })
+  if (match.length > 0) {
+     currentTitle = breadcrumbMap[match[0]];
+  }
   return (
     <SidebarProvider>
       <AppSidebar/>

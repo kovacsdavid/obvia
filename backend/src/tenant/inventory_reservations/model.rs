@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -26,7 +26,7 @@ use uuid::Uuid;
 pub struct InventoryReservation {
     pub id: Uuid,
     pub inventory_id: Uuid,
-    pub quantity: i32,
+    pub quantity: BigDecimal,
     pub reference_type: Option<String>,
     pub reference_id: Option<Uuid>,
     pub reserved_until: Option<DateTime<Local>>,
@@ -40,7 +40,7 @@ pub struct InventoryReservation {
 pub struct InventoryReservationResolved {
     pub id: Uuid,
     pub inventory_id: Uuid,
-    pub quantity: i32,
+    pub quantity: BigDecimal,
     pub reference_type: Option<String>,
     pub reference_id: Option<Uuid>,
     pub reserved_until: Option<DateTime<Local>>,

@@ -68,6 +68,8 @@ export function isTaskResolved(data: unknown): data is TaskResolved {
     typeof data.service === "string" &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
+    "quantity" in data &&
+    (data.quantity === null || typeof data.quantity === "string") &&
     "price" in data &&
     (data.price === null || typeof data.price === "string") &&
     "tax_id" in data &&
@@ -89,7 +91,9 @@ export function isTaskResolved(data: unknown): data is TaskResolved {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
+    (data.deleted_at === null || typeof data.deleted_at === "string") &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string")
   );
 }
 
@@ -119,6 +123,8 @@ export function isTask(data: unknown): data is Task {
     typeof data.service_id === "string" &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
+    "quantity" in data &&
+    (data.quantity === null || typeof data.quantity === "string") &&
     "price" in data &&
     (data.price === null || typeof data.price === "string") &&
     "tax_id" in data &&
@@ -136,7 +142,9 @@ export function isTask(data: unknown): data is Task {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
+    (data.deleted_at === null || typeof data.deleted_at === "string") &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string")
   );
 }
 

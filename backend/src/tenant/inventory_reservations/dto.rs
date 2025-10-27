@@ -18,7 +18,7 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::Integer32;
+use crate::common::types::quantity::Quantity;
 use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::inventory_reservations::types::{
     InventoryReferenceType, InventoryReservationsReservedUntil, InventoryReservationsStatus,
@@ -84,7 +84,7 @@ impl IntoResponse for InventoryReservationUserInputError {
 pub struct InventoryReservationUserInput {
     pub id: Option<Uuid>,
     pub inventory_id: Uuid,
-    pub quantity: ValueObject<Integer32>,
+    pub quantity: ValueObject<Quantity>,
     pub reference_type: Option<ValueObject<InventoryReferenceType>>,
     pub reference_id: Option<Uuid>,
     pub reserved_until: Option<ValueObject<InventoryReservationsReservedUntil>>,
@@ -105,7 +105,7 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
                 .ok(),
         };
 
-        let quantity = ValueObject::new(Integer32(value.quantity))
+        let quantity = ValueObject::new(Quantity(value.quantity))
             .inspect_err(|e| error.quantity = Some(e.to_string()));
 
         let reference_id = Uuid::parse_str(&value.reference_id)

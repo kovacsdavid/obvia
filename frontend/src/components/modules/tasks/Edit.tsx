@@ -48,11 +48,13 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [worksheetId, setWorksheetId] = React.useState("");
   const [serviceId, setServiceId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("HUF");
-  const [price, setPrice] = React.useState<string>("");
+  const [quantity, setQuantity] = React.useState("");
+  const [price, setPrice] = React.useState("");
   const [taxId, setTaxId] = React.useState("");
   const [status, setStatus] = React.useState("active");
   const [priority, setPriority] = React.useState<string | null>("normal");
   const [dueDate, setDueDate] = React.useState<string | null>("");
+  const [description, setDescription] = React.useState("");
   const [worksheetList, setWorksheetList] = React.useState<SelectOptionList>([]);
   const [serviceList, setServiceList] = React.useState<SelectOptionList>([]);
   const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
@@ -100,12 +102,14 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     worksheetId,
     serviceId,
     currencyCode,
+    quantity,
     price,
     taxId,
     status,
     priority,
-    dueDate
-  }), [id, worksheetId, serviceId, currencyCode, price, taxId, status, priority, dueDate]);
+    dueDate,
+    description,
+  }), [id, worksheetId, serviceId, currencyCode, quantity, price, taxId, status, priority, dueDate, description]);
 
   const handleCreate = useCallback(() => {
     dispatch(create(prepareTaskInput())).then(async (response) => {
@@ -277,6 +281,15 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             <Plus/> Új szolgáltatás
           </Button>
 
+          <Label htmlFor="description">Leírás</Label>
+          <Input
+            id="description"
+            type="text"
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+          <FieldError error={errors} field={"description"}/>
+
           <Label htmlFor="currency_code">Pénznem</Label>
           <Select
             value={currencyCode}
@@ -292,6 +305,15 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"currency_code"}/>
+
+          <Label htmlFor="quantity">Munkaóra</Label>
+          <Input
+            id="quantity"
+            type="text"
+            value={quantity ?? ""}
+            onChange={e => setQuantity(e.target.value)}
+          />
+          <FieldError error={errors} field={"quantity"}/>
 
           <Label htmlFor="price">Ár</Label>
           <Input

@@ -46,6 +46,7 @@ export async function create({
                                id,
                                name,
                                description,
+                               customerId,
                                projectId,
                                status
                              }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
@@ -60,6 +61,7 @@ export async function create({
       id,
       name,
       description,
+      customer_id: customerId,
       project_id: projectId,
       status
     })
@@ -124,6 +126,7 @@ export async function update({
                                id,
                                name,
                                description,
+                               customerId,
                                projectId,
                                status
                              }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
@@ -138,6 +141,7 @@ export async function update({
       id,
       name,
       description,
+      customer_id: customerId,
       project_id: projectId,
       status
     }),

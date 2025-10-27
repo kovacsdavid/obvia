@@ -99,10 +99,26 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
+                      Leírás
+                    </TableCell>
+                    <TableCell>
+                      {data.description ?? ''}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
                       Pénznem
                     </TableCell>
                     <TableCell>
                       {data.currency_code}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Munkaóra
+                    </TableCell>
+                    <TableCell>
+                      {data.quantity ?? ''}
                     </TableCell>
                   </TableRow>
                   <TableRow>

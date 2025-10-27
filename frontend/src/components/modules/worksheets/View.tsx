@@ -99,6 +99,14 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
+                      Vevő
+                    </TableCell>
+                    <TableCell>
+                      {data.customer} ({data.customer_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
                       Projekt
                     </TableCell>
                     <TableCell>

@@ -28,6 +28,7 @@ pub struct Task {
     pub worksheet_id: Uuid,
     pub service_id: Uuid,
     pub currency_code: String,
+    pub quantity: Option<BigDecimal>,
     pub price: Option<BigDecimal>,
     pub tax_id: Uuid,
     pub created_by_id: Uuid,
@@ -37,6 +38,7 @@ pub struct Task {
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -47,6 +49,7 @@ pub struct TaskResolved {
     pub service_id: Uuid,
     pub service: String,
     pub currency_code: String,
+    pub quantity: Option<BigDecimal>,
     pub price: Option<BigDecimal>,
     pub tax_id: Uuid,
     pub tax: String,
@@ -58,6 +61,7 @@ pub struct TaskResolved {
     pub created_at: DateTime<Local>,
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
+    pub description: Option<String>,
 }
 
 /// Represents the association of a task assigned to a user, along with metadata about its creation and potential deletion.

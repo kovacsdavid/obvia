@@ -167,6 +167,9 @@ export default function List() {
                   Leírás
                 </TableHead>
                 <TableHead>
+                  Vevő
+                </TableHead>
+                <TableHead>
                   Projekt
                 </TableHead>
                 <TableHead>
@@ -224,6 +227,7 @@ export default function List() {
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.description ? item.description : ''}</TableCell>
+                  <TableCell>{item.customer}</TableCell>
                   <TableCell>{item.project}</TableCell>
                   <TableCell>{item.net_material_cost}</TableCell>
                   <TableCell>{item.gross_material_cost}</TableCell>

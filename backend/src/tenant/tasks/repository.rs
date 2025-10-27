@@ -87,6 +87,7 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.service_id as service_id,
                 services.name as service,
                 tasks.currency_code as currency_code,
+                tasks.quantity as quantity,
                 tasks.price as price,
                 tasks.tax_id as tax_id,
                 taxes.description as tax,
@@ -97,7 +98,8 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.due_date as due_date,
                 tasks.created_at as created_at,
                 tasks.updated_at as updated_at,
-                tasks.deleted_at as deleted_at
+                tasks.deleted_at as deleted_at,
+                tasks.description as description
             FROM tasks
             LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
             LEFT JOIN services ON tasks.service_id = services.id
@@ -136,6 +138,7 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.service_id as service_id,
                 services.name as service,
                 tasks.currency_code as currency_code,
+                tasks.quantity as quantity, 
                 tasks.price as price, 
                 tasks.tax_id as tax_id,
                 taxes.description as tax,
@@ -146,7 +149,8 @@ impl TasksRepository for PoolManagerWrapper {
                 tasks.due_date as due_date,
                 tasks.created_at as created_at,
                 tasks.updated_at as updated_at,
-                tasks.deleted_at as deleted_at
+                tasks.deleted_at as deleted_at,
+                tasks.description as description
             FROM tasks
             LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
             LEFT JOIN services ON tasks.service_id = services.id
@@ -180,6 +184,15 @@ impl TasksRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task> {
+        let quantity = match &task.quantity {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .parse::<f64>()
+                    .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
+            ),
+        };
         let price = match &task.price {
             None => None,
             Some(v) => Some(
@@ -197,12 +210,13 @@ impl TasksRepository for PoolManagerWrapper {
             ),
         };
         Ok(sqlx::query_as::<_, Task>(
-            "INSERT INTO tasks (worksheet_id, service_id, currency_code, price, tax_id, created_by_id, status, priority, due_date)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *"
+            "INSERT INTO tasks (worksheet_id, service_id, currency_code, quantity, price, tax_id, created_by_id, status, priority, due_date, description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *"
         )
             .bind(task.worksheet_id)
             .bind(task.service_id)
             .bind(task.currency_code.extract().get_value())
+            .bind(quantity)
             .bind(price)
             .bind(task.tax_id)
             .bind(sub)
@@ -210,6 +224,8 @@ impl TasksRepository for PoolManagerWrapper {
             .bind(task.priority.as_ref()
                 .map(|d| d.extract().get_value().as_str()))
             .bind(due_date)
+            .bind(task.description.as_ref()
+                .map(|d| d.extract().get_value().as_str()))
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?
         )
@@ -232,12 +248,14 @@ impl TasksRepository for PoolManagerWrapper {
             SET worksheet_id = $1,
                 service_id = $2,
                 currency_code = $3,
-                price = $4,
-                tax_id = $5,
-                status = $6,
-                priority = $7,
-                due_date = $8
-            WHERE id = $9
+                quantity = $4,
+                price = $5,
+                tax_id = $6,
+                status = $7,
+                priority = $8,
+                due_date = $9,
+                description = $10
+            WHERE id = $11
                 AND deleted_at IS NULL
             RETURNING *
             "#,
@@ -245,6 +263,11 @@ impl TasksRepository for PoolManagerWrapper {
         .bind(task.worksheet_id)
         .bind(task.service_id)
         .bind(task.currency_code.extract().get_value())
+        .bind(
+            task.quantity
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(
             task.price
                 .as_ref()
@@ -258,6 +281,11 @@ impl TasksRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(due_date)
+        .bind(
+            task.description
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
+        )
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

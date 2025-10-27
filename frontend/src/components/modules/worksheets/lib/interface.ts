@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import {
   type CommonResponse,
   type FormError,
@@ -30,6 +29,7 @@ export interface WorksheetUserInput {
   id: string | null
   name: string
   description: string
+  customerId: string
   projectId: string
   status: string
 }
@@ -38,6 +38,7 @@ export interface Worksheet {
   id: string,
   name: string,
   description: string | null,
+  customer_id: string,
   project_id: string,
   created_by_id: string,
   status: string,
@@ -50,6 +51,8 @@ export interface WorksheetResolved {
   id: string,
   name: string,
   description: string | null,
+  customer_id: string,
+  customer: string,
   project_id: string,
   project: string,
   created_by_id: string,

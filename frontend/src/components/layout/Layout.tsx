@@ -103,7 +103,7 @@ export function Layout({children}: { children: ReactNode }) {
     return pathname.includes(key);
   })
   if (match.length > 0) {
-     currentTitle = breadcrumbMap[match[0]];
+    currentTitle = breadcrumbMap[match[0]];
   }
   return (
     <SidebarProvider>

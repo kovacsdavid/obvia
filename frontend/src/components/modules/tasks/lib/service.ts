@@ -47,11 +47,13 @@ export async function create({
                                worksheetId,
                                serviceId,
                                currencyCode,
+                               quantity,
                                price,
                                taxId,
                                status,
                                priority,
-                               dueDate
+                               dueDate,
+                               description,
                              }: TaskUserInput, token: string | null): Promise<ProcessedResponse<CreateTaskResponse>> {
   return await fetch(`/api/tasks/create`, {
     method: "POST",
@@ -65,11 +67,13 @@ export async function create({
       worksheet_id: worksheetId,
       service_id: serviceId,
       currency_code: currencyCode,
+      quantity,
       price,
       tax_id: taxId,
       status,
       priority,
-      due_date: dueDate
+      due_date: dueDate,
+      description,
     })
   }).then(async (response: Response) => {
     return await ProcessResponse(
@@ -133,11 +137,13 @@ export async function update({
                                worksheetId,
                                serviceId,
                                currencyCode,
+                               quantity,
                                price,
                                taxId,
                                status,
                                priority,
-                               dueDate
+                               dueDate,
+                               description,
                              }: TaskUserInput, token: string | null): Promise<ProcessedResponse<UpdateTaskResponse>> {
   return await fetch(`/api/tasks/update`, {
     method: "PUT",
@@ -151,11 +157,13 @@ export async function update({
       worksheet_id: worksheetId,
       service_id: serviceId,
       currency_code: currencyCode,
+      quantity,
       price,
       tax_id: taxId,
       status,
       priority,
-      due_date: dueDate
+      due_date: dueDate,
+      description,
     }),
   }).then(async (response: Response) => {
     return await ProcessResponse(

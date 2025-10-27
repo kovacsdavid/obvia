@@ -102,8 +102,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
                                       AND movement_type = 'out'
                                     GROUP BY reference_id),
                  work_costs AS (SELECT worksheet_id,
-                                       sum(COALESCE(price, 0)) as net_work_cost,
-                                       sum(COALESCE(price, 0) * (CASE
+                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0)) as net_work_cost,
+                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0) * (CASE
                                                                      WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
                                                                      ELSE 1
                                            END))               as gross_work_cost
@@ -115,6 +115,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
                 worksheets.id as id,
                 worksheets.name as name,
                 worksheets.description as description,
+                worksheets.customer_id as customer_id,
+                customers.name as customer,
                 worksheets.project_id as project_id,
                 projects.name as project,
                 worksheets.created_by_id as created_by_id,
@@ -128,6 +130,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
                 COALESCE(wc.net_work_cost, 0)              as net_work_cost,
                 COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
             FROM worksheets
+            LEFT JOIN customers ON worksheets.customer_id = customers.id
             LEFT JOIN projects ON worksheets.project_id = projects.id
             LEFT JOIN users ON worksheets.created_by_id = users.id
             LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
@@ -183,8 +186,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
                                       AND movement_type = 'out'
                                     GROUP BY reference_id),
                  work_costs AS (SELECT worksheet_id,
-                                       sum(COALESCE(price, 0)) as net_work_cost,
-                                       sum(COALESCE(price, 0) * (CASE
+                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0)) as net_work_cost,
+                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0) * (CASE
                                                                      WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
                                                                      ELSE 1
                                            END))               as gross_work_cost
@@ -195,6 +198,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
             SELECT worksheets.id                              as id,
                    worksheets.name                            as name,
                    worksheets.description                     as description,
+                   worksheets.customer_id                     as customer_id,
+                   customers.name                             as customer,
                    worksheets.project_id                      as project_id,
                    projects.name                              as project,
                    worksheets.created_by_id                   as created_by_id,
@@ -208,6 +213,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
                    COALESCE(wc.net_work_cost, 0)              as net_work_cost,
                    COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
             FROM worksheets
+            LEFT JOIN customers ON worksheets.customer_id = customers.id
             LEFT JOIN projects ON worksheets.project_id = projects.id
             LEFT JOIN users ON worksheets.created_by_id = users.id
             LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
@@ -241,8 +247,8 @@ impl WorksheetsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
         Ok(sqlx::query_as::<_, Worksheet>(
-            "INSERT INTO worksheets (name, description, project_id, created_by_id, status)\
-             VALUES ($1, $2, $3, $4, $5) RETURNING *",
+            "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(worksheet.name.extract().get_value())
         .bind(
@@ -251,6 +257,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
                 .as_ref()
                 .map(|d| d.extract().get_value().as_str()),
         )
+        .bind(worksheet.customer_id)
         .bind(worksheet.project_id)
         .bind(sub)
         .bind(worksheet.status.extract().get_value())
@@ -271,9 +278,10 @@ impl WorksheetsRepository for PoolManagerWrapper {
             UPDATE worksheets
             SET name = $1,
                 description = $2,
-                project_id = $3,
-                status = $4
-            WHERE id = $5
+                customer_id = $3,
+                project_id = $4,
+                status = $5
+            WHERE id = $6
                 AND deleted_at IS NULL
             RETURNING *
             "#,
@@ -285,6 +293,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
                 .as_ref()
                 .map(|d| d.extract().get_value().as_str()),
         )
+        .bind(worksheet.customer_id)
         .bind(worksheet.project_id)
         .bind(worksheet.status.extract().get_value())
         .bind(id)

@@ -30,11 +30,13 @@ export interface TaskUserInput {
   worksheetId: string
   serviceId: string
   currencyCode: string
-  price: string | null
+  quantity: string
+  price: string
   taxId: string
   status: string
   priority: string | null
   dueDate: string | null
+  description: string | null,
 }
 
 export interface Task {
@@ -42,6 +44,7 @@ export interface Task {
   worksheet_id: string,
   service_id: string,
   currency_code: string,
+  quantity: string | null,
   price: string | null,
   tax_id: string,
   created_by_id: string,
@@ -51,6 +54,7 @@ export interface Task {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  description: string | null,
 }
 
 export interface TaskResolved {
@@ -60,6 +64,7 @@ export interface TaskResolved {
   service_id: string,
   service: string,
   currency_code: string,
+  quantity: string | null,
   price: string | null,
   tax_id: string,
   tax: string,
@@ -71,6 +76,7 @@ export interface TaskResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  description: string | null,
 }
 
 export type CreateTaskResponse = CommonResponse<Task, FormError>;

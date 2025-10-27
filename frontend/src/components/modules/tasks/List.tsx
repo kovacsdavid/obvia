@@ -165,7 +165,13 @@ export default function List() {
                   Szolgáltatás
                 </TableHead>
                 <TableHead>
+                  Leírás
+                </TableHead>
+                <TableHead>
                   Munkalap
+                </TableHead>
+                <TableHead>
+                  Munkaóra
                 </TableHead>
                 <TableHead>
                   Ár
@@ -227,7 +233,9 @@ export default function List() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{item.service}</TableCell>
+                  <TableCell>{item.description ?? ''}</TableCell>
                   <TableCell>{item.worksheet}</TableCell>
+                  <TableCell>{item.quantity ? item.quantity : 'N/A'}</TableCell>
                   <TableCell>{item.price ? item.price : 'N/A'}</TableCell>
                   <TableCell>{item.currency_code}</TableCell>
                   <TableCell>{item.tax}</TableCell>

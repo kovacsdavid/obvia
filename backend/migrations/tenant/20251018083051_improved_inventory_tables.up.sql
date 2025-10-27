@@ -17,23 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-DROP TABLE inventory CASCADE;
+DROP TABLE IF EXISTS inventory CASCADE;
 
 create table inventory
 (
-    id                 uuid primary key     default uuid_generate_v4(),
-    product_id         uuid        not null,
-    warehouse_id       uuid        not null,
-    quantity_on_hand   integer     not null default 0 check (quantity_on_hand >= 0),
-    quantity_reserved  integer     not null default 0 check (quantity_reserved >= 0), -- for pending orders
-    quantity_available integer generated always as (quantity_on_hand - quantity_reserved) stored,
-    minimum_stock      integer              default 0 check (minimum_stock >= 0),
-    maximum_stock      integer check (maximum_stock IS NULL OR maximum_stock > minimum_stock),
-    currency_code      varchar(3)  not null,
-    status             varchar(50) not null default 'active',
-    created_by_id      uuid        not null,
-    created_at         timestamptz not null default now(),
-    updated_at         timestamptz not null default now(),
+    id                 uuid primary key        default uuid_generate_v4(),
+    product_id         uuid           not null,
+    warehouse_id       uuid           not null,
+    quantity_on_hand   numeric(15, 2) not null default 0 check (quantity_on_hand >= 0),
+    quantity_reserved  numeric(15, 2) not null default 0 check (quantity_reserved >= 0), -- for pending orders
+    quantity_available numeric(15, 2) generated always as (quantity_on_hand - quantity_reserved) stored,
+    minimum_stock      numeric(15, 2)          default 0 check (minimum_stock >= 0),
+    maximum_stock      numeric(15, 2) check (maximum_stock IS NULL OR maximum_stock > minimum_stock),
+    currency_code      varchar(3)     not null,
+    status             varchar(50)    not null default 'active',
+    created_by_id      uuid           not null,
+    created_at         timestamptz    not null default now(),
+    updated_at         timestamptz    not null default now(),
     deleted_at         timestamptz,
     foreign key (currency_code) references currencies (code),
     foreign key (product_id) references products (id),
@@ -76,18 +76,18 @@ EXECUTE FUNCTION update_updated_at();
 
 create table inventory_movements
 (
-    id             uuid primary key     default uuid_generate_v4(),
-    inventory_id   uuid        not null,
-    movement_type  varchar(20) not null check (movement_type IN ('in', 'out', 'adjustment', 'transfer')),
-    quantity       integer     not null,        -- positive for in, negative for out
+    id             uuid primary key        default uuid_generate_v4(),
+    inventory_id   uuid           not null,
+    movement_type  varchar(20)    not null check (movement_type IN ('in', 'out', 'adjustment', 'transfer')),
+    quantity       numeric(15, 2) not null,     -- positive for in, negative for out
     reference_type varchar(50),
     reference_id   uuid,
     unit_price     numeric(15, 2) check (unit_price IS NULL OR unit_price >= 0),
     total_price    numeric(15, 2) check (total_price IS NULL OR total_price >= 0),
-    tax_id         uuid        not null,
-    movement_date  timestamptz not null default now(),
-    created_by_id  uuid        not null,
-    created_at     timestamptz not null default now(),
+    tax_id         uuid           not null,
+    movement_date  timestamptz    not null default now(),
+    created_by_id  uuid           not null,
+    created_at     timestamptz    not null default now(),
     foreign key (inventory_id) references inventory (id),
     foreign key (created_by_id) references users (id),
     foreign key (tax_id) references taxes (id), -- Add missing foreign key
@@ -119,16 +119,16 @@ CREATE INDEX idx_inventory_movements_history ON inventory_movements (inventory_i
 
 create table inventory_reservations
 (
-    id             uuid primary key     default uuid_generate_v4(),
-    inventory_id   uuid        not null,
-    quantity       integer     not null check (quantity > 0),
-    reference_type varchar(50) not null,
-    reference_id   uuid        not null,
+    id             uuid primary key        default uuid_generate_v4(),
+    inventory_id   uuid           not null,
+    quantity       numeric(15, 2) not null check (quantity > 0),
+    reference_type varchar(50)    not null,
+    reference_id   uuid           not null,
     reserved_until timestamptz,
-    status         varchar(20) not null default 'active' check (status IN ('active', 'fulfilled', 'cancelled', 'expired')),
-    created_by_id  uuid        not null,
-    created_at     timestamptz not null default now(),
-    updated_at     timestamptz not null default now(),
+    status         varchar(20)    not null default 'active' check (status IN ('active', 'fulfilled', 'cancelled', 'expired')),
+    created_by_id  uuid           not null,
+    created_at     timestamptz    not null default now(),
+    updated_at     timestamptz    not null default now(),
     foreign key (inventory_id) references inventory (id),
     foreign key (created_by_id) references users (id),
     constraint check_reservation_date check (reserved_until IS NULL OR reserved_until > created_at),
@@ -157,7 +157,7 @@ CREATE OR REPLACE FUNCTION update_inventory_quantities()
     RETURNS TRIGGER AS
 $$
 DECLARE
-    calculated_quantity integer;
+    calculated_quantity numeric(15, 2);
     target_inventory_id uuid;
 BEGIN
     -- Determine which inventory_id to use based on operation

@@ -62,6 +62,10 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
     typeof data.name === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
+    "customer_id" in data &&
+    typeof data.customer_id === "string" &&
+    "customer" in data &&
+    typeof data.customer === "string" &&
     "project_id" in data &&
     typeof data.project_id === "string" &&
     "project" in data &&
@@ -113,6 +117,8 @@ export function isWorksheet(data: unknown): data is Worksheet {
     typeof data.name === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
+    "customer_id" in data &&
+    typeof data.customer_id === "string" &&
     "project_id" in data &&
     typeof data.project_id === "string" &&
     "created_by_id" in data &&

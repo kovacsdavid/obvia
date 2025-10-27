@@ -30,9 +30,11 @@ import {useParams} from "react-router";
 import {ConditionalCard} from "@/components/ui/card.tsx";
 import {Plus} from "lucide-react";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import CustomersEdit from "@/components/modules/customers/Edit.tsx";
 import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
 import type {Project} from "@/components/modules/projects/lib/interface.ts";
 import type {Worksheet} from "./lib/interface";
+import type {Customer} from "@/components/modules/customers/lib/interface.ts";
 
 interface EditProps {
   showCard?: boolean;
@@ -42,10 +44,13 @@ interface EditProps {
 export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
+  const [customerId, setCustomerId] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
   const [status, setStatus] = React.useState("active");
+  const [customersList, setCustomersList] = React.useState<SelectOptionList>([]);
   const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
   const {errors, setErrors, unexpectedError} = useFormError();
+  const [openNewCustomerDialog, setOpenNewCustomerDialog] = React.useState(false);
   const [openNewProjectDialog, setOpenNewProjectDialog] = React.useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -58,6 +63,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       id,
       name,
       description,
+      customerId,
       projectId,
       status,
     })).then(async (response) => {
@@ -80,13 +86,14 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [description, onSuccess, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
+  }, [dispatch, id, name, description, customerId, projectId, status, onSuccess, navigate, setErrors, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
       id,
       name,
       description,
+      customerId,
       projectId,
       status,
     })).then(async (response) => {
@@ -102,16 +109,25 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
+  }, [customerId, description, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
 
   const loadLists = useCallback(async () => {
-    return dispatch(select_list("projects")).then((response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setProjectsList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
+    return Promise.all([
+      dispatch(select_list("projects")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setProjectsList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+      dispatch(select_list("customers")).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setCustomersList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      }),
+    ]);
   }, [dispatch, setErrors, setListResponse, unexpectedError]);
 
   useEffect(() => {
@@ -124,6 +140,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 const data = response.payload.jsonData.data;
                 setName(data.name);
                 setDescription(data.description ?? "");
+                setCustomerId(data.customer_id);
                 setProjectId(data.project_id);
                 setStatus(data.status ?? "");
               }
@@ -158,9 +175,24 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     })
   };
 
+  const handleEditCustomersSuccess = (customer: Customer) => {
+    loadLists().then(() => {
+      setTimeout(() => {
+        setCustomerId(customer.id);
+      }, 0);
+      setOpenNewCustomerDialog(false);
+    })
+  };
+
   return (
     <>
       <GlobalError error={errors}/>
+      <Dialog open={openNewCustomerDialog} onOpenChange={setOpenNewCustomerDialog}>
+        <DialogContent>
+          <DialogTitle>Új vevő létrehozása</DialogTitle>
+          <CustomersEdit showCard={false} onSuccess={handleEditCustomersSuccess}/>
+        </DialogContent>
+      </Dialog>
       <Dialog open={openNewProjectDialog} onOpenChange={setOpenNewProjectDialog}>
         <DialogContent>
           <DialogTitle>Új projekt létrehozása</DialogTitle>
@@ -169,7 +201,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       </Dialog>
       <ConditionalCard
         showCard={showCard}
-        title={`Feladat ${id ? "létrehozás" : "módosítás"}`}
+        title={`Munkalap ${id ? "létrehozás" : "módosítás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
@@ -189,7 +221,27 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             onChange={e => setDescription(e.target.value)}
           />
           <FieldError error={errors} field={"description"}/>
-          <Label htmlFor="project_id">Project ID</Label>
+
+          <Label htmlFor="customer_id">Vevő</Label>
+          <Select
+            value={customerId}
+            onValueChange={val => setCustomerId(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              {customersList.map(customer => {
+                return <SelectItem key={customer.value} value={customer.value}>{customer.title}</SelectItem>
+              })}
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"customer_id"}/>
+          <Button type="button" variant="outline" onClick={() => setOpenNewCustomerDialog(true)}>
+            <Plus/> Új vevő
+          </Button>
+
+          <Label htmlFor="project_id">Projekt</Label>
           <Select
             value={projectId}
             onValueChange={val => setProjectId(val)}

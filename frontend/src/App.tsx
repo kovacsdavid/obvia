@@ -75,6 +75,7 @@ interface RouteConfig {
 
 const ROUTE_CONFIGS: RouteConfig[] = [
   // Public routes
+  {path: "/", element: (): React.JSX.Element => (<Navigate to="/bejelentkezes" replace/>), isPrivate: false},
   {path: "/bejelentkezes", element: Login, isPrivate: false},
   {path: "/regisztracio", element: Register, isPrivate: false},
 

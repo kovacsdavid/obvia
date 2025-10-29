@@ -46,7 +46,7 @@ export function isInventoryMovementResolved(data: unknown): data is InventoryMov
     "movement_type" in data &&
     typeof data.movement_type === "string" &&
     "quantity" in data &&
-    typeof data.quantity === "number" &&
+    typeof data.quantity === "string" &&
     "reference_type" in data &&
     (data.reference_type === null || typeof data.reference_type === "string") &&
     "reference_id" in data &&
@@ -89,7 +89,7 @@ export function isInventoryMovement(data: unknown): data is InventoryMovement {
     "movement_type" in data &&
     typeof data.movement_type === "string" &&
     "quantity" in data &&
-    typeof data.quantity === "number" &&
+    typeof data.quantity === "string" &&
     "reference_type" in data &&
     (data.reference_type === null || typeof data.reference_type === "string") &&
     "reference_id" in data &&

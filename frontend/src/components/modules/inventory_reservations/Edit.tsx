@@ -31,10 +31,10 @@ import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import type {Inventory} from "../inventory/lib/interface";
 import {Plus} from "lucide-react";
+import {useNumberInput} from "@/hooks/use_number_input.ts";
 
 export default function Edit() {
   const [inventoryId, setInventoryId] = React.useState("");
-  const [quantity, setQuantity] = React.useState("");
   const [referenceType, setReferenceType] = React.useState<string | null>("");
   const [referenceId, setReferenceId] = React.useState<string | null>("");
   const [reservedUntil, setReservedUntil] = React.useState<string | null>(null);
@@ -49,7 +49,11 @@ export default function Edit() {
   const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
   const id = React.useMemo(() => params["id"] ?? "", [params]);
   const [openNewInventoryDialog, setOpenNewInventoryDialog] = React.useState(false);
-
+  const quantity = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
   const handleEditInventorySuccess = (inventory: Inventory) => {
     loadLists().then(() => {
       setTimeout(() => {
@@ -97,7 +101,7 @@ export default function Edit() {
               if (typeof response.payload.jsonData.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setInventoryId(data.inventory_id);
-                setQuantity(data.quantity.toString());
+                quantity.setValue(data.quantity ? data.quantity.toString() : "");
                 handleReferenceTypeChange(data.reference_type ?? "").then(() => {
                   setReferenceId(data.reference_id ?? "");
                 });
@@ -115,6 +119,9 @@ export default function Edit() {
         });
       }
     });
+    // quantity is intentionally omitted to avoid infinite loops
+    // They are only used to set initial values and don't need to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, handleReferenceTypeChange, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -122,7 +129,7 @@ export default function Edit() {
     dispatch(create({
       id: id || null,
       inventoryId,
-      quantity,
+      quantity: !isNaN(quantity.getNumericValue()) ? quantity.getNumericValue().toString() : "",
       referenceType,
       referenceId,
       reservedUntil,
@@ -182,9 +189,9 @@ export default function Edit() {
             <Label htmlFor="quantity">Mennyiség</Label>
             <Input
               id="quantity"
-              type="number"
-              value={quantity}
-              onChange={e => setQuantity(e.target.value)}
+              type="text"
+              value={quantity.displayValue}
+              onChange={e => quantity.handleInputChangeWithCursor(e.target.value, e.target)}
             />
             <FieldError error={errors} field={"quantity"}/>
 

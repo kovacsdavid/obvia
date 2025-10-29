@@ -38,7 +38,7 @@ export interface InventoryReservationUserInput {
 export interface InventoryReservation {
   id: string;
   inventory_id: string;
-  quantity: number;
+  quantity: string;
   reference_type: string | null;
   reference_id: string | null;
   reserved_until: string | null;
@@ -51,7 +51,7 @@ export interface InventoryReservation {
 export interface InventoryReservationResolved {
   id: string;
   inventory_id: string;
-  quantity: number;
+  quantity: string;
   reference_type: string | null;
   reference_id: string | null;
   reserved_until: string | null;

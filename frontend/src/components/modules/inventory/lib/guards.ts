@@ -59,15 +59,15 @@ export function isInventoryResolved(data: unknown): data is InventoryResolved {
     "warehouse" in data &&
     typeof data.warehouse === "string" &&
     "quantity_on_hand" in data &&
-    typeof data.quantity_on_hand === "number" &&
+    typeof data.quantity_on_hand === "string" &&
     "quantity_reserved" in data &&
-    typeof data.quantity_reserved === "number" &&
+    typeof data.quantity_reserved === "string" &&
     "quantity_available" in data &&
-    typeof data.quantity_available === "number" &&
+    typeof data.quantity_available === "string" &&
     "minimum_stock" in data &&
-    (data.minimum_stock === null || typeof data.minimum_stock === "number") &&
+    (data.minimum_stock === null || typeof data.minimum_stock === "string") &&
     "maximum_stock" in data &&
-    (data.maximum_stock === null || typeof data.maximum_stock === "number") &&
+    (data.maximum_stock === null || typeof data.maximum_stock === "string") &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
     "currency" in data &&
@@ -120,15 +120,15 @@ export function isInventory(data: unknown): data is Inventory {
     "warehouse_id" in data &&
     typeof data.warehouse_id === "string" &&
     "quantity_on_hand" in data &&
-    typeof data.quantity_on_hand === "number" &&
+    typeof data.quantity_on_hand === "string" &&
     "quantity_reserved" in data &&
-    typeof data.quantity_reserved === "number" &&
+    typeof data.quantity_reserved === "string" &&
     "quantity_available" in data &&
-    typeof data.quantity_available === "number" &&
+    typeof data.quantity_available === "string" &&
     "minimum_stock" in data &&
-    ((data.minimum_stock) === null || typeof data.minimum_stock === "number") &&
+    ((data.minimum_stock) === null || typeof data.minimum_stock === "string") &&
     "maximum_stock" in data &&
-    ((data.maximum_stock) === null || typeof data.maximum_stock === "number") &&
+    ((data.maximum_stock) === null || typeof data.maximum_stock === "string") &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
     "status" in data &&

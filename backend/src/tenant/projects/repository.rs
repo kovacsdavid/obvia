@@ -27,7 +27,7 @@ use crate::tenant::projects::dto::ProjectUserInput;
 use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::types::project::ProjectOrderBy;
 use async_trait::async_trait;
-use chrono::NaiveDateTime;
+use chrono::NaiveDate;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -187,14 +187,14 @@ impl ProjectsRepository for PoolManagerWrapper {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         let end_date = match project.end_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -229,14 +229,14 @@ impl ProjectsRepository for PoolManagerWrapper {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         let end_date = match project.end_date {
             None => None,
             Some(v) => Some(
-                NaiveDateTime::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };

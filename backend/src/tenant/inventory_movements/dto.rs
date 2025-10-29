@@ -26,7 +26,7 @@ use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use std::num::ParseIntError;
+use std::num::ParseFloatError;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -100,11 +100,11 @@ pub struct InventoryMovementUserInput {
 }
 
 impl InventoryMovementUserInput {
-    pub fn quantity(&self, negate: bool) -> Result<i32, ParseIntError> {
+    pub fn quantity(&self, negate: bool) -> Result<f64, ParseFloatError> {
         if negate {
-            Ok(-self.quantity.extract().get_value().parse::<i32>()?)
+            Ok(-self.quantity.extract().get_value().parse::<f64>()?)
         } else {
-            Ok(self.quantity.extract().get_value().parse::<i32>()?)
+            Ok(self.quantity.extract().get_value().parse::<f64>()?)
         }
     }
 }

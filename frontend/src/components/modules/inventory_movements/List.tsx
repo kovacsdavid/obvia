@@ -183,7 +183,7 @@ export default function InventoryMovementsList() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{resolveMovementType(item.movement_type)}</TableCell>
-                  <TableCell>{Math.abs(item.quantity)}</TableCell>
+                  <TableCell>{Math.abs(parseFloat(item.quantity))}</TableCell>
                   <TableCell>{item.unit_price ?? 'N/A'}</TableCell>
                   <TableCell>{item.total_price ?? 'N/A'}</TableCell>
                   <TableCell>{item.tax ?? 'N/A'}</TableCell>

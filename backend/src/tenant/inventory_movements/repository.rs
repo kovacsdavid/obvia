@@ -205,8 +205,8 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
             r#"
             INSERT INTO inventory_movements (
                 inventory_id, movement_type, quantity, reference_type, reference_id, unit_price,
-                total_price, tax_id, created_by_id
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                tax_id, created_by_id
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING *
             "#,
         )
@@ -221,7 +221,6 @@ impl InventoryMovementsRepository for PoolManagerWrapper {
         )
         .bind(input.reference_id)
         .bind(unit_price)
-        .bind(total_price)
         .bind(input.tax_id)
         .bind(sub)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)

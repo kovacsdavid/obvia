@@ -41,7 +41,7 @@ export interface InventoryMovement {
   id: string;
   inventory_id: string;
   movement_type: string;
-  quantity: number;
+  quantity: string;
   reference_type: string | null;
   reference_id: string | null;
   unit_price: string | null; // BigDecimal serialized as string
@@ -56,7 +56,7 @@ export interface InventoryMovementResolved {
   id: string;
   inventory_id: string;
   movement_type: string;
-  quantity: number;
+  quantity: string;
   reference_type: string | null;
   reference_id: string | null;
   unit_price: string | null; // BigDecimal serialized as string

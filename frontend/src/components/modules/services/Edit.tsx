@@ -33,6 +33,7 @@ import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
 import {Plus} from "lucide-react";
 import type {Tax} from "../taxes/lib/interface";
+import {useNumberInput} from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
@@ -42,7 +43,6 @@ interface EditProps {
 export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [defaultPrice, setDefaultPrice] = React.useState("");
   const [defaultTaxId, setDefaultTaxId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("");
   const [status, setStatus] = React.useState("");
@@ -55,7 +55,11 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
-
+  const defaultPrice = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
   const handleEditTaxesSuccess = async (tax: Tax) => {
     return loadLists().then(() => {
       setTimeout(() => {
@@ -70,7 +74,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       id,
       name,
       description,
-      defaultPrice,
+      defaultPrice: !isNaN(defaultPrice.getNumericValue()) ? defaultPrice.getNumericValue().toString() : "",
       defaultTaxId,
       currencyCode,
       status,
@@ -101,7 +105,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       id,
       name,
       description,
-      defaultPrice,
+      defaultPrice: !isNaN(defaultPrice.getNumericValue()) ? defaultPrice.getNumericValue().toString() : "",
       defaultTaxId,
       currencyCode,
       status,
@@ -154,7 +158,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 const data = response.payload.jsonData.data;
                 setName(data.name);
                 setDescription(data.description ?? "");
-                setDefaultPrice(data.default_price ?? "");
+                defaultPrice.setValue(data.default_price ?? "");
                 setDefaultTaxId(data.default_tax_id ?? "");
                 setCurrencyCode(data.currency_code ?? "");
                 setStatus(data.status);
@@ -170,6 +174,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         });
       }
     });
+    // defaultPrice is intentionally omitted to avoid infinite loops
+    // They are only used to set initial values and don't need to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, id, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,8 +225,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Input
             id="default_price"
             type="text"
-            value={defaultPrice}
-            onChange={e => setDefaultPrice(e.target.value)}
+            value={defaultPrice.displayValue}
+            onChange={e => defaultPrice.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"default_price"}/>
 

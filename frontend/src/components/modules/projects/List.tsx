@@ -29,7 +29,7 @@ import {Paginator} from "@/components/ui/pagination.tsx";
 import {deleteItem, list} from "@/components/modules/projects/lib/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type ProjectResolvedList} from "@/components/modules/projects/lib/interface.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMD, formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -219,8 +219,8 @@ export default function List() {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.description ? item.description : ''}</TableCell>
                   <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.start_date ? formatDateToYMDHMS(item.start_date) : 'N/A'}</TableCell>
-                  <TableCell>{item.end_date ? formatDateToYMDHMS(item.end_date) : 'N/A'}</TableCell>
+                  <TableCell>{item.start_date ? formatDateToYMD(item.start_date) : 'N/A'}</TableCell>
+                  <TableCell>{item.end_date ? formatDateToYMD(item.end_date) : 'N/A'}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

@@ -161,7 +161,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Label htmlFor="start_date">Kezdődátum</Label>
           <Input
             id="start_date"
-            type="text"
+            type="date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
           />
@@ -169,7 +169,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Label htmlFor="end_date">Határidő</Label>
           <Input
             id="end_date"
-            type="text"
+            type="date"
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
           />

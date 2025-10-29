@@ -32,7 +32,8 @@ impl ValueObjectable for DueDate {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
-            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d").map_err(|e| e.to_string())?;
+            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d")
+                .map_err(|_| String::from("Hibás dátum formátum! (2006-01-02)"))?;
             Ok(())
         }
     }

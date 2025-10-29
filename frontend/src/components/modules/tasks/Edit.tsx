@@ -38,6 +38,7 @@ import type {Worksheet} from "../worksheets/lib/interface";
 import type {Service} from "../services/lib/interface";
 import type {Tax} from "../taxes/lib/interface";
 import {Plus} from "lucide-react";
+import {useNumberInput} from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
@@ -48,8 +49,6 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [worksheetId, setWorksheetId] = React.useState("");
   const [serviceId, setServiceId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("HUF");
-  const [quantity, setQuantity] = React.useState("");
-  const [price, setPrice] = React.useState("");
   const [taxId, setTaxId] = React.useState("");
   const [status, setStatus] = React.useState("active");
   const [priority, setPriority] = React.useState<string | null>("normal");
@@ -68,7 +67,16 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [openNewWorksheetDialog, setOpenNewWorksheetDialog] = React.useState(false);
   const [openNewServiceDialog, setOpenNewServiceDialog] = React.useState(false);
   const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
-
+  const quantity = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
+  const price = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
   const handleEditWorksheetsSuccess = (worksheet: Worksheet) => {
     loadLists().then(() => {
       setTimeout(() => {
@@ -102,8 +110,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     worksheetId,
     serviceId,
     currencyCode,
-    quantity,
-    price,
+    quantity: !isNaN(quantity.getNumericValue()) ? quantity.getNumericValue().toString() : "",
+    price: !isNaN(price.getNumericValue()) ? price.getNumericValue().toString() : "",
     taxId,
     status,
     priority,
@@ -194,7 +202,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setWorksheetId(data.worksheet_id);
                 setServiceId(data.service_id);
                 setCurrencyCode(data.currency_code);
-                setPrice(data.price ?? "");
+                quantity.setValue(data.quantity ? data.quantity.toString() : "");
+                price.setValue(data.price ? data.price.toString() : "");
                 setTaxId(data.tax_id);
                 setStatus(data.status);
                 setPriority(data.priority);
@@ -211,6 +220,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         });
       }
     });
+    // quantity and price are intentionally omitted to avoid infinite loops
+    // They are only used to set initial values and don't need to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -310,17 +322,17 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Input
             id="quantity"
             type="text"
-            value={quantity ?? ""}
-            onChange={e => setQuantity(e.target.value)}
+            value={quantity.displayValue}
+            onChange={e => quantity.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"quantity"}/>
 
-          <Label htmlFor="price">Ár</Label>
+          <Label htmlFor="price">Egységár (nettó)</Label>
           <Input
             id="price"
             type="text"
-            value={price ?? ""}
-            onChange={e => setPrice(e.target.value)}
+            value={price.displayValue}
+            onChange={e => price.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"price"}/>
 

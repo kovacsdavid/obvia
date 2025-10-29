@@ -75,3 +75,130 @@ export function formatDateToYMDHMS(dateString: string): string {
     return '';
   }
 }
+
+export function formatDateToYMD(dateString: string): string {
+  try {
+    const date = new Date(dateString);
+
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.log(error)
+    return '';
+  }
+}
+
+/**
+ * Formats a number with thousand separators and decimal formatting
+ * @param value - The number or string to format
+ * @param options - Formatting options
+ * @returns Formatted string with number conventions
+ */
+export function formatNumber(
+  value: string | number,
+  options: {
+    showThousandSeparator?: boolean;
+    decimalPlaces?: number;
+    allowEmpty?: boolean;
+    preserveIncomplete?: boolean; // New option to preserve incomplete inputs
+  } = {}
+): string {
+  const {
+    showThousandSeparator = true,
+    decimalPlaces,
+    allowEmpty = true,
+    preserveIncomplete = false
+  } = options;
+
+  // Handle empty values
+  if (value === "" || value == null) {
+    return allowEmpty ? "" : "0";
+  }
+
+  // Convert to string and clean up
+  const stringValue = value.toString().trim();
+
+  if (stringValue === "") {
+    return allowEmpty ? "" : "0";
+  }
+
+  // If preserveIncomplete is true and value ends with decimal separator, don't format
+  if (preserveIncomplete && (stringValue.endsWith(',') || stringValue.endsWith('.'))) {
+    return stringValue.replace(/\./g, ',');
+  }
+
+  // Remove existing separators and normalize decimal separator
+  const cleanValue = stringValue
+    .replace(/\s/g, '') // Remove spaces (thousand separators)
+    .replace(/,/g, '.'); // Convert comma to dot for parsing
+
+  // Parse as number
+  const numericValue = parseFloat(cleanValue);
+
+  if (isNaN(numericValue)) {
+    return stringValue; // Return original if not a valid number
+  }
+
+  // Format the number
+  let formatted = decimalPlaces !== undefined
+    ? numericValue.toFixed(decimalPlaces)
+    : numericValue.toString();
+
+  if (showThousandSeparator) {
+    // Split integer and decimal parts
+    const [integerPart, decimalPart] = formatted.split('.');
+
+    // Add thousand separators (spaces) to integer part
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+    // Combine with decimal part using comma as decimal separator
+    formatted = decimalPart
+      ? `${formattedInteger},${decimalPart}`
+      : formattedInteger;
+  } else {
+    // Just replace dot with comma for decimal separator
+    formatted = formatted.replace('.', ',');
+  }
+
+  return formatted;
+}
+
+/**
+ * Parses a formatted number string to a standard number
+ * @param value - The formatted string
+ * @returns Parsed number or NaN if invalid
+ */
+export function parseNumber(value: string): number {
+  if (!value || value.trim() === "") {
+    return NaN;
+  }
+
+  // Remove spaces (thousand separators) and convert comma to dot
+  const normalized = value
+    .replace(/\s/g, '')
+    .replace(/,/g, '.');
+
+  return parseFloat(normalized);
+}
+
+/**
+ * Validates if a string is a valid number format
+ * @param value - The string to validate
+ * @returns True if valid  number format
+ */
+export function isValidNumber(value: string): boolean {
+  if (!value || value.trim() === "") {
+    return true; // Allow empty values
+  }
+
+  // Number pattern: optional minus, digits with spaces as thousand separators, optional comma and decimals
+  const numberPattern = /^-?(\d{1,3}(\s\d{3})*|\d+)(,\d+)?$/;
+  return numberPattern.test(value.trim());
+}

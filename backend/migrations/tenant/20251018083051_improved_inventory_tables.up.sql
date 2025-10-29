@@ -83,7 +83,11 @@ create table inventory_movements
     reference_type varchar(50),
     reference_id   uuid,
     unit_price     numeric(15, 2) check (unit_price IS NULL OR unit_price >= 0),
-    total_price    numeric(15, 2) check (total_price IS NULL OR total_price >= 0),
+    total_price    numeric(15, 2) GENERATED ALWAYS AS (
+        CASE
+            WHEN unit_price IS NOT NULL THEN unit_price * ABS(quantity)
+            END
+        ) STORED,
     tax_id         uuid           not null,
     movement_date  timestamptz    not null default now(),
     created_by_id  uuid           not null,
@@ -100,10 +104,6 @@ create table inventory_movements
     constraint check_reference_consistency check (
         (reference_type IS NULL AND reference_id IS NULL) OR
         (reference_type IS NOT NULL AND reference_id IS NOT NULL)
-        ),
-    constraint check_price_consistency check (
-        (unit_price IS NULL AND total_price IS NULL) OR
-        (unit_price IS NOT NULL AND total_price IS NOT NULL AND total_price = unit_price * ABS(quantity))
         )
 );
 

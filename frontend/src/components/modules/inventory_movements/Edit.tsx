@@ -28,6 +28,8 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {type SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useSelectList} from "@/hooks/use_select_list.ts";
 import type {InventoryMovement} from "./lib/interface";
+import {useNumberInput} from "@/hooks/use_number_input.ts";
+import {formatNumber, parseNumber} from "@/lib/utils.ts";
 
 interface EditProps {
   showCard?: boolean;
@@ -37,10 +39,8 @@ interface EditProps {
 export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [inventoryId, setInventoryId] = React.useState("");
   const [movementType, setMovementType] = React.useState("");
-  const [quantity, setQuantity] = React.useState("");
   const [referenceType, setReferenceType] = React.useState<string>("");
   const [referenceId, setReferenceId] = React.useState<string>("");
-  const [unitPrice, setUnitPrice] = React.useState<string>("");
   const [taxId, setTaxId] = React.useState("");
   const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
   const [referenceIdList, setReferenceIdList] = React.useState<SelectOptionList>([])
@@ -52,12 +52,21 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const {errors, setErrors, unexpectedError} = useFormError();
   const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
   const id = React.useMemo(() => params["id"] ?? "", [params]);
+  const quantity = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
+  const unitPrice = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 2,
+    allowEmpty: true,
+  });
   const totalPrice = React.useMemo(() => {
-    const tpQuantity = parseFloat(quantity);
-    const tpUnitPrice = parseFloat(unitPrice ?? "");
-
+    const tpQuantity = quantity.getNumericValue();
+    const tpUnitPrice = unitPrice.getNumericValue();
     if (!isNaN(tpQuantity) && !isNaN(tpUnitPrice)) {
-      return (Math.abs(tpQuantity) * tpUnitPrice).toString();
+      return formatNumber((Math.abs(tpQuantity) * tpUnitPrice));
     }
     return null;
   }, [quantity, unitPrice]);
@@ -107,11 +116,11 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 const data = response.payload.jsonData.data;
                 setInventoryId(data.inventory_id);
                 setMovementType(data.movement_type);
-                setQuantity(data.quantity ? data.quantity.toString() : "");
+                quantity.setValue(data.quantity ? data.quantity.toString() : "");
                 handleReferenceTypeChange(data.reference_type ?? "").then(() => {
                   setReferenceId(data.reference_id ?? "");
                 });
-                setUnitPrice(data.unit_price ?? "");
+                unitPrice.setValue(data.unit_price ?? "");
                 setTaxId(data.tax_id);
               }
             } else if (typeof response.payload.jsonData?.error !== "undefined") {
@@ -125,6 +134,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         });
       }
     });
+    // quantity is intentionally omitted to avoid infinite loops
+    // They are only used to set initial values and don't need to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, handleReferenceTypeChange, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -133,11 +145,11 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       id: null,
       inventoryId,
       movementType,
-      quantity,
+      quantity: !isNaN(quantity.getNumericValue()) ? quantity.getNumericValue().toString() : "",
       referenceType,
       referenceId,
-      unitPrice,
-      totalPrice,
+      unitPrice: !isNaN(unitPrice.getNumericValue()) ? unitPrice.getNumericValue().toString() : "",
+      totalPrice: typeof totalPrice === "string" ? parseNumber(totalPrice).toString() : "",
       taxId,
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
@@ -218,25 +230,25 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Label htmlFor="quantity">Mennyiség</Label>
           <Input
             id="quantity"
-            type="number"
-            value={quantity}
-            onChange={e => setQuantity(e.target.value)}
+            type="text"
+            value={quantity.displayValue}
+            onChange={e => quantity.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"quantity"}/>
 
           <Label htmlFor="unitPrice">Egységár (nettó)</Label>
           <Input
             id="unitPrice"
-            type="number"
-            value={unitPrice ?? ""}
-            onChange={e => setUnitPrice(e.target.value)}
+            type="text"
+            value={unitPrice.displayValue}
+            onChange={e => unitPrice.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"unit_price"}/>
 
           <Label htmlFor="totalPrice">Összesen (nettó)</Label>
           <Input
             id="totalPrice"
-            type="number"
+            type="text"
             value={totalPrice ?? ""}
             disabled={true}
           />

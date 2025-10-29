@@ -35,6 +35,7 @@ import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import {Plus} from "lucide-react";
+import {useNumberInput} from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
@@ -44,8 +45,6 @@ interface EditProps {
 export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
-  const [minimumStock, setMinimumStock] = React.useState("");
-  const [maximumStock, setMaximumStock] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
@@ -59,6 +58,18 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
   const [openNewWarehouseDialog, setOpenNewWarehouseDialog] = React.useState(false);
+
+  const minimumStockInput = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 0,
+    allowEmpty: true,
+  });
+
+  const maximumStockInput = useNumberInput({
+    showThousandSeparator: true,
+    decimalPlaces: 0,
+    allowEmpty: true,
+  });
 
   const handleEditProductsSuccess = async (product: Product) => {
     return loadLists().then(() => {
@@ -83,8 +94,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       id,
       productId,
       warehouseId,
-      minimumStock,
-      maximumStock,
+      minimumStock: !isNaN(minimumStockInput.getNumericValue()) ? minimumStockInput.getNumericValue().toString() : "",
+      maximumStock: !isNaN(maximumStockInput.getNumericValue()) ? maximumStockInput.getNumericValue().toString() : "",
       currencyCode,
       status,
     })).then(async (response) => {
@@ -107,15 +118,15 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [dispatch, id, productId, warehouseId, minimumStock, maximumStock, currencyCode, status, onSuccess, navigate, setErrors, unexpectedError]);
+  }, [minimumStockInput, dispatch, id, productId, warehouseId, maximumStockInput, currencyCode, status, onSuccess, navigate, setErrors, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
       id,
       productId,
       warehouseId,
-      minimumStock,
-      maximumStock,
+      minimumStock: !isNaN(minimumStockInput.getNumericValue()) ? minimumStockInput.getNumericValue().toString() : "",
+      maximumStock: !isNaN(maximumStockInput.getNumericValue()) ? maximumStockInput.getNumericValue().toString() : "",
       currencyCode,
       status,
     })).then(async (response) => {
@@ -131,7 +142,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [currencyCode, dispatch, id, navigate, productId, minimumStock, maximumStock, setErrors, unexpectedError, warehouseId, status]);
+  }, [dispatch, id, productId, warehouseId, minimumStockInput, maximumStockInput, currencyCode, status, navigate, setErrors, unexpectedError]);
 
   const loadLists = useCallback(async () => {
     return Promise.all([
@@ -169,8 +180,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 const data = response.payload.jsonData.data;
                 setProductId(data.product_id);
                 setWarehouseId(data.warehouse_id);
-                setMinimumStock(data.minimum_stock ? data.minimum_stock.toString() : "");
-                setMaximumStock(data.maximum_stock ? data.maximum_stock.toString() : "");
+                minimumStockInput.setValue(data.minimum_stock ? data.minimum_stock.toString() : "");
+                maximumStockInput.setValue(data.maximum_stock ? data.maximum_stock.toString() : "");
                 setCurrencyCode(data.currency_code);
                 setStatus(data.status);
               }
@@ -185,6 +196,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         });
       }
     });
+    // minimumStockInput and maximumStockInput are intentionally omitted to avoid infinite loops
+    // They are only used to set initial values and don't need to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, id, setErrors, unexpectedError, loadLists]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -258,17 +272,17 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           <Label htmlFor="minimum_stock">Minimum készlet</Label>
           <Input
             id="minimum_stock"
-            type="number"
-            value={minimumStock}
-            onChange={e => setMinimumStock(e.target.value)}
+            type="text"
+            value={minimumStockInput.displayValue}
+            onChange={e => minimumStockInput.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"minimum_stock"}/>
           <Label htmlFor="maximum_stock">Maximum készlet</Label>
           <Input
             id="maximum_stock"
             type="text"
-            value={maximumStock}
-            onChange={e => setMaximumStock(e.target.value)}
+            value={maximumStockInput.displayValue}
+            onChange={e => maximumStockInput.handleInputChangeWithCursor(e.target.value, e.target)}
           />
           <FieldError error={errors} field={"maximum_stock"}/>
           <Label htmlFor="currency_code">Pénznem</Label>

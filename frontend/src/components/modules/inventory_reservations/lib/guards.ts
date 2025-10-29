@@ -44,7 +44,7 @@ export function isInventoryReservationResolved(data: unknown): data is Inventory
     "inventory_id" in data &&
     typeof data.inventory_id === "string" &&
     "quantity" in data &&
-    typeof data.quantity === "number" &&
+    typeof data.quantity === "string" &&
     "reference_type" in data &&
     (data.reference_type === null || typeof data.reference_type === "string") &&
     "reference_id" in data &&
@@ -81,7 +81,7 @@ export function isInventoryReservation(data: unknown): data is InventoryReservat
     "inventory_id" in data &&
     typeof data.inventory_id === "string" &&
     "quantity" in data &&
-    typeof data.quantity === "number" &&
+    typeof data.quantity === "string" &&
     "reference_type" in data &&
     (data.reference_type === null || typeof data.reference_type === "string") &&
     "reference_id" in data &&

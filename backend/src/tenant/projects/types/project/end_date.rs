@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::{ValueObject, ValueObjectable};
-use chrono::NaiveDateTime;
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -32,8 +32,8 @@ impl ValueObjectable for EndDate {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
-            NaiveDateTime::parse_from_str(self.0.trim(), "%Y-%m-%d %H:%M:%S")
-                .map_err(|_| String::from("Hibás dátum formátum! (2006-01-02 15:04:05)"))?;
+            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d")
+                .map_err(|_| String::from("Hibás dátum formátum! (2006-01-02)"))?;
             Ok(())
         }
     }
@@ -100,56 +100,85 @@ mod tests {
     use serde_json;
 
     #[test]
-    fn test_valid_end_date_format() {
-        let date: ValueObject<EndDate> = serde_json::from_str(r#""2025-01-01 12:00:00""#).unwrap();
-        assert_eq!(date.extract().get_value(), "2025-01-01 12:00:00");
+    fn test_valid_end_date() {
+        let end_date: ValueObject<EndDate> = serde_json::from_str(r#""2024-01-01""#).unwrap();
+        assert_eq!(end_date.extract().get_value(), "2024-01-01");
     }
 
     #[test]
-    fn test_valid_empty_end_date() {
-        let date: ValueObject<EndDate> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(date.extract().get_value(), "");
+    fn test_empty_end_date() {
+        let end_date: ValueObject<EndDate> = serde_json::from_str(r#""""#).unwrap();
+        assert_eq!(end_date.extract().get_value(), "");
     }
 
     #[test]
     fn test_invalid_date_format() {
-        let cases = vec![
-            r#""2025/01/01 12:00:00""#,
-            r#""2025-13-01 12:00:00""#,
-            r#""2025-01-32 12:00:00""#,
-            r#""2025-01-01 25:00:00""#,
-            r#""2025-01-01 12:61:00""#,
-            r#""2025-01-01""#,
-            r#""not a date""#,
-        ];
-
-        for case in cases {
-            let date: Result<ValueObject<EndDate>, _> = serde_json::from_str(case);
-            assert!(date.is_err(), "Should fail for input: {}", case);
-        }
+        let end_date: Result<ValueObject<EndDate>, _> = serde_json::from_str(r#""2024/01/01""#);
+        assert!(end_date.is_err());
     }
 
     #[test]
-    fn test_date_display() {
-        let date = EndDate("2025-01-01 12:00:00".to_string());
-        assert_eq!(format!("{}", date), "2025-01-01 12:00:00");
+    fn test_invalid_date() {
+        let end_date: Result<ValueObject<EndDate>, _> = serde_json::from_str(r#""2024-13-45""#);
+        assert!(end_date.is_err());
     }
 
     #[test]
-    fn test_date_value_access() {
-        let date = EndDate("2025-01-01 12:00:00".to_string());
-        assert_eq!(date.get_value(), "2025-01-01 12:00:00");
+    fn test_end_date_display() {
+        let end_date = EndDate("2024-01-01".to_string());
+        assert_eq!(format!("{}", end_date), "2024-01-01");
     }
 
     #[test]
-    fn test_date_validation() {
-        let valid_date = EndDate("2025-01-01 12:00:00".to_string());
-        assert!(valid_date.validate().is_ok());
+    fn test_end_date_clone() {
+        let end_date = EndDate("2024-01-01".to_string());
+        let cloned = end_date.clone();
+        assert_eq!(end_date, cloned);
+    }
 
+    #[test]
+    fn test_end_date_debug() {
+        let end_date = EndDate("2024-01-01".to_string());
+        assert_eq!(format!("{:?}", end_date), r#"EndDate("2024-01-01")"#);
+    }
+
+    #[test]
+    fn test_end_date_partial_eq() {
+        let date1 = EndDate("2024-01-01".to_string());
+        let date2 = EndDate("2024-01-01".to_string());
+        let date3 = EndDate("2024-02-01".to_string());
+
+        assert_eq!(date1, date2);
+        assert_ne!(date1, date3);
+    }
+
+    #[test]
+    fn test_end_date_validation() {
+        let valid_date = EndDate("2024-01-01".to_string());
         let empty_date = EndDate("".to_string());
-        assert!(empty_date.validate().is_ok());
+        let invalid_date = EndDate("2024-13-45".to_string());
 
-        let invalid_date = EndDate("invalid date".to_string());
+        assert!(valid_date.validate().is_ok());
+        assert!(empty_date.validate().is_ok());
         assert!(invalid_date.validate().is_err());
+    }
+
+    #[test]
+    fn test_end_date_get_value() {
+        let end_date = EndDate("2024-01-01".to_string());
+        assert_eq!(end_date.get_value(), "2024-01-01");
+    }
+
+    #[test]
+    fn test_end_date_serialization() {
+        let end_date = ValueObject::new(EndDate("2024-01-01".to_string())).unwrap();
+        let serialized = serde_json::to_string(&end_date).unwrap();
+        assert_eq!(serialized, r#""2024-01-01""#);
+    }
+
+    #[test]
+    fn test_end_date_deserialization() {
+        let end_date: ValueObject<EndDate> = serde_json::from_str(r#""2024-01-01""#).unwrap();
+        assert_eq!(end_date.extract().get_value(), "2024-01-01");
     }
 }

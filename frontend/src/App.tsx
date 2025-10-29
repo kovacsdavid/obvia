@@ -31,6 +31,12 @@ import CustomerView from "@/components/modules/customers/View.tsx";
 import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import InventoryList from "@/components/modules/inventory/List.tsx";
 import InventoryView from "@/components/modules/inventory/View.tsx";
+import InventoryMovementsEdit from "@/components/modules/inventory_movements/Edit.tsx";
+import InventoryMovementsList from "@/components/modules/inventory_movements/List.tsx";
+import InventoryMovementsView from "@/components/modules/inventory_movements/View.tsx";
+import InventoryReservationsEdit from "@/components/modules/inventory_reservations/Edit.tsx";
+import InventoryReservationsList from "@/components/modules/inventory_reservations/List.tsx";
+import InventoryReservationsView from "@/components/modules/inventory_reservations/View.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import ProductsList from "@/components/modules/products/List.tsx";
 import ProductsView from "@/components/modules/products/View.tsx";
@@ -69,6 +75,7 @@ interface RouteConfig {
 
 const ROUTE_CONFIGS: RouteConfig[] = [
   // Public routes
+  {path: "/", element: (): React.JSX.Element => (<Navigate to="/bejelentkezes" replace/>), isPrivate: false},
   {path: "/bejelentkezes", element: Login, isPrivate: false},
   {path: "/regisztracio", element: Register, isPrivate: false},
 
@@ -76,72 +83,86 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/vezerlopult", element: Dashboard, isPrivate: true},
 
   // Tenants
-  {path: "/adatbazis/szerkesztes", element: TenantsEdit, isPrivate: true},
+  {path: "/adatbazis/letrehozas", element: TenantsEdit, isPrivate: true},
   {path: "/adatbazis/lista", element: TenantsList, isPrivate: true},
   {path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true},
 
   // Customers
-  {path: "/vevo/szerkesztes", element: CustomerEdit, isPrivate: true},
-  {path: "/vevo/szerkesztes/:id", element: CustomerEdit, isPrivate: true},
+  {path: "/vevo/letrehozas", element: CustomerEdit, isPrivate: true},
+  {path: "/vevo/modositas/:id", element: CustomerEdit, isPrivate: true},
   {path: "/vevo/lista", element: CustomerList, isPrivate: true},
   {path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true},
 
   // Inventory
-  {path: "/leltar/szerkesztes", element: InventoryEdit, isPrivate: true},
-  {path: "/leltar/szerkesztes/:id", element: InventoryEdit, isPrivate: true},
+  {path: "/leltar/letrehozas", element: InventoryEdit, isPrivate: true},
+  {path: "/leltar/modositas/:id", element: InventoryEdit, isPrivate: true},
   {path: "/leltar/lista", element: InventoryList, isPrivate: true},
   {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
 
+  // InventoryMovements
+  {path: "/leltar-mozgas/letrehozas", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/letrehozas/:inventoryId", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/modositas/:id", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/leltar-mozgas/lista", element: InventoryMovementsList, isPrivate: true},
+  {path: "/leltar-mozgas/reszletek/:id", element: InventoryMovementsView, isPrivate: true},
+
+  // InventoryReservations
+  {path: "/leltar-foglalas/letrehozas", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/letrehozas/:inventoryId", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/modositas/:id", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/leltar-foglalas/lista", element: InventoryReservationsList, isPrivate: true},
+  {path: "/leltar-foglalas/reszletek/:id", element: InventoryReservationsView, isPrivate: true},
+
   // Products
-  {path: "/termek/szerkesztes", element: ProductsEdit, isPrivate: true},
-  {path: "/termek/szerkesztes/:id", element: ProductsEdit, isPrivate: true},
+  {path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true},
+  {path: "/termek/modositas/:id", element: ProductsEdit, isPrivate: true},
   {path: "/termek/lista", element: ProductsList, isPrivate: true},
   {path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true},
 
   // Projects
-  {path: "/projekt/szerkesztes", element: ProjectsEdit, isPrivate: true},
-  {path: "/projekt/szerkesztes/:id", element: ProjectsEdit, isPrivate: true},
+  {path: "/projekt/letrehozas", element: ProjectsEdit, isPrivate: true},
+  {path: "/projekt/modositas/:id", element: ProjectsEdit, isPrivate: true},
   {path: "/projekt/lista", element: ProjectsList, isPrivate: true},
   {path: "/projekt/reszletek/:id", element: ProjectsView, isPrivate: true},
 
   // Tags
-  {path: "/cimke/szerkesztes", element: TagsEdit, isPrivate: true},
-  {path: "/cimke/szerkesztes/:id", element: TagsEdit, isPrivate: true},
+  {path: "/cimke/letrehozas", element: TagsEdit, isPrivate: true},
+  {path: "/cimke/modositas/:id", element: TagsEdit, isPrivate: true},
   {path: "/cimke/lista", element: TagsList, isPrivate: true},
   {path: "/cimke/reszletek/:id", element: TagsView, isPrivate: true},
 
   // Tasks
-  {path: "/feladat/szerkesztes", element: TasksEdit, isPrivate: true},
-  {path: "/feladat/szerkesztes/:id", element: TasksEdit, isPrivate: true},
+  {path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true},
+  {path: "/feladat/modositas/:id", element: TasksEdit, isPrivate: true},
   {path: "/feladat/lista", element: TasksList, isPrivate: true},
   {path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true},
 
   // Users
-  // {path: "/felhasznalo/szerkesztes", element: UsersEdit, isPrivate: true},
-  // {path: "/felhasznalo/szerkesztes/:id", element: UsersEdit, isPrivate: true},
+  // {path: "/felhasznalo/modositas", element: UsersEdit, isPrivate: true},
+  // {path: "/felhasznalo/modositas/:id", element: UsersEdit, isPrivate: true},
   // {path: "/felhasznalo/lista", element: UsersList, isPrivate: true},
 
   // Warehouses
-  {path: "/raktar/szerkesztes", element: WarehousesEdit, isPrivate: true},
-  {path: "/raktar/szerkesztes/:id", element: WarehousesEdit, isPrivate: true},
+  {path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true},
+  {path: "/raktar/modositas/:id", element: WarehousesEdit, isPrivate: true},
   {path: "/raktar/lista", element: WarehousesList, isPrivate: true},
   {path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true},
 
   // Worksheets
-  {path: "/munkalap/szerkesztes", element: WorksheetsEdit, isPrivate: true},
-  {path: "/munkalap/szerkesztes/:id", element: WorksheetsEdit, isPrivate: true},
+  {path: "/munkalap/letrehozas", element: WorksheetsEdit, isPrivate: true},
+  {path: "/munkalap/modositas/:id", element: WorksheetsEdit, isPrivate: true},
   {path: "/munkalap/lista", element: WorksheetsList, isPrivate: true},
   {path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true},
 
   // Taxes
-  {path: "/ado/szerkesztes", element: TaxesEdit, isPrivate: true},
-  {path: "/ado/szerkesztes/:id", element: TaxesEdit, isPrivate: true},
+  {path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true},
+  {path: "/ado/modositas/:id", element: TaxesEdit, isPrivate: true},
   {path: "/ado/lista", element: TaxesList, isPrivate: true},
   {path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true},
 
   // Services
-  {path: "/szolgaltatas/szerkesztes", element: ServicesEdit, isPrivate: true},
-  {path: "/szolgaltatas/szerkesztes/:id", element: ServicesEdit, isPrivate: true},
+  {path: "/szolgaltatas/letrehozas", element: ServicesEdit, isPrivate: true},
+  {path: "/szolgaltatas/modositas/:id", element: ServicesEdit, isPrivate: true},
   {path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true},
   {path: "/szolgaltatas/reszletek/:id", element: ServicesView, isPrivate: true},
 ];

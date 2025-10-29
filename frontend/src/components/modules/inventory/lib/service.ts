@@ -46,10 +46,10 @@ export async function create({
                                id,
                                productId,
                                warehouseId,
-                               quantity,
-                               price,
-                               taxId,
+                               minimumStock,
+                               maximumStock,
                                currencyCode,
+                               status,
                              }: InventoryUserInput, token: string | null): Promise<ProcessedResponse<CreateInventoryResponse>> {
   return await fetch(`/api/inventory/create`, {
     method: "POST",
@@ -62,10 +62,10 @@ export async function create({
       id,
       product_id: productId,
       warehouse_id: warehouseId,
-      quantity,
-      price,
-      tax_id: taxId,
+      minimum_stock: minimumStock,
+      maximum_stock: maximumStock,
       currency_code: currencyCode,
+      status,
     })
   }).then(async (response: Response) => {
     return await ProcessResponse(
@@ -111,7 +111,7 @@ export async function select_list(
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryResolvedResponse>> {
-  return await fetch(`/api/inventory/get?uuid=${uuid}`, {
+  return await fetch(`/api/inventory/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -130,10 +130,10 @@ export async function update({
                                id,
                                productId,
                                warehouseId,
-                               quantity,
-                               price,
-                               taxId,
+                               minimumStock,
+                               maximumStock,
                                currencyCode,
+                               status,
                              }: InventoryUserInput, token: string | null): Promise<ProcessedResponse<UpdateInventoryResponse>> {
   return await fetch(`/api/inventory/update`, {
     method: "PUT",
@@ -146,10 +146,10 @@ export async function update({
       id,
       product_id: productId,
       warehouse_id: warehouseId,
-      quantity,
-      price,
-      tax_id: taxId,
+      minimum_stock: minimumStock,
+      maximum_stock: maximumStock,
       currency_code: currencyCode,
+      status,
     }),
   }).then(async (response: Response) => {
     return await ProcessResponse(

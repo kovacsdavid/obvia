@@ -23,8 +23,8 @@ use crate::common::dto::{
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::order::Order;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Order;
+use crate::common::types::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::taxes::TaxesModule;
@@ -80,14 +80,13 @@ pub async fn create(
     State(taxes_module): State<Arc<TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    TaxesService::create(&claims, &user_input, taxes_module.taxes_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "Az adó létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            TaxesService::create(&claims, &user_input, taxes_module.taxes_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -99,14 +98,13 @@ pub async fn update(
     State(taxes_module): State<Arc<TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    TaxesService::update(&claims, &user_input, taxes_module.taxes_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "Az adó frissítése sikeresen megtörtént",
-        ))
+        .data(
+            TaxesService::update(&claims, &user_input, taxes_module.taxes_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

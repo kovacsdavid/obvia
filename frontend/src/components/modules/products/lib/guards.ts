@@ -24,8 +24,8 @@ import {
   isSimpleError,
   isSimpleMessageData
 } from "@/lib/interfaces/common.ts";
-import type {CreateProjectResponse} from "@/components/modules/projects/lib/interface.ts";
 import type {
+  CreateProductResponse,
   DeleteProductResponse,
   PaginatedProductResolvedListResponse,
   Product,
@@ -36,10 +36,10 @@ import type {
   UpdateProductResponse
 } from "@/components/modules/products/lib/interface.ts";
 
-export function isCreateProductResponse(data: unknown): data is CreateProjectResponse {
+export function isCreateProductResponse(data: unknown): data is CreateProductResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProduct,
     isFormError,
   )
 }
@@ -131,7 +131,7 @@ export function isProductResponse(data: unknown): data is ProductResponse {
 export function isUpdateProductResponse(data: unknown): data is UpdateProductResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isProduct,
     isFormError
   )
 }

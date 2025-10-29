@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::worksheets::types::worksheet::{
     WorksheetDescription, WorksheetName, WorksheetStatus,
 };
@@ -32,6 +32,7 @@ pub struct WorksheetUserInputHelper {
     pub id: Option<String>,
     pub name: String,
     pub description: String,
+    pub customer_id: Uuid,
     pub project_id: Uuid,
     pub status: String,
 }
@@ -41,6 +42,7 @@ pub struct WorksheetUserInputError {
     pub id: Option<String>,
     pub name: Option<String>,
     pub description: Option<String>,
+    pub customer_id: Option<String>,
     pub project_id: Option<String>,
     pub status: Option<String>,
 }
@@ -50,6 +52,7 @@ impl WorksheetUserInputError {
         self.id.is_none()
             && self.name.is_none()
             && self.description.is_none()
+            && self.customer_id.is_none()
             && self.project_id.is_none()
             && self.status.is_none()
     }
@@ -77,6 +80,7 @@ pub struct WorksheetUserInput {
     pub id: Option<Uuid>,
     pub name: ValueObject<WorksheetName>,
     pub description: Option<ValueObject<WorksheetDescription>>,
+    pub customer_id: Uuid,
     pub project_id: Uuid,
     pub status: ValueObject<WorksheetStatus>,
 }
@@ -109,6 +113,7 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
                 id,
                 name: name.map_err(|_| WorksheetUserInputError::default())?,
                 description,
+                customer_id: value.customer_id,
                 project_id: value.project_id,
                 status: status.map_err(|_| WorksheetUserInputError::default())?,
             })

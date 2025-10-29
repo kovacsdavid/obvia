@@ -90,7 +90,7 @@ impl ProductsService {
         claims: &Claims,
         payload: &ProductUserInput,
         products_module: Arc<ProductsModule>,
-    ) -> Result<(), ProductsServiceError> {
+    ) -> ProductsServiceResult<Product> {
         let mut product = payload.clone();
 
         product.unit_of_measure_id = if product.unit_of_measure_id.is_some() {
@@ -117,7 +117,7 @@ impl ProductsService {
             )
         };
 
-        products_module
+        Ok(products_module
             .products_repo
             .insert(
                 product,
@@ -126,8 +126,7 @@ impl ProductsService {
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_select_list_items(
         select_list: &str,

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -94,7 +94,7 @@ impl<'de> Deserialize<'de> for ValueObject<Code> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::ValueObject;
 
     #[test]
     fn test_valid_postal_code() {

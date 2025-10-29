@@ -29,20 +29,23 @@ export interface InventoryUserInput {
   id: string | null
   productId: string
   warehouseId: string
-  quantity: string
-  price: string
-  taxId: string
+  minimumStock: string
+  maximumStock: string
   currencyCode: string
+  status: string
 }
 
 export interface Inventory {
   id: string,
   product_id: string,
   warehouse_id: string,
-  quantity: number,
-  price: string | null,
-  tax_id: string,
+  quantity_on_hand: string,
+  quantity_reserved: string,
+  quantity_available: string,
+  minimum_stock: string | null,
+  maximum_stock: string | null,
   currency_code: string,
+  status: string,
   created_by_id: string,
   created_at: string,
   updated_at: string,
@@ -55,12 +58,14 @@ export interface InventoryResolved {
   product: string,
   warehouse_id: string,
   warehouse: string,
-  quantity: number,
-  price: string | null,
-  tax_id: string,
-  tax: string,
+  quantity_on_hand: string,
+  quantity_reserved: string,
+  quantity_available: string,
+  minimum_stock: string | null,
+  maximum_stock: string | null,
   currency_code: string,
   currency: string,
+  status: string,
   created_by_id: string,
   created_by: string,
   created_at: string,
@@ -68,8 +73,8 @@ export interface InventoryResolved {
   deleted_at: string | null,
 }
 
-export type CreateInventoryResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateInventoryResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateInventoryResponse = CommonResponse<Inventory, FormError>;
+export type UpdateInventoryResponse = CommonResponse<Inventory, FormError>;
 export type DeleteInventoryResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type InventoryResolvedList = InventoryResolved[];
 export type InventoryResponse = CommonResponse<Inventory, SimpleError>;

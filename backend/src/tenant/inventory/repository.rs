@@ -18,6 +18,7 @@
  */
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::model::SelectOption;
 use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::tenants::dto::FilteringParams;
@@ -38,6 +39,10 @@ pub trait InventoryRepository: Send + Sync {
         id: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryResolved>;
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -87,12 +92,14 @@ impl InventoryRepository for PoolManagerWrapper {
                 products.name as product,
                 inventory.warehouse_id as warehouse_id,
                 warehouses.name as warehouse,
-                inventory.quantity as quantity,
-                inventory.price as price,
-                inventory.tax_id as tax_id,
-                taxes.description as tax,
+                inventory.quantity_on_hand as quantity_on_hand,
+                inventory.quantity_reserved as quantity_reserved,
+                inventory.quantity_available as quantity_available,
+                inventory.minimum_stock as minimum_stock,
+                inventory.maximum_stock as maximum_stock,
                 inventory.currency_code as currency_code,
                 currencies.code as currency,
+                inventory.status as status,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 inventory.created_at as created_at,
@@ -101,7 +108,6 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN taxes ON inventory.tax_id = taxes.id
             LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
@@ -112,6 +118,26 @@ impl InventoryRepository for PoolManagerWrapper {
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)
     }
+
+    async fn get_select_list_items(
+        &self,
+        active_tenant: Uuid,
+    ) -> RepositoryResult<Vec<SelectOption>> {
+        Ok(sqlx::query_as::<_, SelectOption>(
+            r#"
+            SELECT
+                inventory.id::VARCHAR as value,
+                products.name || ' (Raktáron: ' || inventory.quantity_on_hand || ' - Lefoglalt: ' || inventory.quantity_reserved || ' - Elérhető: ' || inventory.quantity_available || ')' as title
+                FROM inventory
+                LEFT JOIN products ON inventory.product_id = products.id
+                WHERE inventory.deleted_at IS NULL
+                ORDER BY products.name
+                "#,
+        )
+        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .await?)
+    }
+
     async fn get_all_paged(
         &self,
         paginator_params: &PaginatorParams,
@@ -137,12 +163,14 @@ impl InventoryRepository for PoolManagerWrapper {
                 products.name as product,
                 inventory.warehouse_id as warehouse_id,
                 warehouses.name as warehouse,
-                inventory.quantity as quantity,
-                inventory.price as price,
-                inventory.tax_id as tax_id,
-                taxes.description as tax,
+                inventory.quantity_on_hand as quantity_on_hand,
+                inventory.quantity_reserved as quantity_reserved,
+                inventory.quantity_available as quantity_available,
+                inventory.minimum_stock as minimum_stock,
+                inventory.maximum_stock as maximum_stock,
                 inventory.currency_code as currency_code,
                 currencies.code as currency,
+                inventory.status as status,
                 inventory.created_by_id as created_by_id,
                 users.last_name || ' ' || users.first_name as created_by,
                 inventory.created_at as created_at,
@@ -151,7 +179,6 @@ impl InventoryRepository for PoolManagerWrapper {
             FROM inventory
             LEFT JOIN products ON inventory.product_id = products.id
             LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN taxes ON inventory.tax_id = taxes.id
             LEFT JOIN currencies ON inventory.currency_code = currencies.code
             LEFT JOIN users ON inventory.created_by_id = users.id
             WHERE inventory.deleted_at IS NULL
@@ -182,34 +209,37 @@ impl InventoryRepository for PoolManagerWrapper {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory> {
-        let price = match &inventory.price {
+        let minimum_stock = match &inventory.minimum_stock {
             None => None,
             Some(v) => Some(
                 v.extract()
                     .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
+                    .trim()
+                    .parse::<i32>()
+                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
+            ),
+        };
+        let maximum_stock = match &inventory.maximum_stock {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .trim()
+                    .parse::<i32>()
+                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
             ),
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
-            "INSERT INTO inventory (product_id, warehouse_id, quantity, price, tax_id, currency_code, created_by_id)\
+            "INSERT INTO inventory (product_id, warehouse_id, minimum_stock, maximum_stock, currency_code, status, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
             .bind(inventory.product_id)
             .bind(inventory.warehouse_id)
-            .bind(inventory
-                .quantity
-                .extract()
-                .get_value()
-                .trim()
-                .replace(",", ".")
-                .parse::<i32>()
-                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?
-            )
-            .bind(price)
-            .bind(inventory.tax_id)
+            .bind(minimum_stock)
+            .bind(maximum_stock)
             .bind(inventory.currency_code.extract().get_value())
+            .bind(inventory.status.extract().get_value())
             .bind(sub)
             .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
             .await?
@@ -224,24 +254,38 @@ impl InventoryRepository for PoolManagerWrapper {
         let id = inventory
             .id
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-        let price = match &inventory.price {
+
+        // Convert optional ValueObjects for minimum_stock and maximum_stock to Option<i32>
+        let minimum_stock = match &inventory.minimum_stock {
             None => None,
             Some(v) => Some(
                 v.extract()
                     .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
+                    .trim()
+                    .parse::<i32>()
+                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
             ),
         };
+        let maximum_stock = match &inventory.maximum_stock {
+            None => None,
+            Some(v) => Some(
+                v.extract()
+                    .get_value()
+                    .trim()
+                    .parse::<i32>()
+                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
+            ),
+        };
+
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             UPDATE inventory
             SET product_id = $1,
                 warehouse_id = $2,
-                quantity = $3,
-                price = $4,
-                tax_id = $5,
-                currency_code = $6
+                minimum_stock = $3,
+                maximum_stock = $4,
+                currency_code = $5,
+                status = $6
             WHERE id = $7
                 AND deleted_at IS NULL
             RETURNING *
@@ -249,19 +293,10 @@ impl InventoryRepository for PoolManagerWrapper {
         )
         .bind(inventory.product_id)
         .bind(inventory.warehouse_id)
-        .bind(
-            inventory
-                .quantity
-                .extract()
-                .get_value()
-                .trim()
-                .replace(",", ".")
-                .parse::<i32>()
-                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
-        )
-        .bind(price)
-        .bind(inventory.tax_id)
+        .bind(minimum_stock)
+        .bind(maximum_stock)
         .bind(inventory.currency_code.extract().get_value())
+        .bind(inventory.status.extract().get_value())
         .bind(id)
         .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
         .await?)

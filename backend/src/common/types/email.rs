@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -126,7 +126,7 @@ impl Display for Email {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::ValueObject;
     use serde_json;
 
     #[test]

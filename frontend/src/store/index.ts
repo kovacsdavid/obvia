@@ -30,6 +30,7 @@ import tasksReducer from "@/components/modules/tasks/lib/slice.ts";
 import usersReducer from "@/components/modules/users/lib/slice.ts";
 import warehousesReducer from "@/components/modules/warehouses/lib/slice.ts";
 import worksheetsReducer from "@/components/modules/worksheets/lib/slice.ts";
+import inventoryMovementsReducer from "@/components/modules/inventory_movements/lib/slice.ts";
 import storage from "redux-persist/lib/storage";
 import {persistReducer, persistStore} from "redux-persist";
 import authMiddleware from "@/store/middleware/authMiddleware.ts";
@@ -39,6 +40,7 @@ const rootReducer = combineReducers({
   tenants: tenantsReducer,
   customers: customersReducer,
   inventory: inventoryReducer,
+  inventory_movements: inventoryMovementsReducer,
   products: productsReducer,
   projects: projectsReducer,
   tags: tagsReducer,

@@ -19,7 +19,7 @@
 
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
 import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
+import {Combine, Eye, Funnel, MoreHorizontal, Pencil, Plus, Timer, Trash} from "lucide-react";
 import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
 import {Link} from "react-router-dom";
 import {useAppDispatch} from "@/store/hooks.ts";
@@ -29,7 +29,7 @@ import {Paginator} from "@/components/ui/pagination.tsx";
 import {deleteItem, list} from "@/components/modules/inventory/lib/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type InventoryResolvedList,} from "@/components/modules/inventory/lib/interface.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMDHMS, query_encoder} from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,7 +121,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/leltar/szerkesztes"}>
+              <Link to={"/leltar/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -167,16 +167,25 @@ export default function List() {
                   Raktár
                 </TableHead>
                 <TableHead>
-                  Mennyiség
+                  Készlet (raktáron)
                 </TableHead>
                 <TableHead>
-                  Fogyasztói ár
+                  Foglalt
                 </TableHead>
                 <TableHead>
-                  Adó
+                  Rendelkezésre álló
+                </TableHead>
+                <TableHead>
+                  Minimum készlet
+                </TableHead>
+                <TableHead>
+                  Maximum készlet
                 </TableHead>
                 <TableHead>
                   Pénznem
+                </TableHead>
+                <TableHead>
+                  Állapot
                 </TableHead>
                 <TableHead>
                   Létrehozta
@@ -207,9 +216,20 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/leltar/szerkesztes/${item.id}`}>
+                        <Link to={`/leltar/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
+                          </DropdownMenuItem>
+                        </Link>
+                        <DropdownMenuSeparator/>
+                        <Link to={`/leltar-mozgas/lista?q=${query_encoder({inventory_id: item.id})}`}>
+                          <DropdownMenuItem>
+                            <Combine/> Készletmozgatás
+                          </DropdownMenuItem>
+                        </Link>
+                        <Link to={`/leltar-foglalas/lista?q=${query_encoder({inventory_id: item.id})}`}>
+                          <DropdownMenuItem>
+                            <Timer/> Készletfoglalás
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator/>
@@ -221,10 +241,13 @@ export default function List() {
                   </TableCell>
                   <TableCell>{item.product}</TableCell>
                   <TableCell>{item.warehouse}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.price}</TableCell>
-                  <TableCell>{item.tax}</TableCell>
+                  <TableCell>{item.quantity_on_hand}</TableCell>
+                  <TableCell>{item.quantity_reserved}</TableCell>
+                  <TableCell>{item.quantity_available}</TableCell>
+                  <TableCell>{item.minimum_stock ?? "-"}</TableCell>
+                  <TableCell>{item.maximum_stock ?? "-"}</TableCell>
                   <TableCell>{item.currency}</TableCell>
+                  <TableCell>{item.status}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

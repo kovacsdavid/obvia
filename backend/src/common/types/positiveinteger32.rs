@@ -17,21 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Code(pub String);
+pub struct PositiveInteger32(pub String);
 
-impl ValueObjectable for Code {
+impl ValueObjectable for PositiveInteger32 {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if self.0.trim().len() == 3 {
+        if self.0.trim().is_empty() {
             Ok(())
         } else {
-            Err("A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF".to_string())
+            let value = self
+                .0
+                .trim()
+                .replace(",", ".")
+                .parse::<i32>()
+                .map_err(|_| String::from("Hibás szám formátum!"))?;
+            if value >= 0 {
+                Ok(())
+            } else {
+                Err(String::from(
+                    "A megadott érték csak 0 vagy pozitív egész szám lehet!",
+                ))
+            }
         }
     }
 
@@ -44,7 +56,7 @@ impl ValueObjectable for Code {
     }
 }
 
-impl Display for Code {
+impl Display for PositiveInteger32 {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -60,7 +72,7 @@ impl Display for Code {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Code> {
+impl<'de> Deserialize<'de> for ValueObject<PositiveInteger32> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -87,77 +99,80 @@ impl<'de> Deserialize<'de> for ValueObject<Code> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Code(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(PositiveInteger32(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
-    fn test_valid_currency() {
-        let currency: ValueObject<Code> = serde_json::from_str(r#""USD""#).unwrap();
-        assert_eq!(currency.extract().get_value(), "USD");
+    fn test_validate_empty_string() {
+        let integer = PositiveInteger32(String::from(""));
+        assert!(integer.validate().is_ok());
     }
 
     #[test]
-    fn test_invalid_currency_too_short() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""US""#);
-        assert!(currency.is_err());
+    fn test_validate_valid_integer() {
+        let integer = PositiveInteger32(String::from("123"));
+        assert!(integer.validate().is_ok());
     }
 
     #[test]
-    fn test_invalid_currency_too_long() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""USDT""#);
-        assert!(currency.is_err());
+    fn test_validate_negative_integer() {
+        let integer = PositiveInteger32(String::from("-123"));
+        assert!(integer.validate().is_err());
     }
 
     #[test]
-    fn test_invalid_currency_empty() {
-        let currency: Result<ValueObject<Code>, _> = serde_json::from_str(r#""""#);
-        assert!(currency.is_err());
+    fn test_validate_decimal_comma() {
+        let integer = PositiveInteger32(String::from("123,456"));
+        assert!(integer.validate().is_err());
     }
 
     #[test]
-    fn test_display_format() {
-        let currency = Code("EUR".to_string());
-        assert_eq!(format!("{}", currency), "EUR");
+    fn test_validate_decimal_period() {
+        let integer = PositiveInteger32(String::from("123.456"));
+        assert!(integer.validate().is_err());
     }
 
     #[test]
-    fn test_validation_with_spaces() {
-        let currency = Code(" USD ".to_string());
-        assert!(currency.validate().is_ok());
+    fn test_validate_non_numeric() {
+        let integer = PositiveInteger32(String::from("abc"));
+        assert!(integer.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_overflow() {
+        let integer = PositiveInteger32(String::from("2147483648")); // Max i32 + 1
+        assert!(integer.validate().is_err());
     }
 
     #[test]
     fn test_get_value() {
-        let currency = Code("GBP".to_string());
-        assert_eq!(currency.get_value(), "GBP");
+        let value = String::from("123");
+        let integer = PositiveInteger32(value.clone());
+        assert_eq!(integer.get_value(), &value);
     }
 
     #[test]
-    fn test_clone() {
-        let currency = Code("JPY".to_string());
-        let cloned = currency.clone();
-        assert_eq!(currency, cloned);
+    fn test_display() {
+        let integer = PositiveInteger32(String::from("123"));
+        assert_eq!(format!("{}", integer), "123");
     }
 
     #[test]
-    fn test_debug_format() {
-        let currency = Code("CNY".to_string());
-        assert_eq!(format!("{:?}", currency), r#"Code("CNY")"#);
+    fn test_deserialize_valid() {
+        let json = "\"123\"";
+        let result: Result<ValueObject<PositiveInteger32>, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
     }
 
     #[test]
-    fn test_deserialization_errors() {
-        let invalid_types = vec!["null", "123", "true", "[]", "{}"];
-
-        for invalid in invalid_types {
-            let result: Result<ValueObject<Code>, _> = serde_json::from_str(invalid);
-            assert!(result.is_err());
-        }
+    fn test_deserialize_invalid() {
+        let json = "\"abc\"";
+        let result: Result<ValueObject<PositiveInteger32>, _> = serde_json::from_str(json);
+        assert!(result.is_err());
     }
 }

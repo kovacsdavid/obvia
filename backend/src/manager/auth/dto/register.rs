@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
 use crate::common::types::{Email, FirstName, LastName, Password};
+use crate::common::types::{ValueObject, ValueObjectable};
 use ::serde::Serialize;
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;

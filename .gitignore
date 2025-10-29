@@ -1,4 +1,6 @@
 .idea
 .junie
 frontend/node_modules
+frontend/vitest.config.js
 backend/target
+tags

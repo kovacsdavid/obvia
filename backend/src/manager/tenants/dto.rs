@@ -18,7 +18,7 @@
  */
 use crate::common::dto::QueryParam;
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::ValueObject;
 use crate::manager::app::config::TenantDatabaseConfig;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;

@@ -66,8 +66,8 @@ impl TagsService {
         claims: &Claims,
         payload: &TagUserInput,
         tags_module: Arc<TagsModule>,
-    ) -> TagsServiceResult<()> {
-        tags_module
+    ) -> TagsServiceResult<Tag> {
+        Ok(tags_module
             .tags_repo
             .insert(
                 payload.clone(),
@@ -76,8 +76,7 @@ impl TagsService {
                     .active_tenant()
                     .ok_or(TagsServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

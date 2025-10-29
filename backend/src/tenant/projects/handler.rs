@@ -23,8 +23,8 @@ use crate::common::dto::{
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::order::Order;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Order;
+use crate::common::types::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
@@ -83,14 +83,13 @@ pub async fn update(
     State(projects_module): State<Arc<ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    ProjectsService::update(&claims, &user_input, projects_module.projects_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A projekt frissítése sikeresen megtörtént",
-        ))
+        .data(
+            ProjectsService::update(&claims, &user_input, projects_module.projects_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -121,14 +120,13 @@ pub async fn create(
     State(projects_module): State<Arc<ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    ProjectsService::create(&claims, &user_input, projects_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A projekt létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            ProjectsService::create(&claims, &user_input, projects_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

@@ -19,7 +19,10 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::currencies::repository::CurrenciesRepository;
+use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::repository::TasksRepository;
+use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
 
@@ -39,18 +42,27 @@ pub fn init_default_tasks_module(
         .config(config)
         .tasks_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .services_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct TasksModule {
     pub config: Arc<AppConfig>,
     pub tasks_repo: Arc<dyn TasksRepository>,
     pub worksheets_repo: Arc<dyn WorksheetsRepository>,
+    pub services_repo: Arc<dyn ServicesRepository>,
+    pub taxes_repo: Arc<dyn TaxesRepository>,
+    pub currencies_repo: Arc<dyn CurrenciesRepository>,
 }
 
 pub struct TasksModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub tasks_repo: Option<Arc<dyn TasksRepository>>,
     pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
+    pub services_repo: Option<Arc<dyn ServicesRepository>>,
+    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
+    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
 }
 
 impl TasksModuleBuilder {
@@ -59,6 +71,9 @@ impl TasksModuleBuilder {
             config: None,
             tasks_repo: None,
             worksheets_repo: None,
+            services_repo: None,
+            taxes_repo: None,
+            currencies_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -73,6 +88,18 @@ impl TasksModuleBuilder {
         self.worksheets_repo = Some(worksheets_repo);
         self
     }
+    pub fn services_repo(mut self, services_repo: Arc<dyn ServicesRepository>) -> Self {
+        self.services_repo = Some(services_repo);
+        self
+    }
+    pub fn taxes_repo(mut self, taxes_repo: Arc<dyn TaxesRepository>) -> Self {
+        self.taxes_repo = Some(taxes_repo);
+        self
+    }
+    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
+        self.currencies_repo = Some(currencies_repo);
+        self
+    }
     pub fn build(self) -> Result<TasksModule, String> {
         Ok(TasksModule {
             config: self.config.ok_or("config is required".to_string())?,
@@ -82,6 +109,15 @@ impl TasksModuleBuilder {
             worksheets_repo: self
                 .worksheets_repo
                 .ok_or("worksheets_repo is required".to_string())?,
+            services_repo: self
+                .services_repo
+                .ok_or("worksheets_repo is required".to_string())?,
+            taxes_repo: self
+                .taxes_repo
+                .ok_or("taxes_repo is required".to_string())?,
+            currencies_repo: self
+                .currencies_repo
+                .ok_or("currencies_repo is required".to_string())?,
         })
     }
 }

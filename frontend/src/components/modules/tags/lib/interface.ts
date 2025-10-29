@@ -50,8 +50,8 @@ export interface TagResolved {
   deleted_at: string | null,
 }
 
-export type CreateTagResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateTagResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateTagResponse = CommonResponse<Tag, FormError>;
+export type UpdateTagResponse = CommonResponse<Tag, FormError>;
 export type DeleteTagResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TagResponse = CommonResponse<Tag, SimpleError>;
 export type TagResolvedResponse = CommonResponse<TagResolved, SimpleError>;

@@ -39,7 +39,7 @@ import type {
 export function isCreateTaxResponse(data: unknown): data is CreateTaxResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTax,
     isFormError
   )
 }
@@ -47,7 +47,7 @@ export function isCreateTaxResponse(data: unknown): data is CreateTaxResponse {
 export function isUpdateTaxResponse(data: unknown): data is UpdateTaxResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTax,
     isFormError
   )
 }

@@ -121,7 +121,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/vevo/szerkesztes"}>
+              <Link to={"/vevo/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -204,7 +204,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/vevo/szerkesztes/${item.id}`}>
+                        <Link to={`/vevo/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>

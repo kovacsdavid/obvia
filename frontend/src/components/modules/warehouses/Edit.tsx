@@ -25,9 +25,15 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
+import type {Warehouse} from "./lib/interface";
 
-export default function List() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (warehouse: Warehouse) => void;
+}
+
+export default function List({showCard = true, onSuccess = undefined}: EditProps) {
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
@@ -48,7 +54,14 @@ export default function List() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/raktar/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/raktar/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -58,7 +71,7 @@ export default function List() {
         unexpectedError();
       }
     });
-  }, [contactName, contactPhone, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+  }, [contactName, contactPhone, dispatch, id, name, navigate, onSuccess, setErrors, status, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -118,56 +131,55 @@ export default function List() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Raktár</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="name">Név</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-            <FieldError error={errors} field={"name"}/>
-            <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-            <Input
-              id="contact_name"
-              type="text"
-              value={contactName}
-              onChange={e => setContactName(e.target.value)}
-            />
-            <FieldError error={errors} field={"contact_name"}/>
-            <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
-            <Input
-              id="contact_phone"
-              type="text"
-              value={contactPhone}
-              onChange={e => setContactPhone(e.target.value)}
-            />
-            <FieldError error={errors} field={"contact_phone"}/>
-            <Label htmlFor="status">Státusz</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="inactive">Inaktív</SelectItem>
-                <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
-                <SelectItem value="closed">Véglegesen bezárt</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
-            <Button type="submit">Létrehozás</Button>
-          </form>
-        </CardContent>
-      </Card>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Raktár ${id ? "módosítás" : "létrehozás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="name">Név</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+          <Input
+            id="contact_name"
+            type="text"
+            value={contactName}
+            onChange={e => setContactName(e.target.value)}
+          />
+          <FieldError error={errors} field={"contact_name"}/>
+          <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
+          <Input
+            id="contact_phone"
+            type="text"
+            value={contactPhone}
+            onChange={e => setContactPhone(e.target.value)}
+          />
+          <FieldError error={errors} field={"contact_phone"}/>
+          <Label htmlFor="status">Státusz</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="inactive">Inaktív</SelectItem>
+              <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
+              <SelectItem value="closed">Véglegesen bezárt</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

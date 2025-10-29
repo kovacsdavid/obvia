@@ -39,7 +39,7 @@ import type {
 export function isCreateServiceResponse(data: unknown): data is CreateServiceResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isService,
     isFormError
   )
 }
@@ -47,7 +47,7 @@ export function isCreateServiceResponse(data: unknown): data is CreateServiceRes
 export function isUpdateServiceResponse(data: unknown): data is UpdateServiceResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isService,
     isFormError
   )
 }

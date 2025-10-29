@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
 use std::fmt::Display;
@@ -31,7 +31,7 @@ impl ValueObjectable for OrderBy {
 
     fn validate(&self) -> Result<(), String> {
         match self.0.trim() {
-            "title" => Ok(()),
+            "updated_at" => Ok(()),
             _ => Err("Hibás sorrend formátum".to_string()),
         }
     }
@@ -103,11 +103,11 @@ impl Display for OrderBy {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::value_object::ValueObject;
+    use crate::common::types::ValueObject;
 
     #[test]
     fn test_valid_order_by() {
-        let order_by = OrderBy("title".to_string());
+        let order_by = OrderBy("updated_at".to_string());
         assert!(order_by.validate().is_ok());
     }
 
@@ -119,25 +119,25 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        let order_by = OrderBy::from_str("title").unwrap();
-        assert_eq!(order_by.0, "title");
+        let order_by = OrderBy::from_str("updated_at").unwrap();
+        assert_eq!(order_by.0, "updated_at");
     }
 
     #[test]
     fn test_display() {
-        let order_by = OrderBy("title".to_string());
-        assert_eq!(format!("{}", order_by), "title");
+        let order_by = OrderBy("updated_at".to_string());
+        assert_eq!(format!("{}", order_by), "updated_at");
     }
 
     #[test]
     fn test_get_value() {
-        let order_by = OrderBy("title".to_string());
-        assert_eq!(order_by.get_value(), "title");
+        let order_by = OrderBy("updated_at".to_string());
+        assert_eq!(order_by.get_value(), "updated_at");
     }
 
     #[test]
     fn test_deserialize_valid() {
-        let json = r#""title""#;
+        let json = r#""updated_at""#;
         let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(json);
         assert!(order_by.is_ok());
     }
@@ -151,14 +151,14 @@ mod tests {
 
     #[test]
     fn test_clone() {
-        let order_by = OrderBy("title".to_string());
+        let order_by = OrderBy("updated_at".to_string());
         let cloned = order_by.clone();
         assert_eq!(order_by, cloned);
     }
 
     #[test]
     fn test_debug() {
-        let order_by = OrderBy("title".to_string());
-        assert_eq!(format!("{:?}", order_by), "OrderBy(\"title\")");
+        let order_by = OrderBy("updated_at".to_string());
+        assert_eq!(format!("{:?}", order_by), "OrderBy(\"updated_at\")");
     }
 }

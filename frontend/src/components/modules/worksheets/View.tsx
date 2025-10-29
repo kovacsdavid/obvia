@@ -25,7 +25,7 @@ import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
 import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMDHMS, formatNumber} from "@/lib/utils.ts";
 import type {WorksheetResolved} from "@/components/modules/worksheets/lib/interface.ts";
 
 
@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Vevő</CardTitle>
+              <CardTitle>Munkalap</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -99,10 +99,50 @@ export default function View() {
                   </TableRow>
                   <TableRow>
                     <TableCell>
+                      Vevő
+                    </TableCell>
+                    <TableCell>
+                      {data.customer} ({data.customer_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
                       Projekt
                     </TableCell>
                     <TableCell>
                       {data.project} ({data.project_id})
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Nettó anyagköltség
+                    </TableCell>
+                    <TableCell>
+                      {formatNumber(data.net_material_cost)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Bruttó anyagköltség
+                    </TableCell>
+                    <TableCell>
+                      {formatNumber(data.gross_material_cost)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Nettó munkadíj
+                    </TableCell>
+                    <TableCell>
+                      {formatNumber(data.net_work_cost)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>
+                      Bruttó munkadíj
+                    </TableCell>
+                    <TableCell>
+                      {formatNumber(data.gross_work_cost)}
                     </TableCell>
                   </TableRow>
                   <TableRow>

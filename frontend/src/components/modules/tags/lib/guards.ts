@@ -39,7 +39,7 @@ import type {
 export function isCreateTagResponse(data: unknown): data is CreateTagResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTag,
     isFormError,
   )
 }
@@ -117,7 +117,7 @@ export function isTagResponse(data: unknown): data is TagResponse {
 export function isUpdateTagResponse(data: unknown): data is UpdateTagResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isTag,
     isFormError
   )
 }

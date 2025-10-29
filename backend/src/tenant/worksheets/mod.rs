@@ -19,6 +19,7 @@
 use crate::common::repository::PoolManagerWrapper;
 use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::PgPoolManagerTrait;
+use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
@@ -39,18 +40,21 @@ pub fn init_default_worksheets_module(
         .config(config)
         .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
         .projects_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+        .customers_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
 }
 
 pub struct WorksheetsModule {
     pub config: Arc<AppConfig>,
     pub worksheets_repo: Arc<dyn WorksheetsRepository>,
     pub projects_repo: Arc<dyn ProjectsRepository>,
+    pub customers_repo: Arc<dyn CustomersRepository>,
 }
 
 pub struct WorksheetsModuleBuilder {
     pub config: Option<Arc<AppConfig>>,
     pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
     pub projects_repo: Option<Arc<dyn ProjectsRepository>>,
+    pub customers_repo: Option<Arc<dyn CustomersRepository>>,
 }
 
 impl WorksheetsModuleBuilder {
@@ -59,6 +63,7 @@ impl WorksheetsModuleBuilder {
             config: None,
             worksheets_repo: None,
             projects_repo: None,
+            customers_repo: None,
         }
     }
     pub fn config(mut self, config: Arc<AppConfig>) -> Self {
@@ -73,6 +78,10 @@ impl WorksheetsModuleBuilder {
         self.projects_repo = Some(projects_repo);
         self
     }
+    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRepository>) -> Self {
+        self.customers_repo = Some(customers_repo);
+        self
+    }
     pub fn build(self) -> Result<WorksheetsModule, String> {
         Ok(WorksheetsModule {
             config: self.config.ok_or("config is required".to_string())?,
@@ -82,6 +91,9 @@ impl WorksheetsModuleBuilder {
             projects_repo: self
                 .projects_repo
                 .ok_or("projects_repo is required".to_string())?,
+            customers_repo: self
+                .customers_repo
+                .ok_or("customers_repo is required".to_string())?,
         })
     }
 }

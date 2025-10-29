@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
 use crate::validate_optional_string;

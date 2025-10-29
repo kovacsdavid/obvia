@@ -121,7 +121,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/feladat/szerkesztes"}>
+              <Link to={"/feladat/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -162,13 +162,25 @@ export default function List() {
               <TableRow>
                 <TableHead/>
                 <TableHead>
-                  Megnevezés
+                  Szolgáltatás
                 </TableHead>
                 <TableHead>
                   Leírás
                 </TableHead>
                 <TableHead>
                   Munkalap
+                </TableHead>
+                <TableHead>
+                  Munkaóra
+                </TableHead>
+                <TableHead>
+                  Ár
+                </TableHead>
+                <TableHead>
+                  Pénznem
+                </TableHead>
+                <TableHead>
+                  Adó
                 </TableHead>
                 <TableHead>
                   Státusz
@@ -208,7 +220,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/feladat/szerkesztes/${item.id}`}>
+                        <Link to={`/feladat/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>
@@ -220,11 +232,15 @@ export default function List() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.title}</TableCell>
-                  <TableCell>{item.description ? item.description : ''}</TableCell>
+                  <TableCell>{item.service}</TableCell>
+                  <TableCell>{item.description ?? ''}</TableCell>
                   <TableCell>{item.worksheet}</TableCell>
+                  <TableCell>{item.quantity ? item.quantity : 'N/A'}</TableCell>
+                  <TableCell>{item.price ? item.price : 'N/A'}</TableCell>
+                  <TableCell>{item.currency_code}</TableCell>
+                  <TableCell>{item.tax}</TableCell>
                   <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.priority ? item.priority : ''}</TableCell>
+                  <TableCell>{item.priority ? item.priority : 'N/A'}</TableCell>
                   <TableCell>{item.due_date ? formatDateToYMDHMS(item.due_date) : 'N/A'}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>

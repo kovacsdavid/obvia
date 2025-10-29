@@ -22,8 +22,8 @@ use crate::common::dto::{
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::order::Order;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Order;
+use crate::common::types::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::WorksheetsModule;
@@ -83,18 +83,17 @@ pub async fn update(
     State(worksheets_module): State<Arc<WorksheetsModule>>,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    WorksheetsService::update(
-        &claims,
-        &user_input,
-        worksheets_module.worksheets_repo.clone(),
-    )
-    .await
-    .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A munkalap frissítése sikeresen megtörtént",
-        ))
+        .data(
+            WorksheetsService::update(
+                &claims,
+                &user_input,
+                worksheets_module.worksheets_repo.clone(),
+            )
+            .await
+            .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -125,14 +124,13 @@ pub async fn create(
     State(worksheets_module): State<Arc<WorksheetsModule>>,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    WorksheetsService::create(&claims, &user_input, worksheets_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A munkalap létrehozása sikeresen megtörtént!",
-        ))
+        .data(
+            WorksheetsService::create(&claims, &user_input, worksheets_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())

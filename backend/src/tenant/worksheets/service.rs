@@ -66,6 +66,7 @@ type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
 
 pub enum WorksheetsSelectLists {
     Projects,
+    Customers,
 }
 
 impl FromStr for WorksheetsSelectLists {
@@ -74,6 +75,7 @@ impl FromStr for WorksheetsSelectLists {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "projects" => Ok(Self::Projects),
+            "customers" => Ok(Self::Customers),
             _ => Err(Self::Err::InvalidSelectList),
         }
     }
@@ -86,8 +88,8 @@ impl WorksheetsService {
         claims: &Claims,
         payload: &WorksheetUserInput,
         worksheets_module: Arc<WorksheetsModule>,
-    ) -> WorksheetsServiceResult<()> {
-        worksheets_module
+    ) -> WorksheetsServiceResult<Worksheet> {
+        Ok(worksheets_module
             .worksheets_repo
             .insert(
                 payload.clone(),
@@ -96,24 +98,30 @@ impl WorksheetsService {
                     .active_tenant()
                     .ok_or(WorksheetsServiceError::Unauthorized)?,
             )
-            .await?;
-        Ok(())
+            .await?)
     }
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
         worksheets_module: Arc<WorksheetsModule>,
     ) -> WorksheetsServiceResult<Vec<SelectOption>> {
-        match WorksheetsSelectLists::from_str(select_list)? {
-            WorksheetsSelectLists::Projects => Ok(worksheets_module
-                .projects_repo
-                .get_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(WorksheetsServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
+        let active_tenant = claims
+            .active_tenant()
+            .ok_or(WorksheetsServiceError::Unauthorized)?;
+        Ok(match WorksheetsSelectLists::from_str(select_list)? {
+            WorksheetsSelectLists::Projects => {
+                worksheets_module
+                    .projects_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            WorksheetsSelectLists::Customers => {
+                worksheets_module
+                    .customers_repo
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+        })
     }
     pub async fn get_resolved_by_id(
         claims: &Claims,

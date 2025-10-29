@@ -45,11 +45,15 @@ import {
 export async function create({
                                id,
                                worksheetId,
-                               title,
-                               description,
+                               serviceId,
+                               currencyCode,
+                               quantity,
+                               price,
+                               taxId,
                                status,
                                priority,
-                               dueDate
+                               dueDate,
+                               description,
                              }: TaskUserInput, token: string | null): Promise<ProcessedResponse<CreateTaskResponse>> {
   return await fetch(`/api/tasks/create`, {
     method: "POST",
@@ -61,11 +65,15 @@ export async function create({
     body: JSON.stringify({
       id,
       worksheet_id: worksheetId,
-      title,
-      description,
+      service_id: serviceId,
+      currency_code: currencyCode,
+      quantity,
+      price,
+      tax_id: taxId,
       status,
       priority,
-      due_date: dueDate
+      due_date: dueDate,
+      description,
     })
   }).then(async (response: Response) => {
     return await ProcessResponse(
@@ -109,7 +117,7 @@ export async function select_list(list: string, token: string | null): Promise<P
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TaskResolvedResponse>> {
-  return await fetch(`/api/tasks/get?uuid=${uuid}`, {
+  return await fetch(`/api/tasks/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -127,11 +135,15 @@ export async function get_resolved(uuid: string, token: string | null): Promise<
 export async function update({
                                id,
                                worksheetId,
-                               title,
-                               description,
+                               serviceId,
+                               currencyCode,
+                               quantity,
+                               price,
+                               taxId,
                                status,
                                priority,
-                               dueDate
+                               dueDate,
+                               description,
                              }: TaskUserInput, token: string | null): Promise<ProcessedResponse<UpdateTaskResponse>> {
   return await fetch(`/api/tasks/update`, {
     method: "PUT",
@@ -143,11 +155,15 @@ export async function update({
     body: JSON.stringify({
       id,
       worksheet_id: worksheetId,
-      title,
-      description,
+      service_id: serviceId,
+      currency_code: currencyCode,
+      quantity,
+      price,
+      tax_id: taxId,
       status,
       priority,
-      due_date: dueDate
+      due_date: dueDate,
+      description,
     }),
   }).then(async (response: Response) => {
     return await ProcessResponse(

@@ -59,8 +59,8 @@ export interface WarehouseResolved {
   deleted_at: string | null,
 }
 
-export type CreateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateWarehouseResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateWarehouseResponse = CommonResponse<Warehouse, FormError>;
+export type UpdateWarehouseResponse = CommonResponse<Warehouse, FormError>;
 export type DeleteWarehouseResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type WarehouseResponse = CommonResponse<Warehouse, SimpleError>;
 export type WarehouseResolvedResponse = CommonResponse<WarehouseResolved, SimpleError>;

@@ -22,8 +22,8 @@ use crate::common::dto::{
 };
 use crate::common::error::FriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::order::Order;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Order;
+use crate::common::types::ValueObject;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
@@ -79,14 +79,13 @@ pub async fn update(
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A feladat frissítése sikeresen megtörtént",
-        ))
+        .data(
+            TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -117,14 +116,13 @@ pub async fn create(
     State(tasks_module): State<Arc<TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    TasksService::create(&claims, &user_input, tasks_module)
-        .await
-        .map_err(|e| e.into_response())?;
     Ok(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A feladat létrehozása sikeresen megtörtént",
-        ))
+        .data(
+            TasksService::create(&claims, &user_input, tasks_module)
+                .await
+                .map_err(|e| e.into_response())?,
+        )
         .build()
         .map_err(|e| e.into_response())?
         .into_response())
@@ -160,7 +158,7 @@ pub async fn list(
     let (meta, data) = TasksService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(TaskOrderBy("title".to_string()))
+            order_by: ValueObject::new(TaskOrderBy("updated_at".to_string()))
                 .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
             order: ValueObject::new(Order("asc".to_string()))
                 .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,

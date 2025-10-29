@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Price(pub String);
+pub struct Integer32(pub String);
 
-impl ValueObjectable for Price {
+impl ValueObjectable for Integer32 {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
@@ -34,8 +34,8 @@ impl ValueObjectable for Price {
             self.0
                 .trim()
                 .replace(",", ".")
-                .parse::<f64>()
-                .map_err(|_| String::from("Hibás fogyasztói ár formátum!"))?;
+                .parse::<i32>()
+                .map_err(|_| String::from("Hibás szám formátum!"))?;
             Ok(())
         }
     }
@@ -49,7 +49,7 @@ impl ValueObjectable for Price {
     }
 }
 
-impl Display for Price {
+impl Display for Integer32 {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -65,7 +65,7 @@ impl Display for Price {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Price> {
+impl<'de> Deserialize<'de> for ValueObject<Integer32> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -92,71 +92,80 @@ impl<'de> Deserialize<'de> for ValueObject<Price> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Price(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Integer32(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
-    fn test_valid_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""123.45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123.45");
-
-        let price: ValueObject<Price> = serde_json::from_str(r#""123,45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123,45");
+    fn test_validate_empty_string() {
+        let integer = Integer32(String::from(""));
+        assert!(integer.validate().is_ok());
     }
 
     #[test]
-    fn test_empty_price() {
-        let price: ValueObject<Price> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(price.extract().get_value(), "");
-
-        let price: ValueObject<Price> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(price.extract().get_value(), "  ");
+    fn test_validate_valid_integer() {
+        let integer = Integer32(String::from("123"));
+        assert!(integer.validate().is_ok());
     }
 
     #[test]
-    fn test_invalid_price_format() {
-        let cases = vec![
-            r#""abc""#,
-            r#""12.34.56""#,
-            r#""12,34,56""#,
-            r#""12a34""#,
-            r#""$123""#,
-        ];
-
-        for case in cases {
-            let price: Result<ValueObject<Price>, _> = serde_json::from_str(case);
-            assert!(price.is_err());
-        }
+    fn test_validate_negative_integer() {
+        let integer = Integer32(String::from("-123"));
+        assert!(integer.validate().is_ok());
     }
 
     #[test]
-    fn test_display() {
-        let price = Price("123.45".to_string());
-        assert_eq!(format!("{}", price), "123.45");
+    fn test_validate_decimal_comma() {
+        let integer = Integer32(String::from("123,456"));
+        assert!(integer.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_decimal_period() {
+        let integer = Integer32(String::from("123.456"));
+        assert!(integer.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_non_numeric() {
+        let integer = Integer32(String::from("abc"));
+        assert!(integer.validate().is_err());
+    }
+
+    #[test]
+    fn test_validate_overflow() {
+        let integer = Integer32(String::from("2147483648")); // Max i32 + 1
+        assert!(integer.validate().is_err());
     }
 
     #[test]
     fn test_get_value() {
-        let price = Price("123.45".to_string());
-        assert_eq!(price.get_value(), "123.45");
+        let value = String::from("123");
+        let integer = Integer32(value.clone());
+        assert_eq!(integer.get_value(), &value);
     }
 
     #[test]
-    fn test_validation() {
-        assert!(Price("123.45".to_string()).validate().is_ok());
-        assert!(Price("123,45".to_string()).validate().is_ok());
-        assert!(Price("".to_string()).validate().is_ok());
-        assert!(Price("  ".to_string()).validate().is_ok());
+    fn test_display() {
+        let integer = Integer32(String::from("123"));
+        assert_eq!(format!("{}", integer), "123");
+    }
 
-        assert!(Price("abc".to_string()).validate().is_err());
-        assert!(Price("12.34.56".to_string()).validate().is_err());
-        assert!(Price("12,34,56".to_string()).validate().is_err());
-        assert!(Price("$123".to_string()).validate().is_err());
+    #[test]
+    fn test_deserialize_valid() {
+        let json = "\"123\"";
+        let result: Result<ValueObject<Integer32>, _> = serde_json::from_str(json);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_deserialize_invalid() {
+        let json = "\"abc\"";
+        let result: Result<ValueObject<Integer32>, _> = serde_json::from_str(json);
+        assert!(result.is_err());
     }
 }

@@ -17,6 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-DROP TABLE IF EXISTS user_tenants;
-DROP TABLE IF EXISTS tenants;
-DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS user_tenants CASCADE;
+DROP TABLE IF EXISTS tenants CASCADE;
+DROP TABLE IF EXISTS users CASCADE;

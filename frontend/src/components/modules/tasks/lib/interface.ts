@@ -28,18 +28,25 @@ import {
 export interface TaskUserInput {
   id: string | null
   worksheetId: string
-  title: string
-  description: string
+  serviceId: string
+  currencyCode: string
+  quantity: string
+  price: string
+  taxId: string
   status: string
-  priority: string
-  dueDate: string
+  priority: string | null
+  dueDate: string | null
+  description: string | null,
 }
 
 export interface Task {
   id: string,
   worksheet_id: string,
-  title: string,
-  description: string | null,
+  service_id: string,
+  currency_code: string,
+  quantity: string | null,
+  price: string | null,
+  tax_id: string,
   created_by_id: string,
   status: string,
   priority: string | null,
@@ -47,14 +54,20 @@ export interface Task {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  description: string | null,
 }
 
 export interface TaskResolved {
   id: string,
   worksheet_id: string,
   worksheet: string,
-  title: string,
-  description: string | null,
+  service_id: string,
+  service: string,
+  currency_code: string,
+  quantity: string | null,
+  price: string | null,
+  tax_id: string,
+  tax: string,
   created_by_id: string,
   created_by: string,
   status: string,
@@ -63,10 +76,11 @@ export interface TaskResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  description: string | null,
 }
 
-export type CreateTaskResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateTaskResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateTaskResponse = CommonResponse<Task, FormError>;
+export type UpdateTaskResponse = CommonResponse<Task, FormError>;
 export type DeleteTaskResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TaskResponse = CommonResponse<Task, SimpleError>;
 export type TaskResolvedResponse = CommonResponse<TaskResolved, SimpleError>;

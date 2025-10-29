@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import {
   type CommonResponse,
   type FormError,
@@ -30,6 +29,7 @@ export interface WorksheetUserInput {
   id: string | null
   name: string
   description: string
+  customerId: string
   projectId: string
   status: string
 }
@@ -38,6 +38,7 @@ export interface Worksheet {
   id: string,
   name: string,
   description: string | null,
+  customer_id: string,
   project_id: string,
   created_by_id: string,
   status: string,
@@ -50,6 +51,8 @@ export interface WorksheetResolved {
   id: string,
   name: string,
   description: string | null,
+  customer_id: string,
+  customer: string,
   project_id: string,
   project: string,
   created_by_id: string,
@@ -58,10 +61,14 @@ export interface WorksheetResolved {
   created_at: string,
   updated_at: string,
   deleted_at: string | null,
+  net_material_cost: string,
+  gross_material_cost: string,
+  net_work_cost: string,
+  gross_work_cost: string
 }
 
-export type CreateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateWorksheetResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateWorksheetResponse = CommonResponse<Worksheet, FormError>;
+export type UpdateWorksheetResponse = CommonResponse<Worksheet, FormError>;
 export type DeleteWorksheetResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type WorksheetResponse = CommonResponse<Worksheet, SimpleError>;
 export type WorksheetResolvedResponse = CommonResponse<WorksheetResolved, SimpleError>;

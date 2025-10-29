@@ -46,6 +46,7 @@ export async function create({
                                id,
                                name,
                                description,
+                               customerId,
                                projectId,
                                status
                              }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
@@ -60,6 +61,7 @@ export async function create({
       id,
       name,
       description,
+      customer_id: customerId,
       project_id: projectId,
       status
     })
@@ -105,7 +107,7 @@ export async function select_list(list: string, token: string | null): Promise<P
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WorksheetResolvedResponse>> {
-  return await fetch(`/api/worksheets/get?uuid=${uuid}`, {
+  return await fetch(`/api/worksheets/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -124,6 +126,7 @@ export async function update({
                                id,
                                name,
                                description,
+                               customerId,
                                projectId,
                                status
                              }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
@@ -138,6 +141,7 @@ export async function update({
       id,
       name,
       description,
+      customer_id: customerId,
       project_id: projectId,
       status
     }),

@@ -58,7 +58,7 @@ export default function Login() {
                   && typeof claims !== "undefined"
                 ) {
                   dispatch(loginUser({token, user, claims}))
-                  navigate('/adatbazis/szerkesztes');
+                  navigate('/adatbazis/letrehozas');
                 } else {
                   setErrors({
                     message: "Váratlan hiba történt a feldolgozás során!",

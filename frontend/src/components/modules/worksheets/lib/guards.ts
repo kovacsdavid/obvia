@@ -39,7 +39,7 @@ import type {
 export function isCreateWorksheetResponse(data: unknown): data is CreateWorksheetResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWorksheet,
     isFormError,
   )
 }
@@ -62,6 +62,10 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
     typeof data.name === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
+    "customer_id" in data &&
+    typeof data.customer_id === "string" &&
+    "customer" in data &&
+    typeof data.customer === "string" &&
     "project_id" in data &&
     typeof data.project_id === "string" &&
     "project" in data &&
@@ -77,7 +81,15 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
+    (data.deleted_at === null || typeof data.deleted_at === "string") &&
+    "net_material_cost" in data &&
+    typeof data.net_material_cost === "string" &&
+    "gross_material_cost" in data &&
+    typeof data.gross_material_cost === "string" &&
+    "net_work_cost" in data &&
+    typeof data.net_work_cost === "string" &&
+    "gross_work_cost" in data &&
+    typeof data.gross_work_cost === "string"
   );
 }
 
@@ -105,6 +117,8 @@ export function isWorksheet(data: unknown): data is Worksheet {
     typeof data.name === "string" &&
     "description" in data &&
     (data.description === null || typeof data.description === "string") &&
+    "customer_id" in data &&
+    typeof data.customer_id === "string" &&
     "project_id" in data &&
     typeof data.project_id === "string" &&
     "created_by_id" in data &&
@@ -131,7 +145,7 @@ export function isWorksheetResponse(data: unknown): data is WorksheetResponse {
 export function isUpdateWorksheetResponse(data: unknown): data is UpdateWorksheetResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isWorksheet,
     isFormError
   )
 }

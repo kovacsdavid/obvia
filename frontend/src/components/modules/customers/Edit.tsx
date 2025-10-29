@@ -25,9 +25,15 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import {useNavigate} from "react-router-dom";
 import {useFormError} from "@/hooks/use_form_error.ts";
 import {useParams} from "react-router";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {ConditionalCard} from "@/components/ui/card.tsx";
+import type {Customer} from "@/components/modules/customers/lib/interface.ts";
 
-export default function Edit() {
+interface EditProps {
+  showCard?: boolean;
+  onSuccess?: (customer: Customer) => void;
+}
+
+export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
   const [customerType, setCustomerType] = React.useState<string | undefined>("natural");
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
@@ -52,7 +58,14 @@ export default function Edit() {
     })).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          navigate("/vevo/lista");
+          if (
+            typeof onSuccess === "function"
+            && typeof response.payload.jsonData.data !== "undefined"
+          ) {
+            onSuccess(response.payload.jsonData.data);
+          } else {
+            navigate("/vevo/lista");
+          }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -62,7 +75,7 @@ export default function Edit() {
         unexpectedError();
       }
     });
-  }, [contactName, customerType, dispatch, email, id, name, navigate, phoneNumber, setErrors, status, unexpectedError]);
+  }, [contactName, customerType, dispatch, email, id, name, navigate, onSuccess, phoneNumber, setErrors, status, unexpectedError]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update({
@@ -126,84 +139,83 @@ export default function Edit() {
   return (
     <>
       <GlobalError error={errors}/>
-      <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Vevő</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
-            <Label htmlFor="customer_type">Típus</Label>
-            <Select
-              value={customerType}
-              onValueChange={val => setCustomerType(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="natural">Természetes személy</SelectItem>
-                <SelectItem value="legal">Jogi személy</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"customer_type"}/>
-            <Label htmlFor="name">{customerType === "legal" ? "Jogi személy neve" : "Név"}</Label>
-            <Input
-              id="name"
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-            />
-            <FieldError error={errors} field={"name"}/>
-            {customerType === "legal" ? (
-              <>
-                <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-                <Input
-                  id="contact_name"
-                  type="text"
-                  value={contactName}
-                  onChange={e => setContactName(e.target.value)}
-                />
-                <FieldError error={errors} field={"contact_name"}/>
-              </>
-            ) : null}
-            <Label htmlFor="email">{customerType === "legal" ? "Kapcsolattartó e-mail címe" : "E-mail cím"}</Label>
-            <Input
-              id="email"
-              type="text"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-            />
-            <FieldError error={errors} field={"email"}/>
-            <Label
-              htmlFor="phone_number">{customerType === "legal" ? "Kapcsolattartó telefonszáma" : "Telefonszám"}</Label>
-            <Input
-              id="phone_number"
-              type="text"
-              value={phoneNumber}
-              onChange={e => setPhoneNumber(e.target.value)}
-            />
-            <FieldError error={errors} field={"phone_number"}/>
+      <ConditionalCard
+        showCard={showCard}
+        title={`Vevő ${id ? "módosítás" : "létrehozás"}`}
+        className={"max-w-lg mx-auto"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <Label htmlFor="customer_type">Típus</Label>
+          <Select
+            value={customerType}
+            onValueChange={val => setCustomerType(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="natural">Természetes személy</SelectItem>
+              <SelectItem value="legal">Jogi személy</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"customer_type"}/>
+          <Label htmlFor="name">{customerType === "legal" ? "Jogi személy neve" : "Név"}</Label>
+          <Input
+            id="name"
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <FieldError error={errors} field={"name"}/>
+          {customerType === "legal" ? (
+            <>
+              <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
+              <Input
+                id="contact_name"
+                type="text"
+                value={contactName}
+                onChange={e => setContactName(e.target.value)}
+              />
+              <FieldError error={errors} field={"contact_name"}/>
+            </>
+          ) : null}
+          <Label htmlFor="email">{customerType === "legal" ? "Kapcsolattartó e-mail címe" : "E-mail cím"}</Label>
+          <Input
+            id="email"
+            type="text"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
+          <FieldError error={errors} field={"email"}/>
+          <Label
+            htmlFor="phone_number">{customerType === "legal" ? "Kapcsolattartó telefonszáma" : "Telefonszám"}</Label>
+          <Input
+            id="phone_number"
+            type="text"
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+          />
+          <FieldError error={errors} field={"phone_number"}/>
 
 
-            <Label htmlFor="status">Státusz</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue/>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="lead">Érdeklődő</SelectItem>
-                <SelectItem value="prospect">Lehetséges vevő</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"}/>
-            <Button type="submit">Létrehozás</Button>
-          </form>
-        </CardContent>
-      </Card>
+          <Label htmlFor="status">Státusz</Label>
+          <Select
+            value={status}
+            onValueChange={val => setStatus(val)}
+          >
+            <SelectTrigger className={"w-full"}>
+              <SelectValue/>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Aktív</SelectItem>
+              <SelectItem value="lead">Érdeklődő</SelectItem>
+              <SelectItem value="prospect">Lehetséges vevő</SelectItem>
+            </SelectContent>
+          </Select>
+          <FieldError error={errors} field={"status"}/>
+          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+        </form>
+      </ConditionalCard>
     </>
   );
 }

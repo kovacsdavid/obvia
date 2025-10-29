@@ -18,9 +18,7 @@
  */
 
 pub(crate) mod order_by;
-pub(crate) mod price;
-pub(crate) mod quantity;
+pub(crate) mod status;
 
 pub(crate) use order_by::OrderBy as InventoryOrderBy;
-pub(crate) use price::Price as InventoryPrice;
-pub(crate) use quantity::Quantity as InventoryQuantity;
+pub(crate) use status::Status as InventoryStatus;

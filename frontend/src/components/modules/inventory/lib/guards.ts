@@ -39,7 +39,7 @@ import type {
 export function isCreateInventoryResponse(data: unknown): data is CreateInventoryResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventory,
     isFormError,
   )
 }
@@ -58,18 +58,22 @@ export function isInventoryResolved(data: unknown): data is InventoryResolved {
     typeof data.warehouse_id === "string" &&
     "warehouse" in data &&
     typeof data.warehouse === "string" &&
-    "quantity" in data &&
-    typeof data.quantity === "number" &&
-    "price" in data &&
-    (data.price === null || typeof data.price === "string") &&
-    "tax_id" in data &&
-    typeof data.tax_id === "string" &&
-    "tax" in data &&
-    typeof data.tax === "string" &&
+    "quantity_on_hand" in data &&
+    typeof data.quantity_on_hand === "string" &&
+    "quantity_reserved" in data &&
+    typeof data.quantity_reserved === "string" &&
+    "quantity_available" in data &&
+    typeof data.quantity_available === "string" &&
+    "minimum_stock" in data &&
+    (data.minimum_stock === null || typeof data.minimum_stock === "string") &&
+    "maximum_stock" in data &&
+    (data.maximum_stock === null || typeof data.maximum_stock === "string") &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
     "currency" in data &&
     typeof data.currency === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "created_by" in data &&
@@ -115,14 +119,20 @@ export function isInventory(data: unknown): data is Inventory {
     typeof data.product_id === "string" &&
     "warehouse_id" in data &&
     typeof data.warehouse_id === "string" &&
-    "quantity" in data &&
-    typeof data.quantity === "number" &&
-    "price" in data &&
-    (data.price === null || typeof data.price === "string") &&
-    "tax_id" in data &&
-    typeof data.tax_id === "string" &&
+    "quantity_on_hand" in data &&
+    typeof data.quantity_on_hand === "string" &&
+    "quantity_reserved" in data &&
+    typeof data.quantity_reserved === "string" &&
+    "quantity_available" in data &&
+    typeof data.quantity_available === "string" &&
+    "minimum_stock" in data &&
+    ((data.minimum_stock) === null || typeof data.minimum_stock === "string") &&
+    "maximum_stock" in data &&
+    ((data.maximum_stock) === null || typeof data.maximum_stock === "string") &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
+    "status" in data &&
+    typeof data.status === "string" &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "created_at" in data &&
@@ -130,7 +140,7 @@ export function isInventory(data: unknown): data is Inventory {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
+    ((data.deleted_at) === null || typeof data.deleted_at === "string")
   );
 }
 
@@ -145,7 +155,7 @@ export function isInventoryResponse(data: unknown): data is InventoryResponse {
 export function isUpdateInventoryResponse(data: unknown): data is UpdateInventoryResponse {
   return isCommonResponse(
     data,
-    isSimpleMessageData,
+    isInventory,
     isFormError
   )
 }

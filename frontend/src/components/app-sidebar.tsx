@@ -50,7 +50,6 @@ import {
   NotebookPen,
   NotebookText,
   Package,
-  Tag,
   UsersRound,
   Warehouse
 } from "lucide-react";
@@ -125,14 +124,14 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             icon: <UsersRound/>,
             isActive: location.pathname.includes("/vevo/lista"),
           },
-          {
-            title: "Címkék",
-            url: "/cimke/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <Tag/>,
-            isActive: location.pathname.includes("/cimke/lista"),
-          },
+          //{
+          //  title: "Címkék",
+          //  url: "/cimke/lista",
+          //  private: true,
+          //  needActiveDatabase: true,
+          //  icon: <Tag/>,
+          //  isActive: location.pathname.includes("/cimke/lista"),
+          //},
           {
             title: "Raktárak",
             url: "/raktar/lista",

@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::value_object::ValueObject;
+use crate::common::types::Integer32;
+use crate::common::types::ValueObject;
 use crate::common::types::value_object::ValueObjectable;
 use crate::tenant::currencies::types::CurrencyCode;
-use crate::tenant::inventory::types::inventory::quantity::Quantity;
-use crate::tenant::inventory::types::inventory::{InventoryPrice, InventoryQuantity};
+use crate::tenant::inventory::types::inventory::InventoryStatus;
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
@@ -33,10 +33,10 @@ pub struct InventoryUserInputHelper {
     pub id: Option<String>,
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
-    pub quantity: String,
-    pub price: String,
-    pub tax_id: Uuid,
+    pub minimum_stock: String,
+    pub maximum_stock: String,
     pub currency_code: String,
+    pub status: String,
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -44,10 +44,10 @@ pub struct InventoryUserInputError {
     pub id: Option<String>,
     pub product_id: Option<String>,
     pub warehouse_id: Option<String>,
-    pub quantity: Option<String>,
-    pub price: Option<String>,
-    pub tax_id: Option<String>,
+    pub minimum_stock: Option<String>,
+    pub maximum_stock: Option<String>,
     pub currency_code: Option<String>,
+    pub status: Option<String>,
 }
 
 impl InventoryUserInputError {
@@ -55,10 +55,10 @@ impl InventoryUserInputError {
         self.id.is_none()
             && self.product_id.is_none()
             && self.warehouse_id.is_none()
-            && self.quantity.is_none()
-            && self.price.is_none()
-            && self.tax_id.is_none()
+            && self.minimum_stock.is_none()
+            && self.maximum_stock.is_none()
             && self.currency_code.is_none()
+            && self.status.is_none()
     }
 }
 
@@ -84,10 +84,10 @@ pub struct InventoryUserInput {
     pub id: Option<Uuid>,
     pub product_id: Uuid,
     pub warehouse_id: Uuid,
-    pub quantity: ValueObject<Quantity>,
-    pub price: Option<ValueObject<InventoryPrice>>,
-    pub tax_id: Uuid,
+    pub minimum_stock: Option<ValueObject<Integer32>>,
+    pub maximum_stock: Option<ValueObject<Integer32>>,
     pub currency_code: ValueObject<CurrencyCode>,
+    pub status: ValueObject<InventoryStatus>,
 }
 
 impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
@@ -104,11 +104,15 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
                 .ok(),
         };
 
-        let quantity = ValueObject::new(InventoryQuantity(value.quantity)).inspect_err(|e| {
-            error.quantity = Some(e.to_string());
-        });
+        let minimum_stock =
+            validate_optional_string!(Integer32(value.minimum_stock), error.minimum_stock);
 
-        let price = validate_optional_string!(InventoryPrice(value.price), error.price);
+        let maximum_stock =
+            validate_optional_string!(Integer32(value.maximum_stock), error.maximum_stock);
+
+        let status = ValueObject::new(InventoryStatus(value.status)).inspect_err(|e| {
+            error.status = Some(e.to_string());
+        });
 
         let currency_code = ValueObject::new(CurrencyCode(value.currency_code))
             .inspect_err(|e| error.currency_code = Some(e.to_string()));
@@ -118,10 +122,10 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
                 id,
                 product_id: value.product_id,
                 warehouse_id: value.warehouse_id,
-                quantity: quantity.map_err(|_| InventoryUserInputError::default())?,
-                price,
-                tax_id: value.tax_id,
+                minimum_stock,
+                maximum_stock,
                 currency_code: currency_code.map_err(|_| InventoryUserInputError::default())?,
+                status: status.map_err(|_| InventoryUserInputError::default())?,
             })
         } else {
             Err(error)

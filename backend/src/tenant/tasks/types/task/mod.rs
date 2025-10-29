@@ -20,13 +20,13 @@
 pub(crate) mod description;
 pub(crate) mod due_date;
 pub(crate) mod order_by;
+pub(crate) mod price;
 pub(crate) mod priority;
 pub(crate) mod status;
-pub(crate) mod title;
 
 pub(crate) use description::Description as TaskDescription;
 pub(crate) use due_date::DueDate as TaskDueDate;
 pub(crate) use order_by::OrderBy as TaskOrderBy;
+pub(crate) use price::Price as TaskPrice;
 pub(crate) use priority::Priority as TaskPriority;
 pub(crate) use status::Status as TaskStatus;
-pub(crate) use title::Title as TaskTitle;

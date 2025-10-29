@@ -17,26 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Title(pub String);
+pub struct Status(pub String);
 
-impl ValueObjectable for Title {
+impl ValueObjectable for Status {
     type DataType = String;
 
     fn validate(&self) -> Result<(), String> {
-        if self.0.trim().is_empty() {
-            return Err(String::from("A mező kitöltése kötelező"));
-        }
-        if self.0.len() <= 500 {
-            Ok(())
-        } else {
-            Err(String::from(
-                "A megnevezés nem lehet 500 karakternél hosszabb!",
-            ))
+        match self.0.as_str() {
+            "active" => Ok(()),
+            "fulfilled" => Ok(()),
+            "cancelled" => Ok(()),
+            "expired" => Ok(()),
+            _ => Err(String::from("Hibás foglalás státusz")),
         }
     }
 
@@ -49,7 +46,7 @@ impl ValueObjectable for Title {
     }
 }
 
-impl Display for Title {
+impl Display for Status {
     /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
     /// enabling a custom display of the struct or type.
     ///
@@ -65,7 +62,7 @@ impl Display for Title {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Title> {
+impl<'de> Deserialize<'de> for ValueObject<Status> {
     /// Custom deserialization function for a type that implements deserialization using Serde.
     ///
     /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
@@ -92,102 +89,71 @@ impl<'de> Deserialize<'de> for ValueObject<Title> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Title(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(Status(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
+    use crate::common::types::ValueObject;
 
     #[test]
-    fn test_valid_title() {
-        let title: ValueObject<Title> = serde_json::from_str(r#""Test Title""#).unwrap();
-        assert_eq!(title.extract().get_value(), "Test Title");
+    fn test_validate_valid_status() {
+        let valid_statuses = vec!["active", "fulfilled", "cancelled", "expired"];
+
+        for status in valid_statuses {
+            let status = Status(status.to_string());
+            assert_eq!(status.validate(), Ok(()));
+        }
     }
 
     #[test]
-    fn test_empty_title() {
-        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""""#);
-        assert!(title.is_err());
+    fn test_validate_invalid_status() {
+        let invalid_status = Status("invalid".to_string());
+        assert_eq!(
+            invalid_status.validate(),
+            Err("Hibás foglalás státusz".to_string())
+        );
     }
 
     #[test]
-    fn test_whitespace_only_title() {
-        let title: Result<ValueObject<Title>, _> = serde_json::from_str(r#""   ""#);
-        assert!(title.is_err());
+    fn test_get_value() {
+        let status = Status("active".to_string());
+        assert_eq!(status.get_value(), &"active".to_string());
     }
 
     #[test]
-    fn test_title_too_long() {
-        let long_title = "a".repeat(501);
-        let title: Result<ValueObject<Title>, _> =
-            serde_json::from_str(&format!(r#""{}""#, long_title));
-        assert!(title.is_err());
+    fn test_display() {
+        let status = Status("active".to_string());
+        assert_eq!(format!("{}", status), "active");
     }
 
     #[test]
-    fn test_title_max_length() {
-        let max_title = "a".repeat(500);
-        let title: ValueObject<Title> =
-            serde_json::from_str(&format!(r#""{}""#, max_title)).unwrap();
-        assert_eq!(title.extract().get_value().len(), 500);
+    fn test_deserialize_valid_status() {
+        let json = r#""active""#;
+        let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
+        assert_eq!(status.extract().get_value(), "active");
     }
 
     #[test]
-    fn test_title_display() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(format!("{}", title), "Test Title");
-    }
-
-    #[test]
-    fn test_title_validate_success() {
-        let title = Title("Valid Title".to_string());
-        assert!(title.validate().is_ok());
-    }
-
-    #[test]
-    fn test_title_validate_failure_empty() {
-        let title = Title("".to_string());
-        assert!(title.validate().is_err());
-    }
-
-    #[test]
-    fn test_title_validate_failure_too_long() {
-        let title = Title("a".repeat(501));
-        assert!(title.validate().is_err());
-    }
-
-    #[test]
-    fn test_title_get_value() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(title.get_value(), "Test Title");
-    }
-
-    #[test]
-    fn test_title_clone() {
-        let title = Title("Test Title".to_string());
-        let cloned = title.clone();
-        assert_eq!(title, cloned);
-    }
-
-    #[test]
-    fn test_title_debug() {
-        let title = Title("Test Title".to_string());
-        assert_eq!(format!("{:?}", title), r#"Title("Test Title")"#);
-    }
-
-    #[test]
-    fn test_title_serialization() {
-        let title = Title("Test Title".to_string());
-        let serialized = serde_json::to_string(&title).unwrap();
-        assert_eq!(serialized, r#""Test Title""#);
-    }
-
-    #[test]
-    fn test_title_deserialization_invalid_json() {
-        let result: Result<ValueObject<Title>, _> = serde_json::from_str("invalid");
+    fn test_deserialize_invalid_status() {
+        let json = r#""invalid""#;
+        let result: Result<ValueObject<Status>, _> = serde_json::from_str(json);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_serialize() {
+        let status = Status("active".to_string());
+        let serialized = serde_json::to_string(&status).unwrap();
+        assert_eq!(serialized, r#""active""#);
+    }
+
+    #[test]
+    fn test_clone() {
+        let status = Status("active".to_string());
+        let cloned = status.clone();
+        assert_eq!(status, cloned);
     }
 }

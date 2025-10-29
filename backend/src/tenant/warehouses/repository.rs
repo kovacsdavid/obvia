@@ -189,12 +189,14 @@ impl WarehousesRepository for PoolManagerWrapper {
         .bind(
             warehouse
                 .contact_name
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(
             warehouse
                 .contact_phone
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(warehouse.status.extract().get_value())
         .bind(sub)
@@ -226,12 +228,14 @@ impl WarehousesRepository for PoolManagerWrapper {
         .bind(
             warehouse
                 .contact_name
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(
             warehouse
                 .contact_phone
-                .map(|v| v.extract().get_value().clone()),
+                .as_ref()
+                .map(|d| d.extract().get_value().as_str()),
         )
         .bind(warehouse.status.extract().get_value())
         .bind(id)

@@ -64,8 +64,8 @@ export interface CustomerResolved {
   deleted_at: string | null,
 }
 
-export type CreateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
-export type UpdateCustomerResponse = CommonResponse<SimpleMessageData, FormError>;
+export type CreateCustomerResponse = CommonResponse<Customer, FormError>;
+export type UpdateCustomerResponse = CommonResponse<Customer, FormError>;
 export type DeleteCustomerResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type CustomerResolvedList = CustomerResolved[];
 export type CustomerResponse = CommonResponse<Customer, SimpleError>;

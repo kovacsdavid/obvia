@@ -29,7 +29,7 @@ import {Paginator} from "@/components/ui/pagination.tsx";
 import {deleteItem, list} from "@/components/modules/projects/lib/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type ProjectResolvedList} from "@/components/modules/projects/lib/interface.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMD, formatDateToYMDHMS} from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,7 +121,7 @@ export default function List() {
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/projekt/szerkesztes"}>
+              <Link to={"/projekt/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -204,7 +204,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/projekt/szerkesztes/${item.id}`}>
+                        <Link to={`/projekt/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>
@@ -219,8 +219,8 @@ export default function List() {
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{item.description ? item.description : ''}</TableCell>
                   <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.start_date ? formatDateToYMDHMS(item.start_date) : 'N/A'}</TableCell>
-                  <TableCell>{item.end_date ? formatDateToYMDHMS(item.end_date) : 'N/A'}</TableCell>
+                  <TableCell>{item.start_date ? formatDateToYMD(item.start_date) : 'N/A'}</TableCell>
+                  <TableCell>{item.end_date ? formatDateToYMD(item.end_date) : 'N/A'}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

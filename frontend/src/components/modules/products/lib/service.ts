@@ -107,7 +107,7 @@ export async function select_list(list: string, token: string | null): Promise<P
 }
 
 export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<ProductResolvedResponse>> {
-  return await fetch(`/api/products/get?uuid=${uuid}`, {
+  return await fetch(`/api/products/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

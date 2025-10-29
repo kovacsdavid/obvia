@@ -202,7 +202,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/raktar/szerkesztes/${item.id}`}>
+                        <Link to={`/raktar/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>

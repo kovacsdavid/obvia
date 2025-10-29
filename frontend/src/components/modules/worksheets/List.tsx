@@ -29,7 +29,7 @@ import {Paginator} from "@/components/ui/pagination.tsx";
 import {deleteItem, list} from "@/components/modules/worksheets/lib/slice.ts";
 import {type SimpleError} from "@/lib/interfaces/common.ts";
 import {type WorksheetResolvedList} from "@/components/modules/worksheets/lib/interface.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMDHMS, formatNumber} from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -213,7 +213,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/munkalap/szerkesztes/${item.id}`}>
+                        <Link to={`/munkalap/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>
@@ -229,10 +229,10 @@ export default function List() {
                   <TableCell>{item.description ? item.description : ''}</TableCell>
                   <TableCell>{item.customer}</TableCell>
                   <TableCell>{item.project}</TableCell>
-                  <TableCell>{item.net_material_cost}</TableCell>
-                  <TableCell>{item.gross_material_cost}</TableCell>
-                  <TableCell>{item.net_work_cost}</TableCell>
-                  <TableCell>{item.gross_work_cost}</TableCell>
+                  <TableCell>{formatNumber(item.net_material_cost)}</TableCell>
+                  <TableCell>{formatNumber(item.gross_material_cost)}</TableCell>
+                  <TableCell>{formatNumber(item.net_work_cost)}</TableCell>
+                  <TableCell>{formatNumber(item.gross_work_cost)}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>

@@ -178,7 +178,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       <GlobalError error={errors}/>
       <ConditionalCard
         showCard={showCard}
-        title={`Készletmozgás ${id ? "létrehozás" : "módosítás"}`}
+        title={`Készletmozgás ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
@@ -275,8 +275,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             <SelectContent>
               <SelectItem value="in">Bevétel</SelectItem>
               <SelectItem value="out">Kiadás</SelectItem>
-              <SelectItem value="adjustment">Korrekció</SelectItem>
-              <SelectItem value="transfer">Raktárak közötti mozgatás</SelectItem>
+              {/*<SelectItem value="adjustment">Korrekció</SelectItem>*/}
+              {/*<SelectItem value="transfer">Raktárak közötti mozgatás</SelectItem>*/}
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"movement_type"}/>

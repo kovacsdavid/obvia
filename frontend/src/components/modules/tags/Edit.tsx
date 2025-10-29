@@ -124,7 +124,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       <GlobalError error={errors}/>
       <ConditionalCard
         showCard={showCard}
-        title={`Címke ${id ? "létrehozás" : "módosítás"}`}
+        title={`Címke ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>

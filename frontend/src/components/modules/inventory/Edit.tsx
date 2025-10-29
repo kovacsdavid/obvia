@@ -227,7 +227,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       </Dialog>
       <ConditionalCard
         showCard={showCard}
-        title={`Leltár ${id ? "létrehozás" : "módosítás"}`}
+        title={`Leltár ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>

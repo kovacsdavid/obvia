@@ -26,7 +26,7 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import {useNavigate} from "react-router-dom";
 import {useParams} from "react-router";
 import {ConditionalCard} from "@/components/ui/card.tsx";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMD} from "@/lib/utils.ts";
 import type {Project} from "@/components/modules/projects/lib/interface.ts";
 
 interface EditProps {
@@ -108,8 +108,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               const data = response.payload.jsonData.data;
               setName(data.name);
               setDescription(data.description ?? "");
-              setStartDate(formatDateToYMDHMS(data.start_date ?? ""));
-              setEndDate(formatDateToYMDHMS(data.end_date ?? ""));
+              setStartDate(formatDateToYMD(data.start_date ?? ""));
+              setEndDate(formatDateToYMD(data.end_date ?? ""));
               setStatus(data.status ?? "");
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
@@ -138,7 +138,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       <GlobalError error={errors}/>
       <ConditionalCard
         showCard={showCard}
-        title={`Projekt ${id ? "létrehozás" : "módosítás"}`}
+        title={`Projekt ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>

@@ -204,7 +204,7 @@ export default function List() {
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/vevo/szerkesztes/${item.id}`}>
+                        <Link to={`/vevo/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>

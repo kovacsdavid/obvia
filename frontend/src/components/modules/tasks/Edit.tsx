@@ -28,7 +28,7 @@ import {useFormError} from "@/hooks/use_form_error.ts";
 import type {SelectOptionList} from "@/lib/interfaces/common.ts";
 import {useParams} from "react-router";
 import {ConditionalCard} from "@/components/ui/card.tsx";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMD} from "@/lib/utils.ts";
 import type {Task, TaskUserInput} from "./lib/interface";
 import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
 import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
@@ -202,12 +202,13 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setWorksheetId(data.worksheet_id);
                 setServiceId(data.service_id);
                 setCurrencyCode(data.currency_code);
+                setDescription(data.description ?? "")
                 quantity.setValue(data.quantity ? data.quantity.toString() : "");
                 price.setValue(data.price ? data.price.toString() : "");
                 setTaxId(data.tax_id);
                 setStatus(data.status);
                 setPriority(data.priority);
-                setDueDate(data.due_date ? formatDateToYMDHMS(data.due_date) : null);
+                setDueDate(data.due_date ? formatDateToYMD(data.due_date) : "");
               }
             } else if (typeof response.payload.jsonData?.error !== "undefined") {
               setErrors({message: response.payload.jsonData.error.message, fields: {}})
@@ -257,7 +258,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       </Dialog>
       <ConditionalCard
         showCard={showCard}
-        title={`Feladat ${id ? "létrehozás" : "módosítás"}`}
+        title={`Feladat ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>

@@ -27,7 +27,7 @@ import {Button, GlobalError} from "@/components/ui";
 import {Paginator} from "@/components/ui/pagination.tsx";
 import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
 import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Eye, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
+import {Eye, MoreHorizontal, Plus, Trash} from "lucide-react";
 import {formatDateToYMDHMS} from "@/lib/utils.ts";
 import {useParams} from "react-router";
 import {Link} from "react-router-dom";
@@ -158,11 +158,6 @@ export default function InventoryReservationsList() {
                         <Link to={`/leltar-foglalas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
-                          </DropdownMenuItem>
-                        </Link>
-                        <Link to={`/leltar-foglalas/szerkesztes/${item.id}`}>
-                          <DropdownMenuItem>
-                            <Pencil/> Szerkesztés
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator/>

@@ -25,7 +25,7 @@ import type {SimpleError} from "@/lib/interfaces/common.ts";
 import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
 import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
 import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {formatDateToYMDHMS, formatNumber} from "@/lib/utils.ts";
 import type {WorksheetResolved} from "@/components/modules/worksheets/lib/interface.ts";
 
 
@@ -118,7 +118,7 @@ export default function View() {
                       Nettó anyagköltség
                     </TableCell>
                     <TableCell>
-                      {data.net_material_cost}
+                      {formatNumber(data.net_material_cost)}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -126,7 +126,7 @@ export default function View() {
                       Bruttó anyagköltség
                     </TableCell>
                     <TableCell>
-                      {data.gross_material_cost}
+                      {formatNumber(data.gross_material_cost)}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -134,7 +134,7 @@ export default function View() {
                       Nettó munkadíj
                     </TableCell>
                     <TableCell>
-                      {data.net_work_cost}
+                      {formatNumber(data.net_work_cost)}
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -142,7 +142,7 @@ export default function View() {
                       Bruttó munkadíj
                     </TableCell>
                     <TableCell>
-                      {data.gross_work_cost}
+                      {formatNumber(data.gross_work_cost)}
                     </TableCell>
                   </TableRow>
                   <TableRow>

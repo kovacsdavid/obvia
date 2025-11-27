@@ -16,17 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
 #![forbid(unsafe_code)]
 mod common;
 mod manager;
 mod tenant;
 
 use crate::manager::app::config::AppConfig;
-use crate::manager::app::init::{
-    config, init_default_app, init_tenant_pools, migrate_all_tenant_dbs, migrate_main_db,
-    pg_pool_manager, subscriber,
-};
+use crate::manager::app::init::{init_default_app, init_subscriber};
 use axum::Router;
 use std::sync::Arc;
 use tokio::signal;
@@ -54,14 +50,9 @@ use tokio::signal;
 /// - The tenant connection pools cannot be initialized.
 /// - The database migrations fail.
 async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
-    subscriber();
-    let config = Arc::new(config()?);
-    let pool_manager = Arc::new(pg_pool_manager(config.clone()).await?);
-    let app = init_default_app(config.clone(), pool_manager.clone()).await?;
-    migrate_main_db(pool_manager.clone()).await?;
-    init_tenant_pools(pool_manager.clone()).await?;
-    migrate_all_tenant_dbs(pool_manager.clone()).await?;
-    Ok((config, app))
+    init_subscriber();
+    let app = init_default_app().await?;
+    Ok(app)
 }
 
 /// The entry point of the asynchronous Tokio application.

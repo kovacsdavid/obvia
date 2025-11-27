@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::RepositoryError;
-use crate::common::repository::PoolManagerWrapper;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -35,7 +35,7 @@ pub trait UsersRepository: Send + Sync {
 }
 
 #[async_trait]
-impl UsersRepository for PoolManagerWrapper {
+impl UsersRepository for PgPoolManager {
     async fn insert_from_manager(
         &self,
         user: User,
@@ -65,7 +65,7 @@ impl UsersRepository for PoolManagerWrapper {
         .bind(user.locale)
         .bind(user.invited_by)
         .bind(user.email_verified_at)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 }

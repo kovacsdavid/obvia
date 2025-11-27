@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::services::generate_string_csprng;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
@@ -30,8 +31,8 @@ use crate::manager::tenants::dto::{
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::TenantsOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -53,8 +54,12 @@ pub enum TenantsServiceError {
     Token(String),
 }
 
-impl IntoResponse for TenantsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for TenantsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             TenantsServiceError::AccessDenied => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -63,9 +68,17 @@ impl IntoResponse for TenantsServiceError {
                 GeneralError {
                     message: TenantsServiceError::AccessDenied.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -109,7 +122,7 @@ impl TenantsService {
     pub async fn create_self_hosted(
         claims: &Claims,
         payload: &CreateTenant,
-        tenants_module: Arc<TenantsModule>,
+        tenants_module: Arc<dyn TenantsModule>,
     ) -> Result<Tenant, TenantsServiceError> {
         let config: TenantDatabaseConfig = payload
             .clone()
@@ -117,22 +130,21 @@ impl TenantsService {
             .map_err(TenantsServiceError::Config)?;
 
         let pool = tenants_module
-            .connection_tester
+            .connection_tester()
             .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
             .await?;
 
         tenants_module
-            .connection_tester
+            .connection_tester()
             .is_empty_database(&pool)
             .await?;
 
         let tenant = tenants_module
-            .tenants_repo
+            .tenants_repo()
             .setup_self_hosted(payload.name.extract().get_value(), &config.into(), claims)
             .await?;
 
         tenants_module
-            .pool_manager
             .add_tenant_pool(
                 tenant.id,
                 &TenantDatabaseConfig::try_from(&tenant)
@@ -141,20 +153,18 @@ impl TenantsService {
             )
             .await?;
 
-        let tenant_pool = tenants_module.pool_manager.get_tenant_pool(tenant.id)?;
-
         tenants_module
-            .migrator
-            .migrate_tenant_db(&tenant_pool)
+            .migrator()
+            .migrate_tenant_db(tenant.id)
             .await?;
 
         let manager_user = tenants_module
-            .manager_user_repo
+            .manager_user_repo()
             .get_by_uuid(claims.sub())
             .await?;
 
         tenants_module
-            .tenant_user_repo
+            .tenant_user_repo()
             .insert_from_manager(manager_user.into(), tenant.id)
             .await?;
 
@@ -205,12 +215,16 @@ impl TenantsService {
     pub async fn create_managed(
         claims: &Claims,
         payload: &CreateTenant,
-        tenants_module: Arc<TenantsModule>,
+        tenants_module: Arc<dyn TenantsModule>,
     ) -> Result<Tenant, TenantsServiceError> {
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
-            host: tenants_module.config.default_tenant_database().host.clone(),
-            port: tenants_module.config.default_tenant_database().port,
+            host: tenants_module
+                .config()
+                .default_tenant_database()
+                .host
+                .clone(),
+            port: tenants_module.config().default_tenant_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
             password: generate_string_csprng(40),
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
@@ -219,38 +233,35 @@ impl TenantsService {
         };
 
         let tenant = tenants_module
-            .tenants_repo
+            .tenants_repo()
             .setup_managed(
                 uuid,
                 payload.name.extract().get_value(),
                 &db_config,
                 claims,
-                tenants_module.config.clone(),
+                tenants_module.config().clone(),
             )
             .await?;
 
         tenants_module
-            .pool_manager
             .add_tenant_pool(
                 tenant.id,
                 &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
             )
             .await?;
 
-        let tenant_pool = tenants_module.pool_manager.get_tenant_pool(tenant.id)?;
-
         tenants_module
-            .migrator
-            .migrate_tenant_db(&tenant_pool)
+            .migrator()
+            .migrate_tenant_db(tenant.id)
             .await?;
 
         let manager_user = tenants_module
-            .manager_user_repo
+            .manager_user_repo()
             .get_by_uuid(claims.sub())
             .await?;
 
         tenants_module
-            .tenant_user_repo
+            .tenant_user_repo()
             .insert_from_manager(manager_user.into(), tenant.id)
             .await?;
 

@@ -19,8 +19,8 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::dto::TagUserInput;
 use crate::tenant::tags::model::{Tag, TagResolved};
@@ -57,7 +57,7 @@ pub trait TagsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl TagsRepository for PoolManagerWrapper {
+impl TagsRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Tag> {
         Ok(sqlx::query_as::<_, Tag>(
             r#"
@@ -68,7 +68,7 @@ impl TagsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -94,7 +94,7 @@ impl TagsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_all_paged(
@@ -105,7 +105,7 @@ impl TagsRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TagResolved>)> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tags WHERE deleted_at IS NULL")
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -135,7 +135,7 @@ impl TagsRepository for PoolManagerWrapper {
         let tags = sqlx::query_as::<_, TagResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -163,7 +163,7 @@ impl TagsRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -188,7 +188,7 @@ impl TagsRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -202,7 +202,7 @@ impl TagsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
@@ -27,8 +28,8 @@ use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::ProductOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -49,8 +50,12 @@ pub enum ProductsServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for ProductsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for ProductsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             ProductsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -59,9 +64,17 @@ impl IntoResponse for ProductsServiceError {
                 GeneralError {
                     message: ProductsServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -89,7 +102,7 @@ impl ProductsService {
     pub async fn create(
         claims: &Claims,
         payload: &ProductUserInput,
-        products_module: Arc<ProductsModule>,
+        products_module: Arc<dyn ProductsModule>,
     ) -> ProductsServiceResult<Product> {
         let mut product = payload.clone();
 
@@ -98,7 +111,7 @@ impl ProductsService {
         } else {
             Some(
                 products_module
-                    .products_repo
+                    .products_repo()
                     .insert_unit_of_measure(
                         product
                             .new_unit_of_measure
@@ -118,7 +131,7 @@ impl ProductsService {
         };
 
         Ok(products_module
-            .products_repo
+            .products_repo()
             .insert(
                 product,
                 claims.sub(),
@@ -131,11 +144,11 @@ impl ProductsService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        products_module: Arc<ProductsModule>,
+        products_module: Arc<dyn ProductsModule>,
     ) -> ProductsServiceResult<Vec<SelectOption>> {
         match ProductsSelectLists::from_str(select_list)? {
             ProductsSelectLists::UnitsOfMeasure => Ok(products_module
-                .products_repo
+                .products_repo()
                 .get_units_of_measure_select_list(
                     claims
                         .active_tenant()

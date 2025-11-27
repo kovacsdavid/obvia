@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::customers::repository::CustomersRepository;
 use std::sync::Arc;
 
@@ -30,64 +29,38 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_customers_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> CustomersModuleBuilder {
-    CustomersModuleBuilder::default()
-        .config(config)
-        .customers_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait CustomersModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
 }
 
-pub struct CustomersModule {
-    pub config: Arc<AppConfig>,
-    pub customers_repo: Arc<dyn CustomersRepository>,
-}
-
-pub struct CustomersModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub customers_repo: Option<Arc<dyn CustomersRepository>>,
-}
-
-impl CustomersModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            customers_repo: None,
-        }
-    }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
-    }
-    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRepository>) -> Self {
-        self.customers_repo = Some(customers_repo);
-        self
-    }
-    pub fn build(self) -> Result<CustomersModule, String> {
-        Ok(CustomersModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            customers_repo: self
-                .customers_repo
-                .ok_or("customers_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for CustomersModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+impl CustomersModule for DefaultAppState {
+    fn customers_repo(&self) -> Arc<dyn CustomersRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for CustomersModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub CustomersModule {}
+        impl ConfigProvider for CustomersModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for CustomersModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl CustomersModule for CustomersModule {
+            fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+        }
+    );
 }

@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
@@ -26,8 +27,8 @@ use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -41,8 +42,12 @@ pub enum WarehousesServiceError {
     Unauthorized,
 }
 
-impl IntoResponse for WarehousesServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for WarehousesServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -51,9 +56,17 @@ impl IntoResponse for WarehousesServiceError {
                 GeneralError {
                     message: WarehousesServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -66,10 +79,10 @@ impl WarehousesService {
     pub async fn try_create(
         claims: &Claims,
         payload: &WarehouseUserInput,
-        warehouses_module: Arc<WarehousesModule>,
+        warehouses_module: Arc<dyn WarehousesModule>,
     ) -> WarehousesServiceResult<Warehouse> {
         Ok(warehouses_module
-            .warehouses_repo
+            .warehouses_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),

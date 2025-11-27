@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::warehouses::repository::WarehousesRepository;
 use std::sync::Arc;
 
@@ -30,64 +29,38 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_warehouses_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> WarehousesModuleBuilder {
-    WarehousesModuleBuilder::default()
-        .config(config)
-        .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait WarehousesModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
 }
 
-pub struct WarehousesModule {
-    pub config: Arc<AppConfig>,
-    pub warehouses_repo: Arc<dyn WarehousesRepository>,
-}
-
-pub struct WarehousesModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
-}
-
-impl WarehousesModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            warehouses_repo: None,
-        }
-    }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
-    }
-    pub fn warehouses_repo(mut self, warehouses_repo: Arc<dyn WarehousesRepository>) -> Self {
-        self.warehouses_repo = Some(warehouses_repo);
-        self
-    }
-    pub fn build(self) -> Result<WarehousesModule, String> {
-        Ok(WarehousesModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            warehouses_repo: self
-                .warehouses_repo
-                .ok_or("warehouses_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for WarehousesModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+impl WarehousesModule for DefaultAppState {
+    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for WarehousesModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub WarehousesModule {}
+        impl ConfigProvider for WarehousesModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for WarehousesModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl WarehousesModule for WarehousesModule {
+            fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+        }
+    );
 }

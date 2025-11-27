@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -26,8 +27,8 @@ use crate::tenant::taxes::dto::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::taxes::types::TaxOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -48,8 +49,12 @@ pub enum TaxesServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for TaxesServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for TaxesServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             TaxesServiceError::Unauthorized | TaxesServiceError::TaxExists => {
                 FriendlyError::user_facing(
@@ -60,9 +65,17 @@ impl IntoResponse for TaxesServiceError {
                         message: self.to_string(),
                     },
                 )
-                .into_response()
             }
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -185,11 +198,11 @@ impl TaxesService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        taxes_module: Arc<TaxesModule>,
+        taxes_module: Arc<dyn TaxesModule>,
     ) -> TaxesServiceResult<Vec<SelectOption>> {
         match TaxesSelectLists::from_str(select_list)? {
             TaxesSelectLists::Countries => Ok(taxes_module
-                .address_repo
+                .address_repo()
                 .get_all_countries_select_list_items(
                     claims
                         .active_tenant()

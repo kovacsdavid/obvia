@@ -20,8 +20,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
@@ -66,7 +66,7 @@ pub trait CustomersRepository: Send + Sync {
 }
 
 #[async_trait]
-impl CustomersRepository for PoolManagerWrapper {
+impl CustomersRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer> {
         Ok(sqlx::query_as::<_, Customer>(
             r#"
@@ -77,7 +77,7 @@ impl CustomersRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -108,7 +108,7 @@ impl CustomersRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -121,7 +121,7 @@ impl CustomersRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -156,7 +156,7 @@ impl CustomersRepository for PoolManagerWrapper {
         let customers = sqlx::query_as::<_, CustomerResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -176,7 +176,7 @@ impl CustomersRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT customers.id::VARCHAR as value, customers.name as title FROM customers WHERE deleted_at IS NULL ORDER BY name",
         )
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?)
     }
 
@@ -207,7 +207,7 @@ impl CustomersRepository for PoolManagerWrapper {
         .bind(customer.status.extract().get_value())
         .bind(customer.customer_type.extract().get_value())
         .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -250,7 +250,7 @@ impl CustomersRepository for PoolManagerWrapper {
         .bind(customer.status.extract().get_value())
         .bind(customer.customer_type.extract().get_value())
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -264,7 +264,7 @@ impl CustomersRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

@@ -21,6 +21,7 @@ use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SuccessResponseBuilder,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -72,31 +73,46 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<TenantsModule>>,
+    State(tenants_module): State<Arc<dyn TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
     if user_input.is_self_hosted() {
-        Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        let result =
+            match TenantsService::create_self_hosted(&claims, &user_input, tenants_module.clone())
+                .await
+            {
+                Ok(r) => r,
+                Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
+            };
+
+        match SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
-            .data(PublicTenantSelfHosted::from(
-                TenantsService::create_self_hosted(&claims, &user_input, tenants_module)
-                    .await
-                    .map_err(|e| e.into_response())?,
-            ))
+            .data(PublicTenantSelfHosted::from(result))
             .build()
-            .map_err(|e| e.into_response())?
-            .into_response())
+        {
+            Ok(r) => Ok(r.into_response()),
+            Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
+        }
     } else {
-        Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+        let result = match TenantsService::create_managed(
+            &claims,
+            &user_input,
+            tenants_module.clone(),
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
+        };
+
+        match SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
-            .data(PublicTenantManaged::from(
-                TenantsService::create_managed(&claims, &user_input, tenants_module)
-                    .await
-                    .map_err(|e| e.into_response())?,
-            ))
+            .data(PublicTenantManaged::from(result))
             .build()
-            .map_err(|e| e.into_response())?
-            .into_response())
+        {
+            Ok(r) => Ok(r.into_response()),
+            Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
+        }
     }
 }
 
@@ -124,7 +140,7 @@ pub async fn create(
 /// implementation is pending.
 pub async fn get(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_tenants_module): State<Arc<TenantsModule>>,
+    State(_tenants_module): State<Arc<dyn TenantsModule>>,
 ) -> Response {
     todo!();
 }
@@ -138,17 +154,17 @@ pub async fn get(
 /// # Parameters
 /// - `AuthenticatedUser(_claims)`: The `_claims` represent the authentication
 ///   claims of the user. Currently unused.
-/// - `State(_tenants_module)`: Shared application state of type `Arc<TenantsModule>`,
+/// - `State(_tenants_module)`: Shared application state of type `Arc<dyn TenantsModule>`,
 ///   used to facilitate the interaction with the data layer.
 ///
 /// # Returns
 /// - `Response`: An HTTP response that will eventually return the results of listing tenants or an appropriate error response if issues occur.
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<TenantsModule>>,
+    State(tenants_module): State<Arc<dyn TenantsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = TenantsService::get_paged_list(
+    let (meta, data) = match TenantsService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(TenantsOrderBy("name".to_string()))
@@ -158,18 +174,23 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        tenants_module.tenants_repo.clone(),
+        tenants_module.tenants_repo(),
     )
     .await
-    .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
+    }
 }
 
 /// Activates a tenant for the authenticated user.
@@ -208,41 +229,43 @@ pub async fn list(
 /// - `Internal Error`: If an unexpected error occurs, such as database or repository failures.
 pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<TenantsModule>>,
+    State(tenants_module): State<Arc<dyn TenantsModule>>,
     ValidJson(payload): ValidJson<TenantActivateRequest>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TenantsService::activate(
+        &payload,
+        &claims,
+        tenants_module.tenants_repo(),
+        tenants_module.config(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TenantsService::activate(
-                &payload,
-                &claims,
-                tenants_module.tenants_repo.clone(),
-                tenants_module.config.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::manager::app::config::{
-        AppConfigBuilder, DatabaseConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
+        AppConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
     };
-    use crate::manager::app::database::{
-        MockConnectionTester, MockDatabaseMigrator, MockPgPoolManagerTrait,
-    };
+    use crate::manager::app::database::{MockConnectionTester, MockDatabaseMigrator};
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
-    use crate::manager::tenants::TenantsModuleBuilder;
     use crate::manager::tenants::dto::NewTokenResponse;
     use crate::manager::tenants::model::{Tenant, UserTenant};
     use crate::manager::tenants::repository::MockTenantsRepository;
+    use crate::manager::tenants::tests::MockTenantsModule;
     use crate::manager::users::model::User as ManagerUser;
     use crate::manager::users::repository::MockUsersRepository as MockManagerUserRepository;
     use crate::tenant::users::repository::MockUsersRepository as MockTenantUserRepository;
@@ -259,22 +282,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_managed_success() {
-        let mut pool_manager_mock = MockPgPoolManagerTrait::new();
-        pool_manager_mock
-            .expect_add_tenant_pool()
-            .times(1)
-            .returning(|tenant_id, _| Ok(tenant_id));
-        pool_manager_mock
-            .expect_get_tenant_pool()
-            .times(1)
-            .returning(|_| {
-                let database_config = DatabaseConfigBuilder::default().build().unwrap();
-                Ok(PgPoolOptions::new()
-                    .connect_lazy(&database_config.url())
-                    .unwrap())
-            });
-        let pool_manager_mock = Arc::new(pool_manager_mock);
-
         let new_tenant_id = Uuid::new_v4();
         let now = Local::now();
 
@@ -327,7 +334,6 @@ mod tests {
             });
 
         let mut tenant_user_repo = MockTenantUserRepository::new();
-
         tenant_user_repo
             .expect_insert_from_manager()
             .times(1)
@@ -379,16 +385,35 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let tenants_module = TenantsModuleBuilder::default()
-            .pool_manager(pool_manager_mock.clone())
-            .config(config.clone())
-            .tenants_repo(Arc::new(tenants_repo))
-            .tenant_user_repo(Arc::new(tenant_user_repo))
-            .manager_user_repo(Arc::new(manager_user_repo))
-            .migrator(Arc::new(migrator))
-            .connection_tester(Arc::new(connection_tester))
-            .build()
-            .unwrap();
+        let tenants_repo = Arc::new(tenants_repo);
+        let tenant_user_repo = Arc::new(tenant_user_repo);
+        let manager_user_repo = Arc::new(manager_user_repo);
+        let migrator = Arc::new(migrator);
+        let connection_tester = Arc::new(connection_tester);
+
+        let mut tenants_module = MockTenantsModule::new();
+        tenants_module
+            .expect_config()
+            .returning(move || config.clone());
+        tenants_module
+            .expect_tenants_repo()
+            .returning(move || tenants_repo.clone());
+        tenants_module
+            .expect_tenant_user_repo()
+            .returning(move || tenant_user_repo.clone());
+        tenants_module
+            .expect_manager_user_repo()
+            .returning(move || manager_user_repo.clone());
+        tenants_module
+            .expect_migrator()
+            .returning(move || migrator.clone());
+        tenants_module
+            .expect_connection_tester()
+            .returning(move || connection_tester.clone());
+        tenants_module
+            .expect_add_tenant_pool()
+            .times(1)
+            .returning(|tenant_id, _| Ok(tenant_id));
 
         let app = Router::new().nest(
             "/api",
@@ -431,22 +456,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_call_endpoint_with_invalid_bearer() {
-        let mut pool_manager_mock = MockPgPoolManagerTrait::new();
-        pool_manager_mock
-            .expect_add_tenant_pool()
-            .times(0)
-            .returning(|tenant_id, _| Ok(tenant_id));
-        pool_manager_mock
-            .expect_get_tenant_pool()
-            .times(0)
-            .returning(|_| {
-                let database_config = DatabaseConfigBuilder::default().build().unwrap();
-                Ok(PgPoolOptions::new()
-                    .connect_lazy(&database_config.url())
-                    .unwrap())
-            });
-        let pool_manager_mock = Arc::new(pool_manager_mock);
-
         let mut repo = MockTenantsRepository::new();
         repo.expect_setup_managed()
             .times(0)
@@ -515,14 +524,23 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let tenants_module = TenantsModuleBuilder::default()
-            .pool_manager(pool_manager_mock.clone())
-            .config(config.clone())
-            .tenants_repo(Arc::new(repo))
-            .migrator(Arc::new(migrator))
-            .connection_tester(Arc::new(connection_tester))
-            .build()
-            .unwrap();
+        let repo = Arc::new(repo);
+        let migrator = Arc::new(migrator);
+        let connection_tester = Arc::new(connection_tester);
+
+        let mut tenants_module = MockTenantsModule::new();
+        tenants_module
+            .expect_config()
+            .returning(move || config.clone());
+        tenants_module
+            .expect_tenants_repo()
+            .returning(move || repo.clone());
+        tenants_module
+            .expect_migrator()
+            .returning(move || migrator.clone());
+        tenants_module
+            .expect_connection_tester()
+            .returning(move || connection_tester.clone());
 
         let app = Router::new().nest(
             "/api",
@@ -535,22 +553,6 @@ mod tests {
     }
     #[tokio::test]
     async fn test_create_self_hosted_success() {
-        let mut pool_manager_mock = MockPgPoolManagerTrait::new();
-        pool_manager_mock
-            .expect_add_tenant_pool()
-            .times(1)
-            .returning(|tenant_id, _| Ok(tenant_id));
-        pool_manager_mock
-            .expect_get_tenant_pool()
-            .times(1)
-            .returning(|_| {
-                let database_config = DatabaseConfigBuilder::default().build().unwrap();
-                Ok(PgPoolOptions::new()
-                    .connect_lazy(&database_config.url())
-                    .unwrap())
-            });
-        let pool_manager_mock = Arc::new(pool_manager_mock);
-
         let new_tenant_id = Uuid::new_v4();
         let now = Local::now();
 
@@ -671,16 +673,35 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let tenants_module = TenantsModuleBuilder::default()
-            .pool_manager(pool_manager_mock.clone())
-            .config(config.clone())
-            .tenants_repo(Arc::new(tenants_repo))
-            .tenant_user_repo(Arc::new(tenant_user_repo))
-            .manager_user_repo(Arc::new(manager_user_repo))
-            .migrator(Arc::new(migrator))
-            .connection_tester(Arc::new(connection_tester))
-            .build()
-            .unwrap();
+        let tenants_repo = Arc::new(tenants_repo);
+        let tenant_user_repo = Arc::new(tenant_user_repo);
+        let manager_user_repo = Arc::new(manager_user_repo);
+        let migrator = Arc::new(migrator);
+        let connection_tester = Arc::new(connection_tester);
+
+        let mut tenants_module = MockTenantsModule::new();
+        tenants_module
+            .expect_config()
+            .returning(move || config.clone());
+        tenants_module
+            .expect_tenants_repo()
+            .returning(move || tenants_repo.clone());
+        tenants_module
+            .expect_tenant_user_repo()
+            .returning(move || tenant_user_repo.clone());
+        tenants_module
+            .expect_manager_user_repo()
+            .returning(move || manager_user_repo.clone());
+        tenants_module
+            .expect_migrator()
+            .returning(move || migrator.clone());
+        tenants_module
+            .expect_connection_tester()
+            .returning(move || connection_tester.clone());
+        tenants_module
+            .expect_add_tenant_pool()
+            .times(1)
+            .returning(|tenant_id, _| Ok(tenant_id));
 
         let app = Router::new().nest(
             "/api",
@@ -787,14 +808,24 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let tenants_module = TenantsModuleBuilder::default()
-            .pool_manager(Arc::new(MockPgPoolManagerTrait::new()))
-            .config(config.clone())
-            .tenants_repo(Arc::new(repo))
-            .migrator(Arc::new(migrator))
-            .connection_tester(Arc::new(connection_tester))
-            .build()
-            .unwrap();
+        let repo = Arc::new(repo);
+        let migrator = Arc::new(migrator);
+        let connection_tester = Arc::new(connection_tester);
+        let config_clone = config.clone();
+
+        let mut tenants_module = MockTenantsModule::new();
+        tenants_module
+            .expect_config()
+            .returning(move || config_clone.clone());
+        tenants_module
+            .expect_tenants_repo()
+            .returning(move || repo.clone());
+        tenants_module
+            .expect_migrator()
+            .returning(move || migrator.clone());
+        tenants_module
+            .expect_connection_tester()
+            .returning(move || connection_tester.clone());
 
         let app = Router::new().nest(
             "/api",

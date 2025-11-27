@@ -22,6 +22,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,105 +41,127 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(projects_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ProjectsService::get_resolved_by_id(
+        &claims,
+        &payload,
+        projects_module.projects_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ProjectsService::get_resolved_by_id(
-                &claims,
-                &payload,
-                projects_module.projects_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(projects_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match ProjectsService::get(&claims, &payload, projects_module.projects_repo()).await {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ProjectsService::get(&claims, &payload, projects_module.projects_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(projects_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ProjectsService::update(
+        &claims,
+        &user_input,
+        projects_module.projects_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ProjectsService::update(&claims, &user_input, projects_module.projects_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    ProjectsService::delete(&claims, &payload, inventory_module.projects_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match ProjectsService::delete(&claims, &payload, projects_module.projects_repo()).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A projekt törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(projects_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     UserInput(user_input, _): UserInput<ProjectUserInput, ProjectUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ProjectsService::create(&claims, &user_input, projects_module.clone()).await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            ProjectsService::create(&claims, &user_input, projects_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(projects_module): State<Arc<ProjectsModule>>,
+    State(projects_module): State<Arc<dyn ProjectsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = ProjectsService::get_paged_list(
+    let (meta, data) = match ProjectsService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(ProjectOrderBy("name".to_string()))
@@ -148,15 +171,21 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        projects_module.projects_repo.clone(),
+        projects_module.projects_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::new()
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => return Err(e.into_friendly_error(projects_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(projects_module).await.into_response()),
+    }
 }

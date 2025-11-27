@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -26,8 +27,8 @@ use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::services::types::service::ServiceOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -48,8 +49,12 @@ pub enum ServicesServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for ServicesServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for ServicesServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             ServicesServiceError::Unauthorized | ServicesServiceError::ServiceExists => {
                 FriendlyError::user_facing(
@@ -60,9 +65,17 @@ impl IntoResponse for ServicesServiceError {
                         message: self.to_string(),
                     },
                 )
-                .into_response()
             }
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -187,11 +200,11 @@ impl ServicesService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        services_module: Arc<ServicesModule>,
+        services_module: Arc<dyn ServicesModule>,
     ) -> ServicesServiceResult<Vec<SelectOption>> {
         match ServicesSelectLists::from_str(select_list)? {
             ServicesSelectLists::Currencies => Ok(services_module
-                .currencies_repo
+                .currencies_repo()
                 .get_all_countries_select_list_items(
                     claims
                         .active_tenant()
@@ -199,7 +212,7 @@ impl ServicesService {
                 )
                 .await?),
             ServicesSelectLists::Taxes => Ok(services_module
-                .taxes_repo
+                .taxes_repo()
                 .get_select_list_items(
                     claims
                         .active_tenant()

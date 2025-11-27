@@ -43,6 +43,9 @@ use std::str::FromStr;
 /// * `auth` - Stores the details for authentication settings, including tokens, secret keys, etc.
 ///   Represented by the `AuthConfig` struct.
 ///
+/// * `mail` - Stores the details for mailing settings like smtp server, user, password etc.
+///   Represented by the `MailConfig` struct.
+///
 /// This struct is intended to be used as the central configuration hub for initializing
 /// necessary dependencies of the application.
 #[derive(Debug, Clone, Deserialize)]
@@ -51,6 +54,7 @@ pub struct AppConfig {
     main_database: BasicDatabaseConfig,
     default_tenant_database: BasicDatabaseConfig,
     auth: AuthConfig,
+    mail: MailConfig,
 }
 
 /// A configuration struct for defining server settings.
@@ -423,6 +427,9 @@ impl AppConfig {
     pub fn auth(&self) -> &AuthConfig {
         &self.auth
     }
+    pub fn mail(&self) -> &MailConfig {
+        &self.mail
+    }
 }
 
 impl ServerConfig {
@@ -456,6 +463,104 @@ impl AuthConfig {
     }
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct MailConfig {
+    smtp_host: String,
+    smtp_user: String,
+    smtp_passwd: String,
+    default_from: String,
+    default_from_name: String,
+    default_notification_email: String,
+}
+
+impl MailConfig {
+    pub fn smtp_host(&self) -> &str {
+        &self.smtp_host
+    }
+    pub fn smtp_user(&self) -> &str {
+        &self.smtp_user
+    }
+    pub fn smtp_passwd(&self) -> &str {
+        &self.smtp_passwd
+    }
+    pub fn default_from(&self) -> &str {
+        &self.default_from
+    }
+    pub fn default_from_name(&self) -> &str {
+        &self.default_from_name
+    }
+    pub fn default_notification_email(&self) -> &str {
+        &self.default_notification_email
+    }
+}
+
+pub struct MailConfigBuilder {
+    smtp_host: Option<String>,
+    smtp_user: Option<String>,
+    smtp_passwd: Option<String>,
+    default_from: Option<String>,
+    default_from_name: Option<String>,
+    default_notification_email: Option<String>,
+}
+
+impl MailConfigBuilder {
+    pub fn new() -> Self {
+        MailConfigBuilder {
+            smtp_host: None,
+            smtp_user: None,
+            smtp_passwd: None,
+            default_from: None,
+            default_from_name: None,
+            default_notification_email: None,
+        }
+    }
+    pub fn smtp_host(mut self, smtp_host: String) -> Self {
+        self.smtp_host = Some(smtp_host);
+        self
+    }
+    pub fn smtp_user(mut self, smtp_user: String) -> Self {
+        self.smtp_user = Some(smtp_user);
+        self
+    }
+    pub fn smtp_passwd(mut self, smtp_passwd: String) -> Self {
+        self.smtp_passwd = Some(smtp_passwd);
+        self
+    }
+    pub fn default_from(mut self, default_from: String) -> Self {
+        self.default_from = Some(default_from);
+        self
+    }
+    pub fn default_from_name(mut self, default_from_name: String) -> Self {
+        self.default_from_name = Some(default_from_name);
+        self
+    }
+    pub fn default_notification_email(mut self, default_notification_email: String) -> Self {
+        self.default_notification_email = Some(default_notification_email);
+        self
+    }
+    pub fn build(self) -> Result<MailConfig, String> {
+        Ok(MailConfig {
+            smtp_host: self.smtp_host.ok_or("smtp_host is required")?,
+            smtp_user: self.smtp_user.ok_or("smtp_user is required")?,
+            smtp_passwd: self.smtp_passwd.ok_or("smtp_passwd is required")?,
+            default_from: self.default_from.ok_or("default_from is required")?,
+            default_from_name: self
+                .default_from_name
+                .ok_or("default_from_name is required")?,
+            default_notification_email: self
+                .default_notification_email
+                .ok_or("default_notification_email is required")?,
+        })
+    }
+}
+
+#[cfg(not(test))]
+impl Default for MailConfigBuilder {
+    fn default() -> Self {
+        MailConfigBuilder::new()
+    }
+}
+
 /// `AppConfigBuilder` is a builder struct used to configure and construct
 /// an application configuration with various components such as server,
 /// databases, and authentication.
@@ -486,6 +591,7 @@ pub struct AppConfigBuilder {
     main_database: Option<BasicDatabaseConfig>,
     default_tenant_database: Option<BasicDatabaseConfig>,
     auth: Option<AuthConfig>,
+    mail: Option<MailConfig>,
 }
 
 impl AppConfigBuilder {
@@ -500,6 +606,7 @@ impl AppConfigBuilder {
             main_database: None,
             default_tenant_database: None,
             auth: None,
+            mail: None,
         }
     }
     ///
@@ -568,6 +675,11 @@ impl AppConfigBuilder {
         self.auth = Some(auth);
         self
     }
+
+    pub fn mail(mut self, mail: MailConfig) -> Self {
+        self.mail = Some(mail);
+        self
+    }
     /// Builds the `AppConfig` instance using the provided values in the builder object.
     ///
     /// This method finalizes the configuration setup and ensures all required fields are present.
@@ -595,6 +707,7 @@ impl AppConfigBuilder {
                 .default_tenant_database
                 .ok_or("default_tenant_database")?,
             auth: self.auth.ok_or("auth is required")?,
+            mail: self.mail.ok_or("mail is required")?,
         })
     }
 }
@@ -1125,6 +1238,19 @@ mod tests {
         }
     }
 
+    impl Default for MailConfigBuilder {
+        fn default() -> Self {
+            MailConfigBuilder {
+                smtp_host: Some(String::from("localhost")),
+                smtp_user: Some(String::from("noreply@example.com")),
+                smtp_passwd: Some(String::from("secret")),
+                default_from: Some(String::from("noreply@example.com")),
+                default_from_name: Some(String::from("Example")),
+                default_notification_email: Some(String::from("admin@example.com")),
+            }
+        }
+    }
+
     impl Default for AppConfigBuilder {
         fn default() -> Self {
             AppConfigBuilder {
@@ -1132,6 +1258,7 @@ mod tests {
                 main_database: Some(DatabaseConfigBuilder::default().build().unwrap()),
                 default_tenant_database: Some(DatabaseConfigBuilder::default().build().unwrap()),
                 auth: Some(AuthConfigBuilder::default().build().unwrap()),
+                mail: Some(MailConfigBuilder::default().build().unwrap()),
             }
         }
     }

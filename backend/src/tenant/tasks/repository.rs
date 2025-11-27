@@ -19,8 +19,8 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
@@ -58,7 +58,7 @@ pub trait TasksRepository: Send + Sync {
 }
 
 #[async_trait]
-impl TasksRepository for PoolManagerWrapper {
+impl TasksRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task> {
         Ok(sqlx::query_as::<_, Task>(
             r#"
@@ -69,7 +69,7 @@ impl TasksRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -110,7 +110,7 @@ impl TasksRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_all_paged(
@@ -121,7 +121,7 @@ impl TasksRepository for PoolManagerWrapper {
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
         let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -166,7 +166,7 @@ impl TasksRepository for PoolManagerWrapper {
         let tasks = sqlx::query_as::<_, TaskResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -226,7 +226,7 @@ impl TasksRepository for PoolManagerWrapper {
             .bind(due_date)
             .bind(task.description.as_ref()
                 .map(|d| d.extract().get_value().as_str()))
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
         )
     }
@@ -287,7 +287,7 @@ impl TasksRepository for PoolManagerWrapper {
                 .map(|d| d.extract().get_value().as_str()),
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -301,7 +301,7 @@ impl TasksRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

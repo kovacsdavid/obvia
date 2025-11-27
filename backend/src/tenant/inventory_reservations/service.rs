@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::MailTransporter;
+use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -29,8 +30,8 @@ use crate::tenant::inventory_reservations::model::{
 };
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
 use crate::tenant::inventory_reservations::types::InventoryReservationOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -49,19 +50,31 @@ pub enum InventoryReservationsServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for InventoryReservationsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for InventoryReservationsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             InventoryReservationsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                crate::common::dto::GeneralError {
+                GeneralError {
                     message: self.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -173,7 +186,7 @@ impl InventoryReservationsService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        inventory_reservations_module: Arc<InventoryReservationsModule>,
+        inventory_reservations_module: Arc<dyn InventoryReservationsModule>,
     ) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
         let active_tenant = claims
             .active_tenant()
@@ -182,13 +195,13 @@ impl InventoryReservationsService {
             match InventoryReservationsSelectLists::from_str(select_list)? {
                 InventoryReservationsSelectLists::Worksheets => {
                     inventory_reservations_module
-                        .worksheets_repo
+                        .worksheets_repo()
                         .get_select_list_items(active_tenant)
                         .await?
                 }
                 InventoryReservationsSelectLists::Inventory => {
                     inventory_reservations_module
-                        .inventory_repo
+                        .inventory_repo()
                         .get_select_list_items(active_tenant)
                         .await?
                 }

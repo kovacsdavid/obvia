@@ -38,7 +38,7 @@ use std::sync::Arc;
 ///
 /// # Dependencies
 /// - `axum`: Used for creating the `Router` and defining the HTTP routes.
-pub fn routes(auth_module: Arc<AuthModule>) -> Router {
+pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()

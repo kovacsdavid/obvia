@@ -17,10 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
+use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::manager::app::config::{
     BasicDatabaseConfig, DatabasePoolSizeProvider, DatabaseUrlProvider,
 };
+use crate::manager::tenants::repository::TenantsRepository;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -30,6 +31,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
+use tracing::{error, info};
 use uuid::Uuid;
 
 /// Trait defining the behavior for managing PostgreSQL connection pools.
@@ -86,7 +88,7 @@ use uuid::Uuid;
 ///   otherwise.
 #[cfg_attr(test, automock)]
 #[async_trait]
-pub trait PgPoolManagerTrait: Send + Sync {
+pub trait PoolManager: Send + Sync {
     /// Retrieves the main PostgreSQL connection pool.
     ///
     /// This function is defined as part of a trait or implemented in a struct and is used
@@ -218,7 +220,7 @@ impl PgPoolManager {
 }
 
 #[async_trait]
-impl PgPoolManagerTrait for PgPoolManager {
+impl PoolManager for PgPoolManager {
     fn get_main_pool(&self) -> PgPool {
         self.main_pool.clone()
     }
@@ -339,16 +341,30 @@ impl ConnectionTester for PgConnectionTester {
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait DatabaseMigrator: Send + Sync {
-    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<(), RepositoryError>;
+    async fn migrate_main_db(&self) -> RepositoryResult<()>;
+    async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()>;
+    async fn migrate_all_tenant_dbs(&self) -> RepositoryResult<()>;
 }
 
-pub struct PgDatabaseMigrator;
-
 #[async_trait]
-impl DatabaseMigrator for PgDatabaseMigrator {
-    async fn migrate_tenant_db(&self, tenant_pool: &PgPool) -> Result<(), RepositoryError> {
-        Ok(sqlx::migrate!("./migrations/tenant")
-            .run(tenant_pool)
+impl DatabaseMigrator for PgPoolManager {
+    async fn migrate_main_db(&self) -> RepositoryResult<()> {
+        Ok(sqlx::migrate!("./migrations/main")
+            .run(&self.get_main_pool())
             .await?)
+    }
+    async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()> {
+        Ok(sqlx::migrate!("./migrations/tenant")
+            .run(&self.get_tenant_pool(tenant_id)?)
+            .await?)
+    }
+    async fn migrate_all_tenant_dbs(&self) -> RepositoryResult<()> {
+        for tenant in TenantsRepository::get_all(self).await? {
+            match self.migrate_tenant_db(tenant.id).await {
+                Ok(_) => info!("Tenant database migration successful: {}", tenant.id),
+                Err(e) => error!("Tenant database migration failed: {}", e),
+            }
+        }
+        Ok(())
     }
 }

@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::projects::repository::ProjectsRepository;
 use std::sync::Arc;
 
@@ -30,64 +29,38 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_projects_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> ProjectsModuleBuilder {
-    ProjectsModuleBuilder::default()
-        .config(config)
-        .projects_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait ProjectsModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
 }
 
-pub struct ProjectsModule {
-    pub config: Arc<AppConfig>,
-    pub projects_repo: Arc<dyn ProjectsRepository>,
-}
-
-pub struct ProjectsModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub projects_repo: Option<Arc<dyn ProjectsRepository>>,
-}
-
-impl ProjectsModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            projects_repo: None,
-        }
-    }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
-    }
-    pub fn projects_repo(mut self, projects_repo: Arc<dyn ProjectsRepository>) -> Self {
-        self.projects_repo = Some(projects_repo);
-        self
-    }
-    pub fn build(self) -> Result<ProjectsModule, String> {
-        Ok(ProjectsModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            projects_repo: self
-                .projects_repo
-                .ok_or("projects_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for ProjectsModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+impl ProjectsModule for DefaultAppState {
+    fn projects_repo(&self) -> Arc<dyn ProjectsRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for ProjectsModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub ProjectsModule {}
+        impl ConfigProvider for ProjectsModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for ProjectsModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl ProjectsModule for ProjectsModule {
+            fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
+        }
+    );
 }

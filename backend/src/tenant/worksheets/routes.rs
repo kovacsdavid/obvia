@@ -29,7 +29,7 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes(worksheets_module: Arc<WorksheetsModule>) -> Router {
+pub fn routes(worksheets_module: Arc<dyn WorksheetsModule>) -> Router {
     Router::new().nest(
         "/worksheets",
         Router::new()
@@ -40,10 +40,7 @@ pub fn routes(worksheets_module: Arc<WorksheetsModule>) -> Router {
             .route("/create", post(worksheets_create))
             .route("/update", put(worksheets_update))
             .route("/delete", delete(worksheets_delete))
-            .layer(from_fn_with_state(
-                worksheets_module.config.clone(),
-                require_auth,
-            ))
+            .layer(from_fn_with_state(worksheets_module.config(), require_auth))
             .with_state(worksheets_module),
     )
 }

@@ -19,7 +19,7 @@
 
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::address::model::Country;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -37,10 +37,10 @@ pub trait AddressRepository: Send + Sync {
 }
 
 #[async_trait]
-impl AddressRepository for PoolManagerWrapper {
+impl AddressRepository for PgPoolManager {
     async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Country>> {
         Ok(sqlx::query_as::<_, Country>(r#"SELECT * FROM countries"#)
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?)
     }
 
@@ -51,7 +51,7 @@ impl AddressRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"SELECT code as value, name as title FROM countries"#,
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 }

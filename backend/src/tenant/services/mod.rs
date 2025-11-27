@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
@@ -32,86 +31,48 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_services_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> ServicesModuleBuilder {
-    ServicesModuleBuilder::default()
-        .config(config)
-        .services_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait ServicesModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn services_repo(&self) -> Arc<dyn ServicesRepository>;
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
 }
 
-pub struct ServicesModule {
-    pub config: Arc<AppConfig>,
-    pub services_repo: Arc<dyn ServicesRepository>,
-    pub currencies_repo: Arc<dyn CurrenciesRepository>,
-    pub taxes_repo: Arc<dyn TaxesRepository>,
-}
-
-pub struct ServicesModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub services_repo: Option<Arc<dyn ServicesRepository>>,
-    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
-    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
-}
-
-impl ServicesModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            services_repo: None,
-            currencies_repo: None,
-            taxes_repo: None,
-        }
+impl ServicesModule for DefaultAppState {
+    fn services_repo(&self) -> Arc<dyn ServicesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn services_repo(mut self, services_repo: Arc<dyn ServicesRepository>) -> Self {
-        self.services_repo = Some(services_repo);
-        self
-    }
-    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
-        self.currencies_repo = Some(currencies_repo);
-        self
-    }
-    pub fn taxes_repo(mut self, taxes: Arc<dyn TaxesRepository>) -> Self {
-        self.taxes_repo = Some(taxes);
-        self
-    }
-    pub fn build(self) -> Result<ServicesModule, String> {
-        Ok(ServicesModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            services_repo: self
-                .services_repo
-                .ok_or("services_repo is required".to_string())?,
-            currencies_repo: self
-                .currencies_repo
-                .ok_or("currencies_repo is required".to_string())?,
-            taxes_repo: self
-                .taxes_repo
-                .ok_or("taxes_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for ServicesModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for ServicesModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub ServicesModule {}
+        impl ConfigProvider for ServicesModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for ServicesModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl ServicesModule for ServicesModule {
+            fn services_repo(&self) -> Arc<dyn ServicesRepository>;
+            fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+        }
+    );
 }

@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
@@ -25,8 +26,8 @@ use crate::tenant::tags::dto::TagUserInput;
 use crate::tenant::tags::model::{Tag, TagResolved};
 use crate::tenant::tags::repository::TagsRepository;
 use crate::tenant::tags::types::tag::TagOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -40,8 +41,12 @@ pub enum TagsServiceError {
     Unauthorized,
 }
 
-impl IntoResponse for TagsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for TagsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             TagsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -50,9 +55,17 @@ impl IntoResponse for TagsServiceError {
                 GeneralError {
                     message: TagsServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -65,10 +78,10 @@ impl TagsService {
     pub async fn try_create(
         claims: &Claims,
         payload: &TagUserInput,
-        tags_module: Arc<TagsModule>,
+        tags_module: Arc<dyn TagsModule>,
     ) -> TagsServiceResult<Tag> {
         Ok(tags_module
-            .tags_repo
+            .tags_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),

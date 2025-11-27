@@ -17,59 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::{ConfigProvider, DefaultAppState};
 use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::{PgPoolManager, PgPoolManagerTrait};
-use crate::manager::tenants::{self, init_default_tenants_module};
-use anyhow::{Result, anyhow};
+use crate::manager::app::database::DatabaseMigrator;
+use anyhow::Result;
 use axum::Router;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
-pub use crate::manager::app::services::init_tenant_pools;
-pub use crate::manager::app::services::{migrate_all_tenant_dbs, migrate_main_db};
-use crate::manager::auth::{self, init_default_auth_module};
-use crate::tenant;
-use crate::tenant::address::init_default_address_module;
-use crate::tenant::customers::init_default_customers_module;
-use crate::tenant::inventory::init_default_inventory_module;
-use crate::tenant::inventory_movements::init_default_inventory_movements_module;
-use crate::tenant::inventory_reservations::init_default_inventory_reservations_module;
-use crate::tenant::products::init_default_products_module;
-use crate::tenant::projects::init_default_projects_module;
-use crate::tenant::services::init_default_services_module;
-use crate::tenant::tags::init_default_tags_module;
-use crate::tenant::tasks::init_default_tasks_module;
-use crate::tenant::taxes::init_default_taxes_module;
-use crate::tenant::warehouses::init_default_warehouses_module;
-use crate::tenant::worksheets::init_default_worksheets_module;
-
-/// Sets up a global tracing subscriber for the application with a specified logging level.
-///
-/// This function initializes a tracing subscriber using the `tracing` crate.
-/// It configures the subscriber with the maximum log level of `TRACE`, meaning
-/// that all log messages at `TRACE` level and above will be captured.
-/// The subscriber is then set as the global default.
-///
-/// If the global subscriber cannot be set due to an error (e.g., trying to set
-/// a subscriber when one is already set), the function will panic with a
-/// descriptive error message.
-///
-/// # Panics
-/// - If the subscriber is unable to be set as the global default (e.g., when a
-///   global subscriber is already set).
-///
-/// # Dependencies
-/// This function requires the `tracing` crate with its `FmtSubscriber`
-/// component and the `Level` type.
-///
-/// # Notes
-/// - Call this function early in program initialization, before any
-///   tracing events are emitted.
-/// - Only one global subscriber can be set. Subsequent calls to this function
-///   without resetting the default subscriber will panic.
-pub fn subscriber() {
+pub fn init_subscriber() {
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
             .with_max_level(Level::TRACE) //TODO: make configurable
@@ -78,149 +36,34 @@ pub fn subscriber() {
     .expect("setting default subscriber failed");
 }
 
-/// Retrieves the application configuration from the environment.
-///
-/// This function reads the configuration from environment variables and wraps it
-/// in a thread-safe `Arc` pointer for shared access throughout the application.
-/// The configuration is automatically loaded using the `AppConfig::from_env()`
-/// method, which constructs the configuration instance based on the current
-/// environment.
-///
-/// # Returns
-///
-/// * `Ok(Arc<AppConfig>)` - If the configuration is successfully loaded.
-/// * `Err` - If there is an error while initializing the configuration (e.g., missing or invalid configuration file).
-pub fn config() -> Result<AppConfig> {
-    Ok(AppConfig::from_env()?)
-}
-
-/// Asynchronously initializes and returns a new `PgPoolManager` instance wrapped in an `Arc`.
-///
-/// This function creates a `PgPoolManager` using the main database configuration and
-/// the default tenant database configuration provided in the `AppConfig`. It handles
-/// the asynchronous setup of the pool manager and ensures the returned instance is
-/// thread-safe by wrapping it in an `Arc`.
-///
-/// # Arguments
-///
-/// * `config` - An `Arc` containing the `AppConfig`. The `AppConfig` holds the necessary database connection information for both the main and default tenant database.
-///
-/// # Returns
-///
-/// Returns a `Result` containing an `Arc<PgPoolManager>` on success, or an error if
-/// the creation of the `PgPoolManager` fails.
-///
-/// # Errors
-///
-/// This function will return an error if the `PgPoolManager::new` method fails to initialize
-/// due to invalid configuration or database connection issues.
-pub async fn pg_pool_manager(config: Arc<AppConfig>) -> Result<PgPoolManager> {
-    Ok(PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?)
-}
-
-/// Initializes the default application with required modules and configurations.
-///
-/// This asynchronous function sets up the application by performing the following steps:
-/// 1. Loads the application configuration and wraps it in an `Arc` for shared ownership.
-/// 2. Creates and initializes the PostgreSQL connection pool manager using the loaded configuration.
-/// 3. Initializes and builds default modules for authentication and tenant management
-///    using dependencies such as the connection pool manager and configuration.
-/// 4. Constructs an `axum::Router` to handle API routes, wiring up the routes for the
-///    authentication and tenant modules under the `/api` path, and applies an HTTP trace layer.
-///
-/// # Returns
-/// * `Ok(Router)` - Returns the fully initialized `Router` instance to handle API requests.
-/// * `Err(anyhow::Error)` - Returns an error if any step in the initialization process fails,
-///   such as configuration loading, connection pool setup, or module initialization.
-///
-/// # Errors
-/// - Returns an error if the application configuration cannot be loaded.
-/// - Returns an error if the PostgreSQL connection pool manager cannot be initialized.
-/// - Returns an error if the authentication or tenant modules fail to initialize.
-///
-/// # Dependencies
-/// - The function depends on the external crates `axum` for the router, `tower-http` for the trace
-///   layer, and `anyhow` for error handling.
-pub async fn init_default_app(
-    config: Arc<AppConfig>,
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-) -> Result<Router> {
-    let auth_module = init_default_auth_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let tenants_module = init_default_tenants_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let address_module = init_default_address_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let customers_module = init_default_customers_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let inventory_module = init_default_inventory_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let inventory_movements_module =
-        init_default_inventory_movements_module(pool_manager.clone(), config.clone())
-            .build()
-            .map_err(|e| anyhow!("{e}"))?;
-    let inventory_reservations_module =
-        init_default_inventory_reservations_module(pool_manager.clone(), config.clone())
-            .build()
-            .map_err(|e| anyhow!("{e}"))?;
-    let products_module = init_default_products_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let projects_module = init_default_projects_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let services_module = init_default_services_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let tags_module = init_default_tags_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let tasks_module = init_default_tasks_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let taxes_module = init_default_taxes_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let warehouses_module = init_default_warehouses_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    let worksheets_module = init_default_worksheets_module(pool_manager.clone(), config.clone())
-        .build()
-        .map_err(|e| anyhow!("{e}"))?;
-    Ok(Router::new().nest(
-        "/api",
-        Router::new()
-            .merge(auth::routes::routes(Arc::new(auth_module)))
-            .merge(tenants::routes::routes(Arc::new(tenants_module)))
-            .merge(tenant::customers::routes::routes(Arc::new(
-                customers_module,
-            )))
-            .merge(tenant::inventory::routes::routes(Arc::new(
-                inventory_module,
-            )))
-            .merge(tenant::inventory_movements::routes::routes(Arc::new(
-                inventory_movements_module,
-            )))
-            .merge(tenant::inventory_reservations::routes::routes(Arc::new(
-                inventory_reservations_module,
-            )))
-            .merge(tenant::products::routes::routes(Arc::new(products_module)))
-            .merge(tenant::projects::routes::routes(Arc::new(projects_module)))
-            .merge(tenant::services::routes::routes(Arc::new(services_module)))
-            .merge(tenant::tags::routes::routes(Arc::new(tags_module)))
-            .merge(tenant::tasks::routes::routes(Arc::new(tasks_module)))
-            .merge(tenant::taxes::routes::routes(Arc::new(taxes_module)))
-            .merge(tenant::warehouses::routes::routes(Arc::new(
-                warehouses_module,
-            )))
-            .merge(tenant::worksheets::routes::routes(Arc::new(
-                worksheets_module,
-            )))
-            .layer(TraceLayer::new_for_http()),
+pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
+    let app_state = Arc::new(DefaultAppState::new().await?);
+    app_state.migrate_main_db().await?;
+    app_state.migrate_all_tenant_dbs().await?;
+    Ok((
+        app_state.config(),
+        Router::new().nest(
+            "/api",
+            Router::new()
+                .merge(crate::manager::auth::routes::routes(app_state.clone()))
+                .merge(crate::manager::tenants::routes::routes(app_state.clone()))
+                .merge(crate::tenant::customers::routes::routes(app_state.clone()))
+                .merge(crate::tenant::inventory::routes::routes(app_state.clone()))
+                .merge(crate::tenant::inventory_movements::routes::routes(
+                    app_state.clone(),
+                ))
+                .merge(crate::tenant::inventory_reservations::routes::routes(
+                    app_state.clone(),
+                ))
+                .merge(crate::tenant::products::routes::routes(app_state.clone()))
+                .merge(crate::tenant::projects::routes::routes(app_state.clone()))
+                .merge(crate::tenant::services::routes::routes(app_state.clone()))
+                .merge(crate::tenant::tags::routes::routes(app_state.clone()))
+                .merge(crate::tenant::tasks::routes::routes(app_state.clone()))
+                .merge(crate::tenant::taxes::routes::routes(app_state.clone()))
+                .merge(crate::tenant::warehouses::routes::routes(app_state.clone()))
+                .merge(crate::tenant::worksheets::routes::routes(app_state.clone()))
+                .layer(TraceLayer::new_for_http()),
+        ),
     ))
 }

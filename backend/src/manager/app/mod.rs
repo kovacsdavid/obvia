@@ -20,4 +20,3 @@
 pub mod config;
 pub mod database;
 pub mod init;
-pub(crate) mod services;

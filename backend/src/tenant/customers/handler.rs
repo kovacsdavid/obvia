@@ -22,6 +22,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,113 +41,166 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match CustomersService::get_resolved_by_id(
+        &claims,
+        &payload,
+        customers_module.customers_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(customers_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            CustomersService::get_resolved_by_id(
-                &claims,
-                &payload,
-                customers_module.customers_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match CustomersService::get(&claims, &payload, customers_module.customers_repo()).await {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(customers_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            CustomersService::get(&claims, &payload, customers_module.customers_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(
-            CustomersService::create(
-                &claims,
-                &user_input,
-                customers_module.customers_repo.clone(),
-            )
+    let result =
+        match CustomersService::create(&claims, &user_input, customers_module.customers_repo())
             .await
-            .map_err(|e| e.into_response())?,
-        )
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(customers_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            CustomersService::update(
-                &claims,
-                &user_input,
-                customers_module.customers_repo.clone(),
-            )
+    let result =
+        match CustomersService::update(&claims, &user_input, customers_module.customers_repo())
             .await
-            .map_err(|e| e.into_response())?,
-        )
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(customers_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    CustomersService::delete(&claims, &payload, customers_module.customers_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match CustomersService::delete(&claims, &payload, customers_module.customers_repo()).await {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(customers_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A vevő törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<CustomersModule>>,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = CustomersService::get_paged_list(
+    let (meta, data) = match CustomersService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(CustomerOrderBy("name".to_string()))
@@ -156,15 +210,29 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        customers_module.customers_repo.clone(),
+        customers_module.customers_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::new()
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(customers_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(customers_module)
+            .await
+            .into_response()),
+    }
 }

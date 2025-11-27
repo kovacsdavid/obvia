@@ -18,8 +18,8 @@
  */
 
 use crate::common::error::RepositoryError;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::register::RegisterRequest;
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
@@ -111,7 +111,7 @@ pub trait AuthRepository: Send + Sync {
 }
 
 #[async_trait]
-impl AuthRepository for PoolManagerWrapper {
+impl AuthRepository for PgPoolManager {
     async fn insert_user(
         &self,
         payload: &RegisterRequest,
@@ -127,7 +127,7 @@ impl AuthRepository for PoolManagerWrapper {
         .bind(password_hash)
         .bind(payload.first_name.extract().get_value())
         .bind(payload.last_name.extract().get_value())
-        .execute(&self.pool_manager.get_main_pool())
+        .execute(&self.get_main_pool())
         .await?;
         Ok(())
     }
@@ -137,7 +137,7 @@ impl AuthRepository for PoolManagerWrapper {
             "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
         )
         .bind(email)
-        .fetch_one(&self.pool_manager.get_main_pool())
+        .fetch_one(&self.get_main_pool())
         .await?;
         if result.is_active() {
             Ok(result)
@@ -154,7 +154,7 @@ impl AuthRepository for PoolManagerWrapper {
             "SELECT * FROM user_tenants WHERE user_id = $1 AND deleted_at IS NULL ORDER BY last_activated DESC LIMIT 1",
         )
         .bind(user_id)
-        .fetch_one(&self.pool_manager.get_main_pool())
+        .fetch_one(&self.get_main_pool())
         .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -168,7 +168,7 @@ impl AuthRepository for PoolManagerWrapper {
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(&self.pool_manager.get_main_pool())
+                .execute(&self.get_main_pool())
                 .await?;
         }
 

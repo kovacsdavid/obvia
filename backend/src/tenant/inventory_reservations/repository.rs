@@ -19,8 +19,8 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
@@ -64,7 +64,7 @@ pub trait InventoryReservationsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl InventoryReservationsRepository for PoolManagerWrapper {
+impl InventoryReservationsRepository for PgPoolManager {
     async fn get_by_id(
         &self,
         id: Uuid,
@@ -78,7 +78,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -107,7 +107,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -127,7 +127,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(inventory_id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         let order_by = ordering_params.order_by.extract().get_value();
@@ -158,7 +158,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
             .bind(inventory_id)
             .bind(paginator_params.offset())
             .bind(paginator_params.limit)
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -212,7 +212,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
         .bind(reserved_until)
         .bind(input.status.extract().get_value())
         .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -223,7 +223,7 @@ impl InventoryReservationsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
         Ok(())
     }

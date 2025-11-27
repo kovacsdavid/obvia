@@ -16,11 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::dto::{
     EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,109 +42,164 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match InventoryService::get_resolved_by_id(
+        &claims,
+        &payload,
+        inventory_module.inventory_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            InventoryService::get_resolved_by_id(
-                &claims,
-                &payload,
-                inventory_module.inventory_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match InventoryService::get(&claims, &payload, inventory_module.inventory_repo()).await {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(inventory_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            InventoryService::get(&claims, &payload, inventory_module.inventory_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            InventoryService::update(
-                &claims,
-                &user_input,
-                inventory_module.inventory_repo.clone(),
-            )
+    let result =
+        match InventoryService::update(&claims, &user_input, inventory_module.inventory_repo())
             .await
-            .map_err(|e| e.into_response())?,
-        )
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(inventory_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    InventoryService::delete(&claims, &payload, inventory_module.inventory_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match InventoryService::delete(&claims, &payload, inventory_module.inventory_repo()).await {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A leltár törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match InventoryService::create(&claims, &user_input, inventory_module.clone()).await {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(inventory_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            InventoryService::create(&claims, &user_input, inventory_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = InventoryService::get_paged_list(
+    let (meta, data) = match InventoryService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(InventoryOrderBy("product_id".to_string()))
@@ -152,37 +209,68 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        inventory_module.inventory_repo.clone(),
+        inventory_module.inventory_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_module)
+                .await
+                .into_response());
+        }
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }
 
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<InventoryModule>>,
+    State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            InventoryService::get_select_list_items(&list_type, &claims, inventory_module)
+
+    let result = match InventoryService::get_select_list_items(
+        &list_type,
+        &claims,
+        inventory_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_module)
                 .await
-                .map_err(|e| e.into_response())?,
-        )
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_module)
+            .await
+            .into_response()),
+    }
 }

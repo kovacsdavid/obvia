@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::repository::TasksRepository;
@@ -34,108 +33,58 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_tasks_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> TasksModuleBuilder {
-    TasksModuleBuilder::default()
-        .config(config)
-        .tasks_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .services_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait TasksModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn tasks_repo(&self) -> Arc<dyn TasksRepository>;
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+    fn services_repo(&self) -> Arc<dyn ServicesRepository>;
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
 }
 
-pub struct TasksModule {
-    pub config: Arc<AppConfig>,
-    pub tasks_repo: Arc<dyn TasksRepository>,
-    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
-    pub services_repo: Arc<dyn ServicesRepository>,
-    pub taxes_repo: Arc<dyn TaxesRepository>,
-    pub currencies_repo: Arc<dyn CurrenciesRepository>,
-}
-
-pub struct TasksModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub tasks_repo: Option<Arc<dyn TasksRepository>>,
-    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
-    pub services_repo: Option<Arc<dyn ServicesRepository>>,
-    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
-    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
-}
-
-impl TasksModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            tasks_repo: None,
-            worksheets_repo: None,
-            services_repo: None,
-            taxes_repo: None,
-            currencies_repo: None,
-        }
+impl TasksModule for DefaultAppState {
+    fn tasks_repo(&self) -> Arc<dyn TasksRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn tasks_repo(mut self, tasks_repo: Arc<dyn TasksRepository>) -> Self {
-        self.tasks_repo = Some(tasks_repo);
-        self
+    fn services_repo(&self) -> Arc<dyn ServicesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
-        self.worksheets_repo = Some(worksheets_repo);
-        self
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn services_repo(mut self, services_repo: Arc<dyn ServicesRepository>) -> Self {
-        self.services_repo = Some(services_repo);
-        self
-    }
-    pub fn taxes_repo(mut self, taxes_repo: Arc<dyn TaxesRepository>) -> Self {
-        self.taxes_repo = Some(taxes_repo);
-        self
-    }
-    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
-        self.currencies_repo = Some(currencies_repo);
-        self
-    }
-    pub fn build(self) -> Result<TasksModule, String> {
-        Ok(TasksModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            tasks_repo: self
-                .tasks_repo
-                .ok_or("tasks_repo is required".to_string())?,
-            worksheets_repo: self
-                .worksheets_repo
-                .ok_or("worksheets_repo is required".to_string())?,
-            services_repo: self
-                .services_repo
-                .ok_or("worksheets_repo is required".to_string())?,
-            taxes_repo: self
-                .taxes_repo
-                .ok_or("taxes_repo is required".to_string())?,
-            currencies_repo: self
-                .currencies_repo
-                .ok_or("currencies_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for TasksModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for TasksModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub TasksModule {}
+        impl ConfigProvider for TasksModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for TasksModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl TasksModule for TasksModule {
+            fn tasks_repo(&self) -> Arc<dyn TasksRepository>;
+            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+            fn services_repo(&self) -> Arc<dyn ServicesRepository>;
+            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+            fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+        }
+    );
 }

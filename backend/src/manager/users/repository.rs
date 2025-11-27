@@ -18,7 +18,7 @@
  */
 
 use crate::common::error::RepositoryError;
-use crate::common::repository::PoolManagerWrapper;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -32,12 +32,12 @@ pub trait UsersRepository: Send + Sync {
 }
 
 #[async_trait]
-impl UsersRepository for PoolManagerWrapper {
+impl UsersRepository for PgPoolManager {
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(uuid)
-                .fetch_one(&self.pool_manager.get_main_pool())
+                .fetch_one(&self.get_main_pool())
                 .await?,
         )
     }

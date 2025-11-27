@@ -18,11 +18,11 @@
  */
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
-use crate::common::error::RepositoryError;
-use crate::common::repository::PoolManagerWrapper;
+use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::types::DdlParameter;
 use crate::common::types::{ValueObject, ValueObjectable};
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::manager::tenants::model::{Tenant, UserTenant};
@@ -99,7 +99,7 @@ pub trait TenantsRepository: Send + Sync {
     /// - `Err(DatabaseError)`: If there is an error during the database operation, or if
     ///   the tenant could not be found.
     #[allow(dead_code)]
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, RepositoryError>;
+    async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant>;
 
     /// Sets up a self-hosted instance for a specific tenant based on the provided payload.
     ///
@@ -130,7 +130,7 @@ pub trait TenantsRepository: Send + Sync {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<Tenant, RepositoryError>;
+    ) -> RepositoryResult<Tenant>;
 
     /// Sets up a managed resource based on the provided parameters.
     ///
@@ -170,7 +170,7 @@ pub trait TenantsRepository: Send + Sync {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<Tenant, RepositoryError>;
+    ) -> RepositoryResult<Tenant>;
     /// Asynchronously retrieves all tenants associated with a specific user UUID.
     ///
     /// # Parameters
@@ -191,7 +191,7 @@ pub trait TenantsRepository: Send + Sync {
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<(PaginatorMeta, Vec<Tenant>), RepositoryError>;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)>;
     /// Retrieves all tenants from the database.
     ///
     /// This asynchronous function fetches and returns a list of all
@@ -213,7 +213,7 @@ pub trait TenantsRepository: Send + Sync {
     ///
     /// This function should not be used in any user facing scenario as it will not check if
     /// the user is associated to the tenant or not.
-    async fn get_all(&self) -> Result<Vec<Tenant>, RepositoryError>;
+    async fn get_all(&self) -> RepositoryResult<Vec<Tenant>>;
 
     /// Retrieves the active tenant associated with a specific user by their user ID and tenant ID.
     ///
@@ -235,17 +235,17 @@ pub trait TenantsRepository: Send + Sync {
         &self,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> Result<Option<UserTenant>, RepositoryError>;
+    ) -> RepositoryResult<Option<UserTenant>>;
 }
 
 #[async_trait]
-impl TenantsRepository for PoolManagerWrapper {
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<Tenant, RepositoryError> {
+impl TenantsRepository for PgPoolManager {
+    async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant> {
         Ok(sqlx::query_as::<_, Tenant>(
             "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
-        .fetch_one(&self.pool_manager.get_main_pool())
+        .fetch_one(&self.get_main_pool())
         .await?)
     }
     async fn setup_self_hosted(
@@ -253,9 +253,9 @@ impl TenantsRepository for PoolManagerWrapper {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-    ) -> Result<Tenant, RepositoryError> {
+    ) -> RepositoryResult<Tenant> {
         let uuid = Uuid::new_v4();
-        let mut tx = self.pool_manager.get_main_pool().begin().await?;
+        let mut tx = self.get_main_pool().begin().await?;
 
         let tenant =
             insert_and_connect_with_user(&mut tx, uuid, name, true, db_config, claims).await?;
@@ -271,16 +271,12 @@ impl TenantsRepository for PoolManagerWrapper {
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: Arc<AppConfig>,
-    ) -> Result<Tenant, RepositoryError> {
-        let mut tx = self.pool_manager.get_main_pool().begin().await?;
+    ) -> RepositoryResult<Tenant> {
+        let mut tx = self.get_main_pool().begin().await?;
         let tenant =
             insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims).await?;
 
-        let mut default_tenant_pool = self
-            .pool_manager
-            .get_default_tenant_pool()
-            .acquire()
-            .await?;
+        let mut default_tenant_pool = self.get_default_tenant_pool().acquire().await?;
         create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config).await?;
         tx.commit().await?;
 
@@ -296,7 +292,7 @@ impl TenantsRepository for PoolManagerWrapper {
         let _create_db = sqlx::query(&create_db_sql)
             .bind(tenant.id)
             .bind(tenant.id.to_string())
-            .execute(&self.pool_manager.get_default_tenant_pool())
+            .execute(&self.get_default_tenant_pool())
             .await?;
         Ok(tenant)
     }
@@ -307,7 +303,7 @@ impl TenantsRepository for PoolManagerWrapper {
         paginator_params: &PaginatorParams,
         ordering_params: &OrderingParams<TenantsOrderBy>,
         filtering_params: &FilteringParams,
-    ) -> Result<(PaginatorMeta, Vec<Tenant>), RepositoryError> {
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)> {
         let total: (i64,) = sqlx::query_as(
             "SELECT COUNT(*) FROM tenants
                 LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
@@ -318,7 +314,7 @@ impl TenantsRepository for PoolManagerWrapper {
         )
         .bind(user_uuid)
         .bind(filtering_params.name.clone())
-        .fetch_one(&self.pool_manager.get_main_pool())
+        .fetch_one(&self.get_main_pool())
         .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -347,7 +343,7 @@ impl TenantsRepository for PoolManagerWrapper {
             .bind(filtering_params.name.clone())
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_main_pool())
+            .fetch_all(&self.get_main_pool())
             .await?;
 
         Ok((
@@ -360,10 +356,10 @@ impl TenantsRepository for PoolManagerWrapper {
         ))
     }
 
-    async fn get_all(&self) -> Result<Vec<Tenant>, RepositoryError> {
+    async fn get_all(&self) -> RepositoryResult<Vec<Tenant>> {
         Ok(
             sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
-                .fetch_all(&self.pool_manager.get_main_pool())
+                .fetch_all(&self.get_main_pool())
                 .await?,
         )
     }
@@ -372,13 +368,13 @@ impl TenantsRepository for PoolManagerWrapper {
         &self,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> Result<Option<UserTenant>, RepositoryError> {
+    ) -> RepositoryResult<Option<UserTenant>> {
         let user_tenant_result = sqlx::query_as::<_, UserTenant>(
             "SELECT * FROM user_tenants WHERE user_id = $1 AND tenant_id = $2 AND deleted_at IS NULL LIMIT 1",
         )
             .bind(user_id)
             .bind(tenant_id)
-            .fetch_one(&self.pool_manager.get_main_pool())
+            .fetch_one(&self.get_main_pool())
             .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -392,7 +388,7 @@ impl TenantsRepository for PoolManagerWrapper {
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(&self.pool_manager.get_main_pool())
+                .execute(&self.get_main_pool())
                 .await?;
         }
 
@@ -407,7 +403,7 @@ async fn insert_and_connect_with_user(
     is_self_hosted: bool,
     db_config: &BasicDatabaseConfig,
     claims: &Claims,
-) -> Result<Tenant, RepositoryError> {
+) -> RepositoryResult<Tenant> {
     let tenant = sqlx::query_as::<_, Tenant>(
         "INSERT INTO tenants (
             id, name, is_self_hosted, db_host, db_port, db_name, db_user, db_password, db_max_pool_size, db_ssl_mode, created_by
@@ -448,7 +444,7 @@ async fn create_database_user_for_managed(
     conn: &mut PgConnection,
     tenant: &Tenant,
     app_config: Arc<AppConfig>,
-) -> Result<(), RepositoryError> {
+) -> RepositoryResult<()> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
         ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))

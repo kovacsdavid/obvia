@@ -40,9 +40,16 @@ pool_size = 10
 
 # === Auth module settings ===
 [auth]
-# Placeholder for extending with more auth-related config
 jwt_secret = "your_super_secret_jwt_key"
 jwt_issuer = "obvia"
 jwt_audience = "obvia_users"
 jwt_expiration_mins = "480"
+
+[mail]
+smtp_host = "smtp_host"
+smtp_user = "smtp_user"
+smtp_passwd = "smtp_passwd"
+default_from = "default_from"
+default_from_name = "default_from_name"
+default_notification_email = "default_notification_email"
 

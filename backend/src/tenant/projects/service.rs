@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
@@ -25,8 +26,8 @@ use crate::tenant::projects::dto::ProjectUserInput;
 use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::projects::types::project::ProjectOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -40,8 +41,12 @@ pub enum ProjectsServiceError {
     Unauthorized,
 }
 
-impl IntoResponse for ProjectsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for ProjectsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             ProjectsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -50,9 +55,17 @@ impl IntoResponse for ProjectsServiceError {
                 GeneralError {
                     message: ProjectsServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -65,10 +78,10 @@ impl ProjectsService {
     pub async fn create(
         claims: &Claims,
         payload: &ProjectUserInput,
-        projects_module: Arc<ProjectsModule>,
+        projects_module: Arc<dyn ProjectsModule>,
     ) -> ProjectsServiceResult<Project> {
         Ok(projects_module
-            .projects_repo
+            .projects_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),

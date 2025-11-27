@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -26,8 +27,8 @@ use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -45,8 +46,12 @@ pub enum WorksheetsServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for WorksheetsServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for WorksheetsServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             WorksheetsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -55,9 +60,17 @@ impl IntoResponse for WorksheetsServiceError {
                 GeneralError {
                     message: WorksheetsServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -87,10 +100,10 @@ impl WorksheetsService {
     pub async fn create(
         claims: &Claims,
         payload: &WorksheetUserInput,
-        worksheets_module: Arc<WorksheetsModule>,
+        worksheets_module: Arc<dyn WorksheetsModule>,
     ) -> WorksheetsServiceResult<Worksheet> {
         Ok(worksheets_module
-            .worksheets_repo
+            .worksheets_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),
@@ -103,7 +116,7 @@ impl WorksheetsService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        worksheets_module: Arc<WorksheetsModule>,
+        worksheets_module: Arc<dyn WorksheetsModule>,
     ) -> WorksheetsServiceResult<Vec<SelectOption>> {
         let active_tenant = claims
             .active_tenant()
@@ -111,13 +124,13 @@ impl WorksheetsService {
         Ok(match WorksheetsSelectLists::from_str(select_list)? {
             WorksheetsSelectLists::Projects => {
                 worksheets_module
-                    .projects_repo
+                    .projects_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             WorksheetsSelectLists::Customers => {
                 worksheets_module
-                    .customers_repo
+                    .customers_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }

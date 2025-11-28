@@ -17,9 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
@@ -33,89 +31,48 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_inventory_reservations_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> InventoryReservationsModuleBuilder {
-    InventoryReservationsModuleBuilder::default()
-        .config(config)
-        .inventory_reservations_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .inventory_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait InventoryReservationsModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository>;
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+    fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
 }
 
-pub struct InventoryReservationsModule {
-    pub config: Arc<AppConfig>,
-    pub inventory_reservations_repo: Arc<dyn InventoryReservationsRepository>,
-    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
-    pub inventory_repo: Arc<dyn InventoryRepository>,
-}
-
-pub struct InventoryReservationsModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub inventory_reservations_repo: Option<Arc<dyn InventoryReservationsRepository>>,
-    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
-    pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
-}
-
-impl InventoryReservationsModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            inventory_reservations_repo: None,
-            worksheets_repo: None,
-            inventory_repo: None,
-        }
+impl InventoryReservationsModule for DefaultAppState {
+    fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn inventory_reservations_repo(
-        mut self,
-        inventory_reservations_repo: Arc<dyn InventoryReservationsRepository>,
-    ) -> Self {
-        self.inventory_reservations_repo = Some(inventory_reservations_repo);
-        self
-    }
-    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
-        self.worksheets_repo = Some(worksheets_repo);
-        self
-    }
-    pub fn inventory_repo(mut self, inventory_repo: Arc<dyn InventoryRepository>) -> Self {
-        self.inventory_repo = Some(inventory_repo);
-        self
-    }
-    pub fn build(self) -> Result<InventoryReservationsModule, String> {
-        Ok(InventoryReservationsModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            inventory_reservations_repo: self
-                .inventory_reservations_repo
-                .ok_or("inventory_reservations_repo is required".to_string())?,
-            worksheets_repo: self
-                .worksheets_repo
-                .ok_or("worksheets_repo is required".to_string())?,
-            inventory_repo: self
-                .inventory_repo
-                .ok_or("inventory_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for InventoryReservationsModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn inventory_repo(&self) -> Arc<dyn InventoryRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for InventoryReservationsModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub InventoryReservationsModule {}
+        impl ConfigProvider for InventoryReservationsModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for InventoryReservationsModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl InventoryReservationsModule for InventoryReservationsModule {
+            fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository>;
+            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+            fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+        }
+    );
 }

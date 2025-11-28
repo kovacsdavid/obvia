@@ -16,9 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::products::repository::ProductsRepository;
@@ -34,108 +32,58 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_inventory_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> InventoryModuleBuilder {
-    InventoryModuleBuilder::default()
-        .config(config)
-        .inventory_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .warehouses_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .currencies_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait InventoryModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+    fn products_repo(&self) -> Arc<dyn ProductsRepository>;
+    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
 }
 
-pub struct InventoryModule {
-    pub config: Arc<AppConfig>,
-    pub inventory_repo: Arc<dyn InventoryRepository>,
-    pub products_repo: Arc<dyn ProductsRepository>,
-    pub warehouses_repo: Arc<dyn WarehousesRepository>,
-    pub currencies_repo: Arc<dyn CurrenciesRepository>,
-    pub taxes_repo: Arc<dyn TaxesRepository>,
-}
-
-pub struct InventoryModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub inventory_repo: Option<Arc<dyn InventoryRepository>>,
-    pub products_repo: Option<Arc<dyn ProductsRepository>>,
-    pub warehouses_repo: Option<Arc<dyn WarehousesRepository>>,
-    pub currencies_repo: Option<Arc<dyn CurrenciesRepository>>,
-    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
-}
-
-impl InventoryModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            inventory_repo: None,
-            products_repo: None,
-            warehouses_repo: None,
-            currencies_repo: None,
-            taxes_repo: None,
-        }
+impl InventoryModule for DefaultAppState {
+    fn inventory_repo(&self) -> Arc<dyn InventoryRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
+    fn products_repo(&self) -> Arc<dyn ProductsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn inventory_repo(mut self, inventory_repo: Arc<dyn InventoryRepository>) -> Self {
-        self.inventory_repo = Some(inventory_repo);
-        self
+    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn products_repo(mut self, products_repo: Arc<dyn ProductsRepository>) -> Self {
-        self.products_repo = Some(products_repo);
-        self
+    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn warehouses_repo(mut self, warehouses_repo: Arc<dyn WarehousesRepository>) -> Self {
-        self.warehouses_repo = Some(warehouses_repo);
-        self
-    }
-    pub fn currencies_repo(mut self, currencies_repo: Arc<dyn CurrenciesRepository>) -> Self {
-        self.currencies_repo = Some(currencies_repo);
-        self
-    }
-    pub fn taxes_repo(mut self, taxes_repo: Arc<dyn TaxesRepository>) -> Self {
-        self.taxes_repo = Some(taxes_repo);
-        self
-    }
-    pub fn build(self) -> Result<InventoryModule, String> {
-        Ok(InventoryModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            inventory_repo: self
-                .inventory_repo
-                .ok_or("inventory_repo is required".to_string())?,
-            products_repo: self
-                .products_repo
-                .ok_or("products_repo is required".to_string())?,
-            warehouses_repo: self
-                .warehouses_repo
-                .ok_or("warehouses_repo is required".to_string())?,
-            currencies_repo: self
-                .currencies_repo
-                .ok_or("currencies_repo is required".to_string())?,
-            taxes_repo: self
-                .taxes_repo
-                .ok_or("taxes_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for InventoryModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for InventoryModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub InventoryModule {}
+        impl ConfigProvider for InventoryModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for InventoryModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl InventoryModule for InventoryModule {
+            fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+            fn products_repo(&self) -> Arc<dyn ProductsRepository>;
+            fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+            fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+        }
+    );
 }

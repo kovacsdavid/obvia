@@ -22,6 +22,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,109 +41,174 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match WarehousesService::get_resolved_by_id(
+        &claims,
+        &payload,
+        warehouses_module.warehouses_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(warehouses_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            WarehousesService::get_resolved_by_id(
-                &claims,
-                &payload,
-                warehouses_module.warehouses_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            WarehousesService::get(&claims, &payload, warehouses_module.warehouses_repo.clone())
+    let result = match WarehousesService::get(
+        &claims,
+        &payload,
+        warehouses_module.warehouses_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(warehouses_module)
                 .await
-                .map_err(|e| e.into_response())?,
-        )
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            WarehousesService::update(
-                &claims,
-                &user_input,
-                warehouses_module.warehouses_repo.clone(),
-            )
+    let result =
+        match WarehousesService::update(&claims, &user_input, warehouses_module.warehouses_repo())
             .await
-            .map_err(|e| e.into_response())?,
-        )
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    WarehousesService::delete(&claims, &payload, warehouses_module.warehouses_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match WarehousesService::delete(&claims, &payload, warehouses_module.warehouses_repo()).await {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(warehouses_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A raktár törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(
-            WarehousesService::try_create(&claims, &user_input, warehouses_module)
+    let result = match WarehousesService::try_create(
+        &claims,
+        &user_input,
+        warehouses_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(warehouses_module)
                 .await
-                .map_err(|e| e.into_response())?,
-        )
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(warehouses_module): State<Arc<WarehousesModule>>,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = WarehousesService::get_paged_list(
+    let (meta, data) = match WarehousesService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(WarehouseOrderBy("name".to_string()))
@@ -152,16 +218,29 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        warehouses_module.warehouses_repo.clone(),
+        warehouses_module.warehouses_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(warehouses_module)
+                .await
+                .into_response());
+        }
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(warehouses_module)
+            .await
+            .into_response()),
+    }
 }

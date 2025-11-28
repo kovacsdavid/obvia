@@ -21,6 +21,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,130 +41,208 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match WorksheetsService::get_resolved_by_id(
+        &claims,
+        &payload,
+        worksheets_module.worksheets_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(worksheets_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            WorksheetsService::get_resolved_by_id(
-                &claims,
-                &payload,
-                worksheets_module.worksheets_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            WorksheetsService::get(&claims, &payload, worksheets_module.worksheets_repo.clone())
+    let result = match WorksheetsService::get(
+        &claims,
+        &payload,
+        worksheets_module.worksheets_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(worksheets_module)
                 .await
-                .map_err(|e| e.into_response())?,
-        )
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            WorksheetsService::update(
-                &claims,
-                &user_input,
-                worksheets_module.worksheets_repo.clone(),
-            )
+    let result =
+        match WorksheetsService::update(&claims, &user_input, worksheets_module.worksheets_repo())
             .await
-            .map_err(|e| e.into_response())?,
-        )
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(worksheets_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    WorksheetsService::delete(&claims, &payload, worksheets_module.worksheets_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match WorksheetsService::delete(&claims, &payload, worksheets_module.worksheets_repo()).await {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(worksheets_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A munkalap törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match WorksheetsService::create(&claims, &user_input, worksheets_module.clone()).await {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(worksheets_module)
+                    .await
+                    .into_response());
+            }
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            WorksheetsService::create(&claims, &user_input, worksheets_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(
-            WorksheetsService::get_select_list_items(&list_type, &claims, worksheets_module)
+
+    let result = match WorksheetsService::get_select_list_items(
+        &list_type,
+        &claims,
+        worksheets_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(worksheets_module)
                 .await
-                .map_err(|e| e.into_response())?,
-        )
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(worksheets_module): State<Arc<WorksheetsModule>>,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = WorksheetsService::get_paged_list(
+    let (meta, data) = match WorksheetsService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(WorksheetOrderBy("name".to_string()))
@@ -173,16 +252,29 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        worksheets_module.worksheets_repo.clone(),
+        worksheets_module.worksheets_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(worksheets_module)
+                .await
+                .into_response());
+        }
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(worksheets_module)
+            .await
+            .into_response()),
+    }
 }

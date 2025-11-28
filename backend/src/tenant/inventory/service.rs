@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -26,8 +27,8 @@ use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::InventoryOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -51,8 +52,12 @@ pub enum InventoryServiceError {
     InventoryExists,
 }
 
-impl IntoResponse for InventoryServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for InventoryServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             InventoryServiceError::Unauthorized | InventoryServiceError::InventoryExists => {
                 FriendlyError::user_facing(
@@ -63,9 +68,17 @@ impl IntoResponse for InventoryServiceError {
                         message: self.to_string(),
                     },
                 )
-                .into_response()
             }
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -99,10 +112,10 @@ impl InventoryService {
     pub async fn create(
         claims: &Claims,
         payload: &InventoryUserInput,
-        inventory_module: Arc<InventoryModule>,
+        inventory_module: Arc<dyn InventoryModule>,
     ) -> InventoryServiceResult<Inventory> {
         inventory_module
-            .inventory_repo
+            .inventory_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),
@@ -122,7 +135,7 @@ impl InventoryService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        inventory_module: Arc<InventoryModule>,
+        inventory_module: Arc<dyn InventoryModule>,
     ) -> InventoryServiceResult<Vec<SelectOption>> {
         let active_tenant = claims
             .active_tenant()
@@ -130,25 +143,25 @@ impl InventoryService {
         Ok(match InventorySelectLists::from_str(select_list)? {
             InventorySelectLists::Products => {
                 inventory_module
-                    .products_repo
+                    .products_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             InventorySelectLists::Currencies => {
                 inventory_module
-                    .currencies_repo
+                    .currencies_repo()
                     .get_all_countries_select_list_items(active_tenant)
                     .await?
             }
             InventorySelectLists::Warehouses => {
                 inventory_module
-                    .warehouses_repo
+                    .warehouses_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             InventorySelectLists::Taxes => {
                 inventory_module
-                    .taxes_repo
+                    .taxes_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }

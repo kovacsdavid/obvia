@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use std::sync::Arc;
@@ -31,75 +30,43 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_taxes_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> TaxesModuleBuilder {
-    TaxesModuleBuilder::default()
-        .config(config)
-        .taxes_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .address_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait TaxesModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+    fn address_repo(&self) -> Arc<dyn AddressRepository>;
 }
 
-pub struct TaxesModule {
-    pub config: Arc<AppConfig>,
-    pub taxes_repo: Arc<dyn TaxesRepository>,
-    pub address_repo: Arc<dyn AddressRepository>,
-}
-
-pub struct TaxesModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub taxes_repo: Option<Arc<dyn TaxesRepository>>,
-    pub address_repo: Option<Arc<dyn AddressRepository>>,
-}
-
-impl TaxesModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            taxes_repo: None,
-            address_repo: None,
-        }
+impl TaxesModule for DefaultAppState {
+    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
-    }
-    pub fn taxes_repo(mut self, taxes_repo: Arc<dyn TaxesRepository>) -> Self {
-        self.taxes_repo = Some(taxes_repo);
-        self
-    }
-    pub fn address_repo(mut self, address_repo: Arc<dyn AddressRepository>) -> Self {
-        self.address_repo = Some(address_repo);
-        self
-    }
-    pub fn build(self) -> Result<TaxesModule, String> {
-        Ok(TaxesModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            taxes_repo: self
-                .taxes_repo
-                .ok_or("taxes_repo is required".to_string())?,
-            address_repo: self
-                .address_repo
-                .ok_or("address_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for TaxesModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn address_repo(&self) -> Arc<dyn AddressRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for TaxesModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub TaxesModule {}
+        impl ConfigProvider for TaxesModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for TaxesModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl TaxesModule for TaxesModule {
+            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+            fn address_repo(&self) -> Arc<dyn AddressRepository>;
+        }
+    );
 }

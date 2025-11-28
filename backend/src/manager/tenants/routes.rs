@@ -56,7 +56,7 @@ use std::sync::Arc;
 /// # Returns
 ///
 /// * A `Router` instance configured with the defined routes and middleware.
-pub fn routes(tenants_module: Arc<TenantsModule>) -> Router {
+pub fn routes(tenants_module: Arc<dyn TenantsModule>) -> Router {
     Router::new().nest(
         "/tenants",
         Router::new()
@@ -64,10 +64,7 @@ pub fn routes(tenants_module: Arc<TenantsModule>) -> Router {
             .route("/get", get(tenants_get))
             .route("/list", get(tenants_list))
             .route("/activate", post(tenants_activate))
-            .layer(from_fn_with_state(
-                tenants_module.config.clone(),
-                require_auth,
-            ))
+            .layer(from_fn_with_state(tenants_module.config(), require_auth))
             .with_state(tenants_module),
     )
 }

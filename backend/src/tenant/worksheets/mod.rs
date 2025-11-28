@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
@@ -32,86 +31,48 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_worksheets_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> WorksheetsModuleBuilder {
-    WorksheetsModuleBuilder::default()
-        .config(config)
-        .worksheets_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .projects_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
-        .customers_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait WorksheetsModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+    fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
+    fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
 }
 
-pub struct WorksheetsModule {
-    pub config: Arc<AppConfig>,
-    pub worksheets_repo: Arc<dyn WorksheetsRepository>,
-    pub projects_repo: Arc<dyn ProjectsRepository>,
-    pub customers_repo: Arc<dyn CustomersRepository>,
-}
-
-pub struct WorksheetsModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub worksheets_repo: Option<Arc<dyn WorksheetsRepository>>,
-    pub projects_repo: Option<Arc<dyn ProjectsRepository>>,
-    pub customers_repo: Option<Arc<dyn CustomersRepository>>,
-}
-
-impl WorksheetsModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            worksheets_repo: None,
-            projects_repo: None,
-            customers_repo: None,
-        }
+impl WorksheetsModule for DefaultAppState {
+    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
+    fn projects_repo(&self) -> Arc<dyn ProjectsRepository> {
+        self.pool_manager.clone()
     }
-    pub fn worksheets_repo(mut self, worksheets_repo: Arc<dyn WorksheetsRepository>) -> Self {
-        self.worksheets_repo = Some(worksheets_repo);
-        self
-    }
-    pub fn projects_repo(mut self, projects_repo: Arc<dyn ProjectsRepository>) -> Self {
-        self.projects_repo = Some(projects_repo);
-        self
-    }
-    pub fn customers_repo(mut self, customers_repo: Arc<dyn CustomersRepository>) -> Self {
-        self.customers_repo = Some(customers_repo);
-        self
-    }
-    pub fn build(self) -> Result<WorksheetsModule, String> {
-        Ok(WorksheetsModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            worksheets_repo: self
-                .worksheets_repo
-                .ok_or("worksheets_repo is required".to_string())?,
-            projects_repo: self
-                .projects_repo
-                .ok_or("projects_repo is required".to_string())?,
-            customers_repo: self
-                .customers_repo
-                .ok_or("customers_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for WorksheetsModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+    fn customers_repo(&self) -> Arc<dyn CustomersRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for WorksheetsModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub WorksheetsModule {}
+        impl ConfigProvider for WorksheetsModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for WorksheetsModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl WorksheetsModule for WorksheetsModule {
+            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
+            fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
+            fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+        }
+    );
 }

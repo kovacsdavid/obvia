@@ -20,8 +20,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
@@ -66,7 +66,7 @@ pub trait WorksheetsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl WorksheetsRepository for PoolManagerWrapper {
+impl WorksheetsRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Worksheet> {
         Ok(sqlx::query_as::<_, Worksheet>(
             r#"
@@ -77,7 +77,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -140,7 +140,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_select_list_items(
@@ -150,7 +150,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT worksheets.id::VARCHAR as value, worksheets.name as title FROM worksheets WHERE deleted_at IS NULL ORDER BY name",
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_all_paged(
@@ -162,7 +162,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -228,7 +228,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         let worksheets = sqlx::query_as::<_, WorksheetResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -261,7 +261,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .bind(worksheet.project_id)
         .bind(sub)
         .bind(worksheet.status.extract().get_value())
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -297,7 +297,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
         .bind(worksheet.project_id)
         .bind(worksheet.status.extract().get_value())
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -311,7 +311,7 @@ impl WorksheetsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

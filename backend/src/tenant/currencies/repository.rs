@@ -19,7 +19,7 @@
 
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::currencies::model::Currency;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -37,10 +37,10 @@ pub trait CurrenciesRepository: Send + Sync {
 }
 
 #[async_trait]
-impl CurrenciesRepository for PoolManagerWrapper {
+impl CurrenciesRepository for PgPoolManager {
     async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Currency>> {
         Ok(sqlx::query_as::<_, Currency>(r#"SELECT * FROM currencies"#)
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?)
     }
 
@@ -51,7 +51,7 @@ impl CurrenciesRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"SELECT code as value, code || ' - ' || name as title FROM currencies"#,
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 }

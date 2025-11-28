@@ -21,6 +21,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -43,100 +44,149 @@ use uuid::Uuid;
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(module): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match InventoryReservationsService::get(
+        &claims,
+        &payload,
+        inventory_reservations_module.inventory_reservations_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            InventoryReservationsService::get(
-                &claims,
-                &payload,
-                module.inventory_reservations_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(module): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match InventoryReservationsService::get_resolved(
+        &claims,
+        &payload,
+        inventory_reservations_module.inventory_reservations_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            InventoryReservationsService::get_resolved(
-                &claims,
-                &payload,
-                module.inventory_reservations_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(module): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     UserInput(user_input, _): UserInput<
         InventoryReservationUserInput,
         InventoryReservationUserInputHelper,
     >,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match InventoryReservationsService::create(
+        &claims,
+        &user_input,
+        inventory_reservations_module.inventory_reservations_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            InventoryReservationsService::create(
-                &claims,
-                &user_input,
-                module.inventory_reservations_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(module): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    InventoryReservationsService::delete(
+    match InventoryReservationsService::delete(
         &claims,
         &payload,
-        module.inventory_reservations_repo.clone(),
+        inventory_reservations_module.inventory_reservations_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok(_) => (),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
 
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A készletfoglalás törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(module): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
     let inventory_id = payload
@@ -148,7 +198,7 @@ pub async fn list(
                 .into_response()
         })?;
 
-    let (meta, data) = InventoryReservationsService::get_paged_list(
+    let (meta, data) = match InventoryReservationsService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(InventoryReservationOrderBy("reserved_until".to_string()))
@@ -160,42 +210,69 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        module.inventory_reservations_repo.clone(),
+        inventory_reservations_module.inventory_reservations_repo(),
         inventory_id,
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }
 
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_reservations): State<Arc<InventoryReservationsModule>>,
+    State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+
+    let result = match InventoryReservationsService::get_select_list_items(
+        &list_type,
+        &claims,
+        inventory_reservations_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(e
+                .into_friendly_error(inventory_reservations_module)
+                .await
+                .into_response());
+        }
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            InventoryReservationsService::get_select_list_items(
-                &list_type,
-                &claims,
-                inventory_reservations,
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(inventory_reservations_module)
+            .await
+            .into_response()),
+    }
 }

@@ -19,6 +19,7 @@
 
 use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::RegisterRequestHelper;
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
@@ -49,18 +50,21 @@ use std::sync::Arc;
 ///   repository and `payload`.
 #[debug_handler]
 pub async fn login(
-    State(auth_module): State<Arc<AuthModule>>,
+    State(auth_module): State<Arc<dyn AuthModule>>,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let res = AuthService::try_login(auth_module.clone(), payload)
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match AuthService::try_login(auth_module.clone(), payload).await {
+        Ok(u) => u,
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(res)
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
 }
 
 /// Handles user registration requests.
@@ -93,29 +97,38 @@ pub async fn login(
 ///   - There is any issue during the registration process (e.g., database connectivity issues).
 #[debug_handler]
 pub async fn register(
-    State(auth_module): State<Arc<AuthModule>>,
+    State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    AuthService::try_register(auth_module.auth_repo.clone(), user_input)
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match AuthService::try_register(auth_module.auth_repo(), user_input).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
         .data(SimpleMessageResponse::new(
             "A felhasználó sikeresen létrehozva",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
 }
 
-pub async fn get_claims(AuthenticatedUser(claims): AuthenticatedUser) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+pub async fn get_claims(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> HandlerResult {
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(claims)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
 }
 
 #[cfg(test)]
@@ -140,11 +153,11 @@ mod tests {
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
+    use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
         auth,
         auth::{
-            AuthModule,
             dto::{login::LoginRequest, register::RegisterRequest},
             repository::MockAuthRepository,
         },
@@ -178,10 +191,17 @@ mod tests {
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(|_| Ok(None));
-        let auth_module = AuthModule {
-            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            auth_repo: Arc::new(repo),
-        };
+
+        let repo = Arc::new(repo);
+
+        let mut auth_module = MockAuthModule::new();
+        auth_module
+            .expect_config()
+            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
+        auth_module
+            .expect_auth_repo()
+            .returning(move || repo.clone());
+
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),
@@ -251,10 +271,17 @@ mod tests {
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(|_| Ok(None));
-        let auth_module = AuthModule {
-            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            auth_repo: Arc::new(repo),
-        };
+
+        let repo = Arc::new(repo);
+
+        let mut auth_module = MockAuthModule::new();
+        auth_module
+            .expect_config()
+            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
+        auth_module
+            .expect_auth_repo()
+            .returning(move || repo.clone());
+
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "invalidpassword".to_string(),
@@ -309,10 +336,15 @@ mod tests {
             })
             .returning(|_, _| Ok(()));
 
-        let auth_module = AuthModule {
-            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            auth_repo: Arc::new(repo),
-        };
+        let repo = Arc::new(repo);
+
+        let mut auth_module = MockAuthModule::new();
+        auth_module
+            .expect_config()
+            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
+        auth_module
+            .expect_auth_repo()
+            .returning(move || repo.clone());
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -386,10 +418,15 @@ mod tests {
             )))
         });
 
-        let auth_module = AuthModule {
-            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            auth_repo: Arc::new(repo),
-        };
+        let repo = Arc::new(repo);
+
+        let mut auth_module = MockAuthModule::new();
+        auth_module
+            .expect_config()
+            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
+        auth_module
+            .expect_auth_repo()
+            .returning(move || repo.clone());
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -449,10 +486,17 @@ mod tests {
                     deleted_at: None,
                 }))
             });
-        let auth_module = AuthModule {
-            config: Arc::new(AppConfigBuilder::default().build().unwrap()),
-            auth_repo: Arc::new(repo),
-        };
+
+        let repo = Arc::new(repo);
+
+        let mut auth_module = MockAuthModule::new();
+        auth_module
+            .expect_config()
+            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
+        auth_module
+            .expect_auth_repo()
+            .returning(move || repo.clone());
+
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),

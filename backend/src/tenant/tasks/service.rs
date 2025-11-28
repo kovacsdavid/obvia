@@ -16,8 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
@@ -26,8 +27,8 @@ use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::TaskOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -48,8 +49,12 @@ pub enum TasksServiceError {
     InvalidSelectList,
 }
 
-impl IntoResponse for TasksServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for TasksServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             TasksServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -58,9 +63,17 @@ impl IntoResponse for TasksServiceError {
                 GeneralError {
                     message: TasksServiceError::Unauthorized.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -94,10 +107,10 @@ impl TasksService {
     pub async fn create(
         claims: &Claims,
         payload: &TaskUserInput,
-        tasks_module: Arc<TasksModule>,
+        tasks_module: Arc<dyn TasksModule>,
     ) -> TasksServiceResult<Task> {
         Ok(tasks_module
-            .tasks_repo
+            .tasks_repo()
             .insert(
                 payload.clone(),
                 claims.sub(),
@@ -110,7 +123,7 @@ impl TasksService {
     pub async fn get_select_list_items(
         select_list: &str,
         claims: &Claims,
-        tasks_module: Arc<TasksModule>,
+        tasks_module: Arc<dyn TasksModule>,
     ) -> TasksServiceResult<Vec<SelectOption>> {
         let active_tenant = claims
             .active_tenant()
@@ -118,25 +131,25 @@ impl TasksService {
         Ok(match TasksSelectLists::from_str(select_list)? {
             TasksSelectLists::Worksheets => {
                 tasks_module
-                    .worksheets_repo
+                    .worksheets_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             TasksSelectLists::Services => {
                 tasks_module
-                    .services_repo
+                    .services_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             TasksSelectLists::Taxes => {
                 tasks_module
-                    .taxes_repo
+                    .taxes_repo()
                     .get_select_list_items(active_tenant)
                     .await?
             }
             TasksSelectLists::Currencies => {
                 tasks_module
-                    .currencies_repo
+                    .currencies_repo()
                     .get_all_countries_select_list_items(active_tenant)
                     .await?
             }

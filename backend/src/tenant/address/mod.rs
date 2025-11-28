@@ -16,30 +16,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::app::database::PoolManager;
 use std::sync::Arc;
 
 pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod types;
 
-pub fn init_default_address_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> AddressModuleBuilder {
-    AddressModuleBuilder::default()
-        .pool_manager(pool_manager)
-        .config(config)
-}
-
 pub struct AddressModule {
-    pub pool_manager: Arc<dyn PgPoolManagerTrait>,
+    pub pool_manager: Arc<dyn PoolManager>,
     pub config: Arc<AppConfig>,
 }
 
 pub struct AddressModuleBuilder {
-    pub pool_manager: Option<Arc<dyn PgPoolManagerTrait>>,
+    pub pool_manager: Option<Arc<dyn PoolManager>>,
     pub config: Option<Arc<AppConfig>>,
 }
 
@@ -50,7 +42,7 @@ impl AddressModuleBuilder {
             config: None,
         }
     }
-    pub fn pool_manager(mut self, pool_manager: Arc<dyn PgPoolManagerTrait>) -> Self {
+    pub fn pool_manager(mut self, pool_manager: Arc<dyn PoolManager>) -> Self {
         self.pool_manager = Some(pool_manager);
         self
     }

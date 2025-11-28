@@ -16,16 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
-use crate::common::error::{FriendlyError, RepositoryError};
+use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::CustomerOrderBy;
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -42,12 +43,13 @@ pub enum CustomersServiceError {
     CustomerExists,
 }
 
-impl IntoResponse for CustomersServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for CustomersServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
-            CustomersServiceError::Repository(e) => {
-                FriendlyError::internal(file!(), e.to_string()).into_response()
-            }
             CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
                 FriendlyError::user_facing(
                     Level::DEBUG,
@@ -57,7 +59,16 @@ impl IntoResponse for CustomersServiceError {
                         message: self.to_string(),
                     },
                 )
-                .into_response()
+            }
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
             }
         }
     }

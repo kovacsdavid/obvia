@@ -20,8 +20,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
@@ -76,7 +76,7 @@ pub trait ProductsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl ProductsRepository for PoolManagerWrapper {
+impl ProductsRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Product> {
         Ok(sqlx::query_as::<_, Product>(
             r#"
@@ -87,7 +87,7 @@ impl ProductsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -118,7 +118,7 @@ impl ProductsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_select_list_items(
@@ -128,7 +128,7 @@ impl ProductsRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT products.id::VARCHAR as value, products.name as title FROM products WHERE deleted_at IS NULL ORDER BY name",
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_all_paged(
@@ -140,7 +140,7 @@ impl ProductsRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -175,7 +175,7 @@ impl ProductsRepository for PoolManagerWrapper {
         let products = sqlx::query_as::<_, ProductResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -213,7 +213,7 @@ impl ProductsRepository for PoolManagerWrapper {
         )
         .bind(product.status.extract().get_value())
         .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -253,7 +253,7 @@ impl ProductsRepository for PoolManagerWrapper {
         )
         .bind(product.status.extract().get_value())
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -269,7 +269,7 @@ impl ProductsRepository for PoolManagerWrapper {
         )
         .bind(unit_of_measure.to_string().trim())
         .bind(sub)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -280,7 +280,7 @@ impl ProductsRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -294,7 +294,7 @@ impl ProductsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

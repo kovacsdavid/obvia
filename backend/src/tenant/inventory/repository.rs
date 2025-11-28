@@ -19,8 +19,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
@@ -65,7 +65,7 @@ pub trait InventoryRepository: Send + Sync {
 }
 
 #[async_trait]
-impl InventoryRepository for PoolManagerWrapper {
+impl InventoryRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
@@ -76,7 +76,7 @@ impl InventoryRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_resolved_by_id(
@@ -115,7 +115,7 @@ impl InventoryRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -134,7 +134,7 @@ impl InventoryRepository for PoolManagerWrapper {
                 ORDER BY products.name
                 "#,
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -147,7 +147,7 @@ impl InventoryRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -191,7 +191,7 @@ impl InventoryRepository for PoolManagerWrapper {
         let inventory = sqlx::query_as::<_, InventoryResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -241,7 +241,7 @@ impl InventoryRepository for PoolManagerWrapper {
             .bind(inventory.currency_code.extract().get_value())
             .bind(inventory.status.extract().get_value())
             .bind(sub)
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
         )
     }
@@ -298,7 +298,7 @@ impl InventoryRepository for PoolManagerWrapper {
         .bind(inventory.currency_code.extract().get_value())
         .bind(inventory.status.extract().get_value())
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -312,7 +312,7 @@ impl InventoryRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

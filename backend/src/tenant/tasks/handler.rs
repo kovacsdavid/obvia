@@ -21,6 +21,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,122 +41,150 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TasksService::get_resolved_by_id(
+        &claims,
+        &payload,
+        tasks_module.tasks_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TasksService::get_resolved_by_id(&claims, &payload, tasks_module.tasks_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TasksService::get(&claims, &payload, tasks_module.tasks_repo()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TasksService::get(&claims, &payload, tasks_module.tasks_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TasksService::update(&claims, &user_input, tasks_module.tasks_repo()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TasksService::update(&claims, &user_input, tasks_module.tasks_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    TasksService::delete(&claims, &payload, tasks_module.tasks_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match TasksService::delete(&claims, &payload, tasks_module.tasks_repo()).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A feladat törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TasksService::create(&claims, &user_input, tasks_module.clone()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            TasksService::create(&claims, &user_input, tasks_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+
+    let result = match TasksService::get_select_list_items(
+        &list_type,
+        &claims,
+        tasks_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TasksService::get_select_list_items(&list_type, &claims, tasks_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tasks_module): State<Arc<TasksModule>>,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = TasksService::get_paged_list(
+    let (meta, data) = match TasksService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(TaskOrderBy("updated_at".to_string()))
@@ -165,16 +194,21 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        tasks_module.tasks_repo.clone(),
+        tasks_module.tasks_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+    };
 
-    Ok(SuccessResponseBuilder::new()
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
+    }
 }

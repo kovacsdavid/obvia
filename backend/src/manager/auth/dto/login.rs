@@ -70,7 +70,7 @@ pub struct LoginRequest {
 ///   values for this field depend on the application's specific requirements.
 /// * `profile_picture_url` - An optional URL pointing to the user's profile picture.
 ///   This field may be `None` if no profile picture is set.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct UserPublic {
     pub id: Uuid,
     pub email: String,
@@ -119,7 +119,7 @@ impl From<User> for UserPublic {
 ///   about the authenticated user.
 /// * `token` - A string representing the authentication JWT token issued to the
 ///   user for subsequent requests.
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct LoginResponse {
     claims: Claims,
     user: UserPublic,

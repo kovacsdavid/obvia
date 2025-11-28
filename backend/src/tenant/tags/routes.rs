@@ -28,7 +28,7 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes(tags_module: Arc<TagsModule>) -> Router {
+pub fn routes(tags_module: Arc<dyn TagsModule>) -> Router {
     Router::new().nest(
         "/tags",
         Router::new()
@@ -38,7 +38,7 @@ pub fn routes(tags_module: Arc<TagsModule>) -> Router {
             .route("/create", post(tags_create))
             .route("/update", put(tags_update))
             .route("/delete", delete(tags_delete))
-            .layer(from_fn_with_state(tags_module.config.clone(), require_auth))
+            .layer(from_fn_with_state(tags_module.config(), require_auth))
             .with_state(tags_module),
     )
 }

@@ -20,8 +20,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::dto::ProjectUserInput;
 use crate::tenant::projects::model::{Project, ProjectResolved};
@@ -67,7 +67,7 @@ pub trait ProjectsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl ProjectsRepository for PoolManagerWrapper {
+impl ProjectsRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Project> {
         Ok(sqlx::query_as::<_, Project>(
             r#"
@@ -78,7 +78,7 @@ impl ProjectsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -108,7 +108,7 @@ impl ProjectsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
     async fn get_select_list_items(
@@ -118,7 +118,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT projects.id::VARCHAR as value, projects.name as title FROM projects WHERE deleted_at IS NULL ORDER BY name",
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -131,7 +131,7 @@ impl ProjectsRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProjectResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM projects WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -165,7 +165,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         let projects = sqlx::query_as::<_, ProjectResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -214,7 +214,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         .bind(project.status.extract().get_value())
         .bind(start_date)
         .bind(end_date)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -264,7 +264,7 @@ impl ProjectsRepository for PoolManagerWrapper {
         .bind(start_date)
         .bind(end_date)
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -278,7 +278,7 @@ impl ProjectsRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

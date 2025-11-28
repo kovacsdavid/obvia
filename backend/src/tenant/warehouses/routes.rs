@@ -28,7 +28,7 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes(warehouses_module: Arc<WarehousesModule>) -> Router {
+pub fn routes(warehouses_module: Arc<dyn WarehousesModule>) -> Router {
     Router::new().nest(
         "/warehouses",
         Router::new()
@@ -38,10 +38,7 @@ pub fn routes(warehouses_module: Arc<WarehousesModule>) -> Router {
             .route("/create", post(warehouses_create))
             .route("/update", put(warehouses_update))
             .route("/delete", delete(warehouses_delete))
-            .layer(from_fn_with_state(
-                warehouses_module.config.clone(),
-                require_auth,
-            ))
+            .layer(from_fn_with_state(warehouses_module.config(), require_auth))
             .with_state(warehouses_module),
     )
 }

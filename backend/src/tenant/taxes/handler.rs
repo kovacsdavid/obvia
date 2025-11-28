@@ -22,6 +22,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -41,101 +42,119 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TaxesService::get_resolved_by_id(
+        &claims,
+        &payload,
+        taxes_module.taxes_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TaxesService::get_resolved_by_id(&claims, &payload, taxes_module.taxes_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TaxesService::get(&claims, &payload, taxes_module.taxes_repo()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TaxesService::get(&claims, &payload, taxes_module.taxes_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TaxesService::create(&claims, &user_input, taxes_module.taxes_repo()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            TaxesService::create(&claims, &user_input, taxes_module.taxes_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TaxesService::update(&claims, &user_input, taxes_module.taxes_repo()).await {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TaxesService::update(&claims, &user_input, taxes_module.taxes_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    TaxesService::delete(&claims, &payload, taxes_module.taxes_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match TaxesService::delete(&claims, &payload, taxes_module.taxes_repo()).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "Az adó törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = TaxesService::get_paged_list(
+    let (meta, data) = match TaxesService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(TaxOrderBy("description".to_string()))
@@ -145,36 +164,52 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        taxes_module.taxes_repo.clone(),
+        taxes_module.taxes_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::new()
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }
 
+#[debug_handler]
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(taxes_module): State<Arc<TaxesModule>>,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match TaxesService::get_select_list_items(
+        &list_type,
+        &claims,
+        taxes_module.clone(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            TaxesService::get_select_list_items(&list_type, &claims, taxes_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
+    }
 }

@@ -20,8 +20,8 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::repository::PoolManagerWrapper;
 use crate::common::types::value_object::ValueObjectable;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
@@ -66,13 +66,13 @@ pub trait ServicesRepository: Send + Sync + 'static {
 }
 
 #[async_trait]
-impl ServicesRepository for PoolManagerWrapper {
+impl ServicesRepository for PgPoolManager {
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Service> {
         let service = sqlx::query_as::<_, Service>(
             r#"SELECT * FROM services WHERE id = $1 AND deleted_at IS NULL"#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
         Ok(service)
     }
@@ -107,7 +107,7 @@ impl ServicesRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
         Ok(service)
     }
@@ -126,7 +126,7 @@ impl ServicesRepository for PoolManagerWrapper {
                 ORDER BY services.description
                 "#,
         )
-        .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_all(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -139,7 +139,7 @@ impl ServicesRepository for PoolManagerWrapper {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)> {
         let total: (i64,) =
             sqlx::query_as("SELECT COUNT(*) FROM services WHERE deleted_at IS NULL")
-                .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
@@ -178,7 +178,7 @@ impl ServicesRepository for PoolManagerWrapper {
         let services = sqlx::query_as::<_, ServiceResolved>(&sql)
             .bind(paginator_params.limit)
             .bind(paginator_params.offset())
-            .fetch_all(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
@@ -220,7 +220,7 @@ impl ServicesRepository for PoolManagerWrapper {
             .bind(service.currency_code.as_ref().map(|d| d.extract().get_value().as_str()))
             .bind(service.status.extract().get_value())
             .bind(sub)
-            .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+            .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?)
     }
 
@@ -271,7 +271,7 @@ impl ServicesRepository for PoolManagerWrapper {
         )
         .bind(service.status.extract().get_value())
         .bind(id)
-        .fetch_one(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
 
@@ -285,7 +285,7 @@ impl ServicesRepository for PoolManagerWrapper {
             "#,
         )
         .bind(id)
-        .execute(&self.pool_manager.get_tenant_pool(active_tenant)?)
+        .execute(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
         Ok(())

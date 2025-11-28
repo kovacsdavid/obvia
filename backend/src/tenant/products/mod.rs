@@ -16,9 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::repository::PoolManagerWrapper;
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::products::repository::ProductsRepository;
 use std::sync::Arc;
 
@@ -30,64 +29,38 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub fn init_default_products_module(
-    pool_manager: Arc<dyn PgPoolManagerTrait>,
-    config: Arc<AppConfig>,
-) -> ProductsModuleBuilder {
-    ProductsModuleBuilder::default()
-        .config(config)
-        .products_repo(Arc::new(PoolManagerWrapper::new(pool_manager.clone())))
+pub trait ProductsModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn products_repo(&self) -> Arc<dyn ProductsRepository>;
 }
 
-pub struct ProductsModule {
-    pub config: Arc<AppConfig>,
-    pub products_repo: Arc<dyn ProductsRepository>,
-}
-
-pub struct ProductsModuleBuilder {
-    pub config: Option<Arc<AppConfig>>,
-    pub products_repo: Option<Arc<dyn ProductsRepository>>,
-}
-
-impl ProductsModuleBuilder {
-    pub fn new() -> Self {
-        Self {
-            config: None,
-            products_repo: None,
-        }
-    }
-    pub fn config(mut self, config: Arc<AppConfig>) -> Self {
-        self.config = Some(config);
-        self
-    }
-    pub fn products_repo(mut self, products_repo: Arc<dyn ProductsRepository>) -> Self {
-        self.products_repo = Some(products_repo);
-        self
-    }
-    pub fn build(self) -> Result<ProductsModule, String> {
-        Ok(ProductsModule {
-            config: self.config.ok_or("config is required".to_string())?,
-            products_repo: self
-                .products_repo
-                .ok_or("products_repo is required".to_string())?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for ProductsModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+impl ProductsModule for DefaultAppState {
+    fn products_repo(&self) -> Arc<dyn ProductsRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for ProductsModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub ProductsModule {}
+        impl ConfigProvider for ProductsModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for ProductsModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl ProductsModule for ProductsModule {
+            fn products_repo(&self) -> Arc<dyn ProductsRepository>;
+        }
+    );
 }

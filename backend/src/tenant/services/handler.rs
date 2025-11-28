@@ -21,6 +21,7 @@ use crate::common::dto::{
     SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
+use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::common::types::Order;
 use crate::common::types::ValueObject;
@@ -40,105 +41,132 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn get_resolved(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ServicesService::get_resolved_by_id(
+        &claims,
+        &payload,
+        services_module.services_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ServicesService::get_resolved_by_id(
-                &claims,
-                &payload,
-                services_module.services_repo.clone(),
-            )
-            .await
-            .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn get(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result =
+        match ServicesService::get(&claims, &payload, services_module.services_repo()).await {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+        };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ServicesService::get(&claims, &payload, services_module.services_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ServicesService::create(
+        &claims,
+        &user_input,
+        services_module.services_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
-        .data(
-            ServicesService::create(&claims, &user_input, services_module.services_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn update(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    let result = match ServicesService::update(
+        &claims,
+        &user_input,
+        services_module.services_repo(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+    };
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ServicesService::update(&claims, &user_input, services_module.services_repo.clone())
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn delete(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    ServicesService::delete(&claims, &payload, services_module.services_repo.clone())
-        .await
-        .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+    match ServicesService::delete(&claims, &payload, services_module.services_repo()).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A szolgáltatás törlése sikeresen megtörtént",
         ))
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
 #[debug_handler]
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<QueryParam>,
 ) -> HandlerResult {
-    let (meta, data) = ServicesService::get_paged_list(
+    let (meta, data) = match ServicesService::get_paged_list(
         &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
         &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
             order_by: ValueObject::new(ServiceOrderBy("name".to_string()))
@@ -148,36 +176,50 @@ pub async fn list(
         }),
         &FilteringParams::from(&payload),
         &claims,
-        services_module.services_repo.clone(),
+        services_module.services_repo(),
     )
     .await
-    .map_err(|e| e.into_response())?;
-    Ok(SuccessResponseBuilder::new()
+    {
+        Ok((m, d)) => (m, d),
+        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::new()
         .status_code(StatusCode::OK)
         .meta(meta)
         .data(data)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }
 
+#[debug_handler]
 pub async fn select_list(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(inventory_module): State<Arc<ServicesModule>>,
+    State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    Ok(SuccessResponseBuilder::<EmptyType, _>::new()
+
+    let result =
+        match ServicesService::get_select_list_items(&list_type, &claims, services_module.clone())
+            .await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+        };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(
-            ServicesService::get_select_list_items(&list_type, &claims, inventory_module)
-                .await
-                .map_err(|e| e.into_response())?,
-        )
+        .data(result)
         .build()
-        .map_err(|e| e.into_response())?
-        .into_response())
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
+    }
 }

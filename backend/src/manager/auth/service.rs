@@ -22,17 +22,20 @@ use super::{
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
     repository::AuthRepository,
 };
-use crate::common::dto::GeneralError;
-use crate::common::error::{FriendlyError, RepositoryError};
 use crate::common::types::value_object::ValueObjectable;
+use crate::common::{
+    MailTransporter,
+    error::{FriendlyError, RepositoryError},
+};
+use crate::common::{dto::GeneralError, error::IntoFriendlyError};
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use async_trait::async_trait;
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{EncodingKey, Header, encode};
 use std::sync::Arc;
@@ -64,8 +67,12 @@ pub enum AuthServiceError {
     Token(String),
 }
 
-impl IntoResponse for AuthServiceError {
-    fn into_response(self) -> Response {
+#[async_trait]
+impl IntoFriendlyError<GeneralError> for AuthServiceError {
+    async fn into_friendly_error(
+        self,
+        module: Arc<dyn MailTransporter>,
+    ) -> FriendlyError<GeneralError> {
         match self {
             Self::UserNotFound | Self::InvalidPassword | Self::UserInactive => {
                 FriendlyError::user_facing(
@@ -76,7 +83,6 @@ impl IntoResponse for AuthServiceError {
                         message: self.to_string(),
                     },
                 )
-                .into_response()
             }
             Self::UserExists => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -85,9 +91,17 @@ impl IntoResponse for AuthServiceError {
                 GeneralError {
                     message: self.to_string(),
                 },
-            )
-            .into_response(),
-            e => FriendlyError::internal(file!(), e.to_string()).into_response(),
+            ),
+            e => {
+                FriendlyError::internal_with_admin_notify(
+                    file!(),
+                    GeneralError {
+                        message: e.to_string(),
+                    },
+                    module,
+                )
+                .await
+            }
         }
     }
 }
@@ -135,11 +149,11 @@ impl AuthService {
     /// - `jsonwebtoken` crate for JWT creation.
     /// - `chrono` crate for timestamps and expiration calculations.
     pub async fn try_login(
-        auth_module: Arc<AuthModule>,
+        auth_module: Arc<dyn AuthModule>,
         payload: LoginRequest,
     ) -> Result<LoginResponse, AuthServiceError> {
         let user = auth_module
-            .auth_repo
+            .auth_repo()
             .get_user_by_email(&payload.email)
             .await
             .map_err(|e| {
@@ -150,7 +164,7 @@ impl AuthService {
                 }
             })?;
         let active_user_tenant = auth_module
-            .auth_repo
+            .auth_repo()
             .get_user_active_tenant(user.id)
             .await?;
 
@@ -163,7 +177,7 @@ impl AuthService {
 
         let now = Utc::now().timestamp() as usize;
         let exp = (Utc::now()
-            + Duration::minutes(auth_module.config.auth().jwt_expiration_mins() as i64))
+            + Duration::minutes(auth_module.config().auth().jwt_expiration_mins() as i64))
         .timestamp() as usize;
         let nbf = now;
         let active_tenant_id = match active_user_tenant {
@@ -176,8 +190,8 @@ impl AuthService {
             exp,
             now,
             nbf,
-            auth_module.config.auth().jwt_issuer().to_string(),
-            auth_module.config.auth().jwt_audience().to_string(),
+            auth_module.config().auth().jwt_issuer().to_string(),
+            auth_module.config().auth().jwt_audience().to_string(),
             Uuid::new_v4(),
             active_tenant_id,
         );
@@ -185,7 +199,7 @@ impl AuthService {
         let token = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret(auth_module.config.auth().jwt_secret().as_bytes()),
+            &EncodingKey::from_secret(auth_module.config().auth().jwt_secret().as_bytes()),
         )
         .map_err(|e| AuthServiceError::Token(e.to_string()))?;
 

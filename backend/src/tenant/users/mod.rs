@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PgPoolManagerTrait;
+use crate::manager::app::database::PoolManager;
 use std::sync::Arc;
 
 pub(crate) mod dto;
@@ -25,7 +25,7 @@ pub(crate) mod model;
 pub(crate) mod repository;
 
 pub fn init_default_users_module(
-    pool_manager_config: Arc<dyn PgPoolManagerTrait>,
+    pool_manager_config: Arc<dyn PoolManager>,
     config: Arc<AppConfig>,
 ) {
     todo!()

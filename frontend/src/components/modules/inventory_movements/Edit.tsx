@@ -184,7 +184,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
           {!routeInventoryId && (
             <>
-              <Label htmlFor="inventoryId">Leltár azonosító</Label>
+              <Label htmlFor="inventoryId">Raktárkészlet</Label>
               <Select disabled={inventoryIdList.length === 0} value={inventoryId ?? ""}
                       onValueChange={val => setInventoryId(val)}>
                 <SelectTrigger className={"w-full"}>

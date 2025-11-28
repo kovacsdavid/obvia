@@ -68,7 +68,7 @@ export default function View() {
         <>
           <Card className={"max-w-lg mx-auto"}>
             <CardHeader>
-              <CardTitle>Leltár</CardTitle>
+              <CardTitle>Raktárkészlet</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>

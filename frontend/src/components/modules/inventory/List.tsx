@@ -116,12 +116,12 @@ export default function List() {
       <GlobalError error={errors}/>
       <Card>
         <CardHeader>
-          <CardTitle>Leltár</CardTitle>
+          <CardTitle>Raktárkészlet</CardTitle>
         </CardHeader>
         <CardContent>
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
-              <Link to={"/leltar/letrehozas"}>
+              <Link to={"/raktarkeszlet/letrehozas"}>
                 <Button style={{color: "green"}} variant="outline">
                   <Plus color="green"/> Új
                 </Button>
@@ -211,23 +211,23 @@ export default function List() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/leltar/reszletek/${item.id}`}>
+                        <Link to={`/raktarkeszlet/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/leltar/modositas/${item.id}`}>
+                        <Link to={`/raktarkeszlet/modositas/${item.id}`}>
                           <DropdownMenuItem>
                             <Pencil/> Szerkesztés
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator/>
-                        <Link to={`/leltar-mozgas/lista?q=${query_encoder({inventory_id: item.id})}`}>
+                        <Link to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({inventory_id: item.id})}`}>
                           <DropdownMenuItem>
                             <Combine/> Készletmozgatás
                           </DropdownMenuItem>
                         </Link>
-                        <Link to={`/leltar-foglalas/lista?q=${query_encoder({inventory_id: item.id})}`}>
+                        <Link to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({inventory_id: item.id})}`}>
                           <DropdownMenuItem>
                             <Timer/> Készletfoglalás
                           </DropdownMenuItem>

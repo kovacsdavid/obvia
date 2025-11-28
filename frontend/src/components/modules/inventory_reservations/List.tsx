@@ -119,7 +119,7 @@ export default function InventoryReservationsList() {
         <CardHeader>
           <CardTitle>Készletfoglalások</CardTitle>
           <CardAction>
-            <Link to={`/leltar-foglalas/letrehozas/${routeInventoryId}`}>
+            <Link to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}>
               <Button style={{color: "green"}} variant="outline">
                 <Plus color="green"/> Új
               </Button>
@@ -155,7 +155,7 @@ export default function InventoryReservationsList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/leltar-foglalas/reszletek/${item.id}`}>
+                        <Link to={`/raktarkeszlet-foglalas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
                           </DropdownMenuItem>

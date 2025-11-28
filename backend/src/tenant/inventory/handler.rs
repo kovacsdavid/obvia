@@ -152,7 +152,7 @@ pub async fn delete(
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
-            "A leltár törlése sikeresen megtörtént",
+            "A raktárkészlet törlése sikeresen megtörtént",
         ))
         .build()
     {

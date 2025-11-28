@@ -194,7 +194,7 @@ pub async fn list(
         .and_then(|m| m.get("inventory_id").cloned())
         .and_then(|s| Uuid::parse_str(&s).ok())
         .ok_or_else(|| {
-            FriendlyError::internal(file!(), "Hiányzó vagy hibás leltár azonosító".to_string())
+            FriendlyError::internal(file!(), "Hiányzó vagy hibás raktárkészlet azonosító".to_string())
                 .into_response()
         })?;
 

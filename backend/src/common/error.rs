@@ -191,14 +191,39 @@ where
         self
     }
     async fn notify_admin(&self, module: Arc<dyn MailTransporter>) -> Result<(), String> {
-        if let FriendlyError::Internal(body, loc) = &self {
+        if let FriendlyError::Internal(loc, body) = &self {
             let handlebars = Handlebars::new();
             let email = Message::builder()
-                .from(Mailbox::new(Some(module.config().mail().default_from_name().to_owned()), module.config().mail().default_from().parse().map_err(|e: AddressError| e.to_string())?))
-                .to(Mailbox::new(None, module.config().mail().default_notification_email().parse().map_err(|e: AddressError| e.to_string())?))
+                .from(Mailbox::new(
+                    Some(
+                        module.config().mail().default_from_name().to_owned()
+                    ),
+                    module
+                        .config()
+                        .mail()
+                        .default_from()
+                        .parse()
+                        .map_err(|e: AddressError| e.to_string())?)
+                )
+                .to(Mailbox::new(
+                    None,
+                    module
+                        .config()
+                        .mail()
+                        .default_notification_email()
+                        .parse()
+                        .map_err(|e: AddressError| e.to_string())?)
+                )
                 .subject("Unexpected error")
                 .header(ContentType::TEXT_PLAIN)
-                .body(handlebars.render_template("Dear Admin!\n\n Check this error!\n Internal error: location={{loc}} message={{body}}", &json!({"body": body, "loc": loc})).map_err(|e| e.to_string())?)
+                .body(handlebars.render_template(
+                    r##"
+                    Dear Admin!\n\n
+                    Check this error!\n
+                    Internal error: location={{loc}} message={{body}}
+                    "##,
+                    &json!({"loc": loc, "body": body.to_string()})).map_err(|e| e.to_string())?
+                )
                 .map_err(|e| e.to_string())?;
 
             match module.send(email).await {

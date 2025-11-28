@@ -94,24 +94,24 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true},
 
   // Inventory
-  {path: "/leltar/letrehozas", element: InventoryEdit, isPrivate: true},
-  {path: "/leltar/modositas/:id", element: InventoryEdit, isPrivate: true},
-  {path: "/leltar/lista", element: InventoryList, isPrivate: true},
-  {path: "/leltar/reszletek/:id", element: InventoryView, isPrivate: true},
+  {path: "/raktarkeszlet/letrehozas", element: InventoryEdit, isPrivate: true},
+  {path: "/raktarkeszlet/modositas/:id", element: InventoryEdit, isPrivate: true},
+  {path: "/raktarkeszlet/lista", element: InventoryList, isPrivate: true},
+  {path: "/raktarkeszlet/reszletek/:id", element: InventoryView, isPrivate: true},
 
   // InventoryMovements
-  {path: "/leltar-mozgas/letrehozas", element: InventoryMovementsEdit, isPrivate: true},
-  {path: "/leltar-mozgas/letrehozas/:inventoryId", element: InventoryMovementsEdit, isPrivate: true},
-  {path: "/leltar-mozgas/modositas/:id", element: InventoryMovementsEdit, isPrivate: true},
-  {path: "/leltar-mozgas/lista", element: InventoryMovementsList, isPrivate: true},
-  {path: "/leltar-mozgas/reszletek/:id", element: InventoryMovementsView, isPrivate: true},
+  {path: "/raktarkeszlet-mozgas/letrehozas", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-mozgas/letrehozas/:inventoryId", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-mozgas/modositas/:id", element: InventoryMovementsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-mozgas/lista", element: InventoryMovementsList, isPrivate: true},
+  {path: "/raktarkeszlet-mozgas/reszletek/:id", element: InventoryMovementsView, isPrivate: true},
 
   // InventoryReservations
-  {path: "/leltar-foglalas/letrehozas", element: InventoryReservationsEdit, isPrivate: true},
-  {path: "/leltar-foglalas/letrehozas/:inventoryId", element: InventoryReservationsEdit, isPrivate: true},
-  {path: "/leltar-foglalas/modositas/:id", element: InventoryReservationsEdit, isPrivate: true},
-  {path: "/leltar-foglalas/lista", element: InventoryReservationsList, isPrivate: true},
-  {path: "/leltar-foglalas/reszletek/:id", element: InventoryReservationsView, isPrivate: true},
+  {path: "/raktarkeszlet-foglalas/letrehozas", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-foglalas/letrehozas/:inventoryId", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-foglalas/modositas/:id", element: InventoryReservationsEdit, isPrivate: true},
+  {path: "/raktarkeszlet-foglalas/lista", element: InventoryReservationsList, isPrivate: true},
+  {path: "/raktarkeszlet-foglalas/reszletek/:id", element: InventoryReservationsView, isPrivate: true},
 
   // Products
   {path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true},

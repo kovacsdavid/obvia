@@ -48,7 +48,7 @@ pub enum InventoryServiceError {
     #[error("A lista nem létezik")]
     InvalidSelectList,
 
-    #[error("A megadott termékhez már létezik leltár ebben a raktárban!")]
+    #[error("A megadott termékhez már létezik raktárkészlet ebben a raktárban!")]
     InventoryExists,
 }
 

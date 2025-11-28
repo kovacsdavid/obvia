@@ -130,7 +130,7 @@ export default function InventoryMovementsList() {
         <CardHeader>
           <CardTitle>Készletmozgások</CardTitle>
           <CardAction>
-            <Link to={`/leltar-mozgas/letrehozas/${routeInventoryId}`}>
+            <Link to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}>
               <Button style={{color: "green"}} variant="outline">
                 <Plus color="green"/> Új
               </Button>
@@ -165,7 +165,7 @@ export default function InventoryMovementsList() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/leltar-mozgas/reszletek/${item.id}`}>
+                        <Link to={`/raktarkeszlet-mozgas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
                             <Eye/> Részletek
                           </DropdownMenuItem>

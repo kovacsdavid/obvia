@@ -163,12 +163,12 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             isActive: location.pathname.includes("/termek/lista"),
           },
           {
-            title: "Leltár",
-            url: "/leltar/lista",
+            title: "Raktárkészlet",
+            url: "/raktarkeszlet/lista",
             private: true,
             needActiveDatabase: true,
             icon: <Boxes/>,
-            isActive: location.pathname.includes("/leltar/lista"),
+            isActive: location.pathname.includes("/raktarkeszlet/lista"),
           },
         ]
       },

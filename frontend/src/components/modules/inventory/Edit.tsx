@@ -107,7 +107,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
-            navigate("/leltar/lista");
+            navigate("/raktarkeszlet/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
@@ -132,7 +132,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     })).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
-          navigate("/leltar/lista");
+          navigate("/raktarkeszlet/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error)
         } else {
@@ -227,7 +227,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
       </Dialog>
       <ConditionalCard
         showCard={showCard}
-        title={`Leltár ${id ? "módosítás" : "létrehozás"}`}
+        title={`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
         <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>

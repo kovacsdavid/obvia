@@ -65,12 +65,14 @@ pub struct AppConfig {
 ///
 /// # Fields
 ///
-/// * `host` - A `String` representing the hostname or IP address of the server.
+/// * `host` - A `String` representing the IP address of the server.
 /// * `port` - A `u16` representing the port number that the server will listen on.
+/// * `hostname` - A `String` representing the hostname of the server.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     host: String,
     port: u16,
+    hostname: String,
 }
 
 pub type BasicDatabaseConfig = DatabaseConfig<String, u16, String, String, String, u32>;
@@ -442,6 +444,9 @@ impl ServerConfig {
     pub fn port(&self) -> u16 {
         self.port
     }
+    pub fn hostname(&self) -> &str {
+        &self.hostname
+    }
 }
 
 impl AuthConfig {
@@ -731,6 +736,7 @@ impl Default for AppConfigBuilder {
 pub struct ServerConfigBuilder {
     host: Option<String>,
     port: Option<u16>,
+    hostname: Option<String>,
 }
 
 impl ServerConfigBuilder {
@@ -742,6 +748,7 @@ impl ServerConfigBuilder {
         Self {
             host: None,
             port: None,
+            hostname: None,
         }
     }
     /// Sets the host for the configuration.
@@ -779,6 +786,10 @@ impl ServerConfigBuilder {
         self.port = Some(port);
         self
     }
+    pub fn hostname(mut self, hostname: String) -> Self {
+        self.hostname = Some(hostname);
+        self
+    }
     /// Builds a `ServerConfig` instance from the current configuration in the builder.
     ///
     /// This method attempts to create a `ServerConfig` object using the values
@@ -801,6 +812,7 @@ impl ServerConfigBuilder {
         Ok(ServerConfig {
             host: self.host.ok_or("host is required".to_string())?,
             port: self.port.ok_or("port is required".to_string())?,
+            hostname: self.hostname.ok_or("hostname is required".to_string())?,
         })
     }
 }
@@ -1234,6 +1246,7 @@ mod tests {
             ServerConfigBuilder {
                 host: Some("127.0.0.1".to_string()),
                 port: Some(3000),
+                hostname: Some("example.com".to_string()),
             }
         }
     }

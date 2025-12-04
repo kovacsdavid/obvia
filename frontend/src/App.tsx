@@ -66,6 +66,7 @@ import TaxesView from "@/components/modules/taxes/View.tsx";
 import ServicesEdit from "@/components/modules/services/Edit.tsx";
 import ServicesList from "@/components/modules/services/List.tsx";
 import ServicesView from "@/components/modules/services/View.tsx";
+import EmailVerification from "@/components/modules/auth/EmailVerification.tsx";
 
 interface RouteConfig {
   path: string;
@@ -78,6 +79,7 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {path: "/", element: (): React.JSX.Element => (<Navigate to="/bejelentkezes" replace/>), isPrivate: false},
   {path: "/bejelentkezes", element: Login, isPrivate: false},
   {path: "/regisztracio", element: Register, isPrivate: false},
+  {path: "/email_megerosites/:id", element: EmailVerification, isPrivate: false},
 
   // Dashboard
   {path: "/vezerlopult", element: Dashboard, isPrivate: true},

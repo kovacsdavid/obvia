@@ -62,4 +62,7 @@ impl User {
     pub fn is_active(&self) -> bool {
         self.status == "active"
     }
+    pub fn need_email_verification(&self) -> bool {
+        self.status == "unchecked_email"
+    }
 }

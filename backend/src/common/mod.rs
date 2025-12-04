@@ -92,17 +92,15 @@ impl DefaultAppState {
     pub async fn new() -> anyhow::Result<DefaultAppState> {
         let config = Arc::new(Self::init_config()?);
         let pool_manager = Arc::new(Self::init_pool_manager(config.clone()).await?);
-        let app_state = Self {
+        Ok(Self {
             config: config.clone(),
             default_smtp_transport: Arc::new(Self::init_smpt_transport(config.clone())?),
             pool_manager: pool_manager.clone(),
             migrator: pool_manager.clone(),
             connection_tester: Arc::new(PgConnectionTester),
-        };
-        app_state.init_tenant_pools().await?;
-        Ok(app_state)
+        })
     }
-    async fn init_tenant_pools(&self) -> anyhow::Result<()> {
+    pub async fn init_tenant_pools(&self) -> anyhow::Result<()> {
         for tenant in TenantsRepository::get_all(self.pool_manager.as_ref()).await? {
             match BasicDatabaseConfig::try_from(&tenant) {
                 Ok(db_config) => {

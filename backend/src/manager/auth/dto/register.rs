@@ -220,3 +220,61 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
         }
     }
 }
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+pub struct ResendEmailValidationRequestHelper {
+    pub email: String,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct ResendEmailValidationError {
+    pub email: Option<String>,
+}
+
+impl ResendEmailValidationError {
+    pub fn is_empty(&self) -> bool {
+        self.email.is_none()
+    }
+}
+
+impl Display for ResendEmailValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "ResendEmailValidationError: {}", json),
+            Err(e) => write!(f, "ResendEmailValidationError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for ResendEmailValidationError {}
+
+impl IntoResponse for ResendEmailValidationError {
+    fn into_response(self) -> Response {
+        self.get_error_response()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub struct ResendEmailValidationRequest {
+    pub email: ValueObject<Email>,
+}
+
+impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationRequest {
+    type Error = ResendEmailValidationError;
+
+    fn try_from(value: ResendEmailValidationRequestHelper) -> Result<Self, Self::Error> {
+        let mut error = ResendEmailValidationError::default();
+
+        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+            error.email = Some(e.to_string());
+        });
+
+        if error.is_empty() {
+            Ok(ResendEmailValidationRequest {
+                email: email_result.map_err(|_| ResendEmailValidationError::default())?,
+            })
+        } else {
+            Err(error)
+        }
+    }
+}

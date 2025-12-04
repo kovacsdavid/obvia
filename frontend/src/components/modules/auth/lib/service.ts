@@ -22,10 +22,11 @@ import {
   type ClaimsResponse,
   type LoginRequest,
   type RegisterRequest,
-  type RegisterResponse
+  type RegisterResponse,
+  type VerifyEmailResponse
 } from "@/components/modules/auth/lib/interface.ts";
 import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
-import {isClaimsResponse, isRegisterResponse} from "@/components/modules/auth/lib/guards.ts";
+import {isClaimsResponse, isRegisterResponse, isVerifyEmailResponse} from "@/components/modules/auth/lib/guards.ts";
 
 export async function login({email, password}: LoginRequest): Promise<Response> {
   return await fetch(`/api/auth/login`, {
@@ -76,6 +77,21 @@ export async function get_claims(token: string | null): Promise<ProcessedRespons
     return await ProcessResponse(
       response,
       isClaimsResponse,
+    ) ?? unexpectedError;
+  });
+}
+
+export async function verfiy_email(id: string): Promise<ProcessedResponse<VerifyEmailResponse>> {
+  return await fetch(`/api/auth/verify_email?id=${id}`, {
+    method: 'GET',
+    headers: {
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return await ProcessResponse(
+      response,
+      isVerifyEmailResponse,
     ) ?? unexpectedError;
   });
 }

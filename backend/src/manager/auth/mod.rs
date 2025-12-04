@@ -25,6 +25,7 @@ use crate::manager::auth::repository::AuthRepository;
 pub(crate) mod dto;
 mod handler;
 pub(crate) mod middleware;
+pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;

@@ -23,7 +23,8 @@ import {
   isFormError,
   isSimpleError,
   isSimpleMessageData,
-  type SimpleMessageData
+  type SimpleMessageData,
+  type SimpleError,
 } from "@/lib/interfaces/common.ts";
 import type {
   Claims,
@@ -31,7 +32,8 @@ import type {
   LoginData,
   LoginResponse,
   LoginUser,
-  RegisterResponse
+  RegisterResponse,
+  VerifyEmailResponse
 } from "@/components/modules/auth/lib/interface.ts";
 
 export function isClaims(data: unknown): data is Claims {
@@ -110,5 +112,13 @@ export function isRegisterResponse(data: unknown): data is RegisterResponse {
     data,
     isSimpleMessageData,
     isFormError
+  )
+}
+
+export function isVerifyEmailResponse(data: unknown): data is VerifyEmailResponse {
+  return isCommonResponse<SimpleMessageData, SimpleError>(
+    data,
+    isSimpleMessageData,
+    isSimpleError
   )
 }

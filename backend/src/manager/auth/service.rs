@@ -20,15 +20,20 @@
 use super::{
     AuthModule,
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
-    repository::AuthRepository,
 };
-use crate::common::types::value_object::ValueObjectable;
 use crate::common::{
     MailTransporter,
     error::{FriendlyError, RepositoryError},
 };
 use crate::common::{dto::GeneralError, error::IntoFriendlyError};
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
+use crate::{
+    common::types::value_object::ValueObjectable,
+    manager::{
+        auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
+        users::model::User,
+    },
+};
 use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
@@ -37,7 +42,14 @@ use argon2::{
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use chrono::{Duration, Utc};
+use handlebars::Handlebars;
 use jsonwebtoken::{EncodingKey, Header, encode};
+use lettre::{
+    Message,
+    address::AddressError,
+    message::{Mailbox, header::ContentType},
+};
+use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -60,11 +72,20 @@ pub enum AuthServiceError {
     #[error("Hibás e-mail cím vagy jelszó")]
     InvalidPassword,
 
+    #[error("Hibás e-mail megerősítő hivatkozás")]
+    InvalidEmailValidationToken,
+
+    #[error("A megerősítő e-mail újraküldése sikertelen")]
+    EmailValidationResend,
+
     #[error("Hash error: {0}")]
     Hash(String),
 
     #[error("Token generation: {0}")]
     Token(String),
+
+    #[error("MailTransport error: {0}")]
+    MailTransport(String),
 }
 
 #[async_trait]
@@ -74,16 +95,17 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            Self::UserNotFound | Self::InvalidPassword | Self::UserInactive => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    },
-                )
-            }
+            Self::UserNotFound
+            | Self::InvalidPassword
+            | Self::UserInactive
+            | Self::InvalidEmailValidationToken => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                },
+            ),
             Self::UserExists => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
@@ -107,6 +129,8 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
 }
 
 pub struct AuthService;
+
+type AuthServiceResult<T> = Result<T, AuthServiceError>;
 
 impl AuthService {
     /// Attempts to authenticate a user based on the provided credentials. If the login succeeds, a JWT token is
@@ -151,18 +175,17 @@ impl AuthService {
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
         payload: LoginRequest,
-    ) -> Result<LoginResponse, AuthServiceError> {
+    ) -> AuthServiceResult<LoginResponse> {
         let user = auth_module
             .auth_repo()
             .get_user_by_email(&payload.email)
             .await
-            .map_err(|e| {
-                if e.is_inactive_record() {
-                    AuthServiceError::UserInactive
-                } else {
-                    AuthServiceError::UserNotFound
-                }
-            })?;
+            .map_err(|e| AuthServiceError::UserNotFound)?;
+
+        if !user.is_active() {
+            return Err(AuthServiceError::UserInactive);
+        }
+
         let active_user_tenant = auth_module
             .auth_repo()
             .get_user_active_tenant(user.id)
@@ -231,16 +254,18 @@ impl AuthService {
     /// - The email duplication check relies on the database rejecting duplicate entries based on a unique constraint.
     /// - Ensure that the password hashing utility is properly configured and secure.
     pub async fn try_register(
-        repo: Arc<dyn AuthRepository + Send + Sync>,
+        auth_module: Arc<dyn AuthModule>,
         payload: RegisterRequest,
-    ) -> Result<(), AuthServiceError> {
+    ) -> AuthServiceResult<()> {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = Argon2::default()
             .hash_password(payload.password.extract().get_value().as_bytes(), &salt)
             .map(|hash| hash.to_string())
             .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
 
-        repo.insert_user(&payload, &password_hash)
+        let user = auth_module
+            .auth_repo()
+            .insert_user(&payload, &password_hash)
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
@@ -249,7 +274,110 @@ impl AuthService {
                     e.into()
                 }
             })?;
-
+        let email_verification = auth_module
+            .auth_repo()
+            .insert_email_verification(user.id)
+            .await?;
+        Self::send_email_verification(auth_module, &user, email_verification).await?;
         Ok(())
+    }
+    pub async fn verify_email(
+        auth_module: Arc<dyn AuthModule>,
+        token: &str,
+    ) -> AuthServiceResult<()> {
+        let parsed_token =
+            Uuid::parse_str(token).map_err(|_| AuthServiceError::InvalidEmailValidationToken)?;
+        let email_verification = auth_module
+            .auth_repo()
+            .get_email_verification(parsed_token)
+            .await
+            .map_err(|_| AuthServiceError::InvalidEmailValidationToken)?;
+        let mut user = auth_module
+            .auth_repo()
+            .get_user_by_id(email_verification.user_id)
+            .await?;
+        user.status = String::from("pending");
+        auth_module.auth_repo().update_user(user).await?;
+        auth_module
+            .auth_repo()
+            .invalidate_email_verification(email_verification.id)
+            .await?;
+        Ok(())
+    }
+    pub async fn resend_email_verification(
+        auth_module: Arc<dyn AuthModule>,
+        payload: ResendEmailValidationRequest,
+    ) -> AuthServiceResult<()> {
+        let user = auth_module
+            .auth_repo()
+            .get_user_by_email(payload.email.extract().get_value())
+            .await?;
+        if user.need_email_verification() {
+            let email_verification = auth_module
+                .auth_repo()
+                .insert_email_verification(user.id)
+                .await?;
+            Self::send_email_verification(auth_module, &user, email_verification).await?;
+            Ok(())
+        } else {
+            Err(AuthServiceError::EmailValidationResend)
+        }
+    }
+    async fn send_email_verification(
+        auth_module: Arc<dyn AuthModule>,
+        user: &User,
+        email_verification: EmailVerification,
+    ) -> AuthServiceResult<()> {
+        let handlebars = Handlebars::new();
+        let hostname = auth_module.config().server().hostname().to_owned();
+        let verification_uuid = email_verification.id;
+        let verification_link = format!("https://{hostname}/email_megerosites/{verification_uuid}");
+        let email = Message::builder()
+            .from(Mailbox::new(
+                Some(auth_module.config().mail().default_from_name().to_owned()),
+                auth_module
+                    .config()
+                    .mail()
+                    .default_from()
+                    .parse()
+                    .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
+            ))
+            .to(Mailbox::new(
+                None,
+                auth_module
+                    .config()
+                    .mail()
+                    .default_notification_email()
+                    .parse()
+                    .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
+            ))
+            .subject("Kérlek, erősítsd meg az e-mail címedet!")
+            .header(ContentType::TEXT_HTML)
+            .body(
+                handlebars
+                    .render_template(
+                        r##"
+                <p style="font-weight: bold; margin-bottom: 25px;">
+                    Kedves {{last_name}} {{first_name}}!
+                </p>
+                <p>
+                    Kérlek a következő hivatkozásra kattintva erősítsd meg az e-mail címedet!<br>
+                    <a href="{{verification_link}}">{{verification_link}}</a>
+                </p>
+                "##,
+                        &json!({
+                            "last_name": user.last_name,
+                            "first_name": user.first_name,
+                            "verification_link": verification_link,
+                        }),
+                    )
+                    .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?,
+            )
+            .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?;
+
+        match auth_module.send(email).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
+        }
     }
 }

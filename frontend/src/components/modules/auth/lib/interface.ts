@@ -82,4 +82,5 @@ export interface Claims {
 export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
 export type LoginResponse = CommonResponse<LoginData, FormError>;
 export type ClaimsResponse = CommonResponse<Claims, SimpleError>;
+export type VerifyEmailResponse = CommonResponse<SimpleMessageData, SimpleError>;
 

@@ -40,6 +40,7 @@ pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
     let app_state = Arc::new(DefaultAppState::new().await?);
     app_state.migrate_main_db().await?;
     app_state.migrate_all_tenant_dbs().await?;
+    app_state.init_tenant_pools().await?;
     Ok((
         app_state.config(),
         Router::new().nest(

@@ -87,6 +87,13 @@ export const get_claims = createAsyncThunk(
   }
 )
 
+export const verfiy_email = createAsyncThunk(
+  "auth/verfiy_email",
+  async (id: string) => {
+    return await authApi.verfiy_email(id);
+  }
+)
+
 interface LoginUser {
   token: string,
   user: User,

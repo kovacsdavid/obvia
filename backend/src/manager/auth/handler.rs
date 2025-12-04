@@ -21,11 +21,15 @@ use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::manager::auth::dto::register::RegisterRequestHelper;
+use crate::manager::auth::dto::register::{
+    RegisterRequestHelper, ResendEmailValidationRequest, ResendEmailValidationRequestHelper,
+};
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::auth::service::AuthService;
+use axum::extract::Query;
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 /// Handles the login process for a user in an asynchronous manner.
@@ -100,7 +104,7 @@ pub async fn register(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::try_register(auth_module.auth_repo(), user_input).await {
+    match AuthService::try_register(auth_module.clone(), user_input).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -109,6 +113,54 @@ pub async fn register(
         .status_code(StatusCode::CREATED)
         .data(SimpleMessageResponse::new(
             "A felhasználó sikeresen létrehozva",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+pub async fn verify_email(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    Query(payload): Query<HashMap<String, String>>,
+) -> HandlerResult {
+    let token = payload
+        .get("id")
+        .cloned()
+        .unwrap_or(String::from("missing_token"));
+    match AuthService::verify_email(auth_module.clone(), &token).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "Az e-mail cím megerősítése sikeresen megtörtént",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+pub async fn resend_email_verification(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    UserInput(user_input, _): UserInput<
+        ResendEmailValidationRequest,
+        ResendEmailValidationRequestHelper,
+    >,
+) -> HandlerResult {
+    match AuthService::resend_email_verification(auth_module.clone(), user_input).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A megerősítő e-mail újraküldése sikeresen megtörtént",
         ))
         .build()
     {
@@ -139,6 +191,11 @@ mod tests {
     use axum::http::Request;
     use axum::http::StatusCode;
     use chrono::Local;
+    use lettre::transport::smtp::response::Category;
+    use lettre::transport::smtp::response::Code;
+    use lettre::transport::smtp::response::Detail;
+    use lettre::transport::smtp::response::Response;
+    use lettre::transport::smtp::response::Severity;
     use mockall::predicate::*;
     use sqlx::error::{DatabaseError, ErrorKind};
     use std::error::Error;
@@ -153,6 +210,7 @@ mod tests {
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
+    use crate::manager::auth::model::EmailVerification;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
@@ -318,6 +376,8 @@ mod tests {
         .unwrap();
 
         let mut repo = MockAuthRepository::new();
+        let test_user_uuid = Uuid::new_v4();
+        let test_user_uuid_copy = test_user_uuid;
         repo.expect_insert_user()
             .withf(move |payload_param, hashed_password| {
                 *payload_param
@@ -334,7 +394,35 @@ mod tests {
                         )
                         .is_ok()
             })
-            .returning(|_, _| Ok(()));
+            .returning(move |_, _| Ok(User {
+                    id: test_user_uuid,
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Local::now()),
+                    profile_picture_url: None,
+                    locale: Some("hu-HU".to_string()),
+                    invited_by: None,
+                    email_verified_at: Some(Local::now()),
+                    created_at: Local::now(),
+                    updated_at: Local::now(),
+                    deleted_at: None,
+                }));
+        repo.expect_insert_email_verification()
+            .times(1)
+            .withf(move |user_id| *user_id == test_user_uuid_copy)
+            .returning(|user_id| {
+                Ok(EmailVerification {
+                    id: Uuid::new_v4(),
+                    user_id: user_id,
+                    valid_until: chrono::Local::now() + chrono::Duration::days(1),
+                    created_at: chrono::Local::now(),
+                    deleted_at: None,
+                })
+            });
 
         let repo = Arc::new(repo);
 
@@ -345,6 +433,16 @@ mod tests {
         auth_module
             .expect_auth_repo()
             .returning(move || repo.clone());
+        auth_module.expect_send().times(1).returning(|_| {
+            Ok(Response::new(
+                Code::new(
+                    Severity::PositiveIntermediate,
+                    Category::Connections,
+                    Detail::One,
+                ),
+                vec![],
+            ))
+        });
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

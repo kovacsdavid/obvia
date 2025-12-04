@@ -18,7 +18,7 @@
  */
 
 import React, {useState} from "react";
-import {Button, FieldError, GlobalError, Input, Label,} from "@/components/ui";
+import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
 import {registerUserRequest} from "@/components/modules/auth/lib/slice.ts";
 import {useAppDispatch} from "@/store/hooks.ts";
 import {useNavigate} from "react-router-dom";

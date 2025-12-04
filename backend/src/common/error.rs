@@ -195,16 +195,14 @@ where
             let handlebars = Handlebars::new();
             let email = Message::builder()
                 .from(Mailbox::new(
-                    Some(
-                        module.config().mail().default_from_name().to_owned()
-                    ),
+                    Some(module.config().mail().default_from_name().to_owned()),
                     module
                         .config()
                         .mail()
                         .default_from()
                         .parse()
-                        .map_err(|e: AddressError| e.to_string())?)
-                )
+                        .map_err(|e: AddressError| e.to_string())?,
+                ))
                 .to(Mailbox::new(
                     None,
                     module
@@ -212,17 +210,21 @@ where
                         .mail()
                         .default_notification_email()
                         .parse()
-                        .map_err(|e: AddressError| e.to_string())?)
-                )
+                        .map_err(|e: AddressError| e.to_string())?,
+                ))
                 .subject("Unexpected error")
                 .header(ContentType::TEXT_PLAIN)
-                .body(handlebars.render_template(
-                    r##"
+                .body(
+                    handlebars
+                        .render_template(
+                            r##"
                     Dear Admin!\n\n
                     Check this error!\n
                     Internal error: location={{loc}} message={{body}}
                     "##,
-                    &json!({"loc": loc, "body": body.to_string()})).map_err(|e| e.to_string())?
+                            &json!({"loc": loc, "body": body.to_string()}),
+                        )
+                        .map_err(|e| e.to_string())?,
                 )
                 .map_err(|e| e.to_string())?;
 
@@ -315,9 +317,6 @@ pub enum RepositoryError {
     #[error("Custom error: {0}")]
     Custom(String),
 
-    #[error("The selected record is inactive")]
-    InactiveRecord,
-
     #[error("RwLockReadGuard error: {0}")]
     RwLockReadGuard(String),
 
@@ -337,9 +336,6 @@ impl RepositoryError {
             return true;
         }
         false
-    }
-    pub fn is_inactive_record(&self) -> bool {
-        matches!(self, RepositoryError::InactiveRecord)
     }
 }
 

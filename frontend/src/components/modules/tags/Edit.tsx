@@ -17,48 +17,53 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, update} from "@/components/modules/tags/lib/slice.ts";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useNavigate} from "react-router-dom";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import type {Tag} from "./lib/interface";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { create, get, update } from "@/components/modules/tags/lib/slice.ts";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useNavigate } from "react-router-dom";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import type { Tag } from "./lib/interface";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (tag: Tag) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      name,
-      description,
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        name,
+        description,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/cimke/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -66,19 +71,30 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, onSuccess, setErrors, unexpectedError]);
+  }, [
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    onSuccess,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      name,
-      description,
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        name,
+        description,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/cimke/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -99,7 +115,10 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               setDescription(data.description ?? "");
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            setErrors({
+              message: response.payload.jsonData.error.message,
+              fields: {},
+            });
           } else {
             unexpectedError();
           }
@@ -121,29 +140,33 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <ConditionalCard
         showCard={showCard}
         title={`Címke ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="name">Név</Label>
           <Input
             id="name"
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
-          <FieldError error={errors} field={"name"}/>
+          <FieldError error={errors} field={"name"} />
           <Label htmlFor="description">Leírás</Label>
           <Input
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>
       </ConditionalCard>

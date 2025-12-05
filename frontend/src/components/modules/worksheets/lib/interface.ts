@@ -22,56 +22,64 @@ import {
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface WorksheetUserInput {
-  id: string | null
-  name: string
-  description: string
-  customerId: string
-  projectId: string
-  status: string
+  id: string | null;
+  name: string;
+  description: string;
+  customerId: string;
+  projectId: string;
+  status: string;
 }
 
 export interface Worksheet {
-  id: string,
-  name: string,
-  description: string | null,
-  customer_id: string,
-  project_id: string,
-  created_by_id: string,
-  status: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  description: string | null;
+  customer_id: string;
+  project_id: string;
+  created_by_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface WorksheetResolved {
-  id: string,
-  name: string,
-  description: string | null,
-  customer_id: string,
-  customer: string,
-  project_id: string,
-  project: string,
-  created_by_id: string,
-  created_by: string,
-  status: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
-  net_material_cost: string,
-  gross_material_cost: string,
-  net_work_cost: string,
-  gross_work_cost: string
+  id: string;
+  name: string;
+  description: string | null;
+  customer_id: string;
+  customer: string;
+  project_id: string;
+  project: string;
+  created_by_id: string;
+  created_by: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  net_material_cost: string;
+  gross_material_cost: string;
+  net_work_cost: string;
+  gross_work_cost: string;
 }
 
 export type CreateWorksheetResponse = CommonResponse<Worksheet, FormError>;
 export type UpdateWorksheetResponse = CommonResponse<Worksheet, FormError>;
-export type DeleteWorksheetResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type DeleteWorksheetResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
 export type WorksheetResponse = CommonResponse<Worksheet, SimpleError>;
-export type WorksheetResolvedResponse = CommonResponse<WorksheetResolved, SimpleError>;
+export type WorksheetResolvedResponse = CommonResponse<
+  WorksheetResolved,
+  SimpleError
+>;
 export type WorksheetResolvedList = WorksheetResolved[];
-export type PaginatedWorksheetResolvedListResponse = PaginatedDataResponse<WorksheetResolvedList, SimpleError>;
-
+export type PaginatedWorksheetResolvedListResponse = PaginatedDataResponse<
+  WorksheetResolvedList,
+  SimpleError
+>;

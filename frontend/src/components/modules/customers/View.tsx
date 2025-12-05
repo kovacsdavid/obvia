@@ -17,17 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useParams} from "react-router";
-import React, {useEffect} from "react";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {get_resolved} from "@/components/modules/customers/lib/slice.ts";
-import {type CustomerResolved} from "@/components/modules/customers/lib/interface.ts";
-import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
-import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
-import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
-
+import { useParams } from "react-router";
+import React, { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { get_resolved } from "@/components/modules/customers/lib/slice.ts";
+import { type CustomerResolved } from "@/components/modules/customers/lib/interface.ts";
+import type { SimpleError } from "@/lib/interfaces/common.ts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { GlobalError } from "@/components/ui";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
 
 export default function View() {
   const [data, setData] = React.useState<CustomerResolved | null>(null);
@@ -50,20 +59,20 @@ export default function View() {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error)
+            setErrors(response.payload.jsonData.error);
           } else {
             unexpectedError();
           }
         } else {
           unexpectedError();
         }
-      })
+      });
     }
   }, [dispatch, params]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       {data !== null ? (
         <>
           <Card className={"max-w-lg mx-auto"}>
@@ -74,76 +83,44 @@ export default function View() {
               <Table>
                 <TableBody>
                   <TableRow>
+                    <TableCell>Azonosító</TableCell>
+                    <TableCell>{data.id}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Név</TableCell>
+                    <TableCell>{data.name}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Kapcsolattartó neve</TableCell>
                     <TableCell>
-                      Azonosító
-                    </TableCell>
-                    <TableCell>
-                      {data.id}
+                      {data.contact_name ? data.contact_name : "N/A"}
                     </TableCell>
                   </TableRow>
                   <TableRow>
+                    <TableCell>E-mail cím</TableCell>
+                    <TableCell>{data.email}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Telefonszám</TableCell>
                     <TableCell>
-                      Név
-                    </TableCell>
-                    <TableCell>
-                      {data.name}
+                      {data.phone_number ? data.phone_number : "N/A"}
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Kapcsolattartó neve
-                    </TableCell>
-                    <TableCell>
-                      {data.contact_name ? data.contact_name : 'N/A'}
-                    </TableCell>
+                    <TableCell>Státusz</TableCell>
+                    <TableCell>{data.status}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      E-mail cím
-                    </TableCell>
-                    <TableCell>
-                      {data.email}
-                    </TableCell>
+                    <TableCell>Létrehozta</TableCell>
+                    <TableCell>{data.created_by}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Telefonszám
-                    </TableCell>
-                    <TableCell>
-                      {data.phone_number ? data.phone_number : 'N/A'}
-                    </TableCell>
+                    <TableCell>Létrehozva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Státusz
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Létrehozta
-                    </TableCell>
-                    <TableCell>
-                      {data.created_by}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Létrehozva
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.created_at)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Frissítve
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.updated_at)}
-                    </TableCell>
+                    <TableCell>Frissítve</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -152,5 +129,5 @@ export default function View() {
         </>
       ) : null}
     </>
-  )
+  );
 }

@@ -17,37 +17,49 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {ReactNode} from "react";
-import {createContext, useContext} from "react";
-import {useSelector} from "react-redux";
-import type {RootState} from "@/store";
-import {useAppDispatch} from "@/store/hooks";
-import {loginUserRequest, logoutUser} from "@/components/modules/auth/lib/slice.ts";
-import type {PayloadAction} from "@reduxjs/toolkit";
+import type { ReactNode } from "react";
+import { createContext, useContext } from "react";
+import { useSelector } from "react-redux";
+import type { RootState } from "@/store";
+import { useAppDispatch } from "@/store/hooks";
+import {
+  loginUserRequest,
+  logoutUser,
+} from "@/components/modules/auth/lib/slice.ts";
+import type { PayloadAction } from "@reduxjs/toolkit";
 
 type AuthContextType = {
   isLoggedIn: boolean;
   hasActiveDatabase: boolean;
-  login: (email: string, password: string) => Promise<PayloadAction<any, any, any>>;
+  login: (
+    email: string,
+    password: string,
+  ) => Promise<PayloadAction<any, any, any>>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({children}: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const dispach = useAppDispatch();
-  const isLoggedIn = useSelector((state: RootState) => state.auth.login.isLoggedIn);
-  const hasActiveDatabase = useSelector((state: RootState) => state.auth.login.hasActiveDatabase);
+  const isLoggedIn = useSelector(
+    (state: RootState) => state.auth.login.isLoggedIn,
+  );
+  const hasActiveDatabase = useSelector(
+    (state: RootState) => state.auth.login.hasActiveDatabase,
+  );
 
   const login = (email: string, password: string) => {
-    return dispach(loginUserRequest({email, password}));
+    return dispach(loginUserRequest({ email, password }));
   };
   const logout = () => {
     dispach(logoutUser());
   };
 
   return (
-    <AuthContext.Provider value={{isLoggedIn, hasActiveDatabase, login, logout}}>
+    <AuthContext.Provider
+      value={{ isLoggedIn, hasActiveDatabase, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

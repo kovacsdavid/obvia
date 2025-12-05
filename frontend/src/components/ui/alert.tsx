@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as React from "react"
-import {cva, type VariantProps} from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import {cn} from "@/lib/utils"
-import {AlertCircle} from "lucide-react";
-import type {FormError} from "@/lib/interfaces/common.ts";
+import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
+import type { FormError } from "@/lib/interfaces/common.ts";
 
 const alertVariants = cva(
   "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
@@ -37,99 +37,89 @@ const alertVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
-)
+  },
+);
 
 function Alert({
-                 className,
-                 variant,
-                 ...props
-               }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
     <div
       data-slot="alert"
       role="alert"
-      className={cn(alertVariants({variant}), className)}
+      className={cn(alertVariants({ variant }), className)}
       {...props}
     />
-  )
+  );
 }
 
-function AlertTitle({className, ...props}: React.ComponentProps<"div">) {
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
       className={cn(
         "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function AlertDescription({
-                            className,
-                            ...props
-                          }: React.ComponentProps<"div">) {
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-description"
       className={cn(
         "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 interface GlobalErrorProps {
-  error: { message: string | null | undefined } | null
+  error: { message: string | null | undefined } | null;
 }
 
-function GlobalError({error}: GlobalErrorProps) {
+function GlobalError({ error }: GlobalErrorProps) {
   return (
     <>
       {typeof error?.message === "string" ? (
         <Alert className={"mb-5"} variant="destructive">
-          <AlertCircle/>
-          <AlertDescription>
-            {error.message}
-          </AlertDescription>
+          <AlertCircle />
+          <AlertDescription>{error.message}</AlertDescription>
         </Alert>
       ) : null}
     </>
-  )
+  );
 }
 
 interface FieldErrorProps {
-  field: string
-  error: FormError | null
+  field: string;
+  error: FormError | null;
 }
 
-function FieldError({error, field}: FieldErrorProps) {
+function FieldError({ error, field }: FieldErrorProps) {
   return (
     <>
-      {typeof error?.fields === "object"
-      && error.fields !== null
-      && field in error.fields
-      && error.fields[field] !== null ? (
+      {typeof error?.fields === "object" &&
+      error.fields !== null &&
+      field in error.fields &&
+      error.fields[field] !== null ? (
         <Alert className={"mb-7"} variant="destructive">
-          <AlertCircle/>
-          <AlertDescription>
-            {error.fields[field]}
-          </AlertDescription>
+          <AlertCircle />
+          <AlertDescription>{error.fields[field]}</AlertDescription>
         </Alert>
       ) : null}
     </>
-  )
+  );
 }
 
-export {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  GlobalError,
-  FieldError
-}
+export { Alert, AlertTitle, AlertDescription, GlobalError, FieldError };

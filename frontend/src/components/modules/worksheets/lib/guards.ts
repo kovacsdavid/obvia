@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateWorksheetResponse,
@@ -33,23 +33,19 @@ import type {
   WorksheetResolved,
   WorksheetResolvedList,
   WorksheetResolvedResponse,
-  WorksheetResponse
+  WorksheetResponse,
 } from "@/components/modules/worksheets/lib/interface.ts";
 
-export function isCreateWorksheetResponse(data: unknown): data is CreateWorksheetResponse {
-  return isCommonResponse(
-    data,
-    isWorksheet,
-    isFormError,
-  )
+export function isCreateWorksheetResponse(
+  data: unknown,
+): data is CreateWorksheetResponse {
+  return isCommonResponse(data, isWorksheet, isFormError);
 }
 
-export function isWorksheetResolvedResponse(data: unknown): data is WorksheetResolvedResponse {
-  return isCommonResponse(
-    data,
-    isWorksheetResolved,
-    isSimpleError,
-  )
+export function isWorksheetResolvedResponse(
+  data: unknown,
+): data is WorksheetResolvedResponse {
+  return isCommonResponse(data, isWorksheetResolved, isSimpleError);
 }
 
 export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
@@ -93,18 +89,16 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
   );
 }
 
-export function isWorksheetResolvedList(data: unknown): data is WorksheetResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isWorksheetResolved(item))
-  );
+export function isWorksheetResolvedList(
+  data: unknown,
+): data is WorksheetResolvedList {
+  return Array.isArray(data) && data.every((item) => isWorksheetResolved(item));
 }
 
-export function isPaginatedWorksheetResolvedListResponse(data: unknown): data is PaginatedWorksheetResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isWorksheetResolvedList,
-  )
+export function isPaginatedWorksheetResolvedListResponse(
+  data: unknown,
+): data is PaginatedWorksheetResolvedListResponse {
+  return isPaginatedDataResponse(data, isWorksheetResolvedList);
 }
 
 export function isWorksheet(data: unknown): data is Worksheet {
@@ -135,25 +129,17 @@ export function isWorksheet(data: unknown): data is Worksheet {
 }
 
 export function isWorksheetResponse(data: unknown): data is WorksheetResponse {
-  return isCommonResponse(
-    data,
-    isWorksheet,
-    isSimpleError
-  )
+  return isCommonResponse(data, isWorksheet, isSimpleError);
 }
 
-export function isUpdateWorksheetResponse(data: unknown): data is UpdateWorksheetResponse {
-  return isCommonResponse(
-    data,
-    isWorksheet,
-    isFormError
-  )
+export function isUpdateWorksheetResponse(
+  data: unknown,
+): data is UpdateWorksheetResponse {
+  return isCommonResponse(data, isWorksheet, isFormError);
 }
 
-export function isDeleteWorksheetResponse(data: unknown): data is DeleteWorksheetResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteWorksheetResponse(
+  data: unknown,
+): data is DeleteWorksheetResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

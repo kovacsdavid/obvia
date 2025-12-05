@@ -17,80 +17,80 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as worksheetsApi from "@/components/modules/worksheets/lib/service.ts";
-import type {RootState} from "@/store";
-import type {WorksheetUserInput} from "@/components/modules/worksheets/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { WorksheetUserInput } from "@/components/modules/worksheets/lib/interface.ts";
 
 interface WorksheetsState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: WorksheetsState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "worksheets/create",
-  async (requestData: WorksheetUserInput, {getState}) => {
+  async (requestData: WorksheetUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return worksheetsApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const select_list = createAsyncThunk(
   "worksheets/select_list",
-  async (list: string, {getState}) => {
+  async (list: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.select_list(list, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "worksheets/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return worksheetsApi.list(query, token);
-  }
-)
+  },
+);
 
 export const get_resolved = createAsyncThunk(
   "worksheets/get_resolved",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.get_resolved(uuid, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "worksheets/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.get(uuid, token);
-  }
-)
+  },
+);
 
 export const update = createAsyncThunk(
   "worksheets/update",
-  async (requestData: WorksheetUserInput, {getState}) => {
+  async (requestData: WorksheetUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.update(requestData, token);
-  }
-)
+  },
+);
 
 export const deleteItem = createAsyncThunk(
   "worksheets/deleteItem",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.deleteItem(uuid, token);
-  }
+  },
 );
 
 const worksheetsSlice = createSlice({

@@ -21,36 +21,39 @@ import type {
   FormError,
   ProcessedResponse,
   SelectOptionList,
-  SelectOptionListResponse
+  SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
-import React, {useCallback} from "react";
+import React, { useCallback } from "react";
 
 export function useSelectList() {
-  const setListResponse = useCallback((
-    payload: ProcessedResponse<SelectOptionListResponse>,
-    setList: (data: React.SetStateAction<SelectOptionList>) => void,
-    setError: (data: React.SetStateAction<FormError | null>) => void,
-  ) => {
-    if (payload.statusCode === 200) {
-      if (typeof payload.jsonData.data !== "undefined") {
-        setList(payload.jsonData.data)
-      }
-    } else if (typeof payload.jsonData?.error !== "undefined") {
-      if (typeof payload.jsonData.error !== "undefined") {
+  const setListResponse = useCallback(
+    (
+      payload: ProcessedResponse<SelectOptionListResponse>,
+      setList: (data: React.SetStateAction<SelectOptionList>) => void,
+      setError: (data: React.SetStateAction<FormError | null>) => void,
+    ) => {
+      if (payload.statusCode === 200) {
+        if (typeof payload.jsonData.data !== "undefined") {
+          setList(payload.jsonData.data);
+        }
+      } else if (typeof payload.jsonData?.error !== "undefined") {
+        if (typeof payload.jsonData.error !== "undefined") {
+          setError({
+            message: payload.jsonData.error.message,
+            fields: {},
+          });
+        }
+      } else {
         setError({
-          message: payload.jsonData.error.message,
-          fields: {}
+          message: "Váratlan hiba történt a feldolgozás során!",
+          fields: {},
         });
       }
-    } else {
-      setError({
-        message: "Váratlan hiba történt a feldolgozás során!",
-        fields: {}
-      });
-    }
-  }, []);
+    },
+    [],
+  );
 
   return {
-    setListResponse
-  }
+    setListResponse,
+  };
 }

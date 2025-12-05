@@ -17,17 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useParams} from "react-router";
-import React, {useEffect} from "react";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {get_resolved} from "@/components/modules/inventory/lib/slice.ts";
-import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
-import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
-import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import type {InventoryResolved} from "@/components/modules/inventory/lib/interface.ts";
-
+import { useParams } from "react-router";
+import React, { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { get_resolved } from "@/components/modules/inventory/lib/slice.ts";
+import type { SimpleError } from "@/lib/interfaces/common.ts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { GlobalError } from "@/components/ui";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import type { InventoryResolved } from "@/components/modules/inventory/lib/interface.ts";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryResolved | null>(null);
@@ -50,20 +59,20 @@ export default function View() {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error)
+            setErrors(response.payload.jsonData.error);
           } else {
             unexpectedError();
           }
         } else {
           unexpectedError();
         }
-      })
+      });
     }
   }, [dispatch, params]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       {data !== null ? (
         <>
           <Card className={"max-w-lg mx-auto"}>
@@ -74,108 +83,60 @@ export default function View() {
               <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell>
-                      Azonosító
-                    </TableCell>
-                    <TableCell>
-                      {data.id}
-                    </TableCell>
+                    <TableCell>Azonosító</TableCell>
+                    <TableCell>{data.id}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Termék
-                    </TableCell>
+                    <TableCell>Termék</TableCell>
                     <TableCell>
                       {data.product} ({data.product_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Raktár
-                    </TableCell>
+                    <TableCell>Raktár</TableCell>
                     <TableCell>
                       {data.warehouse} ({data.warehouse_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Készlet (raktáron)
-                    </TableCell>
-                    <TableCell>
-                      {data.quantity_on_hand}
-                    </TableCell>
+                    <TableCell>Készlet (raktáron)</TableCell>
+                    <TableCell>{data.quantity_on_hand}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Foglalt
-                    </TableCell>
-                    <TableCell>
-                      {data.quantity_reserved}
-                    </TableCell>
+                    <TableCell>Foglalt</TableCell>
+                    <TableCell>{data.quantity_reserved}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Rendelkezésre álló
-                    </TableCell>
-                    <TableCell>
-                      {data.quantity_available}
-                    </TableCell>
+                    <TableCell>Rendelkezésre álló</TableCell>
+                    <TableCell>{data.quantity_available}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Minimum készlet
-                    </TableCell>
-                    <TableCell>
-                      {data.minimum_stock ?? '-'}
-                    </TableCell>
+                    <TableCell>Minimum készlet</TableCell>
+                    <TableCell>{data.minimum_stock ?? "-"}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Maximum készlet
-                    </TableCell>
-                    <TableCell>
-                      {data.maximum_stock ?? '-'}
-                    </TableCell>
+                    <TableCell>Maximum készlet</TableCell>
+                    <TableCell>{data.maximum_stock ?? "-"}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Állapot
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
-                    </TableCell>
+                    <TableCell>Állapot</TableCell>
+                    <TableCell>{data.status}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Pénznem
-                    </TableCell>
-                    <TableCell>
-                      {data.currency}
-                    </TableCell>
+                    <TableCell>Pénznem</TableCell>
+                    <TableCell>{data.currency}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Létrehozta
-                    </TableCell>
-                    <TableCell>
-                      {data.created_by}
-                    </TableCell>
+                    <TableCell>Létrehozta</TableCell>
+                    <TableCell>{data.created_by}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Létrehozva
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.created_at)}
-                    </TableCell>
+                    <TableCell>Létrehozva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Frissítve
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.updated_at)}
-                    </TableCell>
+                    <TableCell>Frissítve</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -184,5 +145,5 @@ export default function View() {
         </>
       ) : null}
     </>
-  )
+  );
 }

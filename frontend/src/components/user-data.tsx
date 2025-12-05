@@ -17,17 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {User} from "lucide-react"
+import { User } from "lucide-react";
 
-import {DropdownMenu, DropdownMenuTrigger,} from "@/components/ui/dropdown-menu"
-import {SidebarMenu, SidebarMenuButton, SidebarMenuItem,} from "@/components/ui/sidebar"
-import {useAppSelector} from "@/store/hooks.ts";
-import type {RootState} from "@/store";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from "@/components/ui/sidebar";
+import { useAppSelector } from "@/store/hooks.ts";
+import type { RootState } from "@/store";
 
 export function UserData() {
-  const user = useAppSelector(
-    (state: RootState) => state.auth.login.user
-  );
+  const user = useAppSelector((state: RootState) => state.auth.login.user);
 
   return (
     <SidebarMenu>
@@ -38,16 +43,15 @@ export function UserData() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div
-                className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <User className="size-4"/>
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <User className="size-4" />
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-medium">
                   {user?.last_name ? user.last_name + " " : ""}
-                  {user?.first_name ? user.first_name : ""} <br/>
+                  {user?.first_name ? user.first_name : ""} <br />
                 </span>
-                <span style={{fontSize: "0.65rem"}}>
+                <span style={{ fontSize: "0.65rem" }}>
                   {user?.email ? "<" + user.email + ">" : ""}
                 </span>
               </div>
@@ -56,5 +60,5 @@ export function UserData() {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

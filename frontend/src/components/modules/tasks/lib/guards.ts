@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateTaskResponse,
@@ -33,23 +33,19 @@ import type {
   TaskResolvedList,
   TaskResolvedResponse,
   TaskResponse,
-  UpdateTaskResponse
+  UpdateTaskResponse,
 } from "@/components/modules/tasks/lib/interface.ts";
 
-export function isCreateTaskResponse(data: unknown): data is CreateTaskResponse {
-  return isCommonResponse(
-    data,
-    isTask,
-    isFormError
-  )
+export function isCreateTaskResponse(
+  data: unknown,
+): data is CreateTaskResponse {
+  return isCommonResponse(data, isTask, isFormError);
 }
 
-export function isTaskResolvedResponse(data: unknown): data is TaskResolvedResponse {
-  return isCommonResponse(
-    data,
-    isTaskResolved,
-    isSimpleError
-  )
+export function isTaskResolvedResponse(
+  data: unknown,
+): data is TaskResolvedResponse {
+  return isCommonResponse(data, isTaskResolved, isSimpleError);
 }
 
 export function isTaskResolved(data: unknown): data is TaskResolved {
@@ -98,17 +94,13 @@ export function isTaskResolved(data: unknown): data is TaskResolved {
 }
 
 export function isTaskResolvedList(data: unknown): data is TaskResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isTaskResolved(item))
-  );
+  return Array.isArray(data) && data.every((item) => isTaskResolved(item));
 }
 
-export function isPaginatedTaskResolvedListResponse(data: unknown): data is PaginatedTaskResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isTaskResolvedList,
-  )
+export function isPaginatedTaskResolvedListResponse(
+  data: unknown,
+): data is PaginatedTaskResolvedListResponse {
+  return isPaginatedDataResponse(data, isTaskResolvedList);
 }
 
 export function isTask(data: unknown): data is Task {
@@ -149,25 +141,17 @@ export function isTask(data: unknown): data is Task {
 }
 
 export function isTaskResponse(data: unknown): data is TaskResponse {
-  return isCommonResponse(
-    data,
-    isTask,
-    isSimpleError
-  )
+  return isCommonResponse(data, isTask, isSimpleError);
 }
 
-export function isUpdateTaskResponse(data: unknown): data is UpdateTaskResponse {
-  return isCommonResponse(
-    data,
-    isTask,
-    isFormError
-  )
+export function isUpdateTaskResponse(
+  data: unknown,
+): data is UpdateTaskResponse {
+  return isCommonResponse(data, isTask, isFormError);
 }
 
-export function isDeleteTaskResponse(data: unknown): data is DeleteTaskResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteTaskResponse(
+  data: unknown,
+): data is DeleteTaskResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

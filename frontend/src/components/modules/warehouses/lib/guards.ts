@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateWarehouseResponse,
@@ -33,23 +33,19 @@ import type {
   WarehouseResolved,
   WarehouseResolvedList,
   WarehouseResolvedResponse,
-  WarehouseResponse
+  WarehouseResponse,
 } from "@/components/modules/warehouses/lib/interface.ts";
 
-export function isCreateWarehouseResponse(data: unknown): data is CreateWarehouseResponse {
-  return isCommonResponse(
-    data,
-    isWarehouse,
-    isFormError,
-  )
+export function isCreateWarehouseResponse(
+  data: unknown,
+): data is CreateWarehouseResponse {
+  return isCommonResponse(data, isWarehouse, isFormError);
 }
 
-export function isWarehouseResolvedResponse(data: unknown): data is WarehouseResolvedResponse {
-  return isCommonResponse(
-    data,
-    isWarehouseResolved,
-    isSimpleError,
-  )
+export function isWarehouseResolvedResponse(
+  data: unknown,
+): data is WarehouseResolvedResponse {
+  return isCommonResponse(data, isWarehouseResolved, isSimpleError);
 }
 
 export function isWarehouseResolved(data: unknown): data is WarehouseResolved {
@@ -79,18 +75,16 @@ export function isWarehouseResolved(data: unknown): data is WarehouseResolved {
   );
 }
 
-export function isWarehouseResolvedList(data: unknown): data is WarehouseResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isWarehouseResolved(item))
-  );
+export function isWarehouseResolvedList(
+  data: unknown,
+): data is WarehouseResolvedList {
+  return Array.isArray(data) && data.every((item) => isWarehouseResolved(item));
 }
 
-export function isPaginatedWarehouseResolvedListResponse(data: unknown): data is PaginatedWarehouseResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isWarehouseResolvedList,
-  )
+export function isPaginatedWarehouseResolvedListResponse(
+  data: unknown,
+): data is PaginatedWarehouseResolvedListResponse {
+  return isPaginatedDataResponse(data, isWarehouseResolvedList);
 }
 
 export function isWarehouse(data: unknown): data is Warehouse {
@@ -119,25 +113,17 @@ export function isWarehouse(data: unknown): data is Warehouse {
 }
 
 export function isWarehouseResponse(data: unknown): data is WarehouseResponse {
-  return isCommonResponse(
-    data,
-    isWarehouse,
-    isSimpleError
-  )
+  return isCommonResponse(data, isWarehouse, isSimpleError);
 }
 
-export function isUpdateWarehouseResponse(data: unknown): data is UpdateWarehouseResponse {
-  return isCommonResponse(
-    data,
-    isWarehouse,
-    isFormError
-  )
+export function isUpdateWarehouseResponse(
+  data: unknown,
+): data is UpdateWarehouseResponse {
+  return isCommonResponse(data, isWarehouse, isFormError);
 }
 
-export function isDeleteWarehouseResponse(data: unknown): data is DeleteWarehouseResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteWarehouseResponse(
+  data: unknown,
+): data is DeleteWarehouseResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

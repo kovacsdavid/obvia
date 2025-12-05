@@ -22,7 +22,7 @@ import {
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface TaxUserInput {
@@ -80,4 +80,7 @@ export type DeleteTaxResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TaxResolvedList = TaxResolved[];
 export type TaxResponse = CommonResponse<Tax, SimpleError>;
 export type TaxResolvedResponse = CommonResponse<TaxResolved, SimpleError>;
-export type PaginatedTaxResolvedListResponse = PaginatedDataResponse<TaxResolvedList, SimpleError>
+export type PaginatedTaxResolvedListResponse = PaginatedDataResponse<
+  TaxResolvedList,
+  SimpleError
+>;

@@ -27,8 +27,8 @@ import {
   type PaginatedDataResponse,
   type SimpleError,
 } from "@/lib/interfaces/common.ts";
-import type {Claims} from "@/components/modules/auth/lib/interface.ts";
-import {isClaims} from "@/components/modules/auth/lib/guards.ts";
+import type { Claims } from "@/components/modules/auth/lib/interface.ts";
+import { isClaims } from "@/components/modules/auth/lib/guards.ts";
 
 export interface CreateDatabase {
   name: string;
@@ -42,12 +42,10 @@ export interface CreateDatabase {
 
 export type CreateDatabaseResponse = CommonResponse<Database, FormError>;
 
-export function isCreateDatabaseResponse(data: unknown): data is CreateDatabaseResponse {
-  return isCommonResponse(
-    data,
-    isDatabase,
-    isFormError,
-  )
+export function isCreateDatabaseResponse(
+  data: unknown,
+): data is CreateDatabaseResponse {
+  return isCommonResponse(data, isDatabase, isFormError);
 }
 
 export interface Database {
@@ -68,11 +66,7 @@ export interface Database {
 export type DatabaseResponse = CommonResponse<Database, SimpleError>;
 
 export function isDatabaseResponse(data: unknown): data is DatabaseResponse {
-  return isCommonResponse(
-    data,
-    isDatabase,
-    isSimpleError
-  )
+  return isCommonResponse(data, isDatabase, isSimpleError);
 }
 
 export type DatabaseList = Database[];
@@ -109,24 +103,23 @@ export function isDatabase(data: unknown): data is Database {
 }
 
 export function isDatabaseList(data: unknown): data is DatabaseList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isDatabase(item))
-  );
+  return Array.isArray(data) && data.every((item) => isDatabase(item));
 }
 
-export type PaginatedDatabaseListResponse = PaginatedDataResponse<DatabaseList, SimpleError>;
+export type PaginatedDatabaseListResponse = PaginatedDataResponse<
+  DatabaseList,
+  SimpleError
+>;
 
-export function isPaginatedDatabaseListResponse(data: unknown): data is PaginatedDatabaseListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isDatabaseList
-  );
+export function isPaginatedDatabaseListResponse(
+  data: unknown,
+): data is PaginatedDatabaseListResponse {
+  return isPaginatedDataResponse(data, isDatabaseList);
 }
 
 export interface NewTokenResponse {
-  token: string,
-  claims: Claims,
+  token: string;
+  claims: Claims;
 }
 
 export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
@@ -137,15 +130,16 @@ export function isNewTokenResponse(data: unknown): data is NewTokenResponse {
     typeof data.token === "string" &&
     "claims" in data &&
     isClaims(data.claims)
-  )
+  );
 }
 
-export type ActiveDatabaseResponse = CommonResponse<NewTokenResponse, SimpleError>;
+export type ActiveDatabaseResponse = CommonResponse<
+  NewTokenResponse,
+  SimpleError
+>;
 
-export function isActiveDatabaseResponse(data: unknown): data is ActiveDatabaseResponse {
-  return isCommonResponse(
-    data,
-    isNewTokenResponse,
-    isSimpleError
-  )
+export function isActiveDatabaseResponse(
+  data: unknown,
+): data is ActiveDatabaseResponse {
+  return isCommonResponse(data, isNewTokenResponse, isSimpleError);
 }

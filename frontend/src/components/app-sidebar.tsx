@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as React from "react"
+import * as React from "react";
 
-import {UserData} from "@/components/user-data.tsx"
+import { UserData } from "@/components/user-data.tsx";
 import {
   Sidebar,
   SidebarContent,
@@ -32,12 +32,12 @@ import {
   SidebarMenuItem,
   SidebarRail,
   useSidebar,
-} from "@/components/ui/sidebar"
-import {useAuth} from "@/context/AuthContext";
-import {logoutUser} from "@/components/modules/auth/lib/slice.ts";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {Link, useLocation} from "react-router-dom";
-import {Button} from "@/components/ui";
+} from "@/components/ui/sidebar";
+import { useAuth } from "@/context/AuthContext";
+import { logoutUser } from "@/components/modules/auth/lib/slice.ts";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { Link, useLocation } from "react-router-dom";
+import { Button } from "@/components/ui";
 import {
   Boxes,
   Database,
@@ -51,7 +51,7 @@ import {
   NotebookText,
   Package,
   UsersRound,
-  Warehouse
+  Warehouse,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -60,7 +60,7 @@ interface NavigationItem {
   click?: () => void;
   publicOnly?: boolean;
   private?: boolean;
-  needActiveDatabase: boolean
+  needActiveDatabase: boolean;
   icon?: React.ReactNode;
   isActive: boolean;
 }
@@ -75,14 +75,14 @@ interface NavigationData {
   navMain: NavigationSection[];
 }
 
-export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const dispatch = useAppDispatch();
   const location = useLocation();
-  const {isLoggedIn, hasActiveDatabase} = useAuth();
+  const { isLoggedIn, hasActiveDatabase } = useAuth();
   const handleLogout = () => {
     dispatch(logoutUser());
-  }
-  const {toggleSidebar, isMobile} = useSidebar();
+  };
+  const { toggleSidebar, isMobile } = useSidebar();
 
   const mobileCloseOnClick = () => {
     if (isMobile) {
@@ -100,10 +100,10 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/adatbazis/lista",
             private: true,
             needActiveDatabase: false,
-            icon: <Database/>,
+            icon: <Database />,
             isActive: location.pathname.includes("/adatbazis/lista"),
           },
-        ]
+        ],
       },
       {
         title: "Törzsadatok",
@@ -121,7 +121,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/vevo/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <UsersRound/>,
+            icon: <UsersRound />,
             isActive: location.pathname.includes("/vevo/lista"),
           },
           //{
@@ -137,7 +137,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/raktar/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <Warehouse/>,
+            icon: <Warehouse />,
             isActive: location.pathname.includes("/raktar/lista"),
           },
           {
@@ -145,10 +145,10 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/ado/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <HandCoins/>,
+            icon: <HandCoins />,
             isActive: location.pathname.includes("/ado/lista"),
           },
-        ]
+        ],
       },
       {
         title: "Készlet",
@@ -159,7 +159,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/termek/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <Package/>,
+            icon: <Package />,
             isActive: location.pathname.includes("/termek/lista"),
           },
           {
@@ -167,10 +167,10 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/raktarkeszlet/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <Boxes/>,
+            icon: <Boxes />,
             isActive: location.pathname.includes("/raktarkeszlet/lista"),
           },
-        ]
+        ],
       },
       {
         title: "Munkafolyamat",
@@ -181,7 +181,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/szolgaltatas/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <HandPlatter/>,
+            icon: <HandPlatter />,
             isActive: location.pathname.includes("/szolgaltatas/lista"),
           },
           {
@@ -189,7 +189,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/projekt/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <FolderOpen/>,
+            icon: <FolderOpen />,
             isActive: location.pathname.includes("/projekt/lista"),
           },
           {
@@ -197,7 +197,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/munkalap/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <NotebookText/>,
+            icon: <NotebookText />,
             isActive: location.pathname.includes("/munkalap/lista"),
           },
           {
@@ -205,10 +205,10 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/feladat/lista",
             private: true,
             needActiveDatabase: true,
-            icon: <ListTodo/>,
+            icon: <ListTodo />,
             isActive: location.pathname.includes("/feladat/lista"),
           },
-        ]
+        ],
       },
       {
         title: "Fiókom",
@@ -219,13 +219,13 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
             url: "/bejelentkezes",
             publicOnly: true,
             needActiveDatabase: false,
-            icon: <KeyRound/>,
+            icon: <KeyRound />,
             isActive: location.pathname.includes("/bejelentkezes"),
           },
           {
             title: "Regisztráció",
             url: "/regisztracio",
-            icon: <NotebookPen/>,
+            icon: <NotebookPen />,
             publicOnly: true,
             needActiveDatabase: false,
             isActive: location.pathname.includes("/regisztracio"),
@@ -233,7 +233,7 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
           {
             title: "Kijelentkezés",
             click: handleLogout,
-            icon: <LogOut/>,
+            icon: <LogOut />,
             private: true,
             needActiveDatabase: false,
             isActive: false,
@@ -241,63 +241,69 @@ export function AppSidebar({...props}: React.ComponentProps<typeof Sidebar>) {
         ],
       },
     ],
-  }
+  };
   return (
     <Sidebar {...props}>
-      <SidebarHeader>
-        {isLoggedIn ? <UserData/> : null}
-      </SidebarHeader>
+      <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => {
-          const filteredItems = item.items.filter((item) => (
-            !((item.private && !isLoggedIn) || item.publicOnly && isLoggedIn)
-            && (!item.needActiveDatabase || (item.needActiveDatabase && hasActiveDatabase))
-          ));
-          return (
-            filteredItems.length === 0 ? null :
-              <SidebarGroup key={item.title}>
-                <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {filteredItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton asChild isActive={item.isActive}>
-                          {
-                            item.url
-                              ? <Link onClick={mobileCloseOnClick} to={item.url} key={item.title}>
-                                {item.icon ? item.icon : ""}
-                                {item.title}
-                              </Link>
-                              : typeof item.click === "function"
-                                ? <Button
-                                  key={item.title}
-                                  onClick={() => {
-                                    mobileCloseOnClick();
-                                    // TODO: figure out why this if needed for ts
-                                    if (typeof item.click === "function") {
-                                      item.click();
-                                    }
-                                  }}
-                                  asChild
-                                  variant={"ghost"}
-                                >
-                                  <div className="justify-start cursor-pointer">
-                                    {item.title}
-                                    {item.icon ? item.icon : ""}
-                                  </div>
-                                </Button> : (
-                                  <span key={item.title}>{item.title}</span>
-                                )}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-          )
+          const filteredItems = item.items.filter(
+            (item) =>
+              !(
+                (item.private && !isLoggedIn) ||
+                (item.publicOnly && isLoggedIn)
+              ) &&
+              (!item.needActiveDatabase ||
+                (item.needActiveDatabase && hasActiveDatabase)),
+          );
+          return filteredItems.length === 0 ? null : (
+            <SidebarGroup key={item.title}>
+              <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {filteredItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={item.isActive}>
+                        {item.url ? (
+                          <Link
+                            onClick={mobileCloseOnClick}
+                            to={item.url}
+                            key={item.title}
+                          >
+                            {item.icon ? item.icon : ""}
+                            {item.title}
+                          </Link>
+                        ) : typeof item.click === "function" ? (
+                          <Button
+                            key={item.title}
+                            onClick={() => {
+                              mobileCloseOnClick();
+                              // TODO: figure out why this if needed for ts
+                              if (typeof item.click === "function") {
+                                item.click();
+                              }
+                            }}
+                            asChild
+                            variant={"ghost"}
+                          >
+                            <div className="justify-start cursor-pointer">
+                              {item.title}
+                              {item.icon ? item.icon : ""}
+                            </div>
+                          </Button>
+                        ) : (
+                          <span key={item.title}>{item.title}</span>
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
         })}
       </SidebarContent>
-      <SidebarRail/>
+      <SidebarRail />
     </Sidebar>
-  )
+  );
 }

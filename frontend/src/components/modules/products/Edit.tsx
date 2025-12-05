@@ -17,59 +17,78 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/products/lib/slice.ts";
-import {type SelectOptionList} from "@/lib/interfaces/common.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx";
-import {useNavigate} from "react-router-dom";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import type {Product} from "./lib/interface";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/products/lib/slice.ts";
+import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useNavigate } from "react-router-dom";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import type { Product } from "./lib/interface";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (products: Product) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("239b22ad-5db9-4c9c-851b-ba76885c2dae");
+  const [unitOfMeasureId, setUnitOfMeasureId] = React.useState(
+    "239b22ad-5db9-4c9c-851b-ba76885c2dae",
+  );
   const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
-  const [unitsOfMeasureList, setUnitsOfMeasureList] = React.useState<SelectOptionList>([]);
+  const [unitsOfMeasureList, setUnitsOfMeasureList] =
+    React.useState<SelectOptionList>([]);
   const [status, setStatus] = React.useState("active");
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
+  const { setListResponse } = useSelectList();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      name,
-      description,
-      unitOfMeasureId,
-      newUnitOfMeasure,
-      status
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        name,
+        description,
+        unitOfMeasureId,
+        newUnitOfMeasure,
+        status,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/termek/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -77,22 +96,36 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, newUnitOfMeasure, onSuccess, setErrors, status, unexpectedError, unitOfMeasureId]);
+  }, [
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    newUnitOfMeasure,
+    onSuccess,
+    setErrors,
+    status,
+    unexpectedError,
+    unitOfMeasureId,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      name,
-      description,
-      unitOfMeasureId,
-      newUnitOfMeasure,
-      status
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        name,
+        description,
+        unitOfMeasureId,
+        newUnitOfMeasure,
+        status,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/termek/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -100,7 +133,18 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [description, dispatch, id, name, navigate, newUnitOfMeasure, setErrors, status, unexpectedError, unitOfMeasureId]);
+  }, [
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    newUnitOfMeasure,
+    setErrors,
+    status,
+    unexpectedError,
+    unitOfMeasureId,
+  ]);
 
   const loadLists = useCallback(async () => {
     return dispatch(select_list("units_of_measure")).then((response) => {
@@ -125,8 +169,13 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setUnitOfMeasureId(data.unit_of_measure_id);
                 setStatus(data.status);
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -149,46 +198,56 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <ConditionalCard
         showCard={showCard}
         title={`Termék ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="name">Név</Label>
           <Input
             id="name"
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
-          <FieldError error={errors} field={"name"}/>
+          <FieldError error={errors} field={"name"} />
           <Label htmlFor="description">Leírás</Label>
           <Input
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
           <Label htmlFor="unit_of_measure">Mértékegység</Label>
           <Select
             value={unitOfMeasureId}
-            onValueChange={val => setUnitOfMeasureId(val)}
+            onValueChange={(val) => setUnitOfMeasureId(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {unitsOfMeasureList.map(unit_of_measure => {
-                return <SelectItem key={unit_of_measure.value}
-                                   value={unit_of_measure.value}>{unit_of_measure.title}</SelectItem>
+              {unitsOfMeasureList.map((unit_of_measure) => {
+                return (
+                  <SelectItem
+                    key={unit_of_measure.value}
+                    value={unit_of_measure.value}
+                  >
+                    {unit_of_measure.title}
+                  </SelectItem>
+                );
               })}
               <SelectItem value="other">Egyéb</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"unit_of_measure"}/>
+          <FieldError error={errors} field={"unit_of_measure"} />
 
           {unitOfMeasureId === "other" ? (
             <>
@@ -197,25 +256,22 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 id="new_unit_of_measure"
                 type="text"
                 value={newUnitOfMeasure}
-                onChange={e => setNewUnitOfMeasure(e.target.value)}
+                onChange={(e) => setNewUnitOfMeasure(e.target.value)}
               />
-              <FieldError error={errors} field={"new_unit_of_measure"}/>
+              <FieldError error={errors} field={"new_unit_of_measure"} />
             </>
           ) : null}
           <Label htmlFor="status">Státusz</Label>
-          <Select
-            value={status}
-            onValueChange={val => setStatus(val)}
-          >
+          <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
               <SelectItem value="inactive">Inaktív</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>
       </ConditionalCard>

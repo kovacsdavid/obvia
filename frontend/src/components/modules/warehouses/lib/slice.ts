@@ -17,71 +17,71 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as warehousesApi from "@/components/modules/warehouses/lib/service.ts";
-import type {RootState} from "@/store";
-import type {WarehouseUserInput} from "@/components/modules/warehouses/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { WarehouseUserInput } from "@/components/modules/warehouses/lib/interface.ts";
 
 interface WarehousesState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: WarehousesState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "warehouses/create",
-  async (requestData: WarehouseUserInput, {getState}) => {
+  async (requestData: WarehouseUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return warehousesApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "warehouses/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return warehousesApi.list(query, token);
-  }
-)
+  },
+);
 
 export const get_resolved = createAsyncThunk(
   "warehouses/get_resolved",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await warehousesApi.get_resolved(uuid, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "warehouses/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await warehousesApi.get(uuid, token);
-  }
-)
+  },
+);
 
 export const update = createAsyncThunk(
   "warehouses/update",
-  async (requestData: WarehouseUserInput, {getState}) => {
+  async (requestData: WarehouseUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await warehousesApi.update(requestData, token);
-  }
-)
+  },
+);
 
 export const deleteItem = createAsyncThunk(
   "warehouses/deleteItem",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await warehousesApi.deleteItem(uuid, token);
-  }
+  },
 );
 
 const warehousesSlice = createSlice({

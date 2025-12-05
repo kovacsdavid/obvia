@@ -17,52 +17,60 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import {
   type CommonResponse,
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface WarehouseUserInput {
-  id: string | null
-  name: string
-  contactName: string
-  contactPhone: string
-  status: string
+  id: string | null;
+  name: string;
+  contactName: string;
+  contactPhone: string;
+  status: string;
 }
 
 export interface Warehouse {
-  id: string,
-  name: string,
-  contact_name: string | null,
-  contact_phone: string | null,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  status: string;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface WarehouseResolved {
-  id: string,
-  name: string,
-  contact_name: string | null,
-  contact_phone: string | null,
-  status: string,
-  created_by_id: string,
-  created_by: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  contact_name: string | null;
+  contact_phone: string | null;
+  status: string;
+  created_by_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export type CreateWarehouseResponse = CommonResponse<Warehouse, FormError>;
 export type UpdateWarehouseResponse = CommonResponse<Warehouse, FormError>;
-export type DeleteWarehouseResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type DeleteWarehouseResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
 export type WarehouseResponse = CommonResponse<Warehouse, SimpleError>;
-export type WarehouseResolvedResponse = CommonResponse<WarehouseResolved, SimpleError>;
+export type WarehouseResolvedResponse = CommonResponse<
+  WarehouseResolved,
+  SimpleError
+>;
 export type WarehouseResolvedList = WarehouseResolved[];
-export type PaginatedWarehouseResolvedListResponse = PaginatedDataResponse<WarehouseResolvedList, SimpleError>;
+export type PaginatedWarehouseResolvedListResponse = PaginatedDataResponse<
+  WarehouseResolvedList,
+  SimpleError
+>;

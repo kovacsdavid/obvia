@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateProjectResponse,
@@ -33,23 +33,19 @@ import type {
   ProjectResolvedList,
   ProjectResolvedResponse,
   ProjectResponse,
-  UpdateProjectResponse
+  UpdateProjectResponse,
 } from "@/components/modules/projects/lib/interface.ts";
 
-export function isCreateProjectResponse(data: unknown): data is CreateProjectResponse {
-  return isCommonResponse(
-    data,
-    isProject,
-    isFormError
-  )
+export function isCreateProjectResponse(
+  data: unknown,
+): data is CreateProjectResponse {
+  return isCommonResponse(data, isProject, isFormError);
 }
 
-export function isProjectResolvedResponse(data: unknown): data is ProjectResolvedResponse {
-  return isCommonResponse(
-    data,
-    isProjectResolved,
-    isSimpleError,
-  )
+export function isProjectResolvedResponse(
+  data: unknown,
+): data is ProjectResolvedResponse {
+  return isCommonResponse(data, isProjectResolved, isSimpleError);
 }
 
 export function isProjectResolved(data: unknown): data is ProjectResolved {
@@ -81,20 +77,16 @@ export function isProjectResolved(data: unknown): data is ProjectResolved {
   );
 }
 
-export function isProjectResolvedList(data: unknown): data is ProjectResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isProjectResolved(item))
-  );
+export function isProjectResolvedList(
+  data: unknown,
+): data is ProjectResolvedList {
+  return Array.isArray(data) && data.every((item) => isProjectResolved(item));
 }
 
 export function isPaginatedProjectResolvedListResponse(
-  data: unknown
+  data: unknown,
 ): data is PaginatedProjectResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isProjectResolvedList,
-  )
+  return isPaginatedDataResponse(data, isProjectResolvedList);
 }
 
 export function isProject(data: unknown): data is Project {
@@ -125,25 +117,17 @@ export function isProject(data: unknown): data is Project {
 }
 
 export function isProjectResponse(data: unknown): data is ProjectResponse {
-  return isCommonResponse(
-    data,
-    isProject,
-    isSimpleError
-  )
+  return isCommonResponse(data, isProject, isSimpleError);
 }
 
-export function isUpdateProjectResponse(data: unknown): data is UpdateProjectResponse {
-  return isCommonResponse(
-    data,
-    isProject,
-    isFormError
-  )
+export function isUpdateProjectResponse(
+  data: unknown,
+): data is UpdateProjectResponse {
+  return isCommonResponse(data, isProject, isFormError);
 }
 
-export function isDeleteProjectResponse(data: unknown): data is DeleteProjectResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteProjectResponse(
+  data: unknown,
+): data is DeleteProjectResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

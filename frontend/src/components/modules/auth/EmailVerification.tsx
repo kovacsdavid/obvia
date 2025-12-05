@@ -50,16 +50,20 @@ export default function EmailVerification() {
       <>
         <Alert>
           <CheckCircle2Icon />
-          <AlertTitle>Az e-mail cím megerősítése sikeresen megtörtént.</AlertTitle>
+          <AlertTitle>
+            Az e-mail cím megerősítése sikeresen megtörtént.
+          </AlertTitle>
         </Alert>
       </>
-    )
+    );
   } else if (success === false) {
     return (
       <>
-        <GlobalError error={{message: "Az e-mail cím megerősítése sikertelen." }} />
+        <GlobalError
+          error={{ message: "Az e-mail cím megerősítése sikertelen." }}
+        />
       </>
-    )
+    );
   } else {
     return (
       <>
@@ -68,6 +72,6 @@ export default function EmailVerification() {
           <AlertTitle>Az e-mail cím megerősítése folyamatban...</AlertTitle>
         </Alert>
       </>
-    )
+    );
   }
 }

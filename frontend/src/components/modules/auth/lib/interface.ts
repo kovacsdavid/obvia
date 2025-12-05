@@ -21,27 +21,26 @@ import {
   type CommonResponse,
   type FormError,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
-
 export interface RegisterRequest {
-  firstName: string,
-  lastName: string,
-  email: string,
-  password: string,
-  passwordConfirm: string,
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  passwordConfirm: string;
 }
 
 export interface LoginRequest {
-  email: string,
-  password: string,
+  email: string;
+  password: string;
 }
 
 export interface LoginData {
-  claims: Claims,
-  user: LoginUser,
-  token: string,
+  claims: Claims;
+  user: LoginUser;
+  token: string;
 }
 
 export interface LoginUser {
@@ -82,5 +81,7 @@ export interface Claims {
 export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
 export type LoginResponse = CommonResponse<LoginData, FormError>;
 export type ClaimsResponse = CommonResponse<Claims, SimpleError>;
-export type VerifyEmailResponse = CommonResponse<SimpleMessageData, SimpleError>;
-
+export type VerifyEmailResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;

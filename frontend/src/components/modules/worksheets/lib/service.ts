@@ -17,7 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+  unexpectedFormError,
+} from "@/services/utils/consts.ts";
 import {
   type CreateWorksheetResponse,
   type DeleteWorksheetResponse,
@@ -31,7 +35,7 @@ import {
   isSelectOptionListResponse,
   type ProcessedResponse,
   ProcessResponse,
-  type SelectOptionListResponse
+  type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
   isCreateWorksheetResponse,
@@ -39,22 +43,18 @@ import {
   isPaginatedWorksheetResolvedListResponse,
   isUpdateWorksheetResponse,
   isWorksheetResolvedResponse,
-  isWorksheetResponse
+  isWorksheetResponse,
 } from "@/components/modules/worksheets/lib/guards.ts";
 
-export async function create({
-                               id,
-                               name,
-                               description,
-                               customerId,
-                               projectId,
-                               status
-                             }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<CreateWorksheetResponse>> {
+export async function create(
+  { id, name, description, customerId, projectId, status }: WorksheetUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<CreateWorksheetResponse>> {
   return await fetch(`/api/worksheets/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -63,78 +63,86 @@ export async function create({
       description,
       customer_id: customerId,
       project_id: projectId,
-      status
-    })
+      status,
+    }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isCreateWorksheetResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isCreateWorksheetResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedWorksheetResolvedListResponse>> {
-  const uri = query === null ? `/api/worksheets/list` : `/api/worksheets/list?q=${query}`;
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<ProcessedResponse<PaginatedWorksheetResolvedListResponse>> {
+  const uri =
+    query === null ? `/api/worksheets/list` : `/api/worksheets/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isPaginatedWorksheetResolvedListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(
+        response,
+        isPaginatedWorksheetResolvedListResponse,
+      )) ?? unexpectedError
+    );
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+export async function select_list(
+  list: string,
+  token: string | null,
+): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/worksheets/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isSelectOptionListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isSelectOptionListResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WorksheetResolvedResponse>> {
+export async function get_resolved(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<WorksheetResolvedResponse>> {
   return await fetch(`/api/worksheets/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isWorksheetResolvedResponse,
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isWorksheetResolvedResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function update({
-                               id,
-                               name,
-                               description,
-                               customerId,
-                               projectId,
-                               status
-                             }: WorksheetUserInput, token: string | null): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
+export async function update(
+  { id, name, description, customerId, projectId, status }: WorksheetUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
   return await fetch(`/api/worksheets/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -143,44 +151,49 @@ export async function update({
       description,
       customer_id: customerId,
       project_id: projectId,
-      status
+      status,
     }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isUpdateWorksheetResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isUpdateWorksheetResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<WorksheetResponse>> {
+export async function get(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<WorksheetResponse>> {
   return await fetch(`/api/worksheets/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isWorksheetResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isWorksheetResponse)) ?? unexpectedError
+    );
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
+export async function deleteItem(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
   return await fetch(`/api/worksheets/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isDeleteWorksheetResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isDeleteWorksheetResponse)) ??
+      unexpectedError
+    );
   });
 }

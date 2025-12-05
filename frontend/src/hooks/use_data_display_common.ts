@@ -17,11 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useSearchParams} from "react-router-dom";
-import {query_encoder, query_parser} from "@/lib/utils.ts";
-import React, {useEffect, useMemo} from "react";
+import { useSearchParams } from "react-router-dom";
+import { query_encoder, query_parser } from "@/lib/utils.ts";
+import React, { useEffect, useMemo } from "react";
 
-export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Record<string, string | number>) => void) {
+export function useDataDisplayCommon(
+  updateSpecialQueryParams: (
+    parsedQuery: Record<string, string | number>,
+  ) => void,
+) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
   const [limit, setLimit] = React.useState<number>(25);
@@ -31,7 +35,9 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
   const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
   const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
 
-  const updateCommonQueryParams = (parsedQuery: Record<string, string | number>) => {
+  const updateCommonQueryParams = (
+    parsedQuery: Record<string, string | number>,
+  ) => {
     if ("page" in parsedQuery) {
       setPage(parsedQuery["page"] as number);
     }
@@ -44,7 +50,7 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
     if ("order" in parsedQuery) {
       setOrder(parsedQuery["order"] as string);
     }
-  }
+  };
 
   useEffect(() => {
     // TODO: improve this
@@ -53,34 +59,33 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
     updateSpecialQueryParams(parsedQuery);
   }, [parsedQuery, updateSpecialQueryParams]);
 
-
   const paginatorSelect = (pageNumber: number) => {
     const current_query = query_parser(searchParams.get("q"));
     current_query.page = pageNumber;
-    searchParams.set("q", query_encoder(current_query))
-    setSearchParams(searchParams)
+    searchParams.set("q", query_encoder(current_query));
+    setSearchParams(searchParams);
   };
   const orderSelect = (orderBy: string) => {
     const current_query = query_parser(searchParams.get("q"));
     current_query.order_by = orderBy;
     current_query.order = current_query.order === "asc" ? "desc" : "asc";
-    searchParams.set("q", query_encoder(current_query))
-    setSearchParams(searchParams)
-  }
+    searchParams.set("q", query_encoder(current_query));
+    setSearchParams(searchParams);
+  };
 
   const filterSelect = (filterBy: string, value: string) => {
     if (value.trim().length > 0) {
       const current_query = query_parser(searchParams.get("q"));
       current_query[filterBy] = value;
-      searchParams.set("q", query_encoder(current_query))
-      setSearchParams(searchParams)
+      searchParams.set("q", query_encoder(current_query));
+      setSearchParams(searchParams);
     } else {
       const current_query = query_parser(searchParams.get("q"));
-      delete current_query[filterBy]
-      searchParams.set("q", query_encoder(current_query))
-      setSearchParams(searchParams)
+      delete current_query[filterBy];
+      searchParams.set("q", query_encoder(current_query));
+      setSearchParams(searchParams);
     }
-  }
+  };
 
   const totalPages = React.useMemo(() => {
     return limit > 0 ? Math.ceil(total / limit) : 0;
@@ -103,6 +108,6 @@ export function useDataDisplayCommon(updateSpecialQueryParams: (parsedQuery: Rec
     orderSelect,
     filterSelect,
     totalPages,
-    parsedQuery
-  }
+    parsedQuery,
+  };
 }

@@ -17,54 +17,54 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as databasesApi from "@/components/modules/databases/lib/service.ts";
-import type {RootState} from "@/store";
-import type {CreateDatabase} from "@/components/modules/databases/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { CreateDatabase } from "@/components/modules/databases/lib/interface.ts";
 
 interface DatabasesState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: DatabasesState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "databases/create",
-  async (requestData: CreateDatabase, {getState}) => {
+  async (requestData: CreateDatabase, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "databases/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.list(query, token);
-  }
-)
+  },
+);
 
 export const activate = createAsyncThunk(
   "databases/activate",
-  async (new_tenant_id: string, {getState}) => {
+  async (new_tenant_id: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.activate(new_tenant_id, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "databases/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.get_resolved(uuid, token);
-  }
-)
+  },
+);
 
 const databasesSlice = createSlice({
   name: "databases",

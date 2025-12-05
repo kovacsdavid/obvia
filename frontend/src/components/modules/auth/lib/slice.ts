@@ -17,11 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice, type PayloadAction} from "@reduxjs/toolkit";
+import {
+  createAsyncThunk,
+  createSlice,
+  type PayloadAction,
+} from "@reduxjs/toolkit";
 import * as authApi from "@/components/modules/auth/lib/service.ts";
-import type {Claims, LoginRequest, RegisterRequest} from "@/components/modules/auth/lib/interface.ts";
-import type {RootState} from "@/store";
-import type {NewTokenResponse} from "@/components/modules/databases/lib/interface.ts";
+import type {
+  Claims,
+  LoginRequest,
+  RegisterRequest,
+} from "@/components/modules/auth/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { NewTokenResponse } from "@/components/modules/databases/lib/interface.ts";
 
 interface User {
   id: string;
@@ -37,13 +45,13 @@ interface AuthState {
     user: User | null;
     claims: Claims | null;
     token: string | null;
-    status: "idle" | "loading" | "succeeded" | "failed",
+    status: "idle" | "loading" | "succeeded" | "failed";
     isLoggedIn: boolean;
     hasActiveDatabase: boolean;
-  },
+  };
   register: {
-    status: "idle" | "loading" | "succeeded" | "failed",
-  },
+    status: "idle" | "loading" | "succeeded" | "failed";
+  };
 }
 
 const initialState: AuthState = {
@@ -57,47 +65,47 @@ const initialState: AuthState = {
   },
   register: {
     status: "idle",
-  }
+  },
 };
 
 export const registerUserRequest = createAsyncThunk(
   "auth/registerUserRequest",
   async (userData: RegisterRequest) => {
     return await authApi.register(userData);
-  }
+  },
 );
 
 export const loginUserRequest = createAsyncThunk(
   "auth/loginUserRequest",
-  async (credentials: LoginRequest, {rejectWithValue}) => {
+  async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       return await authApi.login(credentials);
     } catch (error: unknown) {
       return rejectWithValue(error);
     }
-  }
+  },
 );
 
 export const get_claims = createAsyncThunk(
   "auth/get_claims",
-  async (_, {getState}) => {
+  async (_, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await authApi.get_claims(token);
-  }
-)
+  },
+);
 
 export const verfiy_email = createAsyncThunk(
   "auth/verfiy_email",
   async (id: string) => {
     return await authApi.verfiy_email(id);
-  }
-)
+  },
+);
 
 interface LoginUser {
-  token: string,
-  user: User,
-  claims: Claims,
+  token: string;
+  user: User;
+  claims: Claims;
 }
 
 const authSlice = createSlice({
@@ -109,7 +117,8 @@ const authSlice = createSlice({
       state.login.user = action.payload.user;
       state.login.token = action.payload.token;
       state.login.isLoggedIn = true;
-      state.login.hasActiveDatabase = action.payload.claims.active_tenant !== null;
+      state.login.hasActiveDatabase =
+        action.payload.claims.active_tenant !== null;
     },
     logoutUser(state) {
       state.login.claims = null;
@@ -122,10 +131,11 @@ const authSlice = createSlice({
     updateToken(state, action: PayloadAction<NewTokenResponse>) {
       state.login.token = action.payload.token;
       state.login.claims = action.payload.claims;
-      state.login.hasActiveDatabase = action.payload.claims.active_tenant !== null;
-    }
+      state.login.hasActiveDatabase =
+        action.payload.claims.active_tenant !== null;
+    },
   },
 });
 
-export const {logoutUser, updateToken, loginUser} = authSlice.actions;
+export const { logoutUser, updateToken, loginUser } = authSlice.actions;
 export default authSlice.reducer;

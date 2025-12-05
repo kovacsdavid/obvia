@@ -17,7 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+  unexpectedFormError,
+} from "@/services/utils/consts.ts";
 import {
   type CreateWarehouseResponse,
   type DeleteWarehouseResponse,
@@ -25,30 +29,30 @@ import {
   type UpdateWarehouseResponse,
   type WarehouseResolvedResponse,
   type WarehouseResponse,
-  type WarehouseUserInput
+  type WarehouseUserInput,
 } from "@/components/modules/warehouses/lib/interface.ts";
-import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  type ProcessedResponse,
+  ProcessResponse,
+} from "@/lib/interfaces/common.ts";
 import {
   isCreateWarehouseResponse,
   isDeleteWarehouseResponse,
   isPaginatedWarehouseResolvedListResponse,
   isUpdateWarehouseResponse,
   isWarehouseResolvedResponse,
-  isWarehouseResponse
+  isWarehouseResponse,
 } from "@/components/modules/warehouses/lib/guards.ts";
 
-export async function create({
-                               id,
-                               name,
-                               contactName,
-                               contactPhone,
-                               status
-                             }: WarehouseUserInput, token: string | null): Promise<ProcessedResponse<CreateWarehouseResponse>> {
+export async function create(
+  { id, name, contactName, contactPhone, status }: WarehouseUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<CreateWarehouseResponse>> {
   return await fetch(`/api/warehouses/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -56,61 +60,67 @@ export async function create({
       name,
       contact_name: contactName,
       contact_phone: contactPhone,
-      status
-    })
+      status,
+    }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isCreateWarehouseResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isCreateWarehouseResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedWarehouseResolvedListResponse>> {
-  const uri = query === null ? `/api/warehouses/list` : `/api/warehouses/list?q=${query}`;
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<ProcessedResponse<PaginatedWarehouseResolvedListResponse>> {
+  const uri =
+    query === null ? `/api/warehouses/list` : `/api/warehouses/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isPaginatedWarehouseResolvedListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(
+        response,
+        isPaginatedWarehouseResolvedListResponse,
+      )) ?? unexpectedError
+    );
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
+export async function get_resolved(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
   return await fetch(`/api/warehouses/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isWarehouseResolvedResponse,
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isWarehouseResolvedResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function update({
-                               id,
-                               name,
-                               contactName,
-                               contactPhone,
-                               status
-                             }: WarehouseUserInput, token: string | null): Promise<ProcessedResponse<UpdateWarehouseResponse>> {
+export async function update(
+  { id, name, contactName, contactPhone, status }: WarehouseUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<UpdateWarehouseResponse>> {
   return await fetch(`/api/warehouses/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -118,44 +128,49 @@ export async function update({
       name,
       contact_name: contactName,
       contact_phone: contactPhone,
-      status
+      status,
     }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isUpdateWarehouseResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isUpdateWarehouseResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<WarehouseResponse>> {
+export async function get(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<WarehouseResponse>> {
   return await fetch(`/api/warehouses/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isWarehouseResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isWarehouseResponse)) ?? unexpectedError
+    );
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
+export async function deleteItem(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
   return await fetch(`/api/warehouses/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isDeleteWarehouseResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isDeleteWarehouseResponse)) ??
+      unexpectedError
+    );
   });
 }

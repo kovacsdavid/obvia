@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateProductResponse,
@@ -33,23 +33,19 @@ import type {
   ProductResolvedList,
   ProductResolvedResponse,
   ProductResponse,
-  UpdateProductResponse
+  UpdateProductResponse,
 } from "@/components/modules/products/lib/interface.ts";
 
-export function isCreateProductResponse(data: unknown): data is CreateProductResponse {
-  return isCommonResponse(
-    data,
-    isProduct,
-    isFormError,
-  )
+export function isCreateProductResponse(
+  data: unknown,
+): data is CreateProductResponse {
+  return isCommonResponse(data, isProduct, isFormError);
 }
 
-export function isProductResolvedResponse(data: unknown): data is ProductResolvedResponse {
-  return isCommonResponse(
-    data,
-    isProductResolved,
-    isSimpleError,
-  )
+export function isProductResolvedResponse(
+  data: unknown,
+): data is ProductResolvedResponse {
+  return isCommonResponse(data, isProductResolved, isSimpleError);
 }
 
 export function isProductResolved(data: unknown): data is ProductResolved {
@@ -81,18 +77,16 @@ export function isProductResolved(data: unknown): data is ProductResolved {
   );
 }
 
-export function isProductResolvedList(data: unknown): data is ProductResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isProductResolved(item))
-  );
+export function isProductResolvedList(
+  data: unknown,
+): data is ProductResolvedList {
+  return Array.isArray(data) && data.every((item) => isProductResolved(item));
 }
 
-export function isPaginatedProductResolvedListResponse(data: unknown): data is PaginatedProductResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isProductResolvedList
-  )
+export function isPaginatedProductResolvedListResponse(
+  data: unknown,
+): data is PaginatedProductResolvedListResponse {
+  return isPaginatedDataResponse(data, isProductResolvedList);
 }
 
 export function isProduct(data: unknown): data is Product {
@@ -121,25 +115,17 @@ export function isProduct(data: unknown): data is Product {
 }
 
 export function isProductResponse(data: unknown): data is ProductResponse {
-  return isCommonResponse(
-    data,
-    isProduct,
-    isSimpleError
-  )
+  return isCommonResponse(data, isProduct, isSimpleError);
 }
 
-export function isUpdateProductResponse(data: unknown): data is UpdateProductResponse {
-  return isCommonResponse(
-    data,
-    isProduct,
-    isFormError
-  )
+export function isUpdateProductResponse(
+  data: unknown,
+): data is UpdateProductResponse {
+  return isCommonResponse(data, isProduct, isFormError);
 }
 
-export function isDeleteProductResponse(data: unknown): data is DeleteProductResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteProductResponse(
+  data: unknown,
+): data is DeleteProductResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

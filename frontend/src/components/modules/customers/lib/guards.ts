@@ -33,31 +33,25 @@ import type {
   CustomerResponse,
   DeleteCustomerResponse,
   PaginatedCustomerResolvedListResponse,
-  UpdateCustomerResponse
+  UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
 
-export function isCreateCustomerResponse(data: unknown): data is CreateCustomerResponse {
-  return isCommonResponse(
-    data,
-    isCustomer,
-    isFormError
-  )
+export function isCreateCustomerResponse(
+  data: unknown,
+): data is CreateCustomerResponse {
+  return isCommonResponse(data, isCustomer, isFormError);
 }
 
-export function isUpdateCustomerResponse(data: unknown): data is UpdateCustomerResponse {
-  return isCommonResponse(
-    data,
-    isCustomer,
-    isFormError
-  )
+export function isUpdateCustomerResponse(
+  data: unknown,
+): data is UpdateCustomerResponse {
+  return isCommonResponse(data, isCustomer, isFormError);
 }
 
-export function isDeleteCustomerResponse(data: unknown): data is DeleteCustomerResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteCustomerResponse(
+  data: unknown,
+): data is DeleteCustomerResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }
 
 export function isCustomerResolved(data: unknown): data is CustomerResolved {
@@ -91,28 +85,22 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
   );
 }
 
-export function isCustomerResolvedResponse(data: unknown): data is CustomerResolvedResponse {
-  return isCommonResponse(
-    data,
-    isCustomerResolved,
-    isSimpleError
-  )
+export function isCustomerResolvedResponse(
+  data: unknown,
+): data is CustomerResolvedResponse {
+  return isCommonResponse(data, isCustomerResolved, isSimpleError);
 }
 
-export function isCustomerResolvedList(data: unknown): data is CustomerResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isCustomerResolved(item))
-  );
+export function isCustomerResolvedList(
+  data: unknown,
+): data is CustomerResolvedList {
+  return Array.isArray(data) && data.every((item) => isCustomerResolved(item));
 }
 
 export function isPaginatedCustomerResolvedListResponse(
-  data: unknown
+  data: unknown,
 ): data is PaginatedCustomerResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isCustomerResolvedList
-  );
+  return isPaginatedDataResponse(data, isCustomerResolvedList);
 }
 
 export function isCustomer(data: unknown): data is Customer {
@@ -145,9 +133,5 @@ export function isCustomer(data: unknown): data is Customer {
 }
 
 export function isCustomerResponse(data: unknown): data is CustomerResponse {
-  return isCommonResponse(
-    data,
-    isCustomer,
-    isSimpleError
-  )
+  return isCommonResponse(data, isCustomer, isSimpleError);
 }

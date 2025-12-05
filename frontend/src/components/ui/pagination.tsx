@@ -17,13 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as React from "react"
-import {ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon,} from "lucide-react"
+import * as React from "react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreHorizontalIcon,
+} from "lucide-react";
 
-import {cn} from "@/lib/utils"
-import {Button, buttonVariants} from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 
-function Pagination({className, ...props}: React.ComponentProps<"nav">) {
+function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
     <nav
       role="navigation"
@@ -32,37 +36,37 @@ function Pagination({className, ...props}: React.ComponentProps<"nav">) {
       className={cn("mx-auto flex w-full justify-center", className)}
       {...props}
     />
-  )
+  );
 }
 
 function PaginationContent({
-                             className,
-                             ...props
-                           }: React.ComponentProps<"ul">) {
+  className,
+  ...props
+}: React.ComponentProps<"ul">) {
   return (
     <ul
       data-slot="pagination-content"
       className={cn("flex flex-row items-center gap-1", className)}
       {...props}
     />
-  )
+  );
 }
 
-function PaginationItem({...props}: React.ComponentProps<"li">) {
-  return <li data-slot="pagination-item" {...props} />
+function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />;
 }
 
 type PaginationLinkProps = {
-  isActive?: boolean
+  isActive?: boolean;
 } & Pick<React.ComponentProps<typeof Button>, "size"> &
-  React.ComponentProps<"a">
+  React.ComponentProps<"a">;
 
 function PaginationLink({
-                          className,
-                          isActive,
-                          size = "icon",
-                          ...props
-                        }: PaginationLinkProps) {
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) {
   return (
     <a
       aria-current={isActive ? "page" : undefined}
@@ -73,17 +77,17 @@ function PaginationLink({
           variant: isActive ? "outline" : "ghost",
           size,
         }),
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function PaginationPrevious({
-                              className,
-                              ...props
-                            }: React.ComponentProps<typeof PaginationLink>) {
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
@@ -91,17 +95,16 @@ function PaginationPrevious({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <ChevronLeftIcon/>
+      <ChevronLeftIcon />
       <span className="hidden sm:block">Előző</span>
     </PaginationLink>
-  )
+  );
 }
 
-
 function PaginationFirst({
-                           className,
-                           ...props
-                         }: React.ComponentProps<typeof PaginationLink>) {
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to previous page"
@@ -109,17 +112,17 @@ function PaginationFirst({
       className={cn("gap-1 px-2.5 sm:pl-2.5", className)}
       {...props}
     >
-      <ChevronLeftIcon style={{marginRight: "-12px"}}/>
-      <ChevronLeftIcon/>
+      <ChevronLeftIcon style={{ marginRight: "-12px" }} />
+      <ChevronLeftIcon />
       <span className="hidden sm:block">Első</span>
     </PaginationLink>
-  )
+  );
 }
 
 function PaginationNext({
-                          className,
-                          ...props
-                        }: React.ComponentProps<typeof PaginationLink>) {
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -128,15 +131,15 @@ function PaginationNext({
       {...props}
     >
       <span className="hidden sm:block">Következő</span>
-      <ChevronRightIcon/>
+      <ChevronRightIcon />
     </PaginationLink>
-  )
+  );
 }
 
 function PaginationLast({
-                          className,
-                          ...props
-                        }: React.ComponentProps<typeof PaginationLink>) {
+  className,
+  ...props
+}: React.ComponentProps<typeof PaginationLink>) {
   return (
     <PaginationLink
       aria-label="Go to next page"
@@ -145,16 +148,16 @@ function PaginationLast({
       {...props}
     >
       <span className="hidden sm:block">Utolsó</span>
-      <ChevronRightIcon style={{marginRight: "-12px"}}/>
-      <ChevronRightIcon/>
+      <ChevronRightIcon style={{ marginRight: "-12px" }} />
+      <ChevronRightIcon />
     </PaginationLink>
-  )
+  );
 }
 
 function PaginationEllipsis({
-                              className,
-                              ...props
-                            }: React.ComponentProps<"span">) {
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
   return (
     <span
       aria-hidden
@@ -162,12 +165,11 @@ function PaginationEllipsis({
       className={cn("flex size-9 items-center justify-center", className)}
       {...props}
     >
-      <MoreHorizontalIcon className="size-4"/>
+      <MoreHorizontalIcon className="size-4" />
       <span className="sr-only">More pages</span>
     </span>
-  )
+  );
 }
-
 
 interface PaginatorProps {
   page: number;
@@ -175,78 +177,81 @@ interface PaginatorProps {
   onPageChange: (page: number) => void;
 }
 
-function Paginator({page, totalPages, onPageChange}: PaginatorProps) {
-  const pages = Array.from({length: totalPages}, (_, i) => i + 1);
+function Paginator({ page, totalPages, onPageChange }: PaginatorProps) {
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
-    <Pagination style={{marginTop: "50px"}}>
+    <Pagination style={{ marginTop: "50px" }}>
       <PaginationContent>
         {page > 1 && (
           <>
             <PaginationItem>
               <PaginationItem>
                 <PaginationFirst
-                  style={{cursor: 'pointer'}}
+                  style={{ cursor: "pointer" }}
                   onClick={() => onPageChange(1)}
                 />
               </PaginationItem>
             </PaginationItem>
             <PaginationItem>
               <PaginationPrevious
-                style={{cursor: 'pointer'}}
+                style={{ cursor: "pointer" }}
                 onClick={() => onPageChange(page - 1)}
               />
             </PaginationItem>
           </>
         )}
         {page - 3 > 0 ? (
-            <PaginationItem>
-              <PaginationEllipsis/>
-            </PaginationItem>)
-          : null}
+          <PaginationItem>
+            <PaginationEllipsis />
+          </PaginationItem>
+        ) : null}
         {pages.map((pageNumber) => {
           if (pageNumber < page + 3 && pageNumber > page - 3) {
-            return (<PaginationItem key={pageNumber}>
+            return (
+              <PaginationItem key={pageNumber}>
                 <PaginationLink
                   style={{
-                    cursor: 'pointer', ...(page === pageNumber ? {
-                      cursor: 'default',
-                      fontWeight: "bolder",
-                      backgroundColor: "lightgray"
-                    } : {})
+                    cursor: "pointer",
+                    ...(page === pageNumber
+                      ? {
+                          cursor: "default",
+                          fontWeight: "bolder",
+                          backgroundColor: "lightgray",
+                        }
+                      : {}),
                   }}
                   onClick={() => onPageChange(pageNumber)}
                 >
                   {pageNumber}
                 </PaginationLink>
               </PaginationItem>
-            )
+            );
           } else {
-            return null
+            return null;
           }
         })}
         {page + 3 <= totalPages ? (
-            <PaginationItem>
-              <PaginationEllipsis/>
-            </PaginationItem>)
-          : null}
+          <PaginationItem>
+            <PaginationEllipsis />
+          </PaginationItem>
+        ) : null}
         {page < totalPages && (
           <>
             <PaginationItem>
               <PaginationNext
-                style={{cursor: 'pointer'}}
+                style={{ cursor: "pointer" }}
                 onClick={() => onPageChange(page + 1)}
               />
             </PaginationItem>
             <PaginationItem>
               <PaginationLast
-                style={{cursor: 'pointer'}}
+                style={{ cursor: "pointer" }}
                 onClick={() => onPageChange(totalPages)}
               />
             </PaginationItem>
           </>
         )}
-
       </PaginationContent>
     </Pagination>
   );
@@ -262,5 +267,5 @@ export {
   PaginationNext,
   PaginationLast,
   PaginationEllipsis,
-  Paginator
-}
+  Paginator,
+};

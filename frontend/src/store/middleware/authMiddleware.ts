@@ -17,29 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {type Middleware, type MiddlewareAPI} from '@reduxjs/toolkit';
-import {logoutUser} from '@/components/modules/auth/lib/slice.ts';
+import { type Middleware, type MiddlewareAPI } from "@reduxjs/toolkit";
+import { logoutUser } from "@/components/modules/auth/lib/slice.ts";
 
-const isSessionExpiredAction = (action: unknown) => (
-  typeof action === "object"
-  && action !== null
-  && "payload" in action
-  && typeof action.payload === "object"
-  && action.payload !== null
-  && "status" in action.payload
-  && action.payload.status === 401
-  && window.location.pathname !== '/bejelentkezes'
-);
+const isSessionExpiredAction = (action: unknown) =>
+  typeof action === "object" &&
+  action !== null &&
+  "payload" in action &&
+  typeof action.payload === "object" &&
+  action.payload !== null &&
+  "status" in action.payload &&
+  action.payload.status === 401 &&
+  window.location.pathname !== "/bejelentkezes";
 
-const authMiddleware: Middleware = (store: MiddlewareAPI) => (next: (action: unknown) => unknown) => (action: unknown) => {
-  if (
-    isSessionExpiredAction(action)
-  ) {
-    store.dispatch(logoutUser());
-    window.location.href = '/bejelentkezes';
-  } else {
-    return next(action);
-  }
-};
+const authMiddleware: Middleware =
+  (store: MiddlewareAPI) =>
+  (next: (action: unknown) => unknown) =>
+  (action: unknown) => {
+    if (isSessionExpiredAction(action)) {
+      store.dispatch(logoutUser());
+      window.location.href = "/bejelentkezes";
+    } else {
+      return next(action);
+    }
+  };
 
 export default authMiddleware;

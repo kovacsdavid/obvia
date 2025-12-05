@@ -17,44 +17,44 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as usersApi from "@/components/modules/users/lib/service.ts";
-import type {RootState} from "@/store";
-import type {CreateUser} from "@/components/modules/users/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
 
 interface UsersState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: UsersState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "users/create",
-  async (requestData: CreateUser, {rejectWithValue, getState}) => {
+  async (requestData: CreateUser, { rejectWithValue, getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
       return usersApi.create(requestData, token);
     } catch (error: unknown) {
-      return rejectWithValue(error)
+      return rejectWithValue(error);
     }
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "users/list",
-  async (query: string | null, {rejectWithValue, getState}) => {
+  async (query: string | null, { rejectWithValue, getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
       return usersApi.list(query, token);
     } catch (error: unknown) {
-      return rejectWithValue(error)
+      return rejectWithValue(error);
     }
-  }
-)
+  },
+);
 
 const usersSlice = createSlice({
   name: "users",
@@ -65,16 +65,12 @@ const usersSlice = createSlice({
       .addCase(create.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(
-        create.fulfilled,
-        (
-          state,
-        ) => {
-          state.status = "succeeded";
-        })
+      .addCase(create.fulfilled, (state) => {
+        state.status = "succeeded";
+      })
       .addCase(create.rejected, (state) => {
         state.status = "failed";
-      })
+      });
     builder
       .addCase(list.pending, (state) => {
         state.status = "loading";
@@ -85,7 +81,7 @@ const usersSlice = createSlice({
       .addCase(list.rejected, (state) => {
         state.status = "failed";
       });
-  }
+  },
 });
 
 export default usersSlice.reducer;

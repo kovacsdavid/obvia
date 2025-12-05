@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateInventoryResponse,
@@ -33,15 +33,13 @@ import type {
   InventoryResolvedResponse,
   InventoryResponse,
   PaginatedInventoryResolvedListResponse,
-  UpdateInventoryResponse
+  UpdateInventoryResponse,
 } from "@/components/modules/inventory/lib/interface.ts";
 
-export function isCreateInventoryResponse(data: unknown): data is CreateInventoryResponse {
-  return isCommonResponse(
-    data,
-    isInventory,
-    isFormError,
-  )
+export function isCreateInventoryResponse(
+  data: unknown,
+): data is CreateInventoryResponse {
+  return isCommonResponse(data, isInventory, isFormError);
 }
 
 export function isInventoryResolved(data: unknown): data is InventoryResolved {
@@ -87,26 +85,22 @@ export function isInventoryResolved(data: unknown): data is InventoryResolved {
   );
 }
 
-export function isInventoryResolvedResponse(data: unknown): data is InventoryResolvedResponse {
-  return isCommonResponse(
-    data,
-    isInventoryResolved,
-    isSimpleError
-  )
+export function isInventoryResolvedResponse(
+  data: unknown,
+): data is InventoryResolvedResponse {
+  return isCommonResponse(data, isInventoryResolved, isSimpleError);
 }
 
-export function isInventoryResolvedList(data: unknown): data is InventoryResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isInventoryResolved(item))
-  );
+export function isInventoryResolvedList(
+  data: unknown,
+): data is InventoryResolvedList {
+  return Array.isArray(data) && data.every((item) => isInventoryResolved(item));
 }
 
-export function isPaginatedInventoryResolvedListResponse(data: unknown): data is PaginatedInventoryResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isInventoryResolvedList
-  );
+export function isPaginatedInventoryResolvedListResponse(
+  data: unknown,
+): data is PaginatedInventoryResolvedListResponse {
+  return isPaginatedDataResponse(data, isInventoryResolvedList);
 }
 
 export function isInventory(data: unknown): data is Inventory {
@@ -126,9 +120,9 @@ export function isInventory(data: unknown): data is Inventory {
     "quantity_available" in data &&
     typeof data.quantity_available === "string" &&
     "minimum_stock" in data &&
-    ((data.minimum_stock) === null || typeof data.minimum_stock === "string") &&
+    (data.minimum_stock === null || typeof data.minimum_stock === "string") &&
     "maximum_stock" in data &&
-    ((data.maximum_stock) === null || typeof data.maximum_stock === "string") &&
+    (data.maximum_stock === null || typeof data.maximum_stock === "string") &&
     "currency_code" in data &&
     typeof data.currency_code === "string" &&
     "status" in data &&
@@ -140,30 +134,22 @@ export function isInventory(data: unknown): data is Inventory {
     "updated_at" in data &&
     typeof data.updated_at === "string" &&
     "deleted_at" in data &&
-    ((data.deleted_at) === null || typeof data.deleted_at === "string")
+    (data.deleted_at === null || typeof data.deleted_at === "string")
   );
 }
 
 export function isInventoryResponse(data: unknown): data is InventoryResponse {
-  return isCommonResponse(
-    data,
-    isInventory,
-    isSimpleError
-  )
+  return isCommonResponse(data, isInventory, isSimpleError);
 }
 
-export function isUpdateInventoryResponse(data: unknown): data is UpdateInventoryResponse {
-  return isCommonResponse(
-    data,
-    isInventory,
-    isFormError
-  )
+export function isUpdateInventoryResponse(
+  data: unknown,
+): data is UpdateInventoryResponse {
+  return isCommonResponse(data, isInventory, isFormError);
 }
 
-export function isDeleteInventoryResponse(data: unknown): data is DeleteInventoryResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteInventoryResponse(
+  data: unknown,
+): data is DeleteInventoryResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

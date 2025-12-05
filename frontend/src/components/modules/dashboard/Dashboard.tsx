@@ -18,5 +18,5 @@
  */
 
 export default function Dashboard() {
-  return <div/>;
+  return <div />;
 }

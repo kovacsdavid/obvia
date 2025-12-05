@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateInventoryReservationResponse,
@@ -32,10 +32,12 @@ import type {
   InventoryReservationResolvedList,
   InventoryReservationResolvedResponse,
   InventoryReservationResponse,
-  PaginatedInventoryReservationResolvedListResponse
+  PaginatedInventoryReservationResolvedListResponse,
 } from "@/components/modules/inventory_reservations/lib/interface.ts";
 
-export function isInventoryReservationResolved(data: unknown): data is InventoryReservationResolved {
+export function isInventoryReservationResolved(
+  data: unknown,
+): data is InventoryReservationResolved {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -64,15 +66,15 @@ export function isInventoryReservationResolved(data: unknown): data is Inventory
   );
 }
 
-export function isInventoryReservationResolvedResponse(data: unknown): data is InventoryReservationResolvedResponse {
-  return isCommonResponse(
-    data,
-    isInventoryReservationResolved,
-    isSimpleError,
-  );
+export function isInventoryReservationResolvedResponse(
+  data: unknown,
+): data is InventoryReservationResolvedResponse {
+  return isCommonResponse(data, isInventoryReservationResolved, isSimpleError);
 }
 
-export function isInventoryReservation(data: unknown): data is InventoryReservation {
+export function isInventoryReservation(
+  data: unknown,
+): data is InventoryReservation {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -99,37 +101,35 @@ export function isInventoryReservation(data: unknown): data is InventoryReservat
   );
 }
 
-export function isInventoryReservationResponse(data: unknown): data is InventoryReservationResponse {
-  return isCommonResponse(
-    data,
-    isInventoryReservation,
-    isSimpleError,
+export function isInventoryReservationResponse(
+  data: unknown,
+): data is InventoryReservationResponse {
+  return isCommonResponse(data, isInventoryReservation, isSimpleError);
+}
+
+export function isInventoryReservationResolvedList(
+  data: unknown,
+): data is InventoryReservationResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every((item) => isInventoryReservationResolved(item))
   );
 }
 
-export function isInventoryReservationResolvedList(data: unknown): data is InventoryReservationResolvedList {
-  return Array.isArray(data) && data.every(item => isInventoryReservationResolved(item));
+export function isPaginatedInventoryReservationResolvedListResponse(
+  data: unknown,
+): data is PaginatedInventoryReservationResolvedListResponse {
+  return isPaginatedDataResponse(data, isInventoryReservationResolvedList);
 }
 
-export function isPaginatedInventoryReservationResolvedListResponse(data: unknown): data is PaginatedInventoryReservationResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isInventoryReservationResolvedList,
-  );
+export function isCreateInventoryReservationResponse(
+  data: unknown,
+): data is CreateInventoryReservationResponse {
+  return isCommonResponse(data, isInventoryReservation, isFormError);
 }
 
-export function isCreateInventoryReservationResponse(data: unknown): data is CreateInventoryReservationResponse {
-  return isCommonResponse(
-    data,
-    isInventoryReservation,
-    isFormError,
-  );
-}
-
-export function isDeleteInventoryReservationResponse(data: unknown): data is DeleteInventoryReservationResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError,
-  );
+export function isDeleteInventoryReservationResponse(
+  data: unknown,
+): data is DeleteInventoryReservationResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

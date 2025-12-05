@@ -22,61 +22,70 @@ import {
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface InventoryUserInput {
-  id: string | null
-  productId: string
-  warehouseId: string
-  minimumStock: string
-  maximumStock: string
-  currencyCode: string
-  status: string
+  id: string | null;
+  productId: string;
+  warehouseId: string;
+  minimumStock: string;
+  maximumStock: string;
+  currencyCode: string;
+  status: string;
 }
 
 export interface Inventory {
-  id: string,
-  product_id: string,
-  warehouse_id: string,
-  quantity_on_hand: string,
-  quantity_reserved: string,
-  quantity_available: string,
-  minimum_stock: string | null,
-  maximum_stock: string | null,
-  currency_code: string,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  product_id: string;
+  warehouse_id: string;
+  quantity_on_hand: string;
+  quantity_reserved: string;
+  quantity_available: string;
+  minimum_stock: string | null;
+  maximum_stock: string | null;
+  currency_code: string;
+  status: string;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface InventoryResolved {
-  id: string,
-  product_id: string,
-  product: string,
-  warehouse_id: string,
-  warehouse: string,
-  quantity_on_hand: string,
-  quantity_reserved: string,
-  quantity_available: string,
-  minimum_stock: string | null,
-  maximum_stock: string | null,
-  currency_code: string,
-  currency: string,
-  status: string,
-  created_by_id: string,
-  created_by: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  product_id: string;
+  product: string;
+  warehouse_id: string;
+  warehouse: string;
+  quantity_on_hand: string;
+  quantity_reserved: string;
+  quantity_available: string;
+  minimum_stock: string | null;
+  maximum_stock: string | null;
+  currency_code: string;
+  currency: string;
+  status: string;
+  created_by_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export type CreateInventoryResponse = CommonResponse<Inventory, FormError>;
 export type UpdateInventoryResponse = CommonResponse<Inventory, FormError>;
-export type DeleteInventoryResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type DeleteInventoryResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
 export type InventoryResolvedList = InventoryResolved[];
 export type InventoryResponse = CommonResponse<Inventory, SimpleError>;
-export type InventoryResolvedResponse = CommonResponse<InventoryResolved, SimpleError>;
-export type PaginatedInventoryResolvedListResponse = PaginatedDataResponse<InventoryResolvedList, SimpleError>;
+export type InventoryResolvedResponse = CommonResponse<
+  InventoryResolved,
+  SimpleError
+>;
+export type PaginatedInventoryResolvedListResponse = PaginatedDataResponse<
+  InventoryResolvedList,
+  SimpleError
+>;

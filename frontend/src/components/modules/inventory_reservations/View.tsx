@@ -17,19 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useParams} from "react-router";
-import React, {useEffect} from "react";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {get_resolved} from "@/components/modules/inventory_reservations/lib/slice.ts";
-import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
-import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
-import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import type {InventoryReservationResolved} from "@/components/modules/inventory_reservations/lib/interface.ts";
+import { useParams } from "react-router";
+import React, { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { get_resolved } from "@/components/modules/inventory_reservations/lib/slice.ts";
+import type { SimpleError } from "@/lib/interfaces/common.ts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { GlobalError } from "@/components/ui";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import type { InventoryReservationResolved } from "@/components/modules/inventory_reservations/lib/interface.ts";
 
 export default function View() {
-  const [data, setData] = React.useState<InventoryReservationResolved | null>(null);
+  const [data, setData] = React.useState<InventoryReservationResolved | null>(
+    null,
+  );
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
@@ -49,20 +61,20 @@ export default function View() {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error)
+            setErrors(response.payload.jsonData.error);
           } else {
             unexpectedError();
           }
         } else {
           unexpectedError();
         }
-      })
+      });
     }
   }, [dispatch, params]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       {data !== null ? (
         <Card className={"max-w-lg mx-auto"}>
           <CardHeader>
@@ -98,7 +110,9 @@ export default function View() {
                 {data.reserved_until && (
                   <TableRow>
                     <TableCell>Lefoglalva eddig</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.reserved_until)}</TableCell>
+                    <TableCell>
+                      {formatDateToYMDHMS(data.reserved_until)}
+                    </TableCell>
                   </TableRow>
                 )}
                 <TableRow>
@@ -123,5 +137,5 @@ export default function View() {
         </Card>
       ) : null}
     </>
-  )
+  );
 }

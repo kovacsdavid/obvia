@@ -17,21 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout} from "@/services/utils/consts.ts";
-import type {CreateUser} from "@/components/modules/users/lib/interface.ts";
+import { globalRequestTimeout } from "@/services/utils/consts.ts";
+import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
 
-export async function create({
-                               email,
-                               lastName,
-                               firstName,
-                               phone,
-                               status
-                             }: CreateUser, token: string | null): Promise<Response> {
+export async function create(
+  { email, lastName, firstName, phone, status }: CreateUser,
+  token: string | null,
+): Promise<Response> {
   return await fetch(`/api/users/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -39,18 +36,21 @@ export async function create({
       last_name: lastName,
       first_name: firstName,
       phone,
-      status
-    })
+      status,
+    }),
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<Response> {
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<Response> {
   const uri = query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   });

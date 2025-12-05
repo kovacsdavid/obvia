@@ -17,7 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+  unexpectedFormError,
+} from "@/services/utils/consts.ts";
 import {
   type CreateProductResponse,
   type DeleteProductResponse,
@@ -31,7 +35,7 @@ import {
   isSelectOptionListResponse,
   type ProcessedResponse,
   ProcessResponse,
-  type SelectOptionListResponse
+  type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
   isCreateProductResponse,
@@ -39,22 +43,25 @@ import {
   isPaginatedProductResolvedListResponse,
   isProductResolvedResponse,
   isProductResponse,
-  isUpdateProductResponse
+  isUpdateProductResponse,
 } from "@/components/modules/products/lib/guards.ts";
 
-export async function create({
-                               id,
-                               name,
-                               description,
-                               unitOfMeasureId,
-                               newUnitOfMeasure,
-                               status
-                             }: ProductUserInput, token: string | null): Promise<ProcessedResponse<CreateProductResponse>> {
+export async function create(
+  {
+    id,
+    name,
+    description,
+    unitOfMeasureId,
+    newUnitOfMeasure,
+    status,
+  }: ProductUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<CreateProductResponse>> {
   return await fetch(`/api/products/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -63,78 +70,93 @@ export async function create({
       description,
       unit_of_measure_id: unitOfMeasureId,
       new_unit_of_measure: newUnitOfMeasure,
-      status
-    })
+      status,
+    }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isCreateProductResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isCreateProductResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedProductResolvedListResponse>> {
-  const uri = query === null ? `/api/products/list` : `/api/products/list?q=${query}`;
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<ProcessedResponse<PaginatedProductResolvedListResponse>> {
+  const uri =
+    query === null ? `/api/products/list` : `/api/products/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isPaginatedProductResolvedListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(
+        response,
+        isPaginatedProductResolvedListResponse,
+      )) ?? unexpectedError
+    );
   });
 }
 
-export async function select_list(list: string, token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+export async function select_list(
+  list: string,
+  token: string | null,
+): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/products/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isSelectOptionListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isSelectOptionListResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<ProductResolvedResponse>> {
+export async function get_resolved(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<ProductResolvedResponse>> {
   return await fetch(`/api/products/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isProductResolvedResponse,
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isProductResolvedResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function update({
-                               id,
-                               name,
-                               description,
-                               unitOfMeasureId,
-                               newUnitOfMeasure,
-                               status
-                             }: ProductUserInput, token: string | null): Promise<ProcessedResponse<UpdateProductResponse>> {
+export async function update(
+  {
+    id,
+    name,
+    description,
+    unitOfMeasureId,
+    newUnitOfMeasure,
+    status,
+  }: ProductUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<UpdateProductResponse>> {
   return await fetch(`/api/products/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -143,44 +165,49 @@ export async function update({
       description,
       unit_of_measure_id: unitOfMeasureId,
       new_unit_of_measure: newUnitOfMeasure,
-      status
+      status,
     }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isUpdateProductResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isUpdateProductResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<ProductResponse>> {
+export async function get(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<ProductResponse>> {
   return await fetch(`/api/products/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isProductResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isProductResponse)) ?? unexpectedError
+    );
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteProductResponse>> {
+export async function deleteItem(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<DeleteProductResponse>> {
   return await fetch(`/api/products/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isDeleteProductResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isDeleteProductResponse)) ??
+      unexpectedError
+    );
   });
 }

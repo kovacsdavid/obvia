@@ -17,82 +17,81 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as taxesApi from "@/components/modules/taxes/lib/service.ts";
-import type {RootState} from "@/store";
-import type {TaxUserInput} from "@/components/modules/taxes/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { TaxUserInput } from "@/components/modules/taxes/lib/interface.ts";
 
 interface TaxesState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: TaxesState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "taxes/create",
-  async (requestData: TaxUserInput, {getState}) => {
+  async (requestData: TaxUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const deleteItem = createAsyncThunk(
   "taxes/deleteItem",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.deleteItem(uuid, token);
-  }
+  },
 );
 
 export const update = createAsyncThunk(
   "taxes/update",
-  async (requestData: TaxUserInput, {getState}) => {
+  async (requestData: TaxUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.update(requestData, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "taxes/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.list(query, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "taxes/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.get(uuid, token);
-  }
-)
+  },
+);
 
 export const get_resolved = createAsyncThunk(
   "taxes/get_resolved",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.get_resolved(uuid, token);
-  }
-)
-
+  },
+);
 
 export const select_list = createAsyncThunk(
   "taxes/select_list",
-  async (list: string, {getState}) => {
+  async (list: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await taxesApi.select_list(list, token);
-  }
-)
+  },
+);
 
 const taxesSlice = createSlice({
   name: "taxes",

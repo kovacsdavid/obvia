@@ -9,10 +9,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-defaults:
-  run:
-    working-directory: frontend
-
 
 jobs:
   build:
@@ -23,6 +19,10 @@ jobs:
       matrix:
         node-version: [18.x, 20.x, 22.x]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
     - uses: actions/checkout@v4

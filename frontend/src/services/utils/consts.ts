@@ -25,7 +25,7 @@ export const unexpectedFormError = {
     error: {
       message: "Váratlan hiba történt a feldolgozás során!",
       fields: {},
-    }
+    },
   },
 };
 
@@ -34,6 +34,6 @@ export const unexpectedError = {
   jsonData: {
     error: {
       message: "Váratlan hiba történt a feldolgozás során!",
-    }
+    },
   },
 };

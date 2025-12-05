@@ -17,36 +17,55 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
-import {Link} from "react-router-dom";
-import {useAppDispatch} from "@/store/hooks.ts";
-import React, {useCallback, useEffect} from "react";
-import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import {Paginator} from "@/components/ui/pagination.tsx";
-import {deleteItem, list} from "@/components/modules/services/lib/slice.ts";
-import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {type ServiceResolvedList} from "@/components/modules/services/lib/interface.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
+import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import { Link } from "react-router-dom";
+import { useAppDispatch } from "@/store/hooks.ts";
+import React, { useCallback, useEffect } from "react";
+import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import { deleteItem, list } from "@/components/modules/services/lib/slice.ts";
+import { type SimpleError } from "@/lib/interfaces/common.ts";
+import { type ServiceResolvedList } from "@/components/modules/services/lib/interface.ts";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const [data, setData] = React.useState<ServiceResolvedList>([]);
-  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
-    console.log(parsedQuery);
-  }, []);
+  const updateSpecialQueryParams = useCallback(
+    (parsedQuery: Record<string, string | number>) => {
+      console.log(parsedQuery);
+    },
+    [],
+  );
 
   const {
     //searchParams,
@@ -76,8 +95,8 @@ export default function List() {
       if (list.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           if (
-            typeof response.payload.jsonData.data !== "undefined"
-            && typeof response.payload.jsonData.meta !== "undefined"
+            typeof response.payload.jsonData.data !== "undefined" &&
+            typeof response.payload.jsonData.meta !== "undefined"
           ) {
             setPage(response.payload.jsonData.meta.page);
             setLimit(response.payload.jsonData.meta.limit);
@@ -85,15 +104,15 @@ export default function List() {
             setData(response.payload.jsonData.data);
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
       } else {
         unexpectedError();
       }
-    })
-  }, [dispatch, rawQuery, setLimit, setPage, setTotal])
+    });
+  }, [dispatch, rawQuery, setLimit, setPage, setTotal]);
 
   const handleDelete = (id: string) => {
     dispatch(deleteItem(id)).then(async (response) => {
@@ -103,17 +122,15 @@ export default function List() {
         }
       }
     });
-  }
+  };
 
   useEffect(() => {
     refresh();
-  }, [
-    refresh
-  ]);
+  }, [refresh]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <Card>
         <CardHeader>
           <CardTitle>Szolgáltatások</CardTitle>
@@ -122,16 +139,21 @@ export default function List() {
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
               <Link to={"/szolgaltatas/letrehozas"}>
-                <Button style={{color: "green"}} variant="outline">
-                  <Plus color="green"/> Új
+                <Button style={{ color: "green" }} variant="outline">
+                  <Plus color="green" /> Új
                 </Button>
               </Link>
             </div>
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button className={"justify-self-end"} variant="outline"
-                          style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+                  <Button
+                    className={"justify-self-end"}
+                    variant="outline"
+                    style={{ marginBottom: "25px" }}
+                  >
+                    Szűrő <Funnel />
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="grid gap-4">
@@ -159,34 +181,16 @@ export default function List() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead/>
-                <TableHead>
-                  Megnevezés
-                </TableHead>
-                <TableHead>
-                  Leírás
-                </TableHead>
-                <TableHead>
-                  Alapértelmezett ár
-                </TableHead>
-                <TableHead>
-                  Alapértelmezett adózás
-                </TableHead>
-                <TableHead>
-                  Alapértelmezett pénznem
-                </TableHead>
-                <TableHead>
-                  Státusz
-                </TableHead>
-                <TableHead>
-                  Létrehozta
-                </TableHead>
-                <TableHead>
-                  Létrehozva
-                </TableHead>
-                <TableHead>
-                  Frissítve
-                </TableHead>
+                <TableHead />
+                <TableHead>Megnevezés</TableHead>
+                <TableHead>Leírás</TableHead>
+                <TableHead>Alapértelmezett ár</TableHead>
+                <TableHead>Alapértelmezett adózás</TableHead>
+                <TableHead>Alapértelmezett pénznem</TableHead>
+                <TableHead>Státusz</TableHead>
+                <TableHead>Létrehozta</TableHead>
+                <TableHead>Létrehozva</TableHead>
+                <TableHead>Frissítve</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -197,33 +201,36 @@ export default function List() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal/>
+                          <MoreHorizontal />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
                         <Link to={`/szolgaltatas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
-                            <Eye/> Részletek
+                            <Eye /> Részletek
                           </DropdownMenuItem>
                         </Link>
                         <Link to={`/szolgaltatas/modositas/${item.id}`}>
                           <DropdownMenuItem>
-                            <Pencil/> Szerkesztés
+                            <Pencil /> Szerkesztés
                           </DropdownMenuItem>
                         </Link>
-                        <DropdownMenuSeparator/>
-                        <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
-                          <Trash/> Törlés
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className={"cursor-pointer"}
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash /> Törlés
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.description ?? ''}</TableCell>
-                  <TableCell>{item.default_price ?? 'N/A'}</TableCell>
-                  <TableCell>{item.default_tax ?? 'N/A'}</TableCell>
-                  <TableCell>{item.currency_code ?? 'N/A'}</TableCell>
+                  <TableCell>{item.description ?? ""}</TableCell>
+                  <TableCell>{item.default_price ?? "N/A"}</TableCell>
+                  <TableCell>{item.default_tax ?? "N/A"}</TableCell>
+                  <TableCell>{item.currency_code ?? "N/A"}</TableCell>
                   <TableCell>{item.status}</TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
@@ -231,7 +238,6 @@ export default function List() {
                 </TableRow>
               ))}
             </TableBody>
-
           </Table>
           <Paginator
             page={page}
@@ -241,5 +247,5 @@ export default function List() {
         </CardContent>
       </Card>
     </>
-  )
+  );
 }

@@ -17,30 +17,44 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/services/lib/slice.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx"
-import {useNavigate} from "react-router-dom";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useParams} from "react-router";
-import type {SelectOptionList} from "@/lib/interfaces/common.ts";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import type {Service} from "./lib/interface";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/services/lib/slice.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useNavigate } from "react-router-dom";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useParams } from "react-router";
+import type { SelectOptionList } from "@/lib/interfaces/common.ts";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import type { Service } from "./lib/interface";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
-import {Plus} from "lucide-react";
-import type {Tax} from "../taxes/lib/interface";
-import {useNumberInput} from "@/hooks/use_number_input.ts";
+import { Plus } from "lucide-react";
+import type { Tax } from "../taxes/lib/interface";
+import { useNumberInput } from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (service: Service) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [defaultTaxId, setDefaultTaxId] = React.useState("");
@@ -50,8 +64,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [taxesList, setTaxesList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { setListResponse } = useSelectList();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
@@ -66,31 +80,35 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         setDefaultTaxId(tax.id);
       }, 0);
       setOpenNewTaxDialog(false);
-    })
+    });
   };
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      name,
-      description,
-      defaultPrice: !isNaN(defaultPrice.getNumericValue()) ? defaultPrice.getNumericValue().toString() : "",
-      defaultTaxId,
-      currencyCode,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        name,
+        description,
+        defaultPrice: !isNaN(defaultPrice.getNumericValue())
+          ? defaultPrice.getNumericValue().toString()
+          : "",
+        defaultTaxId,
+        currencyCode,
+        status,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/szolgaltatas/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -98,23 +116,40 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, onSuccess, setErrors, status, unexpectedError]);
+  }, [
+    currencyCode,
+    defaultPrice,
+    defaultTaxId,
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    onSuccess,
+    setErrors,
+    status,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      name,
-      description,
-      defaultPrice: !isNaN(defaultPrice.getNumericValue()) ? defaultPrice.getNumericValue().toString() : "",
-      defaultTaxId,
-      currencyCode,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        name,
+        description,
+        defaultPrice: !isNaN(defaultPrice.getNumericValue())
+          ? defaultPrice.getNumericValue().toString()
+          : "",
+        defaultTaxId,
+        currencyCode,
+        status,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/szolgaltatas/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -122,7 +157,19 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [currencyCode, defaultPrice, defaultTaxId, description, dispatch, id, name, navigate, setErrors, status, unexpectedError]);
+  }, [
+    currencyCode,
+    defaultPrice,
+    defaultTaxId,
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    setErrors,
+    status,
+    unexpectedError,
+  ]);
 
   const loadLists = useCallback(async () => {
     return Promise.all([
@@ -141,12 +188,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         }
       }),
     ]);
-  }, [
-    dispatch,
-    setErrors,
-    unexpectedError,
-    setListResponse
-  ]);
+  }, [dispatch, setErrors, unexpectedError, setListResponse]);
 
   useEffect(() => {
     loadLists().then(() => {
@@ -163,8 +205,13 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setCurrencyCode(data.currency_code ?? "");
                 setStatus(data.status);
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -190,11 +237,11 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
           <DialogTitle>Új adó létrehozása</DialogTitle>
-          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess}/>
+          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
         </DialogContent>
       </Dialog>
       <ConditionalCard
@@ -202,76 +249,91 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         title={`Szolgáltatás ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="name">Megnevezés</Label>
           <Input
             id="name"
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
-          <FieldError error={errors} field={"name"}/>
+          <FieldError error={errors} field={"name"} />
 
           <Label htmlFor="description">Leírás</Label>
           <Input
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
 
           <Label htmlFor="default_price">Alapértelmezett ár</Label>
           <Input
             id="default_price"
             type="text"
             value={defaultPrice.displayValue}
-            onChange={e => defaultPrice.handleInputChangeWithCursor(e.target.value, e.target)}
+            onChange={(e) =>
+              defaultPrice.handleInputChangeWithCursor(e.target.value, e.target)
+            }
           />
-          <FieldError error={errors} field={"default_price"}/>
+          <FieldError error={errors} field={"default_price"} />
 
           <Label htmlFor="default_tax_id">Alapértelmezett adózás</Label>
           <Select
             value={defaultTaxId}
-            onValueChange={val => setDefaultTaxId(val)}
+            onValueChange={(val) => setDefaultTaxId(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {taxesList.map(tax => {
-                return <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+              {taxesList.map((tax) => {
+                return (
+                  <SelectItem key={tax.value} value={tax.value}>
+                    {tax.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"default_tax_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewTaxDialog(true)}>
-            <Plus/> Új adó
+          <FieldError error={errors} field={"default_tax_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewTaxDialog(true)}
+          >
+            <Plus /> Új adó
           </Button>
 
           <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
           <Select
             value={currencyCode}
-            onValueChange={val => setCurrencyCode(val)}
+            onValueChange={(val) => setCurrencyCode(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {currencyList.map(currency => {
-                return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+              {currencyList.map((currency) => {
+                return (
+                  <SelectItem key={currency.value} value={currency.value}>
+                    {currency.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"currency_code"}/>
+          <FieldError error={errors} field={"currency_code"} />
 
           <Label htmlFor="status">Státusz</Label>
-          <Select
-            value={status}
-            onValueChange={val => setStatus(val)}
-          >
+          <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
@@ -279,7 +341,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               <SelectItem value="prospect">Lehetséges vevő</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>
       </ConditionalCard>

@@ -17,32 +17,46 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover.tsx";
-import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash} from "lucide-react";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
-import {Link} from "react-router-dom";
-import {useAppDispatch} from "@/store/hooks.ts";
-import React, {useCallback, useEffect} from "react";
-import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import {Paginator} from "@/components/ui/pagination.tsx";
-import {list} from "@/components/modules/users/lib/slice.ts";
-import {type SimpleError} from "@/lib/interfaces/common.ts";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
+import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import { Link } from "react-router-dom";
+import { useAppDispatch } from "@/store/hooks.ts";
+import React, { useCallback, useEffect } from "react";
+import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import { list } from "@/components/modules/users/lib/slice.ts";
+import { type SimpleError } from "@/lib/interfaces/common.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
-  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
-    console.log(parsedQuery);
-  }, []);
+  const updateSpecialQueryParams = useCallback(
+    (parsedQuery: Record<string, string | number>) => {
+      console.log(parsedQuery);
+    },
+    [],
+  );
 
   const {
     searchParams,
@@ -61,11 +75,10 @@ export default function List() {
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
-
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
-      console.log(response)
-      setErrors({message: "Not implemented yet!"})
+      console.log(response);
+      setErrors({ message: "Not implemented yet!" });
     });
   }, [
     searchParams,
@@ -75,25 +88,30 @@ export default function List() {
     setOrderBy,
     setLimit,
     setPage,
-    setTotal
+    setTotal,
   ]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <div className={"flex justify-between items-center mb-6"}>
         <div className="flex gap-2">
           <Link to={"/felhasznalo/letrehozas"}>
-            <Button style={{color: "green"}} variant="outline">
-              <Plus color="green"/> Új
+            <Button style={{ color: "green" }} variant="outline">
+              <Plus color="green" /> Új
             </Button>
           </Link>
         </div>
         <div className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button className={"justify-self-end"} variant="outline"
-                      style={{marginBottom: "25px"}}>Szűrő <Funnel/></Button>
+              <Button
+                className={"justify-self-end"}
+                variant="outline"
+                style={{ marginBottom: "25px" }}
+              >
+                Szűrő <Funnel />
+              </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="grid gap-4">
@@ -122,16 +140,10 @@ export default function List() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead/>
-            <TableHead>
-              Név
-            </TableHead>
-            <TableHead>
-              Létrehozva
-            </TableHead>
-            <TableHead>
-              Frissítve
-            </TableHead>
+            <TableHead />
+            <TableHead>Név</TableHead>
+            <TableHead>Létrehozva</TableHead>
+            <TableHead>Frissítve</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -141,33 +153,27 @@ export default function List() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="h-8 w-8 p-0">
                     <span className="sr-only">Menü megnyitása</span>
-                    <MoreHorizontal/>
+                    <MoreHorizontal />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side={"bottom"} align="start">
                   <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
                   <DropdownMenuItem>
-                    <Eye/> Részletek
+                    <Eye /> Részletek
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Pencil/> Szerkesztés
+                    <Pencil /> Szerkesztés
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator/>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem>
-                    <Trash/> Törlés
+                    <Trash /> Törlés
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableCell>
-            <TableCell>
-              Placeholder
-            </TableCell>
-            <TableCell>
-              2025-08-31T13:52:49.213086+02:00
-            </TableCell>
-            <TableCell>
-              2025-08-31T13:52:49.213086+02:00
-            </TableCell>
+            <TableCell>Placeholder</TableCell>
+            <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
+            <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -177,5 +183,5 @@ export default function List() {
         onPageChange={paginatorSelect}
       />
     </>
-  )
+  );
 }

@@ -17,25 +17,39 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/taxes/lib/slice.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx"
-import {useNavigate} from "react-router-dom";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import type {SelectOptionList} from "@/lib/interfaces/common.ts";
-import type {Tax} from "./lib/interface";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/taxes/lib/slice.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useNavigate } from "react-router-dom";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import type { SelectOptionList } from "@/lib/interfaces/common.ts";
+import type { Tax } from "./lib/interface";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (tax: Tax) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [rate, setRate] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [countryCode, setCountryCode] = React.useState("");
@@ -48,8 +62,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { setListResponse } = useSelectList();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -65,30 +79,32 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   };
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      rate,
-      description,
-      countryCode,
-      taxCategory,
-      isRateApplicable: evalIsRateApplicable(isRateApplicable),
-      legalText,
-      reportingCode,
-      isDefault,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        rate,
+        description,
+        countryCode,
+        taxCategory,
+        isRateApplicable: evalIsRateApplicable(isRateApplicable),
+        legalText,
+        reportingCode,
+        isDefault,
+        status,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/ado/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -96,26 +112,44 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [countryCode, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, onSuccess, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
+  }, [
+    countryCode,
+    description,
+    dispatch,
+    id,
+    isDefault,
+    isRateApplicable,
+    legalText,
+    navigate,
+    onSuccess,
+    rate,
+    reportingCode,
+    setErrors,
+    status,
+    taxCategory,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      rate,
-      description,
-      countryCode,
-      taxCategory,
-      isRateApplicable: evalIsRateApplicable(isRateApplicable),
-      legalText,
-      reportingCode,
-      isDefault,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        rate,
+        description,
+        countryCode,
+        taxCategory,
+        isRateApplicable: evalIsRateApplicable(isRateApplicable),
+        legalText,
+        reportingCode,
+        isDefault,
+        status,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/ado/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -123,7 +157,22 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [countryCode, description, dispatch, id, isDefault, isRateApplicable, legalText, navigate, rate, reportingCode, setErrors, status, taxCategory, unexpectedError]);
+  }, [
+    countryCode,
+    description,
+    dispatch,
+    id,
+    isDefault,
+    isRateApplicable,
+    legalText,
+    navigate,
+    rate,
+    reportingCode,
+    setErrors,
+    status,
+    taxCategory,
+    unexpectedError,
+  ]);
 
   const loadLists = useCallback(async () => {
     return dispatch(select_list("countries")).then((response) => {
@@ -143,18 +192,23 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             if (response.payload.statusCode === 200) {
               if (typeof response.payload.jsonData.data !== "undefined") {
                 const data = response.payload.jsonData.data;
-                setRate(data.rate ?? '');
+                setRate(data.rate ?? "");
                 setDescription(data.description);
                 setCountryCode(data.country_code);
                 setTaxCategory(data.tax_category);
                 setIsRateApplicable(data.is_rate_applicable ? "true" : "false");
-                setLegalText(data.legal_text ?? '');
-                setReportingCode(data.reporting_code ?? '');
+                setLegalText(data.legal_text ?? "");
+                setReportingCode(data.reporting_code ?? "");
                 setIsDefault(data.is_default);
                 setStatus(data.status);
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -177,27 +231,31 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <ConditionalCard
         showCard={showCard}
         title={`Adók ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="is_rate_applicable">Adókulcs alkalmazandó</Label>
           <Select
             value={isRateApplicable}
-            onValueChange={val => setIsRateApplicable(val)}
+            onValueChange={(val) => setIsRateApplicable(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={"true"}>igen</SelectItem>
               <SelectItem value={"false"}>nem</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"is_rate_applicable"}/>
+          <FieldError error={errors} field={"is_rate_applicable"} />
           {isRateApplicable === "true" ? (
             <>
               <Label htmlFor="rate">Adókulcs (%)</Label>
@@ -205,9 +263,9 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 id="rate"
                 type="text"
                 value={rate}
-                onChange={e => setRate(e.target.value)}
+                onChange={(e) => setRate(e.target.value)}
               />
-              <FieldError error={errors} field={"rate"}/>
+              <FieldError error={errors} field={"rate"} />
             </>
           ) : null}
 
@@ -216,33 +274,37 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
 
           <Label htmlFor="country_code">Ország</Label>
           <Select
             value={countryCode}
-            onValueChange={val => setCountryCode(val)}
+            onValueChange={(val) => setCountryCode(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {countryList.map(country => {
-                return <SelectItem key={country.value} value={country.value}>{country.title}</SelectItem>
+              {countryList.map((country) => {
+                return (
+                  <SelectItem key={country.value} value={country.value}>
+                    {country.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"country_code"}/>
+          <FieldError error={errors} field={"country_code"} />
 
           <Label htmlFor="tax_category">Adó kategória</Label>
           <Select
             value={taxCategory}
-            onValueChange={val => setTaxCategory(val)}
+            onValueChange={(val) => setTaxCategory(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="standard">Általános</SelectItem>
@@ -250,33 +312,30 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               <SelectItem value="zero">Nulla kulcsos</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"tax_category"}/>
+          <FieldError error={errors} field={"tax_category"} />
 
           <Label htmlFor="legal_text">Jogi szöveg</Label>
           <Input
             id="legal_text"
             type="text"
             value={legalText}
-            onChange={e => setLegalText(e.target.value)}
+            onChange={(e) => setLegalText(e.target.value)}
           />
-          <FieldError error={errors} field={"legal_text"}/>
+          <FieldError error={errors} field={"legal_text"} />
 
           <Label htmlFor="reporting_code">Jelentési kód</Label>
           <Input
             id="reporting_code"
             type="text"
             value={reportingCode}
-            onChange={e => setReportingCode(e.target.value)}
+            onChange={(e) => setReportingCode(e.target.value)}
           />
-          <FieldError error={errors} field={"reporting_code"}/>
+          <FieldError error={errors} field={"reporting_code"} />
 
           <Label htmlFor="status">Státusz</Label>
-          <Select
-            value={status}
-            onValueChange={val => setStatus(val)}
-          >
+          <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
@@ -284,7 +343,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               <SelectItem value="draft">Vázlat</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>
       </ConditionalCard>

@@ -17,17 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useParams} from "react-router";
-import React, {useEffect} from "react";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {get_resolved} from "@/components/modules/tasks/lib/slice.ts";
-import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Table, TableBody, TableCell, TableRow} from "@/components/ui/table.tsx";
-import {Card, CardContent, CardHeader, CardTitle,} from "@/components/ui/card.tsx"
-import {GlobalError} from "@/components/ui";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import type {TaskResolved} from "@/components/modules/tasks/lib/interface.ts";
-
+import { useParams } from "react-router";
+import React, { useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { get_resolved } from "@/components/modules/tasks/lib/slice.ts";
+import type { SimpleError } from "@/lib/interfaces/common.ts";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { GlobalError } from "@/components/ui";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import type { TaskResolved } from "@/components/modules/tasks/lib/interface.ts";
 
 export default function View() {
   const [data, setData] = React.useState<TaskResolved | null>(null);
@@ -50,20 +59,20 @@ export default function View() {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error)
+            setErrors(response.payload.jsonData.error);
           } else {
             unexpectedError();
           }
         } else {
           unexpectedError();
         }
-      })
+      });
     }
   }, [dispatch, params]);
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       {data !== null ? (
         <>
           <Card className={"max-w-lg mx-auto"}>
@@ -74,116 +83,70 @@ export default function View() {
               <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell>
-                      Azonosító
-                    </TableCell>
-                    <TableCell>
-                      {data.id}
-                    </TableCell>
+                    <TableCell>Azonosító</TableCell>
+                    <TableCell>{data.id}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Munkalap
-                    </TableCell>
+                    <TableCell>Munkalap</TableCell>
                     <TableCell>
                       {data.worksheet} ({data.worksheet_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Szolgáltatás
-                    </TableCell>
+                    <TableCell>Szolgáltatás</TableCell>
                     <TableCell>
                       {data.service} ({data.service_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Leírás
-                    </TableCell>
-                    <TableCell>
-                      {data.description ?? ''}
-                    </TableCell>
+                    <TableCell>Leírás</TableCell>
+                    <TableCell>{data.description ?? ""}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Pénznem
-                    </TableCell>
-                    <TableCell>
-                      {data.currency_code}
-                    </TableCell>
+                    <TableCell>Pénznem</TableCell>
+                    <TableCell>{data.currency_code}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Munkaóra
-                    </TableCell>
-                    <TableCell>
-                      {data.quantity ?? ''}
-                    </TableCell>
+                    <TableCell>Munkaóra</TableCell>
+                    <TableCell>{data.quantity ?? ""}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Ár
-                    </TableCell>
-                    <TableCell>
-                      {data.price ?? ''}
-                    </TableCell>
+                    <TableCell>Ár</TableCell>
+                    <TableCell>{data.price ?? ""}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Adó
-                    </TableCell>
+                    <TableCell>Adó</TableCell>
                     <TableCell>
                       {data.tax} ({data.tax_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
+                    <TableCell>Státusz</TableCell>
+                    <TableCell>{data.status}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Prioritás</TableCell>
+                    <TableCell>{data.priority ?? ""}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Határidő</TableCell>
                     <TableCell>
-                      Státusz
-                    </TableCell>
-                    <TableCell>
-                      {data.status}
+                      {formatDateToYMDHMS(data.due_date ?? "")}
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Prioritás
-                    </TableCell>
-                    <TableCell>
-                      {data.priority ?? ''}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Határidő
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.due_date ?? '')}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>
-                      Létrehozta
-                    </TableCell>
+                    <TableCell>Létrehozta</TableCell>
                     <TableCell>
                       {data.created_by} ({data.created_by_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Létrehozva
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.created_at)}
-                    </TableCell>
+                    <TableCell>Létrehozva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>
-                      Frissítve
-                    </TableCell>
-                    <TableCell>
-                      {formatDateToYMDHMS(data.updated_at)}
-                    </TableCell>
+                    <TableCell>Frissítve</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
@@ -192,5 +155,5 @@ export default function View() {
         </>
       ) : null}
     </>
-  )
+  );
 }

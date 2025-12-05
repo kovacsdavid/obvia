@@ -22,7 +22,7 @@ import type {
   FormError,
   PaginatedDataResponse,
   SimpleError,
-  SimpleMessageData
+  SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface InventoryReservationUserInput {
@@ -62,9 +62,22 @@ export interface InventoryReservationResolved {
   updated_at: string;
 }
 
-export type CreateInventoryReservationResponse = CommonResponse<InventoryReservation, FormError>;
-export type DeleteInventoryReservationResponse = CommonResponse<SimpleMessageData, SimpleError>;
-export type InventoryReservationResponse = CommonResponse<InventoryReservation, SimpleError>;
-export type InventoryReservationResolvedResponse = CommonResponse<InventoryReservationResolved, SimpleError>;
+export type CreateInventoryReservationResponse = CommonResponse<
+  InventoryReservation,
+  FormError
+>;
+export type DeleteInventoryReservationResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
+export type InventoryReservationResponse = CommonResponse<
+  InventoryReservation,
+  SimpleError
+>;
+export type InventoryReservationResolvedResponse = CommonResponse<
+  InventoryReservationResolved,
+  SimpleError
+>;
 export type InventoryReservationResolvedList = InventoryReservationResolved[];
-export type PaginatedInventoryReservationResolvedListResponse = PaginatedDataResponse<InventoryReservationResolvedList, SimpleError>;
+export type PaginatedInventoryReservationResolvedListResponse =
+  PaginatedDataResponse<InventoryReservationResolvedList, SimpleError>;

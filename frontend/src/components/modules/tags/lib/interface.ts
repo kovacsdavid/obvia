@@ -22,32 +22,32 @@ import {
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface TagUserInput {
-  id: string | null
-  name: string
-  description: string
+  id: string | null;
+  name: string;
+  description: string;
 }
 
 export interface Tag {
-  id: string,
-  name: string,
-  description: string | null,
-  created_by_id: string,
-  created_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  description: string | null;
+  created_by_id: string;
+  created_at: string;
+  deleted_at: string | null;
 }
 
 export interface TagResolved {
-  id: string,
-  name: string,
-  description: string | null,
-  created_by_id: string,
-  created_by: string,
-  created_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  description: string | null;
+  created_by_id: string;
+  created_by: string;
+  created_at: string;
+  deleted_at: string | null;
 }
 
 export type CreateTagResponse = CommonResponse<Tag, FormError>;
@@ -56,5 +56,7 @@ export type DeleteTagResponse = CommonResponse<SimpleMessageData, SimpleError>;
 export type TagResponse = CommonResponse<Tag, SimpleError>;
 export type TagResolvedResponse = CommonResponse<TagResolved, SimpleError>;
 export type TagResolvedList = TagResolved[];
-export type PaginatedTagResolvedListResponse = PaginatedDataResponse<TagResolvedList, SimpleError>;
-
+export type PaginatedTagResolvedListResponse = PaginatedDataResponse<
+  TagResolvedList,
+  SimpleError
+>;

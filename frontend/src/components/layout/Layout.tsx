@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {ReactNode} from "react";
-import {Footer} from "./Footer";
-import {AppSidebar} from "@/components/app-sidebar"
+import type { ReactNode } from "react";
+import { Footer } from "./Footer";
+import { AppSidebar } from "@/components/app-sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -27,14 +27,18 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import {Separator} from "@/components/ui/separator"
-import {SidebarInset, SidebarProvider, SidebarTrigger,} from "@/components/ui/sidebar"
-import {useLocation} from "react-router-dom";
-import {Alert, AlertDescription} from "@/components/ui";
-import {FlaskConical} from "lucide-react";
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { useLocation } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui";
+import { FlaskConical } from "lucide-react";
 
-export function Layout({children}: { children: ReactNode }) {
+export function Layout({ children }: { children: ReactNode }) {
   const breadcrumbMap: Record<string, string> = {
     "/bejelentkezes": "Bejelentkezés",
     "/regisztracio": "Regisztráció",
@@ -97,27 +101,28 @@ export function Layout({children}: { children: ReactNode }) {
     "/ado/reszletek": "Adó részletek",
     "/": "Kezdőoldal",
   };
-  const {pathname} = useLocation();
+  const { pathname } = useLocation();
   let currentTitle = "";
-  const match = Object.keys(breadcrumbMap).filter(key => {
+  const match = Object.keys(breadcrumbMap).filter((key) => {
     return pathname.includes(key);
-  })
+  });
   if (match.length > 0) {
     currentTitle = breadcrumbMap[match[0]];
   }
   return (
     <SidebarProvider>
-      <AppSidebar/>
+      <AppSidebar />
       <SidebarInset>
         <Alert className={"mr-auto ml-auto mt-5 mb-5 max-w-7xl"}>
-          <FlaskConical color={"orange"}/>
+          <FlaskConical color={"orange"} />
           <AlertDescription className={"text-orange-400"}>
-            Zárt béta verzió: A rendszer jelenleg zártkörű tesztelési fázisban van. A tárolt adatok bármikor törlésre
-            kerülhetnek. Ne használd a rendszert valós adatokkal!
+            Zárt béta verzió: A rendszer jelenleg zártkörű tesztelési fázisban
+            van. A tárolt adatok bármikor törlésre kerülhetnek. Ne használd a
+            rendszert valós adatokkal!
           </AlertDescription>
         </Alert>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className="-ml-1"/>
+          <SidebarTrigger className="-ml-1" />
           <Separator
             orientation="vertical"
             className="mr-2 data-[orientation=vertical]:h-4"
@@ -125,11 +130,9 @@ export function Layout({children}: { children: ReactNode }) {
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">
-                  obvia
-                </BreadcrumbLink>
+                <BreadcrumbLink href="#">obvia</BreadcrumbLink>
               </BreadcrumbItem>
-              <BreadcrumbSeparator className="hidden md:block"/>
+              <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
                 <BreadcrumbPage>{currentTitle}</BreadcrumbPage>
               </BreadcrumbItem>
@@ -138,7 +141,7 @@ export function Layout({children}: { children: ReactNode }) {
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">
           <main className="flex-1 container mx-auto px-4 py-6">{children}</main>
-          <Footer/>
+          <Footer />
         </div>
       </SidebarInset>
     </SidebarProvider>

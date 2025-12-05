@@ -17,21 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list} from "@/components/modules/inventory_reservations/lib/slice.ts";
-import {useNavigate, useParams} from "react-router-dom";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select.tsx";
-import {type SelectOptionList} from "@/lib/interfaces/common.ts";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+} from "@/components/modules/inventory_reservations/lib/slice.ts";
+import { useNavigate, useParams } from "react-router-dom";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
-import type {Inventory} from "../inventory/lib/interface";
-import {Plus} from "lucide-react";
-import {useNumberInput} from "@/hooks/use_number_input.ts";
+import type { Inventory } from "../inventory/lib/interface";
+import { Plus } from "lucide-react";
+import { useNumberInput } from "@/hooks/use_number_input.ts";
 
 export default function Edit() {
   const [inventoryId, setInventoryId] = React.useState("");
@@ -39,16 +54,22 @@ export default function Edit() {
   const [referenceId, setReferenceId] = React.useState<string | null>("");
   const [reservedUntil, setReservedUntil] = React.useState<string | null>(null);
   const [status, setStatus] = React.useState("");
-  const [inventoryIdList, setInventoryIdList] = React.useState<SelectOptionList>([])
-  const [referenceIdList, setReferenceIdList] = React.useState<SelectOptionList>([])
+  const [inventoryIdList, setInventoryIdList] =
+    React.useState<SelectOptionList>([]);
+  const [referenceIdList, setReferenceIdList] =
+    React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const params = useParams();
-  const {setListResponse} = useSelectList();
-  const {errors, setErrors, unexpectedError} = useFormError();
-  const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
+  const { setListResponse } = useSelectList();
+  const { errors, setErrors, unexpectedError } = useFormError();
+  const routeInventoryId = React.useMemo(
+    () => params["inventoryId"] ?? "",
+    [params],
+  );
   const id = React.useMemo(() => params["id"] ?? "", [params]);
-  const [openNewInventoryDialog, setOpenNewInventoryDialog] = React.useState(false);
+  const [openNewInventoryDialog, setOpenNewInventoryDialog] =
+    React.useState(false);
   const quantity = useNumberInput({
     showThousandSeparator: true,
     decimalPlaces: 2,
@@ -60,24 +81,27 @@ export default function Edit() {
         setInventoryId(inventory.id);
       }, 0);
       setOpenNewInventoryDialog(false);
-    })
+    });
   };
 
   useEffect(() => {
     setInventoryId(routeInventoryId);
   }, [routeInventoryId]);
 
-  const handleReferenceTypeChange = useCallback(async (newReferenceType: string) => {
-    setReferenceType(newReferenceType);
-    setReferenceIdList([]);
-    return dispatch(select_list(newReferenceType)).then((response) => {
-      if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setReferenceIdList, setErrors);
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [dispatch, setErrors, setListResponse, unexpectedError]);
+  const handleReferenceTypeChange = useCallback(
+    async (newReferenceType: string) => {
+      setReferenceType(newReferenceType);
+      setReferenceIdList([]);
+      return dispatch(select_list(newReferenceType)).then((response) => {
+        if (select_list.fulfilled.match(response)) {
+          setListResponse(response.payload, setReferenceIdList, setErrors);
+        } else {
+          unexpectedError();
+        }
+      });
+    },
+    [dispatch, setErrors, setListResponse, unexpectedError],
+  );
 
   const loadLists = useCallback(async () => {
     if (!routeInventoryId) {
@@ -101,15 +125,24 @@ export default function Edit() {
               if (typeof response.payload.jsonData.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setInventoryId(data.inventory_id);
-                quantity.setValue(data.quantity ? data.quantity.toString() : "");
-                handleReferenceTypeChange(data.reference_type ?? "").then(() => {
-                  setReferenceId(data.reference_id ?? "");
-                });
+                quantity.setValue(
+                  data.quantity ? data.quantity.toString() : "",
+                );
+                handleReferenceTypeChange(data.reference_type ?? "").then(
+                  () => {
+                    setReferenceId(data.reference_id ?? "");
+                  },
+                );
                 setReservedUntil(data.reserved_until);
                 setStatus(data.status);
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -122,40 +155,72 @@ export default function Edit() {
     // quantity is intentionally omitted to avoid infinite loops
     // They are only used to set initial values and don't need to trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, handleReferenceTypeChange, id, loadLists, setErrors, unexpectedError]);
+  }, [
+    dispatch,
+    handleReferenceTypeChange,
+    id,
+    loadLists,
+    setErrors,
+    unexpectedError,
+  ]);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    dispatch(create({
-      id: id || null,
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      dispatch(
+        create({
+          id: id || null,
+          inventoryId,
+          quantity: !isNaN(quantity.getNumericValue())
+            ? quantity.getNumericValue().toString()
+            : "",
+          referenceType,
+          referenceId,
+          reservedUntil,
+          status,
+        }),
+      ).then(async (response) => {
+        if (create.fulfilled.match(response)) {
+          if (response.payload.statusCode === 201) {
+            navigate(-1);
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors(response.payload.jsonData.error);
+          } else {
+            unexpectedError();
+          }
+        } else {
+          unexpectedError();
+        }
+      });
+    },
+    [
+      dispatch,
+      id,
       inventoryId,
-      quantity: !isNaN(quantity.getNumericValue()) ? quantity.getNumericValue().toString() : "",
+      quantity,
       referenceType,
       referenceId,
       reservedUntil,
       status,
-    })).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          navigate(-1);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
-        } else {
-          unexpectedError();
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [dispatch, id, inventoryId, quantity, referenceType, referenceId, reservedUntil, status, navigate, setErrors, unexpectedError]);
+      navigate,
+      setErrors,
+      unexpectedError,
+    ],
+  );
 
   return (
     <>
-      <GlobalError error={errors}/>
-      <Dialog open={openNewInventoryDialog} onOpenChange={setOpenNewInventoryDialog}>
+      <GlobalError error={errors} />
+      <Dialog
+        open={openNewInventoryDialog}
+        onOpenChange={setOpenNewInventoryDialog}
+      >
         <DialogContent>
           <DialogTitle>Új munkalap létrehozása</DialogTitle>
-          <InventoryEdit showCard={false} onSuccess={handleEditInventorySuccess}/>
+          <InventoryEdit
+            showCard={false}
+            onSuccess={handleEditInventorySuccess}
+          />
         </DialogContent>
       </Dialog>
       <Card className={"max-w-lg mx-auto"}>
@@ -163,25 +228,40 @@ export default function Edit() {
           <CardTitle>Készlet foglalás</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={"off"}
+          >
             {!routeInventoryId && (
               <>
                 <Label htmlFor="inventoryId">Raktárkészlet</Label>
-                <Select disabled={inventoryIdList.length === 0} value={inventoryId ?? ""}
-                        onValueChange={val => setInventoryId(val)}>
+                <Select
+                  disabled={inventoryIdList.length === 0}
+                  value={inventoryId ?? ""}
+                  onValueChange={(val) => setInventoryId(val)}
+                >
                   <SelectTrigger className={"w-full"}>
-                    <SelectValue/>
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {inventoryIdList.map(inventoryIdListItem => (
-                      <SelectItem key={inventoryIdListItem.value}
-                                  value={inventoryIdListItem.value}>{inventoryIdListItem.title}</SelectItem>
+                    {inventoryIdList.map((inventoryIdListItem) => (
+                      <SelectItem
+                        key={inventoryIdListItem.value}
+                        value={inventoryIdListItem.value}
+                      >
+                        {inventoryIdListItem.title}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <FieldError error={errors} field={"inventory_id"}/>
-                <Button type="button" variant="outline" onClick={() => setOpenNewInventoryDialog(true)}>
-                  <Plus/> Új raktárkészlet 
+                <FieldError error={errors} field={"inventory_id"} />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpenNewInventoryDialog(true)}
+                >
+                  <Plus /> Új raktárkészlet
                 </Button>
               </>
             )}
@@ -191,52 +271,61 @@ export default function Edit() {
               id="quantity"
               type="text"
               value={quantity.displayValue}
-              onChange={e => quantity.handleInputChangeWithCursor(e.target.value, e.target)}
+              onChange={(e) =>
+                quantity.handleInputChangeWithCursor(e.target.value, e.target)
+              }
             />
-            <FieldError error={errors} field={"quantity"}/>
+            <FieldError error={errors} field={"quantity"} />
 
             <Label htmlFor="referenceType">Hivatkozás típusa</Label>
-            <Select value={referenceType ?? ""} onValueChange={val => handleReferenceTypeChange(val)}>
+            <Select
+              value={referenceType ?? ""}
+              onValueChange={(val) => handleReferenceTypeChange(val)}
+            >
               <SelectTrigger className={"w-full"}>
-                <SelectValue/>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="worksheets">Munkalap</SelectItem>
               </SelectContent>
             </Select>
-            <FieldError error={errors} field={"reference_type"}/>
+            <FieldError error={errors} field={"reference_type"} />
 
             <Label htmlFor="referenceId">Hivatkozás azonosító</Label>
-            <Select disabled={referenceIdList.length === 0} value={referenceId ?? ""}
-                    onValueChange={val => setReferenceId(val)}>
+            <Select
+              disabled={referenceIdList.length === 0}
+              value={referenceId ?? ""}
+              onValueChange={(val) => setReferenceId(val)}
+            >
               <SelectTrigger className={"w-full"}>
-                <SelectValue/>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {referenceIdList.map(referenceIdListItem => (
-                  <SelectItem key={referenceIdListItem.value}
-                              value={referenceIdListItem.value}>{referenceIdListItem.title}</SelectItem>
+                {referenceIdList.map((referenceIdListItem) => (
+                  <SelectItem
+                    key={referenceIdListItem.value}
+                    value={referenceIdListItem.value}
+                  >
+                    {referenceIdListItem.title}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <FieldError error={errors} field={"reference_id"}/>
+            <FieldError error={errors} field={"reference_id"} />
 
             <Label htmlFor="reservedUntil">Foglalás lejárata</Label>
             <Input
               id="reservedUntil"
               type="date"
               value={reservedUntil ?? ""}
-              onChange={e => setReservedUntil(e.target.value)}
+              onChange={(e) => setReservedUntil(e.target.value)}
             />
-            <FieldError error={errors} field={"reserved_until"}/>
+            <FieldError error={errors} field={"reserved_until"} />
 
             <Label htmlFor="status">Státusz</Label>
-            <Select
-              value={status}
-              onValueChange={val => setStatus(val)}
-            >
+            <Select value={status} onValueChange={(val) => setStatus(val)}>
               <SelectTrigger className={"w-full"}>
-                <SelectValue/>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="active">Aktív</SelectItem>
@@ -245,7 +334,7 @@ export default function Edit() {
                 <SelectItem value="expired">Lejárt</SelectItem>
               </SelectContent>
             </Select>
-            <FieldError error={errors} field={"status"}/>
+            <FieldError error={errors} field={"status"} />
 
             <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
           </form>

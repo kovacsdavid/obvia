@@ -17,47 +17,64 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/inventory/lib/slice.ts";
-import {type SelectOptionList,} from "@/lib/interfaces/common.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx"
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useNavigate} from "react-router-dom";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import type {Inventory} from "./lib/interface";
-import type {Product} from "../products/lib/interface";
-import type {Warehouse} from "../warehouses/lib/interface";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/inventory/lib/slice.ts";
+import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useNavigate } from "react-router-dom";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import type { Inventory } from "./lib/interface";
+import type { Product } from "../products/lib/interface";
+import type { Warehouse } from "../warehouses/lib/interface";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
-import {Plus} from "lucide-react";
-import {useNumberInput} from "@/hooks/use_number_input.ts";
+import { Plus } from "lucide-react";
+import { useNumberInput } from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (inventory: Inventory) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [productId, setProductId] = React.useState("");
   const [warehouseId, setWarehouseId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("");
   const [status, setStatus] = React.useState("");
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const [productList, setProductList] = React.useState<SelectOptionList>([]);
-  const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>([]);
+  const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>(
+    [],
+  );
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { setListResponse } = useSelectList();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
-  const [openNewWarehouseDialog, setOpenNewWarehouseDialog] = React.useState(false);
+  const [openNewWarehouseDialog, setOpenNewWarehouseDialog] =
+    React.useState(false);
 
   const minimumStockInput = useNumberInput({
     showThousandSeparator: true,
@@ -90,27 +107,33 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   };
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      productId,
-      warehouseId,
-      minimumStock: !isNaN(minimumStockInput.getNumericValue()) ? minimumStockInput.getNumericValue().toString() : "",
-      maximumStock: !isNaN(maximumStockInput.getNumericValue()) ? maximumStockInput.getNumericValue().toString() : "",
-      currencyCode,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        productId,
+        warehouseId,
+        minimumStock: !isNaN(minimumStockInput.getNumericValue())
+          ? minimumStockInput.getNumericValue().toString()
+          : "",
+        maximumStock: !isNaN(maximumStockInput.getNumericValue())
+          ? maximumStockInput.getNumericValue().toString()
+          : "",
+        currencyCode,
+        status,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/raktarkeszlet/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -118,23 +141,42 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [minimumStockInput, dispatch, id, productId, warehouseId, maximumStockInput, currencyCode, status, onSuccess, navigate, setErrors, unexpectedError]);
+  }, [
+    minimumStockInput,
+    dispatch,
+    id,
+    productId,
+    warehouseId,
+    maximumStockInput,
+    currencyCode,
+    status,
+    onSuccess,
+    navigate,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      productId,
-      warehouseId,
-      minimumStock: !isNaN(minimumStockInput.getNumericValue()) ? minimumStockInput.getNumericValue().toString() : "",
-      maximumStock: !isNaN(maximumStockInput.getNumericValue()) ? maximumStockInput.getNumericValue().toString() : "",
-      currencyCode,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        productId,
+        warehouseId,
+        minimumStock: !isNaN(minimumStockInput.getNumericValue())
+          ? minimumStockInput.getNumericValue().toString()
+          : "",
+        maximumStock: !isNaN(maximumStockInput.getNumericValue())
+          ? maximumStockInput.getNumericValue().toString()
+          : "",
+        currencyCode,
+        status,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/raktarkeszlet/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -142,7 +184,19 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [dispatch, id, productId, warehouseId, minimumStockInput, maximumStockInput, currencyCode, status, navigate, setErrors, unexpectedError]);
+  }, [
+    dispatch,
+    id,
+    productId,
+    warehouseId,
+    minimumStockInput,
+    maximumStockInput,
+    currencyCode,
+    status,
+    navigate,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const loadLists = useCallback(async () => {
     return Promise.all([
@@ -180,13 +234,22 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 const data = response.payload.jsonData.data;
                 setProductId(data.product_id);
                 setWarehouseId(data.warehouse_id);
-                minimumStockInput.setValue(data.minimum_stock ? data.minimum_stock.toString() : "");
-                maximumStockInput.setValue(data.maximum_stock ? data.maximum_stock.toString() : "");
+                minimumStockInput.setValue(
+                  data.minimum_stock ? data.minimum_stock.toString() : "",
+                );
+                maximumStockInput.setValue(
+                  data.maximum_stock ? data.maximum_stock.toString() : "",
+                );
                 setCurrencyCode(data.currency_code);
                 setStatus(data.status);
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -212,17 +275,29 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
-      <Dialog open={openNewProductDialog} onOpenChange={setOpenNewProductDialog}>
+      <GlobalError error={errors} />
+      <Dialog
+        open={openNewProductDialog}
+        onOpenChange={setOpenNewProductDialog}
+      >
         <DialogContent>
           <DialogTitle>Új termék létrehozása</DialogTitle>
-          <ProductsEdit showCard={false} onSuccess={handleEditProductsSuccess}/>
+          <ProductsEdit
+            showCard={false}
+            onSuccess={handleEditProductsSuccess}
+          />
         </DialogContent>
       </Dialog>
-      <Dialog open={openNewWarehouseDialog} onOpenChange={setOpenNewWarehouseDialog}>
+      <Dialog
+        open={openNewWarehouseDialog}
+        onOpenChange={setOpenNewWarehouseDialog}
+      >
         <DialogContent>
           <DialogTitle>Új raktár létrehozása</DialogTitle>
-          <WarehousesEdit showCard={false} onSuccess={handleEditWarehousesSuccess}/>
+          <WarehousesEdit
+            showCard={false}
+            onSuccess={handleEditWarehousesSuccess}
+          />
         </DialogContent>
       </Dialog>
       <ConditionalCard
@@ -230,43 +305,60 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         title={`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="product_id">Termék</Label>
-          <Select
-            value={productId}
-            onValueChange={val => setProductId(val)}
-          >
+          <Select value={productId} onValueChange={(val) => setProductId(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {productList.map(product => {
-                return <SelectItem key={product.value} value={product.value}>{product.title}</SelectItem>
+              {productList.map((product) => {
+                return (
+                  <SelectItem key={product.value} value={product.value}>
+                    {product.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"product_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewProductDialog(true)}>
-            <Plus/> Új termék
+          <FieldError error={errors} field={"product_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewProductDialog(true)}
+          >
+            <Plus /> Új termék
           </Button>
 
           <Label htmlFor="warehouse_id">Raktár</Label>
           <Select
             value={warehouseId}
-            onValueChange={val => setWarehouseId(val)}
+            onValueChange={(val) => setWarehouseId(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {warehouseList.map(warehouse => {
-                return <SelectItem key={warehouse.value} value={warehouse.value}>{warehouse.title}</SelectItem>
+              {warehouseList.map((warehouse) => {
+                return (
+                  <SelectItem key={warehouse.value} value={warehouse.value}>
+                    {warehouse.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"warehouse_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewWarehouseDialog(true)}>
-            <Plus/> Új raktár
+          <FieldError error={errors} field={"warehouse_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewWarehouseDialog(true)}
+          >
+            <Plus /> Új raktár
           </Button>
 
           <Label htmlFor="minimum_stock">Minimum készlet</Label>
@@ -274,40 +366,51 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             id="minimum_stock"
             type="text"
             value={minimumStockInput.displayValue}
-            onChange={e => minimumStockInput.handleInputChangeWithCursor(e.target.value, e.target)}
+            onChange={(e) =>
+              minimumStockInput.handleInputChangeWithCursor(
+                e.target.value,
+                e.target,
+              )
+            }
           />
-          <FieldError error={errors} field={"minimum_stock"}/>
+          <FieldError error={errors} field={"minimum_stock"} />
           <Label htmlFor="maximum_stock">Maximum készlet</Label>
           <Input
             id="maximum_stock"
             type="text"
             value={maximumStockInput.displayValue}
-            onChange={e => maximumStockInput.handleInputChangeWithCursor(e.target.value, e.target)}
+            onChange={(e) =>
+              maximumStockInput.handleInputChangeWithCursor(
+                e.target.value,
+                e.target,
+              )
+            }
           />
-          <FieldError error={errors} field={"maximum_stock"}/>
+          <FieldError error={errors} field={"maximum_stock"} />
           <Label htmlFor="currency_code">Pénznem</Label>
           <Select
             value={currencyCode}
-            onValueChange={val => setCurrencyCode(val)}
+            onValueChange={(val) => setCurrencyCode(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {currencyList.map(currency => {
-                return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+              {currencyList.map((currency) => {
+                return (
+                  <SelectItem key={currency.value} value={currency.value}>
+                    {currency.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"currency_code"}/>
+          <FieldError error={errors} field={"currency_code"} />
 
           <Label htmlFor="status">Állapot</Label>
-          <Select
-            value={status}
-            onValueChange={val => setStatus(val)}
-          >
+          <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
@@ -315,7 +418,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               <SelectItem value="discontinued">Kivezetett</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
 
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>

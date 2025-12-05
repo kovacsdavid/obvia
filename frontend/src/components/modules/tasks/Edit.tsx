@@ -17,35 +17,49 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/tasks/lib/slice.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx";
-import {useNavigate} from "react-router-dom";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import type {SelectOptionList} from "@/lib/interfaces/common.ts";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import {formatDateToYMD} from "@/lib/utils.ts";
-import type {Task, TaskUserInput} from "./lib/interface";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/tasks/lib/slice.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useNavigate } from "react-router-dom";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import type { SelectOptionList } from "@/lib/interfaces/common.ts";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import { formatDateToYMD } from "@/lib/utils.ts";
+import type { Task, TaskUserInput } from "./lib/interface";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
 import ServicesEdit from "@/components/modules/services/Edit.tsx";
 import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
-import type {Worksheet} from "../worksheets/lib/interface";
-import type {Service} from "../services/lib/interface";
-import type {Tax} from "../taxes/lib/interface";
-import {Plus} from "lucide-react";
-import {useNumberInput} from "@/hooks/use_number_input.ts";
+import type { Worksheet } from "../worksheets/lib/interface";
+import type { Service } from "../services/lib/interface";
+import type { Tax } from "../taxes/lib/interface";
+import { Plus } from "lucide-react";
+import { useNumberInput } from "@/hooks/use_number_input.ts";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (task: Task) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [worksheetId, setWorksheetId] = React.useState("");
   const [serviceId, setServiceId] = React.useState("");
   const [currencyCode, setCurrencyCode] = React.useState("HUF");
@@ -54,17 +68,20 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
   const [priority, setPriority] = React.useState<string | null>("normal");
   const [dueDate, setDueDate] = React.useState<string | null>("");
   const [description, setDescription] = React.useState("");
-  const [worksheetList, setWorksheetList] = React.useState<SelectOptionList>([]);
+  const [worksheetList, setWorksheetList] = React.useState<SelectOptionList>(
+    [],
+  );
   const [serviceList, setServiceList] = React.useState<SelectOptionList>([]);
   const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
   const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
-  const {errors, setErrors, unexpectedError} = useFormError();
+  const { setListResponse } = useSelectList();
+  const { errors, setErrors, unexpectedError } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
-  const [openNewWorksheetDialog, setOpenNewWorksheetDialog] = React.useState(false);
+  const [openNewWorksheetDialog, setOpenNewWorksheetDialog] =
+    React.useState(false);
   const [openNewServiceDialog, setOpenNewServiceDialog] = React.useState(false);
   const [openNewTaxDialog, setOpenNewTaxDialog] = React.useState(false);
   const quantity = useNumberInput({
@@ -83,7 +100,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         setWorksheetId(worksheet.id);
       }, 0);
       setOpenNewWorksheetDialog(false);
-    })
+    });
   };
 
   const handleEditServicesSuccess = (service: Service) => {
@@ -92,9 +109,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         setServiceId(service.id);
       }, 0);
       setOpenNewServiceDialog(false);
-    })
+    });
   };
-
 
   const handleEditTaxesSuccess = (tax: Tax) => {
     loadLists().then(() => {
@@ -105,34 +121,53 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
     });
   };
 
-  const prepareTaskInput = useCallback((): TaskUserInput => ({
-    id,
-    worksheetId,
-    serviceId,
-    currencyCode,
-    quantity: !isNaN(quantity.getNumericValue()) ? quantity.getNumericValue().toString() : "",
-    price: !isNaN(price.getNumericValue()) ? price.getNumericValue().toString() : "",
-    taxId,
-    status,
-    priority,
-    dueDate,
-    description,
-  }), [id, worksheetId, serviceId, currencyCode, quantity, price, taxId, status, priority, dueDate, description]);
+  const prepareTaskInput = useCallback(
+    (): TaskUserInput => ({
+      id,
+      worksheetId,
+      serviceId,
+      currencyCode,
+      quantity: !isNaN(quantity.getNumericValue())
+        ? quantity.getNumericValue().toString()
+        : "",
+      price: !isNaN(price.getNumericValue())
+        ? price.getNumericValue().toString()
+        : "",
+      taxId,
+      status,
+      priority,
+      dueDate,
+      description,
+    }),
+    [
+      id,
+      worksheetId,
+      serviceId,
+      currencyCode,
+      quantity,
+      price,
+      taxId,
+      status,
+      priority,
+      dueDate,
+      description,
+    ],
+  );
 
   const handleCreate = useCallback(() => {
     dispatch(create(prepareTaskInput())).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/feladat/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -140,7 +175,14 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [dispatch, navigate, onSuccess, prepareTaskInput, setErrors, unexpectedError]);
+  }, [
+    dispatch,
+    navigate,
+    onSuccess,
+    prepareTaskInput,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
     dispatch(update(prepareTaskInput())).then(async (response) => {
@@ -148,7 +190,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         if (response.payload.statusCode === 200) {
           navigate("/feladat/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -188,8 +230,8 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
           unexpectedError();
         }
       }),
-    ])
-  }, [dispatch, setErrors, setListResponse, unexpectedError])
+    ]);
+  }, [dispatch, setErrors, setListResponse, unexpectedError]);
 
   useEffect(() => {
     loadLists().then(() => {
@@ -202,16 +244,23 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setWorksheetId(data.worksheet_id);
                 setServiceId(data.service_id);
                 setCurrencyCode(data.currency_code);
-                setDescription(data.description ?? "")
-                quantity.setValue(data.quantity ? data.quantity.toString() : "");
+                setDescription(data.description ?? "");
+                quantity.setValue(
+                  data.quantity ? data.quantity.toString() : "",
+                );
                 price.setValue(data.price ? data.price.toString() : "");
                 setTaxId(data.tax_id);
                 setStatus(data.status);
                 setPriority(data.priority);
                 setDueDate(data.due_date ? formatDateToYMD(data.due_date) : "");
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -237,23 +286,35 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
 
   return (
     <>
-      <GlobalError error={errors}/>
-      <Dialog open={openNewWorksheetDialog} onOpenChange={setOpenNewWorksheetDialog}>
+      <GlobalError error={errors} />
+      <Dialog
+        open={openNewWorksheetDialog}
+        onOpenChange={setOpenNewWorksheetDialog}
+      >
         <DialogContent>
           <DialogTitle>Új munkalap létrehozása</DialogTitle>
-          <WorksheetsEdit showCard={false} onSuccess={handleEditWorksheetsSuccess}/>
+          <WorksheetsEdit
+            showCard={false}
+            onSuccess={handleEditWorksheetsSuccess}
+          />
         </DialogContent>
       </Dialog>
-      <Dialog open={openNewServiceDialog} onOpenChange={setOpenNewServiceDialog}>
+      <Dialog
+        open={openNewServiceDialog}
+        onOpenChange={setOpenNewServiceDialog}
+      >
         <DialogContent>
           <DialogTitle>Új szolgáltatás létrehozása</DialogTitle>
-          <ServicesEdit showCard={false} onSuccess={handleEditServicesSuccess}/>
+          <ServicesEdit
+            showCard={false}
+            onSuccess={handleEditServicesSuccess}
+          />
         </DialogContent>
       </Dialog>
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
           <DialogTitle>Új adó létrehozása</DialogTitle>
-          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess}/>
+          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
         </DialogContent>
       </Dialog>
       <ConditionalCard
@@ -261,37 +322,53 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         title={`Feladat ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="worksheet_id">Munkalap</Label>
           <Select value={worksheetId} onValueChange={setWorksheetId}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {worksheetList.map((worksheet) => (
-                <SelectItem key={worksheet.value} value={worksheet.value}>{worksheet.title}</SelectItem>
+                <SelectItem key={worksheet.value} value={worksheet.value}>
+                  {worksheet.title}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"worksheet_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewWorksheetDialog(true)}>
-            <Plus/> Új munkalap
+          <FieldError error={errors} field={"worksheet_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewWorksheetDialog(true)}
+          >
+            <Plus /> Új munkalap
           </Button>
 
           <Label htmlFor="service_id">Szolgáltatás</Label>
           <Select value={serviceId} onValueChange={setServiceId}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {serviceList.map((service) => (
-                <SelectItem key={service.value} value={service.value}>{service.title}</SelectItem>
+                <SelectItem key={service.value} value={service.value}>
+                  {service.title}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"service_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewServiceDialog(true)}>
-            <Plus/> Új szolgáltatás
+          <FieldError error={errors} field={"service_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewServiceDialog(true)}
+          >
+            <Plus /> Új szolgáltatás
           </Button>
 
           <Label htmlFor="description">Leírás</Label>
@@ -299,76 +376,90 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
 
           <Label htmlFor="currency_code">Pénznem</Label>
           <Select
             value={currencyCode}
-            onValueChange={val => setCurrencyCode(val)}
+            onValueChange={(val) => setCurrencyCode(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {currencyList.map(currency => {
-                return <SelectItem key={currency.value} value={currency.value}>{currency.title}</SelectItem>
+              {currencyList.map((currency) => {
+                return (
+                  <SelectItem key={currency.value} value={currency.value}>
+                    {currency.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"currency_code"}/>
+          <FieldError error={errors} field={"currency_code"} />
 
           <Label htmlFor="quantity">Munkaóra</Label>
           <Input
             id="quantity"
             type="text"
             value={quantity.displayValue}
-            onChange={e => quantity.handleInputChangeWithCursor(e.target.value, e.target)}
+            onChange={(e) =>
+              quantity.handleInputChangeWithCursor(e.target.value, e.target)
+            }
           />
-          <FieldError error={errors} field={"quantity"}/>
+          <FieldError error={errors} field={"quantity"} />
 
           <Label htmlFor="price">Egységár (nettó)</Label>
           <Input
             id="price"
             type="text"
             value={price.displayValue}
-            onChange={e => price.handleInputChangeWithCursor(e.target.value, e.target)}
+            onChange={(e) =>
+              price.handleInputChangeWithCursor(e.target.value, e.target)
+            }
           />
-          <FieldError error={errors} field={"price"}/>
+          <FieldError error={errors} field={"price"} />
 
           <Label htmlFor="tax_id">Adó</Label>
           <Select value={taxId} onValueChange={setTaxId}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {taxList.map((tax) => (
-                <SelectItem key={tax.value} value={tax.value}>{tax.title}</SelectItem>
+                <SelectItem key={tax.value} value={tax.value}>
+                  {tax.title}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"tax_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewTaxDialog(true)}>
-            <Plus/> Új adó
+          <FieldError error={errors} field={"tax_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewTaxDialog(true)}
+          >
+            <Plus /> Új adó
           </Button>
 
           <Label htmlFor="status">Státusz</Label>
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
               <SelectItem value="inactive">Inaktív</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
 
           <Label htmlFor="priority">Prioritás</Label>
           <Select value={priority ?? ""} onValueChange={setPriority}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="low">Alacsony</SelectItem>
@@ -376,16 +467,16 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
               <SelectItem value="high">Magas</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"priority"}/>
+          <FieldError error={errors} field={"priority"} />
 
           <Label htmlFor="due_date">Határidő</Label>
           <Input
             id="due_date"
             type="date"
             value={dueDate ?? ""}
-            onChange={e => setDueDate(e.target.value)}
+            onChange={(e) => setDueDate(e.target.value)}
           />
-          <FieldError error={errors} field={"due_date"}/>
+          <FieldError error={errors} field={"due_date"} />
 
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>

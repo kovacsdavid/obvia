@@ -17,21 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {type ClassValue, clsx} from "clsx"
-import {twMerge} from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function query_parser(encodedStr: unknown): Record<string, string | number> {
+export function query_parser(
+  encodedStr: unknown,
+): Record<string, string | number> {
   const result: Record<string, string | number> = {};
   if (typeof encodedStr === "string") {
     const decodedStr = decodeURIComponent(encodedStr);
-    const pairs = decodedStr.split('|');
+    const pairs = decodedStr.split("|");
 
-    pairs.forEach(pair => {
-      const keyValue = pair.split(':');
+    pairs.forEach((pair) => {
+      const keyValue = pair.split(":");
       if (keyValue.length === 2) {
         const key = keyValue[0].trim();
         const value = keyValue[1].trim();
@@ -42,15 +44,15 @@ export function query_parser(encodedStr: unknown): Record<string, string | numbe
       }
     });
   }
-  return result
+  return result;
 }
 
 export function query_encoder(params: Record<string, string | number>): string {
   const pairs = Object.entries(params).map(([key, valueRaw]) => {
-    const value = valueRaw.toString().trim()
+    const value = valueRaw.toString().trim();
     return `${key}:${value}`;
   });
-  const concatenated = pairs.join('|');
+  const concatenated = pairs.join("|");
   return encodeURIComponent(concatenated);
 }
 
@@ -59,20 +61,20 @@ export function formatDateToYMDHMS(dateString: string): string {
     const date = new Date(dateString);
 
     if (isNaN(date.getTime())) {
-      return '';
+      return "";
     }
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
 
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   } catch (error) {
-    console.log(error)
-    return '';
+    console.log(error);
+    return "";
   }
 }
 
@@ -81,17 +83,17 @@ export function formatDateToYMD(dateString: string): string {
     const date = new Date(dateString);
 
     if (isNaN(date.getTime())) {
-      return '';
+      return "";
     }
 
     const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
   } catch (error) {
-    console.log(error)
-    return '';
+    console.log(error);
+    return "";
   }
 }
 
@@ -108,13 +110,13 @@ export function formatNumber(
     decimalPlaces?: number;
     allowEmpty?: boolean;
     preserveIncomplete?: boolean; // New option to preserve incomplete inputs
-  } = {}
+  } = {},
 ): string {
   const {
     showThousandSeparator = true,
     decimalPlaces,
     allowEmpty = true,
-    preserveIncomplete = false
+    preserveIncomplete = false,
   } = options;
 
   // Handle empty values
@@ -130,14 +132,17 @@ export function formatNumber(
   }
 
   // If preserveIncomplete is true and value ends with decimal separator, don't format
-  if (preserveIncomplete && (stringValue.endsWith(',') || stringValue.endsWith('.'))) {
-    return stringValue.replace(/\./g, ',');
+  if (
+    preserveIncomplete &&
+    (stringValue.endsWith(",") || stringValue.endsWith("."))
+  ) {
+    return stringValue.replace(/\./g, ",");
   }
 
   // Remove existing separators and normalize decimal separator
   const cleanValue = stringValue
-    .replace(/\s/g, '') // Remove spaces (thousand separators)
-    .replace(/,/g, '.'); // Convert comma to dot for parsing
+    .replace(/\s/g, "") // Remove spaces (thousand separators)
+    .replace(/,/g, "."); // Convert comma to dot for parsing
 
   // Parse as number
   const numericValue = parseFloat(cleanValue);
@@ -147,16 +152,17 @@ export function formatNumber(
   }
 
   // Format the number
-  let formatted = decimalPlaces !== undefined
-    ? numericValue.toFixed(decimalPlaces)
-    : numericValue.toString();
+  let formatted =
+    decimalPlaces !== undefined
+      ? numericValue.toFixed(decimalPlaces)
+      : numericValue.toString();
 
   if (showThousandSeparator) {
     // Split integer and decimal parts
-    const [integerPart, decimalPart] = formatted.split('.');
+    const [integerPart, decimalPart] = formatted.split(".");
 
     // Add thousand separators (spaces) to integer part
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
     // Combine with decimal part using comma as decimal separator
     formatted = decimalPart
@@ -164,7 +170,7 @@ export function formatNumber(
       : formattedInteger;
   } else {
     // Just replace dot with comma for decimal separator
-    formatted = formatted.replace('.', ',');
+    formatted = formatted.replace(".", ",");
   }
 
   return formatted;
@@ -181,9 +187,7 @@ export function parseNumber(value: string): number {
   }
 
   // Remove spaces (thousand separators) and convert comma to dot
-  const normalized = value
-    .replace(/\s/g, '')
-    .replace(/,/g, '.');
+  const normalized = value.replace(/\s/g, "").replace(/,/g, ".");
 
   return parseFloat(normalized);
 }

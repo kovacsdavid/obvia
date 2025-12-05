@@ -17,68 +17,87 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {Button, FieldError, GlobalError, Input, Label} from "@/components/ui";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {create, get, select_list, update} from "@/components/modules/worksheets/lib/slice.ts";
-import {type SelectOptionList} from "@/lib/interfaces/common.ts";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select.tsx";
-import {useFormError} from "@/hooks/use_form_error.ts";
-import {useSelectList} from "@/hooks/use_select_list.ts";
-import {useNavigate} from "react-router-dom";
-import {useParams} from "react-router";
-import {ConditionalCard} from "@/components/ui/card.tsx";
-import {Plus} from "lucide-react";
-import {Dialog, DialogContent, DialogTitle} from "@/components/ui/dialog.tsx";
+import React, { useCallback, useEffect } from "react";
+import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  create,
+  get,
+  select_list,
+  update,
+} from "@/components/modules/worksheets/lib/slice.ts";
+import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select.tsx";
+import { useFormError } from "@/hooks/use_form_error.ts";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import { useNavigate } from "react-router-dom";
+import { useParams } from "react-router";
+import { ConditionalCard } from "@/components/ui/card.tsx";
+import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import CustomersEdit from "@/components/modules/customers/Edit.tsx";
 import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
-import type {Project} from "@/components/modules/projects/lib/interface.ts";
-import type {Worksheet} from "./lib/interface";
-import type {Customer} from "@/components/modules/customers/lib/interface.ts";
+import type { Project } from "@/components/modules/projects/lib/interface.ts";
+import type { Worksheet } from "./lib/interface";
+import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (worksheet: Worksheet) => void;
 }
 
-export default function Edit({showCard = true, onSuccess = undefined}: EditProps) {
+export default function Edit({
+  showCard = true,
+  onSuccess = undefined,
+}: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [customerId, setCustomerId] = React.useState("");
   const [projectId, setProjectId] = React.useState("");
   const [status, setStatus] = React.useState("active");
-  const [customersList, setCustomersList] = React.useState<SelectOptionList>([]);
+  const [customersList, setCustomersList] = React.useState<SelectOptionList>(
+    [],
+  );
   const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
-  const {errors, setErrors, unexpectedError} = useFormError();
-  const [openNewCustomerDialog, setOpenNewCustomerDialog] = React.useState(false);
+  const { errors, setErrors, unexpectedError } = useFormError();
+  const [openNewCustomerDialog, setOpenNewCustomerDialog] =
+    React.useState(false);
   const [openNewProjectDialog, setOpenNewProjectDialog] = React.useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {setListResponse} = useSelectList();
+  const { setListResponse } = useSelectList();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
   const handleCreate = useCallback(() => {
-    dispatch(create({
-      id,
-      name,
-      description,
-      customerId,
-      projectId,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      create({
+        id,
+        name,
+        description,
+        customerId,
+        projectId,
+        status,
+      }),
+    ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
           if (
-            typeof onSuccess === "function"
-            && typeof response.payload.jsonData.data !== "undefined"
+            typeof onSuccess === "function" &&
+            typeof response.payload.jsonData.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
             navigate("/munkalap/lista");
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -86,22 +105,36 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [dispatch, id, name, description, customerId, projectId, status, onSuccess, navigate, setErrors, unexpectedError]);
+  }, [
+    dispatch,
+    id,
+    name,
+    description,
+    customerId,
+    projectId,
+    status,
+    onSuccess,
+    navigate,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleUpdate = useCallback(() => {
-    dispatch(update({
-      id,
-      name,
-      description,
-      customerId,
-      projectId,
-      status,
-    })).then(async (response) => {
+    dispatch(
+      update({
+        id,
+        name,
+        description,
+        customerId,
+        projectId,
+        status,
+      }),
+    ).then(async (response) => {
       if (update.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           navigate("/munkalap/lista");
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
@@ -109,7 +142,18 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         unexpectedError();
       }
     });
-  }, [customerId, description, dispatch, id, name, navigate, projectId, setErrors, status, unexpectedError]);
+  }, [
+    customerId,
+    description,
+    dispatch,
+    id,
+    name,
+    navigate,
+    projectId,
+    setErrors,
+    status,
+    unexpectedError,
+  ]);
 
   const loadLists = useCallback(async () => {
     return Promise.all([
@@ -144,8 +188,13 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
                 setProjectId(data.project_id);
                 setStatus(data.status ?? "");
               }
-            } else if (typeof response.payload.jsonData?.error !== "undefined") {
-              setErrors({message: response.payload.jsonData.error.message, fields: {}})
+            } else if (
+              typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+              setErrors({
+                message: response.payload.jsonData.error.message,
+                fields: {},
+              });
             } else {
               unexpectedError();
             }
@@ -172,7 +221,7 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         setProjectId(project.id);
       }, 0);
       setOpenNewProjectDialog(false);
-    })
+    });
   };
 
   const handleEditCustomersSuccess = (customer: Customer) => {
@@ -181,22 +230,34 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         setCustomerId(customer.id);
       }, 0);
       setOpenNewCustomerDialog(false);
-    })
+    });
   };
 
   return (
     <>
-      <GlobalError error={errors}/>
-      <Dialog open={openNewCustomerDialog} onOpenChange={setOpenNewCustomerDialog}>
+      <GlobalError error={errors} />
+      <Dialog
+        open={openNewCustomerDialog}
+        onOpenChange={setOpenNewCustomerDialog}
+      >
         <DialogContent>
           <DialogTitle>Új vevő létrehozása</DialogTitle>
-          <CustomersEdit showCard={false} onSuccess={handleEditCustomersSuccess}/>
+          <CustomersEdit
+            showCard={false}
+            onSuccess={handleEditCustomersSuccess}
+          />
         </DialogContent>
       </Dialog>
-      <Dialog open={openNewProjectDialog} onOpenChange={setOpenNewProjectDialog}>
+      <Dialog
+        open={openNewProjectDialog}
+        onOpenChange={setOpenNewProjectDialog}
+      >
         <DialogContent>
           <DialogTitle>Új projekt létrehozása</DialogTitle>
-          <ProjectsEdit showCard={false} onSuccess={handleEditProjectsSuccess}/>
+          <ProjectsEdit
+            showCard={false}
+            onSuccess={handleEditProjectsSuccess}
+          />
         </DialogContent>
       </Dialog>
       <ConditionalCard
@@ -204,75 +265,89 @@ export default function Edit({showCard = true, onSuccess = undefined}: EditProps
         title={`Munkalap ${id ? "módosítás" : "létrehozás"}`}
         className={"max-w-lg mx-auto"}
       >
-        <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4"
+          autoComplete={"off"}
+        >
           <Label htmlFor="name">Név</Label>
           <Input
             id="name"
             type="text"
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={(e) => setName(e.target.value)}
           />
-          <FieldError error={errors} field={"name"}/>
+          <FieldError error={errors} field={"name"} />
           <Label htmlFor="description">Leírás</Label>
           <Input
             id="description"
             type="text"
             value={description}
-            onChange={e => setDescription(e.target.value)}
+            onChange={(e) => setDescription(e.target.value)}
           />
-          <FieldError error={errors} field={"description"}/>
+          <FieldError error={errors} field={"description"} />
 
           <Label htmlFor="customer_id">Vevő</Label>
           <Select
             value={customerId}
-            onValueChange={val => setCustomerId(val)}
+            onValueChange={(val) => setCustomerId(val)}
           >
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {customersList.map(customer => {
-                return <SelectItem key={customer.value} value={customer.value}>{customer.title}</SelectItem>
+              {customersList.map((customer) => {
+                return (
+                  <SelectItem key={customer.value} value={customer.value}>
+                    {customer.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"customer_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewCustomerDialog(true)}>
-            <Plus/> Új vevő
+          <FieldError error={errors} field={"customer_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewCustomerDialog(true)}
+          >
+            <Plus /> Új vevő
           </Button>
 
           <Label htmlFor="project_id">Projekt</Label>
-          <Select
-            value={projectId}
-            onValueChange={val => setProjectId(val)}
-          >
+          <Select value={projectId} onValueChange={(val) => setProjectId(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {projectsList.map(project => {
-                return <SelectItem key={project.value} value={project.value}>{project.title}</SelectItem>
+              {projectsList.map((project) => {
+                return (
+                  <SelectItem key={project.value} value={project.value}>
+                    {project.title}
+                  </SelectItem>
+                );
               })}
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"project_id"}/>
-          <Button type="button" variant="outline" onClick={() => setOpenNewProjectDialog(true)}>
-            <Plus/> Új projekt
+          <FieldError error={errors} field={"project_id"} />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpenNewProjectDialog(true)}
+          >
+            <Plus /> Új projekt
           </Button>
           <Label htmlFor="status">Státusz</Label>
-          <Select
-            value={status}
-            onValueChange={val => setStatus(val)}
-          >
+          <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>
-              <SelectValue/>
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Aktív</SelectItem>
               <SelectItem value="inactive">Inaktív</SelectItem>
             </SelectContent>
           </Select>
-          <FieldError error={errors} field={"status"}/>
+          <FieldError error={errors} field={"status"} />
           <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
         </form>
       </ConditionalCard>

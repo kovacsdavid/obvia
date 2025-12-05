@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {Link} from "react-router-dom";
-import React, {useCallback, useEffect} from "react";
-import {list} from "@/components/modules/databases/lib/slice.ts";
-import {useAppDispatch} from "@/store/hooks.ts";
+import { Link } from "react-router-dom";
+import React, { useCallback, useEffect } from "react";
+import { list } from "@/components/modules/databases/lib/slice.ts";
+import { useAppDispatch } from "@/store/hooks.ts";
 import {
   SortableTableHead,
   Table,
@@ -28,29 +28,38 @@ import {
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from "@/components/ui/table.tsx";
-import {Paginator} from "@/components/ui/pagination.tsx";
-import {Funnel, MoreHorizontal, PlugZap, Plus, Trash} from "lucide-react";
-import {Button} from "@/components/ui/button.tsx"
-import {Input} from "@/components/ui/input.tsx"
-import {Label} from "@/components/ui/label.tsx"
-import {Popover, PopoverContent, PopoverTrigger,} from "@/components/ui/popover.tsx"
-import {GlobalError} from "@/components/ui";
-import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import {type SimpleError} from "@/lib/interfaces/common.ts";
-import {type DatabaseList} from "@/components/modules/databases/lib/interface.ts";
-import {useActivateDatabase} from "@/hooks/use_activate_database.ts";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import { Funnel, MoreHorizontal, PlugZap, Plus, Trash } from "lucide-react";
+import { Button } from "@/components/ui/button.tsx";
+import { Input } from "@/components/ui/input.tsx";
+import { Label } from "@/components/ui/label.tsx";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
+import { GlobalError } from "@/components/ui";
+import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
+import { type SimpleError } from "@/lib/interfaces/common.ts";
+import { type DatabaseList } from "@/components/modules/databases/lib/interface.ts";
+import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -58,11 +67,14 @@ export default function List() {
   const [data, setData] = React.useState<DatabaseList>([]);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
 
-  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
-    if ("name" in parsedQuery) {
-      setNameFilter(parsedQuery["name"] as string);
-    }
-  }, []);
+  const updateSpecialQueryParams = useCallback(
+    (parsedQuery: Record<string, string | number>) => {
+      if ("name" in parsedQuery) {
+        setNameFilter(parsedQuery["name"] as string);
+      }
+    },
+    [],
+  );
 
   const unexpectedError = () => {
     setErrors({
@@ -94,8 +106,8 @@ export default function List() {
       if (list.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           if (
-            typeof response.payload.jsonData.data !== "undefined"
-            && typeof response.payload.jsonData.meta !== "undefined"
+            typeof response.payload.jsonData.data !== "undefined" &&
+            typeof response.payload.jsonData.meta !== "undefined"
           ) {
             setPage(response.payload.jsonData.meta.page);
             setLimit(response.payload.jsonData.meta.limit);
@@ -103,14 +115,14 @@ export default function List() {
             setData(response.payload.jsonData.data);
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
       } else {
         unexpectedError();
       }
-    })
+    });
   }, [
     searchParams,
     rawQuery,
@@ -119,7 +131,7 @@ export default function List() {
     setOrderBy,
     setLimit,
     setPage,
-    setTotal
+    setTotal,
   ]);
 
   const handleActivate = async (new_tenant_id: string) => {
@@ -128,7 +140,7 @@ export default function List() {
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <Card>
         <CardHeader>
           <CardTitle>Adatbázisok</CardTitle>
@@ -137,15 +149,17 @@ export default function List() {
           <div className={"flex justify-between items-center mb-6"}>
             <div className="flex gap-2">
               <Link to={"/adatbazis/letrehozas"}>
-                <Button style={{color: "green"}} variant="outline">
-                  <Plus color="green"/> Új
+                <Button style={{ color: "green" }} variant="outline">
+                  <Plus color="green" /> Új
                 </Button>
               </Link>
             </div>
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline">Szűrő <Funnel/></Button>
+                  <Button variant="outline">
+                    Szűrő <Funnel />
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="grid gap-4">
@@ -160,9 +174,9 @@ export default function List() {
                         <Label htmlFor="name">Név</Label>
                         <Input
                           id="name"
-                          onBlur={e => filterSelect("name", e.target.value)}
+                          onBlur={(e) => filterSelect("name", e.target.value)}
                           value={nameFilter}
-                          onChange={e => setNameFilter(e.target.value)}
+                          onChange={(e) => setNameFilter(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>
@@ -175,7 +189,7 @@ export default function List() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead/>
+                <TableHead />
                 <SortableTableHead
                   field="name"
                   orderBy={orderBy}
@@ -211,23 +225,27 @@ export default function List() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal/>
+                          <MoreHorizontal />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleActivate(item.id)}>
-                          <PlugZap/> Aktiválás
+                        <DropdownMenuItem
+                          onClick={() => handleActivate(item.id)}
+                        >
+                          <PlugZap /> Aktiválás
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator/>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem>
-                          <Trash/> Törlés
+                          <Trash /> Törlés
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.db_host}:{item.db_port}</TableCell>
+                  <TableCell>
+                    {item.db_host}:{item.db_port}
+                  </TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
                 </TableRow>
@@ -242,5 +260,5 @@ export default function List() {
         </CardContent>
       </Card>
     </>
-  )
+  );
 }

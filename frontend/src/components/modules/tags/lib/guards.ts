@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateTagResponse,
@@ -33,23 +33,17 @@ import type {
   TagResolvedList,
   TagResolvedResponse,
   TagResponse,
-  UpdateTagResponse
+  UpdateTagResponse,
 } from "@/components/modules/tags/lib/interface.ts";
 
 export function isCreateTagResponse(data: unknown): data is CreateTagResponse {
-  return isCommonResponse(
-    data,
-    isTag,
-    isFormError,
-  )
+  return isCommonResponse(data, isTag, isFormError);
 }
 
-export function isTagResolvedResponse(data: unknown): data is TagResolvedResponse {
-  return isCommonResponse(
-    data,
-    isTagResolved,
-    isSimpleError
-  )
+export function isTagResolvedResponse(
+  data: unknown,
+): data is TagResolvedResponse {
+  return isCommonResponse(data, isTagResolved, isSimpleError);
 }
 
 export function isTagResolved(data: unknown): data is TagResolved {
@@ -74,17 +68,13 @@ export function isTagResolved(data: unknown): data is TagResolved {
 }
 
 export function isTagResolvedList(data: unknown): data is TagResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isTagResolved(item))
-  );
+  return Array.isArray(data) && data.every((item) => isTagResolved(item));
 }
 
-export function isPaginatedTagResolvedListResponse(data: unknown): data is PaginatedTagResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isTagResolvedList
-  )
+export function isPaginatedTagResolvedListResponse(
+  data: unknown,
+): data is PaginatedTagResolvedListResponse {
+  return isPaginatedDataResponse(data, isTagResolvedList);
 }
 
 export function isTag(data: unknown): data is Tag {
@@ -107,25 +97,13 @@ export function isTag(data: unknown): data is Tag {
 }
 
 export function isTagResponse(data: unknown): data is TagResponse {
-  return isCommonResponse(
-    data,
-    isTag,
-    isSimpleError
-  )
+  return isCommonResponse(data, isTag, isSimpleError);
 }
 
 export function isUpdateTagResponse(data: unknown): data is UpdateTagResponse {
-  return isCommonResponse(
-    data,
-    isTag,
-    isFormError
-  )
+  return isCommonResponse(data, isTag, isFormError);
 }
 
 export function isDeleteTagResponse(data: unknown): data is DeleteTagResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

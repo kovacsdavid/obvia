@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {useCallback, useState} from "react";
-import type {FormError} from "@/lib/interfaces/common.ts";
+import { useCallback, useState } from "react";
+import type { FormError } from "@/lib/interfaces/common.ts";
 
 export function useFormError() {
   const [errors, setErrors] = useState<FormError | null>(null);
@@ -26,13 +26,13 @@ export function useFormError() {
   const unexpectedError = useCallback(() => {
     setErrors({
       message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {}
+      fields: {},
     });
   }, []);
 
   return {
     errors,
     setErrors,
-    unexpectedError
-  }
+    unexpectedError,
+  };
 }

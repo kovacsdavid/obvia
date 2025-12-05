@@ -17,35 +17,42 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+  unexpectedFormError,
+} from "@/services/utils/consts.ts";
 import {
   type CreateInventoryMovementResponse,
   type DeleteInventoryMovementResponse,
   type InventoryMovementResolvedResponse,
   type InventoryMovementResponse,
   type InventoryMovementUserInput,
-  type PaginatedInventoryMovementResolvedListResponse
+  type PaginatedInventoryMovementResolvedListResponse,
 } from "@/components/modules/inventory_movements/lib/interface.ts";
 import {
   isSelectOptionListResponse,
   type ProcessedResponse,
   ProcessResponse,
-  type SelectOptionListResponse
+  type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
   isCreateInventoryMovementResponse,
   isDeleteInventoryMovementResponse,
   isInventoryMovementResolvedResponse,
   isInventoryMovementResponse,
-  isPaginatedInventoryMovementResolvedListResponse
+  isPaginatedInventoryMovementResolvedListResponse,
 } from "@/components/modules/inventory_movements/lib/guards.ts";
 
-export async function create(input: InventoryMovementUserInput, token: string | null): Promise<ProcessedResponse<CreateInventoryMovementResponse>> {
+export async function create(
+  input: InventoryMovementUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<CreateInventoryMovementResponse>> {
   return await fetch(`/api/inventory_movements/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
@@ -58,94 +65,112 @@ export async function create(input: InventoryMovementUserInput, token: string | 
       unit_price: input.unitPrice,
       total_price: input.totalPrice,
       tax_id: input.taxId,
-    })
+    }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isCreateInventoryMovementResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isCreateInventoryMovementResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedInventoryMovementResolvedListResponse>> {
-  const uri = query === null ? `/api/inventory_movements/list` : `/api/inventory_movements/list?q=${query}`;
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<ProcessedResponse<PaginatedInventoryMovementResolvedListResponse>> {
+  const uri =
+    query === null
+      ? `/api/inventory_movements/list`
+      : `/api/inventory_movements/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isPaginatedInventoryMovementResolvedListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(
+        response,
+        isPaginatedInventoryMovementResolvedListResponse,
+      )) ?? unexpectedError
+    );
   });
 }
 
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryMovementResponse>> {
+export async function get(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<InventoryMovementResponse>> {
   return await fetch(`/api/inventory_movements/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isInventoryMovementResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isInventoryMovementResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<InventoryMovementResolvedResponse>> {
+export async function get_resolved(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<InventoryMovementResolvedResponse>> {
   return await fetch(`/api/inventory_movements/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isInventoryMovementResolvedResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isInventoryMovementResolvedResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteInventoryMovementResponse>> {
+export async function deleteItem(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<DeleteInventoryMovementResponse>> {
   return await fetch(`/api/inventory_movements/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isDeleteInventoryMovementResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isDeleteInventoryMovementResponse)) ??
+      unexpectedError
+    );
   });
 }
 
 export async function select_list(
   list: string,
-  token: string | null): Promise<ProcessedResponse<SelectOptionListResponse>> {
+  token: string | null,
+): Promise<ProcessedResponse<SelectOptionListResponse>> {
   return await fetch(`/api/inventory_movements/select_list?list=${list}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isSelectOptionListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isSelectOptionListResponse)) ??
+      unexpectedError
+    );
   });
 }

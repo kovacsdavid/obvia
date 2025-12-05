@@ -17,80 +17,80 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as tasksApi from "@/components/modules/tasks/lib/service.ts";
-import type {RootState} from "@/store";
-import type {TaskUserInput} from "@/components/modules/tasks/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { TaskUserInput } from "@/components/modules/tasks/lib/interface.ts";
 
 interface TasksState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: TasksState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "tasks/create",
-  async (requestData: TaskUserInput, {getState}) => {
+  async (requestData: TaskUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return tasksApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "tasks/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return tasksApi.list(query, token);
-  }
-)
+  },
+);
 
 export const select_list = createAsyncThunk(
   "tasks/select_list",
-  async (list: string, {getState}) => {
+  async (list: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.select_list(list, token);
-  }
-)
+  },
+);
 
 export const get_resolved = createAsyncThunk(
   "tasks/get_resolved",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.get_resolved(uuid, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "tasks/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.get(uuid, token);
-  }
-)
+  },
+);
 
 export const update = createAsyncThunk(
   "tasks/update",
-  async (requestData: TaskUserInput, {getState}) => {
+  async (requestData: TaskUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.update(requestData, token);
-  }
-)
+  },
+);
 
 export const deleteItem = createAsyncThunk(
   "tasks/deleteItem",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await tasksApi.deleteItem(uuid, token);
-  }
+  },
 );
 
 const tasksSlice = createSlice({

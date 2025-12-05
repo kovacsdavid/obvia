@@ -17,7 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {globalRequestTimeout, unexpectedError, unexpectedFormError} from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+  unexpectedFormError,
+} from "@/services/utils/consts.ts";
 import {
   type CreateTagResponse,
   type DeleteTagResponse,
@@ -25,129 +29,138 @@ import {
   type TagResolvedResponse,
   type TagResponse,
   type TagUserInput,
-  type UpdateTagResponse
+  type UpdateTagResponse,
 } from "@/components/modules/tags/lib/interface.ts";
-import {type ProcessedResponse, ProcessResponse} from "@/lib/interfaces/common.ts";
+import {
+  type ProcessedResponse,
+  ProcessResponse,
+} from "@/lib/interfaces/common.ts";
 import {
   isCreateTagResponse,
   isDeleteTagResponse,
   isPaginatedTagResolvedListResponse,
   isTagResolvedResponse,
   isTagResponse,
-  isUpdateTagResponse
+  isUpdateTagResponse,
 } from "@/components/modules/tags/lib/guards.ts";
 
-export async function create({
-                               id,
-                               name,
-                               description
-                             }: TagUserInput, token: string | null): Promise<ProcessedResponse<CreateTagResponse>> {
+export async function create(
+  { id, name, description }: TagUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<CreateTagResponse>> {
   return await fetch(`/api/tags/create`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
       id,
       name,
-      description
-    })
+      description,
+    }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isCreateTagResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isCreateTagResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function list(query: string | null, token: string | null): Promise<ProcessedResponse<PaginatedTagResolvedListResponse>> {
+export async function list(
+  query: string | null,
+  token: string | null,
+): Promise<ProcessedResponse<PaginatedTagResolvedListResponse>> {
   const uri = query === null ? `/api/tags/list` : `/api/tags/list?q=${query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isPaginatedTagResolvedListResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isPaginatedTagResolvedListResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function get_resolved(uuid: string, token: string | null): Promise<ProcessedResponse<TagResolvedResponse>> {
+export async function get_resolved(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<TagResolvedResponse>> {
   return await fetch(`/api/tags/get_resolved?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isTagResolvedResponse,
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isTagResolvedResponse)) ??
+      unexpectedError
+    );
   });
 }
 
-export async function update({
-                               id,
-                               name,
-                               description
-                             }: TagUserInput, token: string | null): Promise<ProcessedResponse<UpdateTagResponse>> {
+export async function update(
+  { id, name, description }: TagUserInput,
+  token: string | null,
+): Promise<ProcessedResponse<UpdateTagResponse>> {
   return await fetch(`/api/tags/update`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
       id,
       name,
-      description
+      description,
     }),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isUpdateTagResponse
-    ) ?? unexpectedFormError;
+    return (
+      (await ProcessResponse(response, isUpdateTagResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 
-export async function get(uuid: string, token: string | null): Promise<ProcessedResponse<TagResponse>> {
+export async function get(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<TagResponse>> {
   return await fetch(`/api/tags/get?uuid=${uuid}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isTagResponse
-    ) ?? unexpectedError;
+    return (await ProcessResponse(response, isTagResponse)) ?? unexpectedError;
   });
 }
 
-export async function deleteItem(uuid: string, token: string | null): Promise<ProcessedResponse<DeleteTagResponse>> {
+export async function deleteItem(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<DeleteTagResponse>> {
   return await fetch(`/api/tags/delete?uuid=${uuid}`, {
     method: "DELETE",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? {"Authorization": `Bearer ${token}`} : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
-    return await ProcessResponse(
-      response,
-      isDeleteTagResponse
-    ) ?? unexpectedError;
+    return (
+      (await ProcessResponse(response, isDeleteTagResponse)) ?? unexpectedError
+    );
   });
 }

@@ -17,72 +17,72 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {createAsyncThunk, createSlice} from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as customersApi from "@/components/modules/customers/lib/service.ts";
-import type {RootState} from "@/store";
-import type {CustomerUserInput} from "@/components/modules/customers/lib/interface.ts";
+import type { RootState } from "@/store";
+import type { CustomerUserInput } from "@/components/modules/customers/lib/interface.ts";
 
 interface CustomersState {
-  status: "idle" | "loading" | "succeeded" | "failed",
+  status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: CustomersState = {
   status: "idle",
-}
+};
 
 export const create = createAsyncThunk(
   "customers/create",
-  async (requestData: CustomerUserInput, {getState}) => {
+  async (requestData: CustomerUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.create(requestData, token);
-  }
-)
+  },
+);
 
 export const deleteItem = createAsyncThunk(
   "customers/deleteItem",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.deleteItem(uuid, token);
-  }
+  },
 );
 
 export const update = createAsyncThunk(
   "customers/update",
-  async (requestData: CustomerUserInput, {getState}) => {
+  async (requestData: CustomerUserInput, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.update(requestData, token);
-  }
-)
+  },
+);
 
 export const list = createAsyncThunk(
   "customers/list",
-  async (query: string | null, {getState}) => {
+  async (query: string | null, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.list(query, token);
-  }
-)
+  },
+);
 
 export const get = createAsyncThunk(
   "customers/get",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.get(uuid, token);
-  }
-)
+  },
+);
 
 export const get_resolved = createAsyncThunk(
   "customers/get_resolved",
-  async (uuid: string, {getState}) => {
+  async (uuid: string, { getState }) => {
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.get_resolved(uuid, token);
-  }
-)
+  },
+);
 
 const customersSlice = createSlice({
   name: "customers",

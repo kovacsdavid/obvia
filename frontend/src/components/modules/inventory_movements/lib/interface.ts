@@ -22,7 +22,7 @@ import type {
   FormError,
   PaginatedDataResponse,
   SimpleError,
-  SimpleMessageData
+  SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface InventoryMovementUserInput {
@@ -69,9 +69,22 @@ export interface InventoryMovementResolved {
   created_at: string;
 }
 
-export type CreateInventoryMovementResponse = CommonResponse<InventoryMovement, FormError>;
-export type DeleteInventoryMovementResponse = CommonResponse<SimpleMessageData, SimpleError>;
-export type InventoryMovementResponse = CommonResponse<InventoryMovement, SimpleError>;
-export type InventoryMovementResolvedResponse = CommonResponse<InventoryMovementResolved, SimpleError>;
+export type CreateInventoryMovementResponse = CommonResponse<
+  InventoryMovement,
+  FormError
+>;
+export type DeleteInventoryMovementResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
+export type InventoryMovementResponse = CommonResponse<
+  InventoryMovement,
+  SimpleError
+>;
+export type InventoryMovementResolvedResponse = CommonResponse<
+  InventoryMovementResolved,
+  SimpleError
+>;
 export type InventoryMovementResolvedList = InventoryMovementResolved[];
-export type PaginatedInventoryMovementResolvedListResponse = PaginatedDataResponse<InventoryMovementResolvedList, SimpleError>;
+export type PaginatedInventoryMovementResolvedListResponse =
+  PaginatedDataResponse<InventoryMovementResolvedList, SimpleError>;

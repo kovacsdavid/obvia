@@ -29,7 +29,7 @@ export function Footer() {
       >
         Forráskód
       </a>
-      {gitRevision && (" // ")}
+      {gitRevision && " // "}
       {gitRevision}
     </footer>
   );

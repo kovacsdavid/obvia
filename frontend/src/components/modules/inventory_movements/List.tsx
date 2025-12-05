@@ -17,27 +17,43 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useCallback, useEffect} from "react";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {deleteItem, list} from "@/components/modules/inventory_movements/lib/slice.ts";
-import type {InventoryMovementResolvedList} from "@/components/modules/inventory_movements/lib/interface.ts";
-import {Card, CardAction, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table.tsx";
-import {Button, GlobalError} from "@/components/ui";
-import {Paginator} from "@/components/ui/pagination.tsx";
-import {useDataDisplayCommon} from "@/hooks/use_data_display_common.ts";
-import type {SimpleError} from "@/lib/interfaces/common.ts";
-import {Eye, MoreHorizontal, Plus, Trash} from "lucide-react";
-import {formatDateToYMDHMS} from "@/lib/utils.ts";
-import {useParams} from "react-router";
-import {Link} from "react-router-dom";
+import React, { useCallback, useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  deleteItem,
+  list,
+} from "@/components/modules/inventory_movements/lib/slice.ts";
+import type { InventoryMovementResolvedList } from "@/components/modules/inventory_movements/lib/interface.ts";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table.tsx";
+import { Button, GlobalError } from "@/components/ui";
+import { Paginator } from "@/components/ui/pagination.tsx";
+import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
+import type { SimpleError } from "@/lib/interfaces/common.ts";
+import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { useParams } from "react-router";
+import { Link } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 
 export default function InventoryMovementsList() {
@@ -45,11 +61,17 @@ export default function InventoryMovementsList() {
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const [data, setData] = React.useState<InventoryMovementResolvedList>([]);
   const params = useParams();
-  const routeInventoryId = React.useMemo(() => params["inventoryId"] ?? "", [params]);
+  const routeInventoryId = React.useMemo(
+    () => params["inventoryId"] ?? "",
+    [params],
+  );
 
-  const updateSpecialQueryParams = useCallback((parsedQuery: Record<string, string | number>) => {
-    console.log(parsedQuery);
-  }, []);
+  const updateSpecialQueryParams = useCallback(
+    (parsedQuery: Record<string, string | number>) => {
+      console.log(parsedQuery);
+    },
+    [],
+  );
 
   const {
     //searchParams,
@@ -79,8 +101,8 @@ export default function InventoryMovementsList() {
       if (list.fulfilled.match(response)) {
         if (response.payload.statusCode === 200) {
           if (
-            typeof response.payload.jsonData.data !== "undefined"
-            && typeof response.payload.jsonData.meta !== "undefined"
+            typeof response.payload.jsonData.data !== "undefined" &&
+            typeof response.payload.jsonData.meta !== "undefined"
           ) {
             setPage(response.payload.jsonData.meta.page);
             setLimit(response.payload.jsonData.meta.limit);
@@ -88,15 +110,15 @@ export default function InventoryMovementsList() {
             setData(response.payload.jsonData.data);
           }
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error)
+          setErrors(response.payload.jsonData.error);
         } else {
           unexpectedError();
         }
       } else {
         unexpectedError();
       }
-    })
-  }, [dispatch, rawQuery, setPage, setLimit, setTotal])
+    });
+  }, [dispatch, rawQuery, setPage, setLimit, setTotal]);
 
   const handleDelete = (id: string) => {
     dispatch(deleteItem(id)).then(async (response) => {
@@ -106,7 +128,7 @@ export default function InventoryMovementsList() {
         }
       }
     });
-  }
+  };
 
   const resolveMovementType = (movementType: string): string => {
     switch (movementType) {
@@ -125,14 +147,14 @@ export default function InventoryMovementsList() {
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <Card>
         <CardHeader>
           <CardTitle>Készletmozgások</CardTitle>
           <CardAction>
             <Link to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}>
-              <Button style={{color: "green"}} variant="outline">
-                <Plus color="green"/> Új
+              <Button style={{ color: "green" }} variant="outline">
+                <Plus color="green" /> Új
               </Button>
             </Link>
           </CardAction>
@@ -141,7 +163,7 @@ export default function InventoryMovementsList() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead/>
+                <TableHead />
                 <TableHead>Típus</TableHead>
                 <TableHead>Mennyiség</TableHead>
                 <TableHead>Egységár</TableHead>
@@ -160,29 +182,36 @@ export default function InventoryMovementsList() {
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal/>
+                          <MoreHorizontal />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent side={"bottom"} align="start">
                         <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
                         <Link to={`/raktarkeszlet-mozgas/reszletek/${item.id}`}>
                           <DropdownMenuItem>
-                            <Eye/> Részletek
+                            <Eye /> Részletek
                           </DropdownMenuItem>
                         </Link>
-                        <DropdownMenuSeparator/>
-                        <DropdownMenuItem className={"cursor-pointer"} onClick={() => handleDelete(item.id)}>
-                          <Trash/> Törlés
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className={"cursor-pointer"}
+                          onClick={() => handleDelete(item.id)}
+                        >
+                          <Trash /> Törlés
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{resolveMovementType(item.movement_type)}</TableCell>
+                  <TableCell>
+                    {resolveMovementType(item.movement_type)}
+                  </TableCell>
                   <TableCell>{Math.abs(parseFloat(item.quantity))}</TableCell>
-                  <TableCell>{item.unit_price ?? 'N/A'}</TableCell>
-                  <TableCell>{item.total_price ?? 'N/A'}</TableCell>
-                  <TableCell>{item.tax ?? 'N/A'}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.movement_date)}</TableCell>
+                  <TableCell>{item.unit_price ?? "N/A"}</TableCell>
+                  <TableCell>{item.total_price ?? "N/A"}</TableCell>
+                  <TableCell>{item.tax ?? "N/A"}</TableCell>
+                  <TableCell>
+                    {formatDateToYMDHMS(item.movement_date)}
+                  </TableCell>
                   <TableCell>{item.created_by}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                 </TableRow>

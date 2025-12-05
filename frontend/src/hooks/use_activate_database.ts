@@ -17,23 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {activate} from "@/components/modules/databases/lib/slice.ts";
-import {useAppDispatch} from "@/store/hooks.ts";
-import {updateToken} from "@/components/modules/auth/lib/slice.ts";
+import { activate } from "@/components/modules/databases/lib/slice.ts";
+import { useAppDispatch } from "@/store/hooks.ts";
+import { updateToken } from "@/components/modules/auth/lib/slice.ts";
 
 export function useActivateDatabase() {
   const dispatch = useAppDispatch();
   return async (new_tenant_id: string): Promise<boolean> => {
     return dispatch(activate(new_tenant_id)).then(async (response) => {
       if (
-        activate.fulfilled.match(response)
-        && response.payload.statusCode === 200
-        && typeof response.payload.jsonData.data !== 'undefined'
+        activate.fulfilled.match(response) &&
+        response.payload.statusCode === 200 &&
+        typeof response.payload.jsonData.data !== "undefined"
       ) {
         dispatch(updateToken(response.payload.jsonData.data));
         return true;
       }
       return false;
-    })
-  }
+    });
+  };
 }

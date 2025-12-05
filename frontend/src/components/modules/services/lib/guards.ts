@@ -33,123 +33,107 @@ import type {
   ServiceResolvedList,
   ServiceResolvedResponse,
   ServiceResponse,
-  UpdateServiceResponse
+  UpdateServiceResponse,
 } from "@/components/modules/services/lib/interface.ts";
 
-export function isCreateServiceResponse(data: unknown): data is CreateServiceResponse {
-  return isCommonResponse(
-    data,
-    isService,
-    isFormError
-  )
+export function isCreateServiceResponse(
+  data: unknown,
+): data is CreateServiceResponse {
+  return isCommonResponse(data, isService, isFormError);
 }
 
-export function isUpdateServiceResponse(data: unknown): data is UpdateServiceResponse {
-  return isCommonResponse(
-    data,
-    isService,
-    isFormError
-  )
+export function isUpdateServiceResponse(
+  data: unknown,
+): data is UpdateServiceResponse {
+  return isCommonResponse(data, isService, isFormError);
 }
 
-export function isDeleteServiceResponse(data: unknown): data is DeleteServiceResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError
-  )
+export function isDeleteServiceResponse(
+  data: unknown,
+): data is DeleteServiceResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }
 
 export function isServiceResolved(data: unknown): data is ServiceResolved {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
-    'id' in data &&
-    typeof data.id === 'string' &&
-    'name' in data &&
-    typeof data.name === 'string' &&
-    'description' in data &&
-    (data.description === null || typeof data.description === 'string') &&
-    'default_price' in data &&
-    (data.default_price === null || typeof data.default_price === 'string') &&
-    'default_tax_id' in data &&
-    (data.default_tax_id === null || typeof data.default_tax_id === 'string') &&
-    'default_tax' in data &&
-    (data.default_tax === null || typeof data.default_tax === 'string') &&
-    'currency_code' in data &&
-    (data.currency_code === null || typeof data.currency_code === 'string') &&
-    'status' in data &&
-    typeof data.status === 'string' &&
-    'created_by_id' in data &&
-    typeof data.created_by_id === 'string' &&
-    'created_by' in data &&
-    typeof data.created_by === 'string' &&
-    'created_at' in data &&
-    typeof data.created_at === 'string' &&
-    'updated_at' in data &&
-    typeof data.updated_at === 'string' &&
-    'deleted_at' in data &&
-    (data.deleted_at === null || typeof data.deleted_at === 'string')
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "default_price" in data &&
+    (data.default_price === null || typeof data.default_price === "string") &&
+    "default_tax_id" in data &&
+    (data.default_tax_id === null || typeof data.default_tax_id === "string") &&
+    "default_tax" in data &&
+    (data.default_tax === null || typeof data.default_tax === "string") &&
+    "currency_code" in data &&
+    (data.currency_code === null || typeof data.currency_code === "string") &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
   );
 }
 
-export function isServiceResolvedResponse(data: unknown): data is ServiceResolvedResponse {
-  return isCommonResponse(
-    data,
-    isServiceResolved,
-    isSimpleError
-  )
+export function isServiceResolvedResponse(
+  data: unknown,
+): data is ServiceResolvedResponse {
+  return isCommonResponse(data, isServiceResolved, isSimpleError);
 }
 
-export function isServiceResolvedList(data: unknown): data is ServiceResolvedList {
-  return (
-    Array.isArray(data) &&
-    data.every(item => isServiceResolved(item))
-  );
+export function isServiceResolvedList(
+  data: unknown,
+): data is ServiceResolvedList {
+  return Array.isArray(data) && data.every((item) => isServiceResolved(item));
 }
 
 export function isPaginatedServiceResolvedListResponse(
-  data: unknown
+  data: unknown,
 ): data is PaginatedServiceResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isServiceResolvedList
-  );
+  return isPaginatedDataResponse(data, isServiceResolvedList);
 }
 
 export function isService(data: unknown): data is Service {
   return (
-    typeof data === 'object' &&
+    typeof data === "object" &&
     data !== null &&
-    'id' in data &&
-    typeof data.id === 'string' &&
-    'name' in data &&
-    typeof data.name === 'string' &&
-    'description' in data &&
-    (data.description === null || typeof data.description === 'string') &&
-    'default_price' in data &&
-    (data.default_price === null || typeof data.default_price === 'string') &&
-    'default_tax_id' in data &&
-    (data.default_tax_id === null || typeof data.default_tax_id === 'string') &&
-    'currency_code' in data &&
-    (data.currency_code === null || typeof data.currency_code === 'string') &&
-    'status' in data &&
-    typeof data.status === 'string' &&
-    'created_by_id' in data &&
-    typeof data.created_by_id === 'string' &&
-    'created_at' in data &&
-    typeof data.created_at === 'string' &&
-    'updated_at' in data &&
-    typeof data.updated_at === 'string' &&
-    'deleted_at' in data &&
-    (data.deleted_at === null || typeof data.deleted_at === 'string')
+    "id" in data &&
+    typeof data.id === "string" &&
+    "name" in data &&
+    typeof data.name === "string" &&
+    "description" in data &&
+    (data.description === null || typeof data.description === "string") &&
+    "default_price" in data &&
+    (data.default_price === null || typeof data.default_price === "string") &&
+    "default_tax_id" in data &&
+    (data.default_tax_id === null || typeof data.default_tax_id === "string") &&
+    "currency_code" in data &&
+    (data.currency_code === null || typeof data.currency_code === "string") &&
+    "status" in data &&
+    typeof data.status === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_at" in data &&
+    typeof data.created_at === "string" &&
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
   );
 }
 
 export function isServiceResponse(data: unknown): data is ServiceResponse {
-  return isCommonResponse(
-    data,
-    isService,
-    isSimpleError
-  )
+  return isCommonResponse(data, isService, isSimpleError);
 }

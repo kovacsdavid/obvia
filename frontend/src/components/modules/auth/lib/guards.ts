@@ -33,7 +33,7 @@ import type {
   LoginResponse,
   LoginUser,
   RegisterResponse,
-  VerifyEmailResponse
+  VerifyEmailResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 
 export function isClaims(data: unknown): data is Claims {
@@ -60,11 +60,7 @@ export function isClaims(data: unknown): data is Claims {
 }
 
 export function isClaimsResponse(data: unknown): data is ClaimsResponse {
-  return isCommonResponse(
-    data,
-    isClaims,
-    isSimpleError,
-  )
+  return isCommonResponse(data, isClaims, isSimpleError);
 }
 
 export function isLoginUser(data: unknown): data is LoginUser {
@@ -82,7 +78,8 @@ export function isLoginUser(data: unknown): data is LoginUser {
     "status" in data &&
     typeof data.status === "string" &&
     "profile_picture_url" in data &&
-    (data.profile_picture_url === null || typeof data.profile_picture_url === "string")
+    (data.profile_picture_url === null ||
+      typeof data.profile_picture_url === "string")
   );
 }
 
@@ -100,25 +97,23 @@ export function isLoginData(data: unknown): data is LoginData {
 }
 
 export function isLoginResponse(data: unknown): data is LoginResponse {
-  return isCommonResponse<LoginData, FormError>(
-    data,
-    isLoginData,
-    isFormError,
-  );
+  return isCommonResponse<LoginData, FormError>(data, isLoginData, isFormError);
 }
 
 export function isRegisterResponse(data: unknown): data is RegisterResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,
-    isFormError
-  )
+    isFormError,
+  );
 }
 
-export function isVerifyEmailResponse(data: unknown): data is VerifyEmailResponse {
+export function isVerifyEmailResponse(
+  data: unknown,
+): data is VerifyEmailResponse {
   return isCommonResponse<SimpleMessageData, SimpleError>(
     data,
     isSimpleMessageData,
-    isSimpleError
-  )
+    isSimpleError,
+  );
 }

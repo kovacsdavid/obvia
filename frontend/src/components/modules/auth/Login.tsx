@@ -17,16 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, {useState} from "react";
-import {useAppDispatch, useAppSelector} from "@/store/hooks.ts";
-import type {RootState} from "@/store";
-import {Button, GlobalError, Input, Label} from "@/components/ui";
-import {useNavigate} from 'react-router-dom'
-import {useAuth} from "@/context/AuthContext.tsx";
-import {loginUser} from "@/components/modules/auth/lib/slice.ts";
-import {type FormError} from "@/lib/interfaces/common.ts";
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx";
-import {isLoginResponse} from "@/components/modules/auth/lib/guards.ts";
+import React, { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
+import type { RootState } from "@/store";
+import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext.tsx";
+import { loginUser } from "@/components/modules/auth/lib/slice.ts";
+import { type FormError } from "@/lib/interfaces/common.ts";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card.tsx";
+import { isLoginResponse } from "@/components/modules/auth/lib/guards.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -34,7 +39,7 @@ export default function Login() {
   const status = useAppSelector((state: RootState) => state.auth.login.status);
   const [errors, setErrors] = useState<FormError | null>(null);
   const navigate = useNavigate();
-  const {login} = useAuth();
+  const { login } = useAuth();
   const dispatch = useAppDispatch();
   const loading = status === "loading";
 
@@ -53,16 +58,16 @@ export default function Login() {
                 const user = responseData?.data?.user;
                 const token = responseData?.data?.token;
                 if (
-                  typeof user !== "undefined"
-                  && typeof token !== "undefined"
-                  && typeof claims !== "undefined"
+                  typeof user !== "undefined" &&
+                  typeof token !== "undefined" &&
+                  typeof claims !== "undefined"
                 ) {
-                  dispatch(loginUser({token, user, claims}))
-                  navigate('/adatbazis/letrehozas');
+                  dispatch(loginUser({ token, user, claims }));
+                  navigate("/adatbazis/letrehozas");
                 } else {
                   setErrors({
                     message: "Váratlan hiba történt a feldolgozás során!",
-                    fields: {}
+                    fields: {},
                   });
                 }
               }
@@ -75,12 +80,12 @@ export default function Login() {
               if (typeof message !== "undefined") {
                 setErrors({
                   message,
-                  fields: {}
+                  fields: {},
                 });
               } else {
                 setErrors({
                   message: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {}
+                  fields: {},
                 });
               }
             }
@@ -88,7 +93,7 @@ export default function Login() {
         } catch {
           setErrors({
             message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {}
+            fields: {},
           });
         }
       }
@@ -97,20 +102,24 @@ export default function Login() {
 
   return (
     <>
-      <GlobalError error={errors}/>
+      <GlobalError error={errors} />
       <Card className={"max-w-lg mx-auto"}>
         <CardHeader>
           <CardTitle>Bejelentkezés</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4" autoComplete={"off"}>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={"off"}
+          >
             <Label htmlFor="email">Email</Label>
             <Input
               type="text"
               autoComplete="email"
               value={email}
               onFocus={() => setErrors(null)}
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
             />
             <Label htmlFor="password">Jelszó</Label>
             <Input
@@ -118,7 +127,7 @@ export default function Login() {
               autoComplete="current-password"
               onFocus={() => setErrors(null)}
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" disabled={loading}>
               {loading ? "Bejelentkezés..." : "Bejelentkezés"}

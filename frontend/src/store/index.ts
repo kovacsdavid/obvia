@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {configureStore} from "@reduxjs/toolkit";
-import {combineReducers} from "redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { combineReducers } from "redux";
 import authReducer from "@/components/modules/auth/lib/slice.ts";
 import tenantsReducer from "@/components/modules/databases/lib/slice.ts";
 import customersReducer from "@/components/modules/customers/lib/slice.ts";
@@ -32,7 +32,7 @@ import warehousesReducer from "@/components/modules/warehouses/lib/slice.ts";
 import worksheetsReducer from "@/components/modules/worksheets/lib/slice.ts";
 import inventoryMovementsReducer from "@/components/modules/inventory_movements/lib/slice.ts";
 import storage from "redux-persist/lib/storage";
-import {persistReducer, persistStore} from "redux-persist";
+import { persistReducer, persistStore } from "redux-persist";
 import authMiddleware from "@/store/middleware/authMiddleware.ts";
 
 const rootReducer = combineReducers({
@@ -48,13 +48,13 @@ const rootReducer = combineReducers({
   users: usersReducer,
   warehouses: warehousesReducer,
   worksheets: worksheetsReducer,
-})
+});
 
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth"]
-}
+  whitelist: ["auth"],
+};
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
@@ -62,8 +62,8 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false
-    }).concat(authMiddleware)
+      serializableCheck: false,
+    }).concat(authMiddleware),
 });
 
 export const persistor = persistStore(store);

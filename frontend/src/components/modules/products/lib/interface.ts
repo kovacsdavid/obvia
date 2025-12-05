@@ -22,49 +22,57 @@ import {
   type FormError,
   type PaginatedDataResponse,
   type SimpleError,
-  type SimpleMessageData
+  type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface ProductUserInput {
-  id: string | null
-  name: string
-  description: string
-  unitOfMeasureId: string
-  newUnitOfMeasure: string
-  status: string
+  id: string | null;
+  name: string;
+  description: string;
+  unitOfMeasureId: string;
+  newUnitOfMeasure: string;
+  status: string;
 }
 
 export interface Product {
-  id: string,
-  name: string,
-  description: string | null,
-  unit_of_measure_id: string,
-  status: string,
-  created_by_id: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  description: string | null;
+  unit_of_measure_id: string;
+  status: string;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export interface ProductResolved {
-  id: string,
-  name: string,
-  description: string | null,
-  unit_of_measure_id: string,
-  unit_of_measure: string,
-  status: string,
-  created_by_id: string,
-  created_by: string,
-  created_at: string,
-  updated_at: string,
-  deleted_at: string | null,
+  id: string;
+  name: string;
+  description: string | null;
+  unit_of_measure_id: string;
+  unit_of_measure: string;
+  status: string;
+  created_by_id: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
 }
 
 export type CreateProductResponse = CommonResponse<Product, FormError>;
 export type UpdateProductResponse = CommonResponse<Product, FormError>;
-export type DeleteProductResponse = CommonResponse<SimpleMessageData, SimpleError>;
+export type DeleteProductResponse = CommonResponse<
+  SimpleMessageData,
+  SimpleError
+>;
 export type ProductResponse = CommonResponse<Product, SimpleError>;
-export type ProductResolvedResponse = CommonResponse<ProductResolved, SimpleError>;
+export type ProductResolvedResponse = CommonResponse<
+  ProductResolved,
+  SimpleError
+>;
 export type ProductResolvedList = ProductResolved[];
-export type PaginatedProductResolvedListResponse = PaginatedDataResponse<ProductResolvedList, SimpleError>;
-
+export type PaginatedProductResolvedListResponse = PaginatedDataResponse<
+  ProductResolvedList,
+  SimpleError
+>;

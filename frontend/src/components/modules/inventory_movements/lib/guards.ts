@@ -22,7 +22,7 @@ import {
   isFormError,
   isPaginatedDataResponse,
   isSimpleError,
-  isSimpleMessageData
+  isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
   CreateInventoryMovementResponse,
@@ -32,10 +32,12 @@ import type {
   InventoryMovementResolvedList,
   InventoryMovementResolvedResponse,
   InventoryMovementResponse,
-  PaginatedInventoryMovementResolvedListResponse
+  PaginatedInventoryMovementResolvedListResponse,
 } from "@/components/modules/inventory_movements/lib/interface.ts";
 
-export function isInventoryMovementResolved(data: unknown): data is InventoryMovementResolved {
+export function isInventoryMovementResolved(
+  data: unknown,
+): data is InventoryMovementResolved {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -70,12 +72,10 @@ export function isInventoryMovementResolved(data: unknown): data is InventoryMov
   );
 }
 
-export function isInventoryMovementResolvedResponse(data: unknown): data is InventoryMovementResolvedResponse {
-  return isCommonResponse(
-    data,
-    isInventoryMovementResolved,
-    isSimpleError,
-  );
+export function isInventoryMovementResolvedResponse(
+  data: unknown,
+): data is InventoryMovementResolvedResponse {
+  return isCommonResponse(data, isInventoryMovementResolved, isSimpleError);
 }
 
 export function isInventoryMovement(data: unknown): data is InventoryMovement {
@@ -109,37 +109,35 @@ export function isInventoryMovement(data: unknown): data is InventoryMovement {
   );
 }
 
-export function isInventoryMovementResponse(data: unknown): data is InventoryMovementResponse {
-  return isCommonResponse(
-    data,
-    isInventoryMovement,
-    isSimpleError,
+export function isInventoryMovementResponse(
+  data: unknown,
+): data is InventoryMovementResponse {
+  return isCommonResponse(data, isInventoryMovement, isSimpleError);
+}
+
+export function isInventoryMovementResolvedList(
+  data: unknown,
+): data is InventoryMovementResolvedList {
+  return (
+    Array.isArray(data) &&
+    data.every((item) => isInventoryMovementResolved(item))
   );
 }
 
-export function isInventoryMovementResolvedList(data: unknown): data is InventoryMovementResolvedList {
-  return Array.isArray(data) && data.every(item => isInventoryMovementResolved(item));
+export function isPaginatedInventoryMovementResolvedListResponse(
+  data: unknown,
+): data is PaginatedInventoryMovementResolvedListResponse {
+  return isPaginatedDataResponse(data, isInventoryMovementResolvedList);
 }
 
-export function isPaginatedInventoryMovementResolvedListResponse(data: unknown): data is PaginatedInventoryMovementResolvedListResponse {
-  return isPaginatedDataResponse(
-    data,
-    isInventoryMovementResolvedList,
-  );
+export function isCreateInventoryMovementResponse(
+  data: unknown,
+): data is CreateInventoryMovementResponse {
+  return isCommonResponse(data, isInventoryMovement, isFormError);
 }
 
-export function isCreateInventoryMovementResponse(data: unknown): data is CreateInventoryMovementResponse {
-  return isCommonResponse(
-    data,
-    isInventoryMovement,
-    isFormError,
-  );
-}
-
-export function isDeleteInventoryMovementResponse(data: unknown): data is DeleteInventoryMovementResponse {
-  return isCommonResponse(
-    data,
-    isSimpleMessageData,
-    isSimpleError,
-  );
+export function isDeleteInventoryMovementResponse(
+  data: unknown,
+): data is DeleteInventoryMovementResponse {
+  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

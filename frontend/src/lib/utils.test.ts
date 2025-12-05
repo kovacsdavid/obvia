@@ -17,20 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {describe, expect, it} from "vitest";
-import {formatNumber, isValidNumber, parseNumber, query_encoder, query_parser} from "@/lib/utils.ts";
+import { describe, expect, it } from "vitest";
+import {
+  formatNumber,
+  isValidNumber,
+  parseNumber,
+  query_encoder,
+  query_parser,
+} from "@/lib/utils.ts";
 
 describe("query_parser", () => {
   it("should parse valid query", () => {
     const input = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
     const result = query_parser(input);
-    const expected_result = {page: 1, limit: 25, name: 'éáűú'};
+    const expected_result = { page: 1, limit: 25, name: "éáűú" };
     expect(result).toEqual(expected_result);
   });
   it("should skip empty values", () => {
     const input = "page%7Climit%3A%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
     const result = query_parser(input);
-    const expected_result = {name: 'éáűú'};
+    const expected_result = { name: "éáűú" };
     expect(result).toEqual(expected_result);
   });
   it("should handle whitespaces", () => {
@@ -40,25 +46,28 @@ describe("query_parser", () => {
     expect(result).toEqual(expected_result);
   });
   it("should trim whitespaces", () => {
-    const input = "page%3A1%20%20%20%20%20%20%20%7Climit%3A25%7Cname%3A%20%20%20%20%20%20%20%20%20%20%20%C3%A9%C3%A1%C5%B1%C3%BA";
+    const input =
+      "page%3A1%20%20%20%20%20%20%20%7Climit%3A25%7Cname%3A%20%20%20%20%20%20%20%20%20%20%20%C3%A9%C3%A1%C5%B1%C3%BA";
     const result = query_parser(input);
-    const expected_result = {page: 1, limit: 25, name: 'éáűú'};
+    const expected_result = { page: 1, limit: 25, name: "éáűú" };
     expect(result).toEqual(expected_result);
   });
 });
 
 describe("query_encoder", () => {
   it("should convert to valid query", () => {
-    const input = {page: 1, limit: 25, name: 'éáűú'};
+    const input = { page: 1, limit: 25, name: "éáűú" };
     const result = query_encoder(input);
-    const expected_result = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+    const expected_result =
+      "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
 
     expect(result).toEqual(expected_result);
   });
   it("should trim string values", () => {
-    const input = {page: 1, limit: 25, name: '   éáűú   '};
+    const input = { page: 1, limit: 25, name: "   éáűú   " };
     const result = query_encoder(input);
-    const expected_result = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+    const expected_result =
+      "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
 
     expect(result).toEqual(expected_result);
   });
@@ -67,13 +76,13 @@ describe("query_encoder", () => {
 describe("formatNumber", () => {
   describe("Empty values", () => {
     it("should return empty string for empty input when allowEmpty is true", () => {
-      expect(formatNumber("", {allowEmpty: true})).toBe("");
-      expect(formatNumber(null as any, {allowEmpty: true})).toBe("");
+      expect(formatNumber("", { allowEmpty: true })).toBe("");
+      expect(formatNumber(null as any, { allowEmpty: true })).toBe("");
     });
 
     it("should return '0' for empty input when allowEmpty is false", () => {
-      expect(formatNumber("", {allowEmpty: false})).toBe("0");
-      expect(formatNumber(null as any, {allowEmpty: false})).toBe("0");
+      expect(formatNumber("", { allowEmpty: false })).toBe("0");
+      expect(formatNumber(null as any, { allowEmpty: false })).toBe("0");
     });
   });
 
@@ -91,22 +100,26 @@ describe("formatNumber", () => {
 
   describe("Thousand separators", () => {
     it("should add thousand separators when enabled", () => {
-      expect(formatNumber(1234567, {showThousandSeparator: true})).toBe("1 234 567");
+      expect(formatNumber(1234567, { showThousandSeparator: true })).toBe(
+        "1 234 567",
+      );
     });
 
     it("should not add thousand separators when disabled", () => {
-      expect(formatNumber(1234567, {showThousandSeparator: false})).toBe("1234567");
+      expect(formatNumber(1234567, { showThousandSeparator: false })).toBe(
+        "1234567",
+      );
     });
   });
 
   describe("Decimal places", () => {
     it("should format decimal numbers with specified decimal places", () => {
-      expect(formatNumber(1234.5678, {decimalPlaces: 2})).toBe("1 234,57");
-      expect(formatNumber(1234.5678, {decimalPlaces: 0})).toBe("1 235");
+      expect(formatNumber(1234.5678, { decimalPlaces: 2 })).toBe("1 234,57");
+      expect(formatNumber(1234.5678, { decimalPlaces: 0 })).toBe("1 235");
     });
 
     it("should add trailing zeros when needed", () => {
-      expect(formatNumber(1234.5, {decimalPlaces: 2})).toBe("1 234,50");
+      expect(formatNumber(1234.5, { decimalPlaces: 2 })).toBe("1 234,50");
     });
   });
 
@@ -122,7 +135,7 @@ describe("formatNumber", () => {
     });
 
     it("should handle very small decimals", () => {
-      expect(formatNumber(0.000001, {decimalPlaces: 6})).toBe("0,000001");
+      expect(formatNumber(0.000001, { decimalPlaces: 6 })).toBe("0,000001");
     });
 
     it("should handle numbers with existing formatting", () => {

@@ -9,6 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
+    "fmt": "npx prettier . --write",
     "fmt-check": "npx prettier . --check"
   },
   "dependencies": {

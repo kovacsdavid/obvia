@@ -78,7 +78,7 @@ export default function Create() {
         <FieldError error={errors} field={"fist_name"} />
         <Label htmlFor="phone">Telefonszám</Label>
         <Input
-                    id="phone"
+          id="phone"
           type="text"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}

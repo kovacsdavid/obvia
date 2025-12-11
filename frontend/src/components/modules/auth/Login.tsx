@@ -21,7 +21,7 @@ import React, { useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.tsx";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
@@ -135,6 +135,11 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+      <div className="text-center mt-3">
+        <Link to="/elfelejtett_jelszo">
+          <span className="text-xs">Elfelejtetted a jelszavad?</span>
+        </Link>
+      </div>
     </>
   );
 }

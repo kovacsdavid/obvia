@@ -21,11 +21,6 @@ use super::{
     AuthModule,
     dto::{claims::Claims, login::LoginResponse, login::UserPublic},
 };
-use crate::common::{
-    MailTransporter,
-    error::{FriendlyError, RepositoryError},
-};
-use crate::common::{dto::GeneralError, error::IntoFriendlyError};
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::{
     common::types::value_object::ValueObjectable,
@@ -33,6 +28,17 @@ use crate::{
         auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
         users::model::User,
     },
+};
+use crate::{
+    common::{
+        MailTransporter,
+        error::{FriendlyError, RepositoryError},
+    },
+    manager::auth::model::ForgottenPassword,
+};
+use crate::{
+    common::{dto::GeneralError, error::IntoFriendlyError},
+    manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest},
 };
 use anyhow::Result;
 use argon2::{
@@ -257,11 +263,8 @@ impl AuthService {
         auth_module: Arc<dyn AuthModule>,
         payload: RegisterRequest,
     ) -> AuthServiceResult<()> {
-        let salt = SaltString::generate(&mut OsRng);
-        let password_hash = Argon2::default()
-            .hash_password(payload.password.extract().get_value().as_bytes(), &salt)
-            .map(|hash| hash.to_string())
-            .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
+        let password_hash =
+            Self::generate_password_hash(payload.password.extract().get_value().as_bytes())?;
 
         let user = auth_module
             .auth_repo()
@@ -280,6 +283,12 @@ impl AuthService {
             .await?;
         Self::send_email_verification(auth_module, &user, email_verification).await?;
         Ok(())
+    }
+    fn generate_password_hash(password: &[u8]) -> AuthServiceResult<String> {
+        Argon2::default()
+            .hash_password(password, &SaltString::generate(&mut OsRng))
+            .map(|hash| hash.to_string())
+            .map_err(|e| AuthServiceError::Hash(e.to_string()))
     }
     pub async fn verify_email(
         auth_module: Arc<dyn AuthModule>,
@@ -332,6 +341,104 @@ impl AuthService {
         let hostname = auth_module.config().server().hostname().to_owned();
         let verification_uuid = email_verification.id;
         let verification_link = format!("https://{hostname}/email_megerosites/{verification_uuid}");
+        let email =
+            Message::builder()
+                .from(Mailbox::new(
+                    Some(auth_module.config().mail().default_from_name().to_owned()),
+                    auth_module.config().mail().default_from().parse().map_err(
+                        |e: AddressError| AuthServiceError::MailTransport(e.to_string()),
+                    )?,
+                ))
+                .to(Mailbox::new(
+                    None,
+                    user.email.parse().map_err(|e: AddressError| {
+                        AuthServiceError::MailTransport(e.to_string())
+                    })?,
+                ))
+                .subject("Kérlek, erősítsd meg az e-mail címedet!")
+                .header(ContentType::TEXT_HTML)
+                .body(
+                    handlebars
+                        .render_template(
+                            r##"
+                <p style="font-weight: bold; margin-bottom: 25px;">
+                    Kedves {{last_name}} {{first_name}}!
+                </p>
+                <p>
+                    Kérlek a következő hivatkozásra kattintva erősítsd meg az e-mail címedet!<br>
+                    <a href="{{verification_link}}">{{verification_link}}</a>
+                </p>
+                "##,
+                            &json!({
+                                "last_name": user.last_name,
+                                "first_name": user.first_name,
+                                "verification_link": verification_link,
+                            }),
+                        )
+                        .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?,
+                )
+                .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?;
+
+        match auth_module.send(email).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
+        }
+    }
+
+    pub async fn forgotten_password(
+        auth_module: Arc<dyn AuthModule>,
+        payload: ForgottenPasswordRequest,
+    ) -> AuthServiceResult<()> {
+        let user = auth_module
+            .auth_repo()
+            .get_user_by_email(payload.email.extract().get_value())
+            .await?;
+        if user.is_active() {
+            let forgotten_password = auth_module
+                .auth_repo()
+                .insert_forgotten_password(user.id)
+                .await?;
+            Self::send_forgotten_password_email(auth_module, &user, forgotten_password).await?;
+            Ok(())
+        } else {
+            Err(AuthServiceError::UserInactive)
+        }
+    }
+    pub async fn new_password(
+        auth_module: Arc<dyn AuthModule>,
+        payload: NewPasswordRequest,
+    ) -> AuthServiceResult<()> {
+        let forgotten_password = auth_module
+            .auth_repo()
+            .get_forgotten_password(payload.token)
+            .await?;
+        let mut user = auth_module
+            .auth_repo()
+            .get_user_by_id(forgotten_password.user_id)
+            .await?;
+        if user.is_active() {
+            user.password_hash =
+                Self::generate_password_hash(payload.password.extract().get_value().as_bytes())?;
+            auth_module.auth_repo().update_user(user).await?;
+            auth_module
+                .auth_repo()
+                .invalidate_forgotten_password(forgotten_password.id)
+                .await?;
+            Ok(())
+        } else {
+            Err(AuthServiceError::UserInactive)
+        }
+    }
+    async fn send_forgotten_password_email(
+        auth_module: Arc<dyn AuthModule>,
+        user: &User,
+        forgotten_password: ForgottenPassword,
+    ) -> AuthServiceResult<()> {
+        let handlebars = Handlebars::new();
+        let hostname = auth_module.config().server().hostname().to_owned();
+        let forgotten_password_uuid = forgotten_password.id;
+        let forgotten_password_link =
+            format!("https://{hostname}/elfelejtett_jelszo/{forgotten_password_uuid}");
         let email = Message::builder()
             .from(Mailbox::new(
                 Some(auth_module.config().mail().default_from_name().to_owned()),
@@ -344,14 +451,12 @@ impl AuthService {
             ))
             .to(Mailbox::new(
                 None,
-                auth_module
-                    .config()
-                    .mail()
-                    .default_notification_email()
+                user
+                    .email
                     .parse()
                     .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
             ))
-            .subject("Kérlek, erősítsd meg az e-mail címedet!")
+            .subject("Elfelejtett jelszó")
             .header(ContentType::TEXT_HTML)
             .body(
                 handlebars
@@ -361,14 +466,20 @@ impl AuthService {
                     Kedves {{last_name}} {{first_name}}!
                 </p>
                 <p>
-                    Kérlek a következő hivatkozásra kattintva erősítsd meg az e-mail címedet!<br>
-                    <a href="{{verification_link}}">{{verification_link}}</a>
+                    A következő hivatkozásra kattintva megváltoztathatod a fiókodhoz tartozó jelszavadat.<br>
+                    Ha nem te kérted a jelszó emlékeztető e-mail-t, ne használd a hivatkozást 
+                    és értesítd a rendszergazdát a következő e-mail címen: {{admin_email}}!<br>
+                    <a href="{{forgotten_password_link}}">{{forgotten_password_link}}</a>
                 </p>
                 "##,
                         &json!({
                             "last_name": user.last_name,
                             "first_name": user.first_name,
-                            "verification_link": verification_link,
+                            "forgotten_password_link": forgotten_password_link,
+                            "admin_email": auth_module
+                            .config()
+                            .mail()
+                            .default_notification_email()
                         }),
                     )
                     .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?,

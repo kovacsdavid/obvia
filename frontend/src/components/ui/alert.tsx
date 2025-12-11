@@ -21,7 +21,7 @@ import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2Icon, Info } from "lucide-react";
 import type { FormError } from "@/lib/interfaces/common.ts";
 
 const alertVariants = cva(
@@ -84,6 +84,40 @@ function AlertDescription({
   );
 }
 
+interface GlobalNotificationProps {
+  message: string | null | undefined;
+}
+
+function GlobalNotification({ message }: GlobalNotificationProps) {
+  return (
+    <>
+      {typeof message === "string" ? (
+        <Alert className={"mb-5"}>
+          <Info />
+          <AlertDescription>{message}</AlertDescription>
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
+interface GlobalSuccessProps {
+  success: { message: string | null | undefined } | null;
+}
+
+function GlobalSuccess({ success }: GlobalSuccessProps) {
+  return (
+    <>
+      {typeof success?.message === "string" ? (
+        <Alert className={"mb-5"}>
+          <CheckCircle2Icon />
+          <AlertDescription>{success?.message}</AlertDescription>
+        </Alert>
+      ) : null}
+    </>
+  );
+}
+
 interface GlobalErrorProps {
   error: { message: string | null | undefined } | null;
 }
@@ -122,4 +156,12 @@ function FieldError({ error, field }: FieldErrorProps) {
   );
 }
 
-export { Alert, AlertTitle, AlertDescription, GlobalError, FieldError };
+export {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+  GlobalError,
+  GlobalSuccess,
+  GlobalNotification,
+  FieldError,
+};

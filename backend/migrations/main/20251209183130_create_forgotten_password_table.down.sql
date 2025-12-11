@@ -17,14 +17,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-CREATE TABLE email_verifications (
-    id              uuid         primary key default uuid_generate_v4(),
-    user_id         uuid         not null,
-    valid_until     timestamptz  not null,
-    created_at      timestamptz  not null    default now(),
-    deleted_at      timestamptz,
-    foreign key (user_id) references users (id)
-);
-
-CREATE INDEX idx_email_verifications_user_id ON email_verifications (user_id);
+DROP TABLE IF EXISTS forgotten_passwords CASCADE;
 

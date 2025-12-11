@@ -21,7 +21,7 @@ use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::register::RegisterRequest;
-use crate::manager::auth::model::EmailVerification;
+use crate::manager::auth::model::{EmailVerification, ForgottenPassword};
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
@@ -119,6 +119,16 @@ pub trait AuthRepository: Send + Sync {
     async fn invalidate_email_verification(
         &self,
         email_verification_id: Uuid,
+    ) -> RepositoryResult<()>;
+    async fn insert_forgotten_password(&self, user_id: Uuid)
+    -> RepositoryResult<ForgottenPassword>;
+    async fn get_forgotten_password(
+        &self,
+        forgotten_password_id: Uuid,
+    ) -> RepositoryResult<ForgottenPassword>;
+    async fn invalidate_forgotten_password(
+        &self,
+        forgotten_password_id: Uuid,
     ) -> RepositoryResult<()>;
 }
 
@@ -253,6 +263,40 @@ impl AuthRepository for PgPoolManager {
     ) -> RepositoryResult<()> {
         let _ = sqlx::query("UPDATE email_verifications SET deleted_at = NOW() WHERE id = $1")
             .bind(email_verification_id)
+            .execute(&self.get_main_pool())
+            .await?;
+        Ok(())
+    }
+    async fn insert_forgotten_password(
+        &self,
+        user_id: Uuid,
+    ) -> RepositoryResult<ForgottenPassword> {
+        Ok(sqlx::query_as::<_, ForgottenPassword>(
+            "INSERT INTO forgotten_passwords (
+                    user_id, valid_until
+            ) VALUES ($1, NOW() + '1 hour'::interval) RETURNING *",
+        )
+        .bind(user_id)
+        .fetch_one(&self.get_main_pool())
+        .await?)
+    }
+    async fn get_forgotten_password(
+        &self,
+        forgotten_password_id: Uuid,
+    ) -> RepositoryResult<ForgottenPassword> {
+        Ok(sqlx::query_as::<_, ForgottenPassword>(
+            "SELECT * FROM forgotten_passwords WHERE id = $1 AND valid_until > NOW() AND deleted_at IS NULL",
+        )
+        .bind(forgotten_password_id)
+        .fetch_one(&self.get_main_pool())
+        .await?)
+    }
+    async fn invalidate_forgotten_password(
+        &self,
+        forgotten_password_id: Uuid,
+    ) -> RepositoryResult<()> {
+        let _ = sqlx::query("UPDATE forgotten_passwords SET deleted_at = NOW() WHERE id = $1")
+            .bind(forgotten_password_id)
             .execute(&self.get_main_pool())
             .await?;
         Ok(())

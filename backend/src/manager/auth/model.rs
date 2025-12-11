@@ -30,3 +30,12 @@ pub struct EmailVerification {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ForgottenPassword {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub valid_until: DateTime<Local>,
+    pub created_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
+}

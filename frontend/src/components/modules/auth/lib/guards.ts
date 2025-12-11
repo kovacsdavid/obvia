@@ -29,9 +29,11 @@ import {
 import type {
   Claims,
   ClaimsResponse,
+  ForgottenPasswordResponse,
   LoginData,
   LoginResponse,
   LoginUser,
+  NewPasswordResponse,
   RegisterResponse,
   VerifyEmailResponse,
 } from "@/components/modules/auth/lib/interface.ts";
@@ -115,5 +117,25 @@ export function isVerifyEmailResponse(
     data,
     isSimpleMessageData,
     isSimpleError,
+  );
+}
+
+export function isForgottenPasswordResponse(
+  data: unknown,
+): data is ForgottenPasswordResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
+    isFormError,
+  );
+}
+
+export function isNewPasswordResponse(
+  data: unknown,
+): data is NewPasswordResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
+    isFormError,
   );
 }

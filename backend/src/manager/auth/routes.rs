@@ -17,7 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::handler::{get_claims, login, register, resend_email_verification, verify_email};
+use super::handler::{
+    forgotten_password, get_claims, login, new_password, register, resend_email_verification,
+    verify_email,
+};
 use crate::manager::auth::AuthModule;
 use axum::{
     Router,
@@ -47,6 +50,8 @@ pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
             .route("/get_claims", get(get_claims))
             .route("/verify_email", get(verify_email))
             .route("/resend_email_verification", get(resend_email_verification))
+            .route("/forgotten_password", post(forgotten_password))
+            .route("/new_password", post(new_password))
             .with_state(auth_module),
     )
 }

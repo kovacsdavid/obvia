@@ -22,7 +22,9 @@ use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, Succes
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
 use crate::manager::auth::dto::register::{
-    RegisterRequestHelper, ResendEmailValidationRequest, ResendEmailValidationRequestHelper,
+    ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
+    NewPasswordRequestHelper, RegisterRequestHelper, ResendEmailValidationRequest,
+    ResendEmailValidationRequestHelper,
 };
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -176,6 +178,48 @@ pub async fn get_claims(
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(claims)
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+pub async fn forgotten_password(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
+) -> HandlerResult {
+    match AuthService::forgotten_password(auth_module.clone(), user_input).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A jelszó emlékeztető e-mail kiküldése sikeresen megtörtént",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+pub async fn new_password(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
+) -> HandlerResult {
+    match AuthService::new_password(auth_module.clone(), user_input).await {
+        Ok(_) => (),
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A jelszó megváltoztatása sikeresen megtörtént",
+        ))
         .build()
     {
         Ok(success) => Ok(success.into_response()),

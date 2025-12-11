@@ -25,7 +25,9 @@ import {
 import * as authApi from "@/components/modules/auth/lib/service.ts";
 import type {
   Claims,
+  ForgottenPasswordRequest,
   LoginRequest,
+  NewPasswordRequest,
   RegisterRequest,
 } from "@/components/modules/auth/lib/interface.ts";
 import type { RootState } from "@/store";
@@ -99,6 +101,20 @@ export const verfiy_email = createAsyncThunk(
   "auth/verfiy_email",
   async (id: string) => {
     return await authApi.verfiy_email(id);
+  },
+);
+
+export const forgottenPassword = createAsyncThunk(
+  "auth/forgottenPassword",
+  async (forgottenPasswordRequest: ForgottenPasswordRequest) => {
+    return await authApi.forgottenPassword(forgottenPasswordRequest);
+  },
+);
+
+export const newPassword = createAsyncThunk(
+  "auth/newPassword",
+  async (newPasswordRequest: NewPasswordRequest) => {
+    return await authApi.newPassword(newPasswordRequest);
   },
 );
 

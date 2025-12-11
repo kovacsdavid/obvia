@@ -24,7 +24,11 @@ import {
 } from "@/services/utils/consts.ts";
 import {
   type ClaimsResponse,
+  type ForgottenPasswordRequest,
+  type ForgottenPasswordResponse,
   type LoginRequest,
+  type NewPasswordRequest,
+  type NewPasswordResponse,
   type RegisterRequest,
   type RegisterResponse,
   type VerifyEmailResponse,
@@ -35,6 +39,8 @@ import {
 } from "@/lib/interfaces/common.ts";
 import {
   isClaimsResponse,
+  isForgottenPasswordResponse,
+  isNewPasswordResponse,
   isRegisterResponse,
   isVerifyEmailResponse,
 } from "@/components/modules/auth/lib/guards.ts";
@@ -108,6 +114,48 @@ export async function verfiy_email(
   }).then(async (response: Response) => {
     return (
       (await ProcessResponse(response, isVerifyEmailResponse)) ??
+      unexpectedError
+    );
+  });
+}
+
+export async function forgottenPassword(
+  forgottenPasswordRequest: ForgottenPasswordRequest,
+): Promise<ProcessedResponse<ForgottenPasswordResponse>> {
+  return await fetch(`/api/auth/forgotten_password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: forgottenPasswordRequest.email,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isForgottenPasswordResponse)) ??
+      unexpectedError
+    );
+  });
+}
+
+export async function newPassword(
+  newPasswordRequest: NewPasswordRequest,
+): Promise<ProcessedResponse<NewPasswordResponse>> {
+  return await fetch(`/api/auth/new_password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      token: newPasswordRequest.token,
+      password: newPasswordRequest.password,
+      password_confirm: newPasswordRequest.password_confirm,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isNewPasswordResponse)) ??
       unexpectedError
     );
   });

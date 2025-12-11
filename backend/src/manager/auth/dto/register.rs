@@ -23,6 +23,7 @@ use ::serde::Serialize;
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
 use std::fmt::{Display, Formatter};
+use uuid::Uuid;
 
 /// This is a helper struct for registration requests.
 ///
@@ -272,6 +273,139 @@ impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationReques
         if error.is_empty() {
             Ok(ResendEmailValidationRequest {
                 email: email_result.map_err(|_| ResendEmailValidationError::default())?,
+            })
+        } else {
+            Err(error)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+pub struct ForgottenPasswordRequestHelper {
+    pub email: String,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct ForgottenPasswordRequestError {
+    pub email: Option<String>,
+}
+
+impl ForgottenPasswordRequestError {
+    pub fn is_empty(&self) -> bool {
+        self.email.is_none()
+    }
+}
+
+impl Display for ForgottenPasswordRequestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "ForgottenPasswordRequestError: {}", json),
+            Err(e) => write!(f, "ForgottenPasswordRequestError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for ForgottenPasswordRequestError {}
+
+impl IntoResponse for ForgottenPasswordRequestError {
+    fn into_response(self) -> Response {
+        self.get_error_response()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub struct ForgottenPasswordRequest {
+    pub email: ValueObject<Email>,
+}
+
+impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
+    type Error = ForgottenPasswordRequestError;
+
+    fn try_from(value: ForgottenPasswordRequestHelper) -> Result<Self, Self::Error> {
+        let mut error = ForgottenPasswordRequestError::default();
+
+        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+            error.email = Some(e.to_string());
+        });
+
+        if error.is_empty() {
+            Ok(ForgottenPasswordRequest {
+                email: email_result.map_err(|_| ForgottenPasswordRequestError::default())?,
+            })
+        } else {
+            Err(error)
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+pub struct NewPasswordRequestHelper {
+    pub token: String,
+    pub password: String,
+    pub password_confirm: String,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct NewPasswordRequestError {
+    pub token: Option<String>,
+    pub password: Option<String>,
+    pub password_confirm: Option<String>,
+}
+
+impl NewPasswordRequestError {
+    pub fn is_empty(&self) -> bool {
+        self.token.is_none() && self.password.is_none() && self.password_confirm.is_none()
+    }
+}
+
+impl Display for NewPasswordRequestError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "NewPasswordRequestError: {}", json),
+            Err(e) => write!(f, "NewPasswordRequestError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for NewPasswordRequestError {}
+
+impl IntoResponse for NewPasswordRequestError {
+    fn into_response(self) -> Response {
+        self.get_error_response()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone, Deserialize)]
+pub struct NewPasswordRequest {
+    pub token: Uuid,
+    pub password: ValueObject<Password>,
+}
+
+impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
+    type Error = NewPasswordRequestError;
+
+    fn try_from(value: NewPasswordRequestHelper) -> Result<Self, Self::Error> {
+        let mut error = NewPasswordRequestError::default();
+
+        let token_result = Uuid::parse_str(&value.token).inspect_err(|e| {
+            error.token = Some("Hibás azonosító".to_string());
+        });
+
+        let password_result = ValueObject::new(Password(value.password)).inspect_err(|e| {
+            error.password = Some(e.to_string());
+        });
+
+        if let Ok(password) = &password_result
+            && password.extract().get_value().clone() != value.password_confirm.clone()
+        {
+            error.password_confirm =
+                Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
+        }
+
+        if error.is_empty() {
+            Ok(NewPasswordRequest {
+                token: token_result.map_err(|_| NewPasswordRequestError::default())?,
+                password: password_result.map_err(|_| NewPasswordRequestError::default())?,
             })
         } else {
             Err(error)

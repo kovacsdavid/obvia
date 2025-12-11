@@ -21,6 +21,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import React from "react";
 import Login from "@/components/modules/auth/Login";
 import Register from "@/components/modules/auth/Register";
+import ForgottenPassword from "@/components/modules/auth/ForgottenPassword";
 import Dashboard from "@/components/modules/dashboard/Dashboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "./store";
@@ -86,6 +87,12 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   {
     path: "/email_megerosites/:id",
     element: EmailVerification,
+    isPrivate: false,
+  },
+  { path: "/elfelejtett_jelszo", element: ForgottenPassword, isPrivate: false },
+  {
+    path: "/elfelejtett_jelszo/:id",
+    element: ForgottenPassword,
     isPrivate: false,
   },
 

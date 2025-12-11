@@ -52,6 +52,16 @@ export interface LoginUser {
   profile_picture_url: string | null;
 }
 
+export interface ForgottenPasswordRequest {
+  email: string;
+}
+
+export interface NewPasswordRequest {
+  token: string;
+  password: string;
+  password_confirm: string;
+}
+
 export interface Claims {
   /** The subject of the token, which represents the user's unique identifier */
   sub: string;
@@ -85,3 +95,8 @@ export type VerifyEmailResponse = CommonResponse<
   SimpleMessageData,
   SimpleError
 >;
+export type ForgottenPasswordResponse = CommonResponse<
+  SimpleMessageData,
+  FormError
+>;
+export type NewPasswordResponse = CommonResponse<SimpleMessageData, FormError>;

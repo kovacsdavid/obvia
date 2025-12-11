@@ -19,6 +19,7 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPL
 FROM ubuntu:24.04
 WORKDIR /opt
 EXPOSE 3000
-COPY --from=builder /opt/migrations /opt/migrations
 COPY --from=builder /opt/obvia_backend /opt/obvia_backend
+RUN groupadd -r obvia && useradd -r -g obvia obvia
+USER obvia
 ENTRYPOINT ["/opt/obvia_backend"]

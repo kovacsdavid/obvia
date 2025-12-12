@@ -74,10 +74,10 @@ export default function View() {
 
   return (
     <>
-    <GlobalError error={errors} />
-    {data !== null ? (
-      <>
-      <Card className={"max-w-3xl mx-auto"}>
+      <GlobalError error={errors} />
+      {data !== null ? (
+        <>
+          <Card className={"max-w-3xl mx-auto"}>
             <CardHeader>
               <CardTitle>Vevő</CardTitle>
             </CardHeader>

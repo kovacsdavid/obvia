@@ -272,7 +272,17 @@ export default function Edit({
             </>
           )}
           <FieldError error={errors} field={"db_password"} />
-          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          <div className="text-right mt-8">
+            <Button
+              className="mr-3"
+              type="submit"
+              variant="outline"
+              onClick={() => navigate(-1)}
+            >
+              Mégse
+            </Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          </div>
         </form>
       </ConditionalCard>
     </>

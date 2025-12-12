@@ -215,7 +215,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: "#",
         items: [
           {
-            title: "Bejelentkezes",
+            title: "Bejelentkezés",
             url: "/bejelentkezes",
             publicOnly: true,
             needActiveDatabase: false,

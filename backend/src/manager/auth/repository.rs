@@ -109,6 +109,8 @@ pub trait AuthRepository: Send + Sync {
 
     async fn update_user(&self, user: User) -> RepositoryResult<User>;
 
+    async fn update_user_last_login_at(&self, user_id: Uuid) -> RepositoryResult<()>;
+
     async fn get_user_active_tenant(&self, user_id: Uuid) -> RepositoryResult<Option<UserTenant>>;
     async fn insert_email_verification(&self, user_id: Uuid)
     -> RepositoryResult<EmailVerification>;
@@ -207,6 +209,20 @@ impl AuthRepository for PgPoolManager {
         .bind(user.id)
         .fetch_one(&self.get_main_pool())
         .await?)
+    }
+
+    async fn update_user_last_login_at(&self, user_id: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE users
+            SET last_login_at = NOW()
+            WHERE id = $1
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.get_main_pool())
+        .await?;
+        Ok(())
     }
 
     async fn get_user_active_tenant(&self, user_id: Uuid) -> RepositoryResult<Option<UserTenant>> {

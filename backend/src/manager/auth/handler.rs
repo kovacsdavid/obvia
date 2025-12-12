@@ -294,6 +294,10 @@ mod tests {
             .with(eq(user_id2))
             .returning(|_| Ok(None));
 
+        repo.expect_update_user_last_login_at()
+            .with(eq(user_id2))
+            .returning(|_| Ok(()));
+
         let repo = Arc::new(repo);
 
         let mut auth_module = MockAuthModule::new();
@@ -628,6 +632,10 @@ mod tests {
                     deleted_at: None,
                 }))
             });
+
+        repo.expect_update_user_last_login_at()
+            .with(eq(user_id2))
+            .returning(|_| Ok(()));
 
         let repo = Arc::new(repo);
 

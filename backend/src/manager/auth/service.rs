@@ -204,6 +204,11 @@ impl AuthService {
             .verify_password(payload.password.as_bytes(), &parsed_hash)
             .map_err(|_| AuthServiceError::InvalidPassword)?;
 
+        auth_module
+            .auth_repo()
+            .update_user_last_login_at(user.id)
+            .await?;
+
         let now = Utc::now().timestamp() as usize;
         let exp = (Utc::now()
             + Duration::minutes(auth_module.config().auth().jwt_expiration_mins() as i64))

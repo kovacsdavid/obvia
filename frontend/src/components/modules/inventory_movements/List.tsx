@@ -44,7 +44,7 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import type { SimpleError } from "@/lib/interfaces/common.ts";
 import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import {
@@ -205,10 +205,20 @@ export default function InventoryMovementsList() {
                   <TableCell>
                     {resolveMovementType(item.movement_type)}
                   </TableCell>
-                  <TableCell>{Math.abs(parseFloat(item.quantity))}</TableCell>
-                  <TableCell>{item.unit_price ?? "N/A"}</TableCell>
-                  <TableCell>{item.total_price ?? "N/A"}</TableCell>
-                  <TableCell>{item.tax ?? "N/A"}</TableCell>
+                  <TableCell>
+                    {parseFloat(item.quantity)
+                      ? Math.abs(parseFloat(item.quantity))
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {item.unit_price ? formatNumber(item.unit_price) : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {item.total_price ? formatNumber(item.total_price) : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {item.tax ? formatNumber(item.tax) : "N/A"}
+                  </TableCell>
                   <TableCell>
                     {formatDateToYMDHMS(item.movement_date)}
                   </TableCell>

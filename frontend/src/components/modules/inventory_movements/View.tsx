@@ -99,7 +99,11 @@ export default function View() {
                 </TableRow>
                 <TableRow>
                   <TableCell>Mennyiség</TableCell>
-                  <TableCell>{data.quantity}</TableCell>
+                  <TableCell>
+                    {parseFloat(data.quantity)
+                      ? Math.abs(parseFloat(data.quantity))
+                      : "N/A"}
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Egységár</TableCell>

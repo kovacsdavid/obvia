@@ -63,9 +63,9 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
     "customer" in data &&
     typeof data.customer === "string" &&
     "project_id" in data &&
-    typeof data.project_id === "string" &&
+    (data.project_id === null || typeof data.project_id === "string") &&
     "project" in data &&
-    typeof data.project === "string" &&
+    (data.project === null || typeof data.project === "string") &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "created_by" in data &&
@@ -114,7 +114,7 @@ export function isWorksheet(data: unknown): data is Worksheet {
     "customer_id" in data &&
     typeof data.customer_id === "string" &&
     "project_id" in data &&
-    typeof data.project_id === "string" &&
+    (data.project_id === null || typeof data.project_id === "string") &&
     "created_by_id" in data &&
     typeof data.created_by_id === "string" &&
     "status" in data &&

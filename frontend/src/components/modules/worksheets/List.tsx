@@ -185,7 +185,6 @@ export default function List() {
                 <TableHead>Név</TableHead>
                 <TableHead>Leírás</TableHead>
                 <TableHead>Vevő</TableHead>
-                <TableHead>Projekt</TableHead>
                 <TableHead>Nettó anyagköltség</TableHead>
                 <TableHead>Bruttó anyagköltség</TableHead>
                 <TableHead>Nettó munkadíj</TableHead>
@@ -233,7 +232,6 @@ export default function List() {
                     {item.description ? item.description : ""}
                   </TableCell>
                   <TableCell>{item.customer}</TableCell>
-                  <TableCell>{item.project}</TableCell>
                   <TableCell>{formatNumber(item.net_material_cost)}</TableCell>
                   <TableCell>
                     {formatNumber(item.gross_material_cost)}

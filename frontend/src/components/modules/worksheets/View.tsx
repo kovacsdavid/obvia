@@ -103,12 +103,6 @@ export default function View() {
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell>Projekt</TableCell>
-                    <TableCell>
-                      {data.project} ({data.project_id})
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
                     <TableCell>Nettó anyagköltség</TableCell>
                     <TableCell>
                       {formatNumber(data.net_material_cost)}

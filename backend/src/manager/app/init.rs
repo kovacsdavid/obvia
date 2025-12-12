@@ -57,7 +57,7 @@ pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
                     app_state.clone(),
                 ))
                 .merge(crate::tenant::products::routes::routes(app_state.clone()))
-                .merge(crate::tenant::projects::routes::routes(app_state.clone()))
+                //.merge(crate::tenant::projects::routes::routes(app_state.clone()))
                 .merge(crate::tenant::services::routes::routes(app_state.clone()))
                 .merge(crate::tenant::tags::routes::routes(app_state.clone()))
                 .merge(crate::tenant::tasks::routes::routes(app_state.clone()))

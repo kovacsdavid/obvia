@@ -39,7 +39,7 @@ export interface Worksheet {
   name: string;
   description: string | null;
   customer_id: string;
-  project_id: string;
+  project_id: string | null;
   created_by_id: string;
   status: string;
   created_at: string;
@@ -53,7 +53,7 @@ export interface WorksheetResolved {
   description: string | null;
   customer_id: string;
   customer: string;
-  project_id: string;
+  project_id: string | null;
   project: string;
   created_by_id: string;
   created_by: string;

@@ -34,15 +34,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError } from "@/components/ui";
+import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { ProjectResolved } from "@/components/modules/projects/lib/interface.ts";
+import { useNavigate } from "react-router-dom";
 
 export default function View() {
   const [data, setData] = React.useState<ProjectResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
+  const navigate = useNavigate();
 
   const unexpectedError = () => {
     setErrors({
@@ -124,6 +126,16 @@ export default function View() {
                   </TableRow>
                 </TableBody>
               </Table>
+              <div className="text-right mt-8">
+                <Button
+                  className="mr-3"
+                  type="submit"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                >
+                  Mégse
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </>

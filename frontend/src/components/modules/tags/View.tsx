@@ -34,15 +34,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError } from "@/components/ui";
+import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { TagResolved } from "@/components/modules/tags/lib/interface.ts";
+import { useNavigate } from "react-router-dom";
 
 export default function View() {
   const [data, setData] = React.useState<TagResolved | null>(null);
   const [errors, setErrors] = React.useState<SimpleError | null>(null);
   const dispatch = useAppDispatch();
   const params = useParams();
+  const navigate = useNavigate();
 
   const unexpectedError = () => {
     setErrors({
@@ -75,7 +77,7 @@ export default function View() {
       <GlobalError error={errors} />
       {data !== null ? (
         <>
-          <Card className={"max-w-lg mx-auto"}>
+          <Card className={"max-w-3xl mx-auto"}>
             <CardHeader>
               <CardTitle>Címke</CardTitle>
             </CardHeader>
@@ -104,6 +106,16 @@ export default function View() {
                   </TableRow>
                 </TableBody>
               </Table>
+              <div className="mt-8">
+                <Button
+                  className="mr-3"
+                  type="submit"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                >
+                  Vissza
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </>

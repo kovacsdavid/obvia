@@ -477,8 +477,17 @@ export default function Edit({
             onChange={(e) => setDueDate(e.target.value)}
           />
           <FieldError error={errors} field={"due_date"} />
-
-          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          <div className="text-right mt-8">
+            <Button
+              className="mr-3"
+              type="submit"
+              variant="outline"
+              onClick={() => navigate(-1)}
+            >
+              Mégse
+            </Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          </div>
         </form>
       </ConditionalCard>
     </>

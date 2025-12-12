@@ -342,7 +342,17 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"status"} />
-          <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          <div className="text-right mt-8">
+            <Button
+              className="mr-3"
+              type="submit"
+              variant="outline"
+              onClick={() => navigate(-1)}
+            >
+              Mégse
+            </Button>
+            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+          </div>
         </form>
       </ConditionalCard>
     </>

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
 import { registerUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
@@ -31,6 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
+import { useAuth } from "@/context/AuthContext.tsx";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -41,6 +42,7 @@ export default function Register() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { errors, setErrors, unexpectedError } = useFormError();
+  const { isLoggedIn } = useAuth();
 
   const handleRegistrationResponse = async (
     response: ProcessedResponse<RegisterResponse>,
@@ -53,6 +55,12 @@ export default function Register() {
       unexpectedError();
     }
   };
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/adatbazis/letrehozas");
+    }
+  }, [isLoggedIn, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

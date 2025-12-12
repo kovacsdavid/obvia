@@ -243,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
   };
   return (
-    <Sidebar collapsible={isMobile ? 'offcanvas' : 'icon'} {...props}>
+    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} {...props}>
       <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => {

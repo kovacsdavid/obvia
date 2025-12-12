@@ -183,6 +183,7 @@ export default function List() {
               <TableRow>
                 <TableHead />
                 <TableHead>Név</TableHead>
+                <TableHead>Típus</TableHead>
                 <TableHead>Kapcsolattartó neve</TableHead>
                 <TableHead>E-mail cím</TableHead>
                 <TableHead>Telefonszám</TableHead>
@@ -226,6 +227,11 @@ export default function List() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
+                  <TableCell>
+                    {item.customer_type === "natural"
+                      ? "Természetes személy"
+                      : "Jogi személy"}
+                  </TableCell>
                   <TableCell>
                     {item.contact_name ? item.contact_name : "N/A"}
                   </TableCell>

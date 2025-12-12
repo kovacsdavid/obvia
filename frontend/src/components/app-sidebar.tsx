@@ -243,7 +243,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
   };
   return (
-    <Sidebar {...props}>
+    <Sidebar collapsible={isMobile ? 'offcanvas' : 'icon'} {...props}>
       <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => {
@@ -278,7 +278,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             key={item.title}
                             onClick={() => {
                               mobileCloseOnClick();
-                              // TODO: figure out why this if needed for ts
                               if (typeof item.click === "function") {
                                 item.click();
                               }
@@ -287,8 +286,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             variant={"ghost"}
                           >
                             <div className="justify-start cursor-pointer">
-                              {item.title}
                               {item.icon ? item.icon : ""}
+                              {item.title}
                             </div>
                           </Button>
                         ) : (

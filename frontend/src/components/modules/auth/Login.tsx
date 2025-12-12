@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
@@ -39,9 +39,15 @@ export default function Login() {
   const status = useAppSelector((state: RootState) => state.auth.login.status);
   const [errors, setErrors] = useState<FormError | null>(null);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isLoggedIn } = useAuth();
   const dispatch = useAppDispatch();
   const loading = status === "loading";
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/adatbazis/letrehozas");
+    }
+  }, [isLoggedIn, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

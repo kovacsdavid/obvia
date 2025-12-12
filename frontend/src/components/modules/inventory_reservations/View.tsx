@@ -78,7 +78,7 @@ export default function View() {
     <>
       <GlobalError error={errors} />
       {data !== null ? (
-        <Card className={"max-w-lg mx-auto"}>
+        <Card className={"max-w-3xl mx-auto"}>
           <CardHeader>
             <CardTitle>Készletfoglalás részletei</CardTitle>
           </CardHeader>

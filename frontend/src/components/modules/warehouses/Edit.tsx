@@ -80,7 +80,7 @@ export default function List({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -115,7 +115,7 @@ export default function List({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -151,7 +151,7 @@ export default function List({
               fields: {},
             });
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();

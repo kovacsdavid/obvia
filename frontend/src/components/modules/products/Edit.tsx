@@ -90,7 +90,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -127,7 +127,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -149,7 +149,11 @@ export default function Edit({
   const loadLists = useCallback(async () => {
     return dispatch(select_list("units_of_measure")).then((response) => {
       if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setUnitsOfMeasureList, setErrors);
+        if (response.payload.statusCode === 200) {
+          setListResponse(response.payload, setUnitsOfMeasureList, setErrors);
+        } else {
+          unexpectedError(response.payload.statusCode);
+        }
       } else {
         unexpectedError();
       }
@@ -177,7 +181,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

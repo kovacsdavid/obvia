@@ -94,7 +94,11 @@ export default function Edit() {
       setReferenceIdList([]);
       return dispatch(select_list(newReferenceType)).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setReferenceIdList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setReferenceIdList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -107,7 +111,11 @@ export default function Edit() {
     if (!routeInventoryId) {
       return dispatch(select_list("inventory")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setInventoryIdList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setInventoryIdList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -144,7 +152,7 @@ export default function Edit() {
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();
@@ -186,7 +194,7 @@ export default function Edit() {
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors(response.payload.jsonData.error);
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();

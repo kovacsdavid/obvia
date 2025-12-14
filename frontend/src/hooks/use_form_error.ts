@@ -19,16 +19,35 @@
 
 import { useCallback, useState } from "react";
 import type { FormError } from "@/lib/interfaces/common.ts";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext.tsx";
 
 export function useFormError() {
   const [errors, setErrors] = useState<FormError | null>(null);
+  const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const unexpectedError = useCallback(() => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-      fields: {},
-    });
-  }, []);
+  const unexpectedError = useCallback(
+    (statusCode: number | null = null) => {
+      switch (statusCode) {
+        case 401:
+          logout();
+          navigate("/bejelentkezes");
+          break;
+        case 429:
+          setErrors({
+            message:
+              "Túl sok kérés érkezett rövid időn belül, ezért a szerver ideiglenesen korlátozta a hozzáférést. Próbáld újra néhány másodperc múlva!",
+          });
+          break;
+        default:
+          setErrors({
+            message: "Váratlan hiba történt a feldolgozás során!",
+          });
+      }
+    },
+    [logout, navigate],
+  );
 
   return {
     errors,

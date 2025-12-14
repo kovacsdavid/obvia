@@ -135,7 +135,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -178,7 +178,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -202,21 +202,33 @@ export default function Edit({
     return Promise.all([
       dispatch(select_list("currencies")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setCurrencyList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setCurrencyList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("products")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setProductList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setProductList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("warehouses")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setWarehouseList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setWarehouseList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -251,7 +263,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

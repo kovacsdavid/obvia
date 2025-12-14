@@ -169,7 +169,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -192,7 +192,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -204,28 +204,44 @@ export default function Edit({
     return Promise.all([
       dispatch(select_list("worksheets")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setWorksheetList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setWorksheetList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("services")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setServiceList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setServiceList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("taxes")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setTaxList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setTaxList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("currencies")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setCurrencyList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setCurrencyList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -262,7 +278,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

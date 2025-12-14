@@ -106,7 +106,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -151,7 +151,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -177,7 +177,11 @@ export default function Edit({
   const loadLists = useCallback(async () => {
     return dispatch(select_list("countries")).then((response) => {
       if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setCountryList, setErrors);
+        if (response.payload.statusCode === 200) {
+          setListResponse(response.payload, setCountryList, setErrors);
+        } else {
+          unexpectedError(response.payload.statusCode);
+        }
       } else {
         unexpectedError();
       }
@@ -210,7 +214,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

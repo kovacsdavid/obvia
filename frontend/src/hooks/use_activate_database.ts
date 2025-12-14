@@ -28,7 +28,7 @@ export function useActivateDatabase() {
       if (
         activate.fulfilled.match(response) &&
         response.payload.statusCode === 200 &&
-        typeof response.payload.jsonData.data !== "undefined"
+        typeof response.payload.jsonData?.data !== "undefined"
       ) {
         dispatch(updateToken(response.payload.jsonData.data));
         return true;

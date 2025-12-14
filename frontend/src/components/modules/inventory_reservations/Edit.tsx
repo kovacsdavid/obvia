@@ -122,7 +122,7 @@ export default function Edit() {
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setInventoryId(data.inventory_id);
                 quantity.setValue(

@@ -98,8 +98,8 @@ export default function List() {
       if (list.fulfilled.match(response)) {
         if (
           response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData.data !== "undefined" &&
-          typeof response.payload.jsonData.meta !== "undefined"
+          typeof response.payload.jsonData?.data !== "undefined" &&
+          typeof response.payload.jsonData?.meta !== "undefined"
         ) {
           setPage(response.payload.jsonData.meta.page);
           setLimit(response.payload.jsonData.meta.limit);

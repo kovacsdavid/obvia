@@ -57,7 +57,7 @@ export default function View() {
       dispatch(get(params["id"])).then(async (response) => {
         if (get.fulfilled.match(response)) {
           if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
+            if (typeof response.payload.jsonData?.data !== "undefined") {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {

@@ -55,7 +55,7 @@ export function isFormError(data: unknown): data is FormError {
 
 export interface ProcessedResponse<T> {
   statusCode: number;
-  jsonData: T;
+  jsonData?: T;
 }
 
 export async function ProcessResponse<T>(

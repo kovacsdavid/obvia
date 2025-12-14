@@ -89,12 +89,12 @@ export default function Edit({
     ).then(async (response) => {
       if (create.fulfilled.match(response)) {
         if (response.payload.statusCode === 201) {
-          if (typeof response.payload.jsonData.data !== "undefined") {
+          if (typeof response.payload.jsonData?.data !== "undefined") {
             activateDatabase(response.payload.jsonData.data.id).then((isOk) => {
               if (isOk) {
                 if (
                   typeof onSuccess === "function" &&
-                  typeof response.payload.jsonData.data !== "undefined"
+                  typeof response.payload.jsonData?.data !== "undefined"
                 ) {
                   onSuccess(response.payload.jsonData.data);
                 } else {

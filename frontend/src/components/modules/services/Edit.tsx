@@ -101,7 +101,7 @@ export default function Edit({
         if (response.payload.statusCode === 201) {
           if (
             typeof onSuccess === "function" &&
-            typeof response.payload.jsonData.data !== "undefined"
+            typeof response.payload.jsonData?.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
@@ -196,7 +196,7 @@ export default function Edit({
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setName(data.name);
                 setDescription(data.description ?? "");

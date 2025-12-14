@@ -21,7 +21,6 @@ import { useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/worksheets/lib/slice.ts";
-import type { SimpleError } from "@/lib/interfaces/common.ts";
 import {
   Table,
   TableBody,
@@ -38,19 +37,14 @@ import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import type { WorksheetResolved } from "@/components/modules/worksheets/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function View() {
   const [data, setData] = React.useState<WorksheetResolved | null>(null);
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
   const dispatch = useAppDispatch();
   const params = useParams();
   const navigate = useNavigate();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
 
   useEffect(() => {
     if (typeof params["id"] === "string") {
@@ -63,14 +57,14 @@ export default function View() {
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors(response.payload.jsonData.error);
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();
         }
       });
     }
-  }, [dispatch, params]);
+  }, [dispatch, params, setErrors, unexpectedError]);
 
   return (
     <>

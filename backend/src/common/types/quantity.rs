@@ -29,7 +29,7 @@ impl ValueObjectable for Quantity {
 
     fn validate(&self) -> Result<(), String> {
         if self.0.trim().is_empty() {
-            Ok(())
+            Err(String::from("A mező kitöltése kötelező!"))
         } else {
             let value = self
                 .0
@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn test_validate_empty_string() {
         let quantity = Quantity(String::from(""));
-        assert!(quantity.validate().is_ok());
+        assert!(quantity.validate().is_err());
     }
 
     #[test]

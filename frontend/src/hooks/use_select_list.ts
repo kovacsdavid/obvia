@@ -33,7 +33,7 @@ export function useSelectList() {
       setError: (data: React.SetStateAction<FormError | null>) => void,
     ) => {
       if (payload.statusCode === 200) {
-        if (typeof payload.jsonData.data !== "undefined") {
+        if (typeof payload.jsonData?.data !== "undefined") {
           setList(payload.jsonData.data);
         }
       } else if (typeof payload.jsonData?.error !== "undefined") {

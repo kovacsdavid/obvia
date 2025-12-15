@@ -32,8 +32,8 @@ pub struct WorksheetUserInputHelper {
     pub id: Option<String>,
     pub name: String,
     pub description: String,
-    pub customer_id: Uuid,
-    pub project_id: Uuid,
+    pub customer_id: String,
+    pub project_id: String,
     pub status: String,
 }
 
@@ -81,7 +81,7 @@ pub struct WorksheetUserInput {
     pub name: ValueObject<WorksheetName>,
     pub description: Option<ValueObject<WorksheetDescription>>,
     pub customer_id: Uuid,
-    pub project_id: Uuid,
+    pub project_id: Option<Uuid>,
     pub status: ValueObject<WorksheetStatus>,
 }
 
@@ -105,6 +105,10 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
         let status = ValueObject::new(WorksheetStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
+        let customer_id = Uuid::parse_str(&value.customer_id).inspect_err(|e| {
+            error.customer_id = Some("A mező kitöltése kötelező!".to_string());
+        });
+        let project_id = Uuid::parse_str(&value.project_id).ok();
         let description =
             validate_optional_string!(WorksheetDescription(value.description), error.description);
 
@@ -113,8 +117,8 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
                 id,
                 name: name.map_err(|_| WorksheetUserInputError::default())?,
                 description,
-                customer_id: value.customer_id,
-                project_id: value.project_id,
+                customer_id: customer_id.map_err(|_| WorksheetUserInputError::default())?,
+                project_id,
                 status: status.map_err(|_| WorksheetUserInputError::default())?,
             })
         } else {

@@ -55,13 +55,13 @@ export function isFormError(data: unknown): data is FormError {
 
 export interface ProcessedResponse<T> {
   statusCode: number;
-  jsonData: T;
+  jsonData?: T;
 }
 
 export async function ProcessResponse<T>(
   response: Response,
   guard: (data: unknown) => data is T,
-): Promise<ProcessedResponse<T> | null> {
+): Promise<ProcessedResponse<T> | { statusCode: number }> {
   try {
     const jsonData = await response.json();
     if (guard(jsonData)) {
@@ -70,9 +70,9 @@ export async function ProcessResponse<T>(
         jsonData,
       };
     }
-    return null;
+    return { statusCode: response.status };
   } catch {
-    return null;
+    return { statusCode: response.status };
   }
 }
 

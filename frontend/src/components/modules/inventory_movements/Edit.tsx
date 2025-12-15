@@ -44,25 +44,27 @@ import { formatNumber, parseNumber } from "@/lib/utils.ts";
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (inventory_movement: InventoryMovement) => void;
+  referenceType?: string | null;
 }
 
 export default function Edit({
   showCard = true,
   onSuccess = undefined,
+  referenceType = null,
 }: EditProps) {
+  const params = useParams();
+  const referenceId = React.useMemo(() => params["referenceId"], [params]);
   const [inventoryId, setInventoryId] = React.useState("");
-  const [movementType, setMovementType] = React.useState("");
-  const [referenceType, setReferenceType] = React.useState<string>("");
-  const [referenceId, setReferenceId] = React.useState<string>("");
+  const [movementType, setMovementType] = React.useState(
+    typeof referenceId === "string" ? "out" : "",
+  );
   const [taxId, setTaxId] = React.useState("");
   const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
-  const [referenceIdList, setReferenceIdList] =
-    React.useState<SelectOptionList>([]);
+  React.useState<SelectOptionList>([]);
   const [inventoryIdList, setInventoryIdList] =
     React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const params = useParams();
   const { setListResponse } = useSelectList();
   const { errors, setErrors, unexpectedError } = useFormError();
   const routeInventoryId = React.useMemo(
@@ -93,34 +95,27 @@ export default function Edit({
     setInventoryId(routeInventoryId);
   }, [routeInventoryId]);
 
-  const handleReferenceTypeChange = useCallback(
-    async (newReferenceType: string) => {
-      setReferenceType(newReferenceType);
-      setReferenceIdList([]);
-      return dispatch(select_list(newReferenceType)).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setReferenceIdList, setErrors);
-        } else {
-          unexpectedError();
-        }
-      });
-    },
-    [dispatch, setErrors, setListResponse, unexpectedError],
-  );
-
   const loadLists = useCallback(() => {
     return Promise.all([
       !routeInventoryId &&
         dispatch(select_list("inventory")).then((response) => {
           if (select_list.fulfilled.match(response)) {
-            setListResponse(response.payload, setInventoryIdList, setErrors);
+            if (response.payload.statusCode === 200) {
+              setListResponse(response.payload, setInventoryIdList, setErrors);
+            } else {
+              unexpectedError(response.payload.statusCode);
+            }
           } else {
             unexpectedError();
           }
         }),
       dispatch(select_list("taxes")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setTaxList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setTaxList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -134,17 +129,12 @@ export default function Edit({
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setInventoryId(data.inventory_id);
                 setMovementType(data.movement_type);
                 quantity.setValue(
                   data.quantity ? data.quantity.toString() : "",
-                );
-                handleReferenceTypeChange(data.reference_type ?? "").then(
-                  () => {
-                    setReferenceId(data.reference_id ?? "");
-                  },
                 );
                 unitPrice.setValue(data.unit_price ?? "");
                 setTaxId(data.tax_id);
@@ -157,7 +147,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();
@@ -168,14 +158,7 @@ export default function Edit({
     // quantity is intentionally omitted to avoid infinite loops
     // They are only used to set initial values and don't need to trigger re-runs
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    dispatch,
-    handleReferenceTypeChange,
-    id,
-    loadLists,
-    setErrors,
-    unexpectedError,
-  ]);
+  }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -188,8 +171,8 @@ export default function Edit({
           quantity: !isNaN(quantity.getNumericValue())
             ? quantity.getNumericValue().toString()
             : "",
-          referenceType,
-          referenceId,
+          referenceType: typeof referenceType === "string" ? referenceType : "",
+          referenceId: typeof referenceId === "string" ? referenceId : "",
           unitPrice: !isNaN(unitPrice.getNumericValue())
             ? unitPrice.getNumericValue().toString()
             : "",
@@ -204,7 +187,7 @@ export default function Edit({
           if (response.payload.statusCode === 201) {
             if (
               typeof onSuccess === "function" &&
-              typeof response.payload.jsonData.data !== "undefined"
+              typeof response.payload.jsonData?.data !== "undefined"
             ) {
               onSuccess(response.payload.jsonData.data);
             } else {
@@ -213,7 +196,7 @@ export default function Edit({
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors(response.payload.jsonData.error);
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();
@@ -272,45 +255,9 @@ export default function Edit({
                   ))}
                 </SelectContent>
               </Select>
-              <FieldError error={errors} field={"reference_id"} />
+              <FieldError error={errors} field={"inventory_id"} />
             </>
           )}
-
-          <Label htmlFor="referenceType">Hivatkozás típusa</Label>
-          <Select
-            value={referenceType ?? ""}
-            onValueChange={(val) => handleReferenceTypeChange(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="worksheets">Munkalap</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"reference_type"} />
-
-          <Label htmlFor="referenceId">Hivatkozás azonosító</Label>
-          <Select
-            disabled={referenceIdList.length === 0}
-            value={referenceId ?? ""}
-            onValueChange={(val) => setReferenceId(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {referenceIdList.map((referenceIdListItem) => (
-                <SelectItem
-                  key={referenceIdListItem.value}
-                  value={referenceIdListItem.value}
-                >
-                  {referenceIdListItem.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"reference_id"} />
 
           <Label htmlFor="quantity">Mennyiség</Label>
           <Input
@@ -362,6 +309,7 @@ export default function Edit({
           <Select
             value={movementType}
             onValueChange={(val) => setMovementType(val)}
+            disabled={typeof referenceId === "string"}
           >
             <SelectTrigger className={"w-full"}>
               <SelectValue />

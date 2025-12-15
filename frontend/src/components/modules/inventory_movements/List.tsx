@@ -42,7 +42,6 @@ import {
 import { Button, GlobalError } from "@/components/ui";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
-import type { SimpleError } from "@/lib/interfaces/common.ts";
 import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import { useParams } from "react-router";
@@ -55,10 +54,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function InventoryMovementsList() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<InventoryMovementResolvedList>([]);
   const params = useParams();
   const routeInventoryId = React.useMemo(
@@ -90,35 +90,36 @@ export default function InventoryMovementsList() {
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
-
   const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          if (
-            typeof response.payload.jsonData.data !== "undefined" &&
-            typeof response.payload.jsonData.meta !== "undefined"
-          ) {
-            setPage(response.payload.jsonData.meta.page);
-            setLimit(response.payload.jsonData.meta.limit);
-            setTotal(response.payload.jsonData.meta.total);
-            setData(response.payload.jsonData.data);
-          }
+        if (
+          response.payload.statusCode === 200 &&
+          typeof response.payload.jsonData?.data !== "undefined" &&
+          typeof response.payload.jsonData?.meta !== "undefined"
+        ) {
+          setPage(response.payload.jsonData.meta.page);
+          setLimit(response.payload.jsonData.meta.limit);
+          setTotal(response.payload.jsonData.meta.total);
+          setData(response.payload.jsonData.data);
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
       }
     });
-  }, [dispatch, rawQuery, setPage, setLimit, setTotal]);
+  }, [
+    dispatch,
+    rawQuery,
+    setPage,
+    setLimit,
+    setTotal,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleDelete = (id: string) => {
     dispatch(deleteItem(id)).then(async (response) => {

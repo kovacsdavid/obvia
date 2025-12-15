@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import type { SimpleError } from "@/lib/interfaces/common";
 import { useCallback, useState } from "react";
-import type { FormError } from "@/lib/interfaces/common.ts";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.tsx";
 
-export function useFormError() {
-  const [errors, setErrors] = useState<FormError | null>(null);
+export function useSimpleError() {
+  const [errors, setErrors] = useState<SimpleError | null>(null);
   const navigate = useNavigate();
   const { logout } = useAuth();
 

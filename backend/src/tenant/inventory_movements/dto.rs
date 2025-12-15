@@ -32,14 +32,14 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 pub struct InventoryMovementUserInputHelper {
     pub id: Option<String>,
-    pub inventory_id: Uuid,
+    pub inventory_id: String,
     pub movement_type: String,
     pub quantity: String,
     pub reference_type: String,
     pub reference_id: String,
     pub unit_price: String,
     pub total_price: String,
-    pub tax_id: Uuid,
+    pub tax_id: String,
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -123,22 +123,29 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
                 .ok(),
         };
 
+        let inventory_id = Uuid::parse_str(&value.inventory_id).inspect_err(|_| {
+            error.inventory_id = Some("A mező kitöltése kötelező!".to_string());
+        });
+
+        let tax_id = Uuid::parse_str(&value.tax_id).inspect_err(|_| {
+            error.tax_id = Some("A mező kitöltése kötelező!".to_string());
+        });
+
         let movement_type = ValueObject::new(InventoryMovementType(value.movement_type))
             .inspect_err(|e| error.movement_type = Some(e.to_string()));
 
         let quantity = ValueObject::new(Quantity(value.quantity))
             .inspect_err(|e| error.quantity = Some(e.to_string()));
 
-        let reference_id = Uuid::parse_str(&value.reference_id)
-            .inspect_err(|_| {
-                error.reference_id = Some("Hibás hivatkozás azonosító".to_string());
-            })
-            .ok();
+        let reference_id = Uuid::parse_str(&value.reference_id).ok();
 
-        let reference_type = validate_optional_string!(
-            InventoryReferenceType(value.reference_type),
-            error.reference_type
-        );
+        let reference_type = if value.reference_type.trim() == "" {
+            None
+        } else {
+            ValueObject::new(InventoryReferenceType(value.reference_type))
+                .inspect_err(|e| error.reference_type = Some(e.to_string()))
+                .ok()
+        };
 
         let unit_price = validate_optional_string!(Float64(value.unit_price), error.unit_price);
 
@@ -147,7 +154,8 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
         if error.is_empty() {
             Ok(InventoryMovementUserInput {
                 id,
-                inventory_id: value.inventory_id,
+                inventory_id: inventory_id
+                    .map_err(|_| InventoryMovementUserInputError::default())?,
                 movement_type: movement_type
                     .map_err(|_| InventoryMovementUserInputError::default())?,
                 quantity: quantity.map_err(|_| InventoryMovementUserInputError::default())?,
@@ -155,7 +163,7 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
                 reference_id,
                 unit_price,
                 total_price,
-                tax_id: value.tax_id,
+                tax_id: tax_id.map_err(|_| InventoryMovementUserInputError::default())?,
             })
         } else {
             Err(error)

@@ -47,7 +47,6 @@ import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { deleteItem, list } from "@/components/modules/inventory/lib/slice.ts";
-import { type SimpleError } from "@/lib/interfaces/common.ts";
 import { type InventoryResolvedList } from "@/components/modules/inventory/lib/interface.ts";
 import { formatDateToYMDHMS, query_encoder } from "@/lib/utils.ts";
 import {
@@ -64,10 +63,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<InventoryResolvedList>([]);
   const updateSpecialQueryParams = useCallback(
     (parsedQuery: Record<string, string | number>) => {
@@ -93,35 +93,36 @@ export default function List() {
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
-
   const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          if (
-            typeof response.payload.jsonData.data !== "undefined" &&
-            typeof response.payload.jsonData.meta !== "undefined"
-          ) {
-            setPage(response.payload.jsonData.meta.page);
-            setLimit(response.payload.jsonData.meta.limit);
-            setTotal(response.payload.jsonData.meta.total);
-            setData(response.payload.jsonData.data);
-          }
+        if (
+          response.payload.statusCode === 200 &&
+          typeof response.payload.jsonData?.data !== "undefined" &&
+          typeof response.payload.jsonData?.meta !== "undefined"
+        ) {
+          setPage(response.payload.jsonData.meta.page);
+          setLimit(response.payload.jsonData.meta.limit);
+          setTotal(response.payload.jsonData.meta.total);
+          setData(response.payload.jsonData.data);
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
       }
     });
-  }, [dispatch, rawQuery, setLimit, setPage, setTotal]);
+  }, [
+    dispatch,
+    rawQuery,
+    setLimit,
+    setPage,
+    setTotal,
+    setErrors,
+    unexpectedError,
+  ]);
 
   const handleDelete = (id: string) => {
     dispatch(deleteItem(id)).then(async (response) => {

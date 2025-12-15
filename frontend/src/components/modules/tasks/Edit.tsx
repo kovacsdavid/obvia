@@ -160,7 +160,7 @@ export default function Edit({
         if (response.payload.statusCode === 201) {
           if (
             typeof onSuccess === "function" &&
-            typeof response.payload.jsonData.data !== "undefined"
+            typeof response.payload.jsonData?.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
@@ -169,7 +169,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -192,7 +192,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -204,28 +204,44 @@ export default function Edit({
     return Promise.all([
       dispatch(select_list("worksheets")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setWorksheetList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setWorksheetList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("services")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setServiceList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setServiceList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("taxes")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setTaxList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setTaxList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
       }),
       dispatch(select_list("currencies")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setCurrencyList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setCurrencyList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -239,7 +255,7 @@ export default function Edit({
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setWorksheetId(data.worksheet_id);
                 setServiceId(data.service_id);
@@ -262,7 +278,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

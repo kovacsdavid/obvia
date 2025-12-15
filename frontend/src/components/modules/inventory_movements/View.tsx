@@ -21,7 +21,6 @@ import { useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/inventory_movements/lib/slice.ts";
-import type { SimpleError } from "@/lib/interfaces/common.ts";
 import {
   Table,
   TableBody,
@@ -38,41 +37,36 @@ import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { InventoryMovementResolved } from "@/components/modules/inventory_movements/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryMovementResolved | null>(
     null,
   );
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
   const dispatch = useAppDispatch();
   const params = useParams();
   const navigate = useNavigate();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
 
   useEffect(() => {
     if (typeof params["id"] === "string") {
       dispatch(get_resolved(params["id"])).then(async (response) => {
         if (get_resolved.fulfilled.match(response)) {
           if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
+            if (typeof response.payload.jsonData?.data !== "undefined") {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors(response.payload.jsonData.error);
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();
         }
       });
     }
-  }, [dispatch, params]);
+  }, [dispatch, params, setErrors, unexpectedError]);
 
   return (
     <>

@@ -97,7 +97,7 @@ export default function Edit({
         if (response.payload.statusCode === 201) {
           if (
             typeof onSuccess === "function" &&
-            typeof response.payload.jsonData.data !== "undefined"
+            typeof response.payload.jsonData?.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
@@ -106,7 +106,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -151,7 +151,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -177,7 +177,11 @@ export default function Edit({
   const loadLists = useCallback(async () => {
     return dispatch(select_list("countries")).then((response) => {
       if (select_list.fulfilled.match(response)) {
-        setListResponse(response.payload, setCountryList, setErrors);
+        if (response.payload.statusCode === 200) {
+          setListResponse(response.payload, setCountryList, setErrors);
+        } else {
+          unexpectedError(response.payload.statusCode);
+        }
       } else {
         unexpectedError();
       }
@@ -190,7 +194,7 @@ export default function Edit({
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setRate(data.rate ?? "");
                 setDescription(data.description);
@@ -210,7 +214,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();

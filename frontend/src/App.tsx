@@ -222,6 +222,11 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   { path: "/munkalap/modositas/:id", element: WorksheetsEdit, isPrivate: true },
   { path: "/munkalap/lista", element: WorksheetsList, isPrivate: true },
   { path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true },
+  {
+    path: "/munkalap/:referenceId/raktarkeszlet-mozgas/letrehozas",
+    element: () => <InventoryMovementsEdit referenceType="worksheets" />,
+    isPrivate: true,
+  },
 
   // Taxes
   { path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true },

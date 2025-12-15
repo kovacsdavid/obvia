@@ -42,8 +42,6 @@ import { ConditionalCard } from "@/components/ui/card.tsx";
 import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import CustomersEdit from "@/components/modules/customers/Edit.tsx";
-import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
-import type { Project } from "@/components/modules/projects/lib/interface.ts";
 import type { Worksheet } from "./lib/interface";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 
@@ -59,16 +57,13 @@ export default function Edit({
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [customerId, setCustomerId] = React.useState("");
-  const [projectId, setProjectId] = React.useState("");
   const [status, setStatus] = React.useState("active");
   const [customersList, setCustomersList] = React.useState<SelectOptionList>(
     [],
   );
-  const [projectsList, setProjectsList] = React.useState<SelectOptionList>([]);
   const { errors, setErrors, unexpectedError } = useFormError();
   const [openNewCustomerDialog, setOpenNewCustomerDialog] =
     React.useState(false);
-  const [openNewProjectDialog, setOpenNewProjectDialog] = React.useState(false);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
@@ -82,7 +77,7 @@ export default function Edit({
         name,
         description,
         customerId,
-        projectId,
+        projectId: "",
         status,
       }),
     ).then(async (response) => {
@@ -90,7 +85,7 @@ export default function Edit({
         if (response.payload.statusCode === 201) {
           if (
             typeof onSuccess === "function" &&
-            typeof response.payload.jsonData.data !== "undefined"
+            typeof response.payload.jsonData?.data !== "undefined"
           ) {
             onSuccess(response.payload.jsonData.data);
           } else {
@@ -99,7 +94,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -111,7 +106,6 @@ export default function Edit({
     name,
     description,
     customerId,
-    projectId,
     status,
     onSuccess,
     navigate,
@@ -126,7 +120,7 @@ export default function Edit({
         name,
         description,
         customerId,
-        projectId,
+        projectId: "",
         status,
       }),
     ).then(async (response) => {
@@ -136,7 +130,7 @@ export default function Edit({
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -149,7 +143,6 @@ export default function Edit({
     id,
     name,
     navigate,
-    projectId,
     setErrors,
     status,
     unexpectedError,
@@ -157,16 +150,13 @@ export default function Edit({
 
   const loadLists = useCallback(async () => {
     return Promise.all([
-      dispatch(select_list("projects")).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setProjectsList, setErrors);
-        } else {
-          unexpectedError();
-        }
-      }),
       dispatch(select_list("customers")).then((response) => {
         if (select_list.fulfilled.match(response)) {
-          setListResponse(response.payload, setCustomersList, setErrors);
+          if (response.payload.statusCode === 200) {
+            setListResponse(response.payload, setCustomersList, setErrors);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
           unexpectedError();
         }
@@ -180,12 +170,11 @@ export default function Edit({
         dispatch(get(id)).then(async (response) => {
           if (get.fulfilled.match(response)) {
             if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData.data !== "undefined") {
+              if (typeof response.payload.jsonData?.data !== "undefined") {
                 const data = response.payload.jsonData.data;
                 setName(data.name);
                 setDescription(data.description ?? "");
                 setCustomerId(data.customer_id);
-                setProjectId(data.project_id);
                 setStatus(data.status ?? "");
               }
             } else if (
@@ -196,7 +185,7 @@ export default function Edit({
                 fields: {},
               });
             } else {
-              unexpectedError();
+              unexpectedError(response.payload.statusCode);
             }
           } else {
             unexpectedError();
@@ -213,15 +202,6 @@ export default function Edit({
     } else {
       handleCreate();
     }
-  };
-
-  const handleEditProjectsSuccess = (project: Project) => {
-    loadLists().then(() => {
-      setTimeout(() => {
-        setProjectId(project.id);
-      }, 0);
-      setOpenNewProjectDialog(false);
-    });
   };
 
   const handleEditCustomersSuccess = (customer: Customer) => {
@@ -245,18 +225,6 @@ export default function Edit({
           <CustomersEdit
             showCard={false}
             onSuccess={handleEditCustomersSuccess}
-          />
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={openNewProjectDialog}
-        onOpenChange={setOpenNewProjectDialog}
-      >
-        <DialogContent>
-          <DialogTitle>Új projekt létrehozása</DialogTitle>
-          <ProjectsEdit
-            showCard={false}
-            onSuccess={handleEditProjectsSuccess}
           />
         </DialogContent>
       </Dialog>
@@ -314,29 +282,6 @@ export default function Edit({
             <Plus /> Új vevő
           </Button>
 
-          <Label htmlFor="project_id">Projekt</Label>
-          <Select value={projectId} onValueChange={(val) => setProjectId(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {projectsList.map((project) => {
-                return (
-                  <SelectItem key={project.value} value={project.value}>
-                    {project.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"project_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewProjectDialog(true)}
-          >
-            <Plus /> Új projekt
-          </Button>
           <Label htmlFor="status">Státusz</Label>
           <Select value={status} onValueChange={(val) => setStatus(val)}>
             <SelectTrigger className={"w-full"}>

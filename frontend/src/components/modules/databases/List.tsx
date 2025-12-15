@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/popover.tsx";
 import { GlobalError } from "@/components/ui";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
-import { type SimpleError } from "@/lib/interfaces/common.ts";
 import { type DatabaseList } from "@/components/modules/databases/lib/interface.ts";
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
@@ -60,12 +59,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<DatabaseList>([]);
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
 
   const updateSpecialQueryParams = useCallback(
     (parsedQuery: Record<string, string | number>) => {
@@ -75,12 +75,6 @@ export default function List() {
     },
     [],
   );
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
 
   const {
     searchParams,
@@ -104,20 +98,19 @@ export default function List() {
   useEffect(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          if (
-            typeof response.payload.jsonData.data !== "undefined" &&
-            typeof response.payload.jsonData.meta !== "undefined"
-          ) {
-            setPage(response.payload.jsonData.meta.page);
-            setLimit(response.payload.jsonData.meta.limit);
-            setTotal(response.payload.jsonData.meta.total);
-            setData(response.payload.jsonData.data);
-          }
+        if (
+          response.payload.statusCode === 200 &&
+          typeof response.payload.jsonData?.data !== "undefined" &&
+          typeof response.payload.jsonData?.meta !== "undefined"
+        ) {
+          setPage(response.payload.jsonData.meta.page);
+          setLimit(response.payload.jsonData.meta.limit);
+          setTotal(response.payload.jsonData.meta.total);
+          setData(response.payload.jsonData.data);
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setErrors(response.payload.jsonData.error);
         } else {
-          unexpectedError();
+          unexpectedError(response.payload.statusCode);
         }
       } else {
         unexpectedError();
@@ -132,6 +125,8 @@ export default function List() {
     setLimit,
     setPage,
     setTotal,
+    setErrors,
+    unexpectedError,
   ]);
 
   const handleActivate = async (new_tenant_id: string) => {

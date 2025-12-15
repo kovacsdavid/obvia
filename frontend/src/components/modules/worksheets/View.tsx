@@ -17,11 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/worksheets/lib/slice.ts";
-import type { SimpleError } from "@/lib/interfaces/common.ts";
 import {
   Table,
   TableBody,
@@ -38,39 +37,35 @@ import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import type { WorksheetResolved } from "@/components/modules/worksheets/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { Plus } from "lucide-react";
 
 export default function View() {
   const [data, setData] = React.useState<WorksheetResolved | null>(null);
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
+  const { errors, setErrors, unexpectedError } = useSimpleError();
   const dispatch = useAppDispatch();
   const params = useParams();
   const navigate = useNavigate();
-
-  const unexpectedError = () => {
-    setErrors({
-      message: "Váratlan hiba történt a feldolgozás során!",
-    });
-  };
 
   useEffect(() => {
     if (typeof params["id"] === "string") {
       dispatch(get_resolved(params["id"])).then(async (response) => {
         if (get_resolved.fulfilled.match(response)) {
           if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData.data !== "undefined") {
+            if (typeof response.payload.jsonData?.data !== "undefined") {
               setData(response.payload.jsonData.data);
             }
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setErrors(response.payload.jsonData.error);
           } else {
-            unexpectedError();
+            unexpectedError(response.payload.statusCode);
           }
         } else {
           unexpectedError();
         }
       });
     }
-  }, [dispatch, params]);
+  }, [dispatch, params, setErrors, unexpectedError]);
 
   return (
     <>
@@ -100,12 +95,6 @@ export default function View() {
                     <TableCell>Vevő</TableCell>
                     <TableCell>
                       {data.customer} ({data.customer_id})
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Projekt</TableCell>
-                    <TableCell>
-                      {data.project} ({data.project_id})
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -146,6 +135,11 @@ export default function View() {
                   </TableRow>
                 </TableBody>
               </Table>
+              <Link to={`/munkalap/${data.id}/raktarkeszlet-mozgas/letrehozas`}>
+                <Button variant="outline" className="mt-3">
+                  <Plus /> Anyagköltség hozzáadás
+                </Button>
+              </Link>
               <div className="mt-8">
                 <Button
                   className="mr-3"

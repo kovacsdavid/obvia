@@ -46,6 +46,7 @@ import {
   KeyRound,
   ListTodo,
   LogOut,
+  MapPinHouse,
   NotebookPen,
   NotebookText,
   Package,
@@ -90,6 +91,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
   const data: NavigationData = {
     navMain: [
+      {
+        title: "Vezérlőpult",
+        url: "#",
+        items: [
+          {
+            title: "Vezérlőpult",
+            url: "/vezerlopult",
+            private: true,
+            needActiveDatabase: false,
+            icon: <MapPinHouse />,
+            isActive: location.pathname.includes("/vezerlopult"),
+          },
+        ],
+      },
       {
         title: "Adatbázis",
         url: "#",

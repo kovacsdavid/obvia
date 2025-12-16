@@ -79,12 +79,8 @@ export const registerUserRequest = createAsyncThunk(
 
 export const loginUserRequest = createAsyncThunk(
   "auth/loginUserRequest",
-  async (credentials: LoginRequest, { rejectWithValue }) => {
-    try {
-      return await authApi.login(credentials);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
+  async (credentials: LoginRequest) => {
+    return await authApi.login(credentials);
   },
 );
 

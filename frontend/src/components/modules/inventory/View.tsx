@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/inventory/lib/slice.ts";
@@ -38,6 +38,7 @@ import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { InventoryResolved } from "@/components/modules/inventory/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { Link } from "lucide-react";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryResolved | null>(null);
@@ -85,13 +86,17 @@ export default function View() {
                   <TableRow>
                     <TableCell>Termék</TableCell>
                     <TableCell>
-                      {data.product} ({data.product_id})
+                      <NavLink to={`/termek/reszletek/${data.product_id}`}>
+                        {data.product} <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Raktár</TableCell>
                     <TableCell>
-                      {data.warehouse} ({data.warehouse_id})
+                      <NavLink to={`/raktar/reszletek/${data.warehouse_id}`}>
+                        {data.warehouse} <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>

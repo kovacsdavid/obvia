@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/tasks/lib/slice.ts";
@@ -38,6 +38,7 @@ import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { TaskResolved } from "@/components/modules/tasks/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { Link } from "lucide-react";
 
 export default function View() {
   const [data, setData] = React.useState<TaskResolved | null>(null);
@@ -85,13 +86,19 @@ export default function View() {
                   <TableRow>
                     <TableCell>Munkalap</TableCell>
                     <TableCell>
-                      {data.worksheet} ({data.worksheet_id})
+                      <NavLink to={`/munkalap/reszletek/${data.worksheet_id}`}>
+                        {data.worksheet} <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Szolgáltatás</TableCell>
                     <TableCell>
-                      {data.service} ({data.service_id})
+                      <NavLink
+                        to={`/szolgaltatas/reszletek/${data.service_id}`}
+                      >
+                        {data.service} <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>
@@ -113,7 +120,9 @@ export default function View() {
                   <TableRow>
                     <TableCell>Adó</TableCell>
                     <TableCell>
-                      {data.tax} ({data.tax_id})
+                      <NavLink to={`/ado/reszletek/${data.tax_id}`}>
+                        {data.tax} <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>

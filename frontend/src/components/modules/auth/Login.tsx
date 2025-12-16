@@ -24,20 +24,20 @@ import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext.tsx";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
-import { type FormError } from "@/lib/interfaces/common.ts";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { isLoginResponse } from "@/components/modules/auth/lib/guards.ts";
+import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
+import { useFormError } from "@/hooks/use_form_error.ts";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const status = useAppSelector((state: RootState) => state.auth.login.status);
-  const [errors, setErrors] = useState<FormError | null>(null);
+  const { errors, setErrors, unexpectedError } = useFormError();
   const navigate = useNavigate();
   const { login, isLoggedIn } = useAuth();
   const dispatch = useAppDispatch();
@@ -45,63 +45,33 @@ export default function Login() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      navigate("/adatbazis/letrehozas");
+      navigate("/vezerlopult");
     }
   }, [isLoggedIn, navigate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     login(email, password).then(async (response) => {
-      if (response?.meta?.requestStatus === "fulfilled") {
-        // TODO: redirect here only if the user doesn't have any tenants yet!
-        const payload = response.payload as Response;
-        try {
-          const responseData = await payload.json();
-          switch (payload.status) {
-            case 200: {
-              if (isLoginResponse(responseData)) {
-                const claims = responseData?.data?.claims;
-                const user = responseData?.data?.user;
-                const token = responseData?.data?.token;
-                if (
-                  typeof user !== "undefined" &&
-                  typeof token !== "undefined" &&
-                  typeof claims !== "undefined"
-                ) {
-                  dispatch(loginUser({ token, user, claims }));
-                  navigate("/adatbazis/letrehozas");
-                } else {
-                  setErrors({
-                    message: "Váratlan hiba történt a feldolgozás során!",
-                    fields: {},
-                  });
-                }
-              }
-              break;
-            }
-            case 401: {
-              setEmail("");
-              setPassword("");
-              const message = responseData?.error?.message;
-              if (typeof message !== "undefined") {
-                setErrors({
-                  message,
-                  fields: {},
-                });
-              } else {
-                setErrors({
-                  message: "Váratlan hiba történt a feldolgozás során!",
-                  fields: {},
-                });
-              }
-            }
-          }
-        } catch {
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-            fields: {},
-          });
+      if (loginUserRequest.fulfilled.match(response)) {
+        if (
+          response.payload.statusCode === 200 &&
+          typeof response.payload.jsonData?.data !== "undefined"
+        ) {
+          dispatch(
+            loginUser({
+              token: response.payload.jsonData.data.token,
+              user: response.payload.jsonData.data.user,
+              claims: response.payload.jsonData.data.claims,
+            }),
+          );
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setPassword("");
+          setErrors(response.payload.jsonData.error);
+        } else {
+          unexpectedError(response.payload.statusCode);
         }
+      } else {
+        unexpectedError();
       }
     });
   };

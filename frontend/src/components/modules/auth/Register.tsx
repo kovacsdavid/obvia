@@ -52,7 +52,7 @@ export default function Register() {
     } else if (typeof response.jsonData?.error !== "undefined") {
       setErrors(response.jsonData.error);
     } else {
-      unexpectedError();
+      unexpectedError(response.statusCode);
     }
   };
 

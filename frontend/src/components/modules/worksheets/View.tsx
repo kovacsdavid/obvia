@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Link, useParams } from "react-router";
+import { NavLink, Link, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/worksheets/lib/slice.ts";
@@ -39,6 +39,7 @@ import type { WorksheetResolved } from "@/components/modules/worksheets/lib/inte
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Plus } from "lucide-react";
+import { Link as LinkIcon } from "lucide-react";
 
 export default function View() {
   const [data, setData] = React.useState<WorksheetResolved | null>(null);
@@ -94,7 +95,10 @@ export default function View() {
                   <TableRow>
                     <TableCell>Vevő</TableCell>
                     <TableCell>
-                      {data.customer} ({data.customer_id})
+                      <NavLink to={`/vevo/reszletek/${data.customer_id}`}>
+                        {data.customer}{" "}
+                        <LinkIcon size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>

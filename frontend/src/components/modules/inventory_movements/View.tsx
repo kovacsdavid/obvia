@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/inventory_movements/lib/slice.ts";
@@ -38,6 +38,7 @@ import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import type { InventoryMovementResolved } from "@/components/modules/inventory_movements/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { Link } from "lucide-react";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryMovementResolved | null>(
@@ -84,8 +85,12 @@ export default function View() {
                   <TableCell>{data.id}</TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell>Készlet</TableCell>
-                  <TableCell>{data.inventory_id}</TableCell>
+                  <TableCell>Raktárkészlet</TableCell>
+                  <TableCell>
+                    <NavLink to={`/raktarkeszlet/reszletek/${data.inventory_id}`}>
+                      {data.inventory_id} <Link size={15} className="inline"/>
+                    </NavLink>
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Típus</TableCell>
@@ -109,7 +114,11 @@ export default function View() {
                 </TableRow>
                 <TableRow>
                   <TableCell>Adó</TableCell>
-                  <TableCell>{data.tax ?? data.tax_id}</TableCell>
+                  <TableCell>
+                    <NavLink to={`/ado/reszletek/${data.tax_id}`}>
+                      {data.tax} <Link size={15} className="inline"/>
+                    </NavLink>
+                  </TableCell>
                 </TableRow>
                 <TableRow>
                   <TableCell>Mozgás dátuma</TableCell>

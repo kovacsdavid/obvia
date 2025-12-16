@@ -27,6 +27,7 @@ import {
   type ForgottenPasswordRequest,
   type ForgottenPasswordResponse,
   type LoginRequest,
+  type LoginResponse,
   type NewPasswordRequest,
   type NewPasswordResponse,
   type RegisterRequest,
@@ -40,6 +41,7 @@ import {
 import {
   isClaimsResponse,
   isForgottenPasswordResponse,
+  isLoginResponse,
   isNewPasswordResponse,
   isRegisterResponse,
   isVerifyEmailResponse,
@@ -48,7 +50,7 @@ import {
 export async function login({
   email,
   password,
-}: LoginRequest): Promise<Response> {
+}: LoginRequest): Promise<ProcessedResponse<LoginResponse>> {
   return await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
@@ -56,6 +58,11 @@ export async function login({
     },
     body: JSON.stringify({ email, password }),
     signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isLoginResponse)) ??
+      unexpectedFormError
+    );
   });
 }
 

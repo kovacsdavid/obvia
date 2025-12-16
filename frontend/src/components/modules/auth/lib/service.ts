@@ -60,8 +60,7 @@ export async function login({
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
     return (
-      (await ProcessResponse(response, isLoginResponse)) ??
-      unexpectedFormError
+      (await ProcessResponse(response, isLoginResponse)) ?? unexpectedFormError
     );
   });
 }

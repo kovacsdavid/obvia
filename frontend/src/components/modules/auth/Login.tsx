@@ -57,11 +57,13 @@ export default function Login() {
           response.payload.statusCode === 200 &&
           typeof response.payload.jsonData?.data !== "undefined"
         ) {
-          dispatch(loginUser({
-            token: response.payload.jsonData.data.token,
-            user: response.payload.jsonData.data.user,
-            claims: response.payload.jsonData.data.claims
-          }))
+          dispatch(
+            loginUser({
+              token: response.payload.jsonData.data.token,
+              user: response.payload.jsonData.data.user,
+              claims: response.payload.jsonData.data.claims,
+            }),
+          );
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           setPassword("");
           setErrors(response.payload.jsonData.error);

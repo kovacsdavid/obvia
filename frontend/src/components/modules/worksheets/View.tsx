@@ -96,7 +96,8 @@ export default function View() {
                     <TableCell>Vevő</TableCell>
                     <TableCell>
                       <NavLink to={`/vevo/reszletek/${data.customer_id}`}>
-                        {data.customer} <LinkIcon size={15} className="inline"/>
+                        {data.customer}{" "}
+                        <LinkIcon size={15} className="inline" />
                       </NavLink>
                     </TableCell>
                   </TableRow>

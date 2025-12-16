@@ -87,15 +87,17 @@ export default function View() {
                     <TableCell>Munkalap</TableCell>
                     <TableCell>
                       <NavLink to={`/munkalap/reszletek/${data.worksheet_id}`}>
-                        {data.worksheet} <Link size={15} className="inline"/>
+                        {data.worksheet} <Link size={15} className="inline" />
                       </NavLink>
                     </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Szolgáltatás</TableCell>
                     <TableCell>
-                      <NavLink to={`/szolgaltatas/reszletek/${data.service_id}`}>
-                        {data.service} <Link size={15} className="inline"/>
+                      <NavLink
+                        to={`/szolgaltatas/reszletek/${data.service_id}`}
+                      >
+                        {data.service} <Link size={15} className="inline" />
                       </NavLink>
                     </TableCell>
                   </TableRow>
@@ -118,10 +120,10 @@ export default function View() {
                   <TableRow>
                     <TableCell>Adó</TableCell>
                     <TableCell>
-                    <NavLink to={`/ado/reszletek/${data.tax_id}`}>
-                      {data.tax} <Link size={15} className="inline"/>
-                    </NavLink>
-                  </TableCell>
+                      <NavLink to={`/ado/reszletek/${data.tax_id}`}>
+                        {data.tax} <Link size={15} className="inline" />
+                      </NavLink>
+                    </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell>Státusz</TableCell>

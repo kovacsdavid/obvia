@@ -87,7 +87,7 @@ export default function View() {
                     <TableCell>Termék</TableCell>
                     <TableCell>
                       <NavLink to={`/termek/reszletek/${data.product_id}`}>
-                        {data.product} <Link size={15} className="inline"/>
+                        {data.product} <Link size={15} className="inline" />
                       </NavLink>
                     </TableCell>
                   </TableRow>
@@ -95,7 +95,7 @@ export default function View() {
                     <TableCell>Raktár</TableCell>
                     <TableCell>
                       <NavLink to={`/raktar/reszletek/${data.warehouse_id}`}>
-                        {data.warehouse} <Link size={15} className="inline"/>
+                        {data.warehouse} <Link size={15} className="inline" />
                       </NavLink>
                     </TableCell>
                   </TableRow>

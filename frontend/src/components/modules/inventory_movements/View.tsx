@@ -87,8 +87,10 @@ export default function View() {
                 <TableRow>
                   <TableCell>Raktárkészlet</TableCell>
                   <TableCell>
-                    <NavLink to={`/raktarkeszlet/reszletek/${data.inventory_id}`}>
-                      {data.inventory_id} <Link size={15} className="inline"/>
+                    <NavLink
+                      to={`/raktarkeszlet/reszletek/${data.inventory_id}`}
+                    >
+                      {data.inventory_id} <Link size={15} className="inline" />
                     </NavLink>
                   </TableCell>
                 </TableRow>
@@ -116,7 +118,7 @@ export default function View() {
                   <TableCell>Adó</TableCell>
                   <TableCell>
                     <NavLink to={`/ado/reszletek/${data.tax_id}`}>
-                      {data.tax} <Link size={15} className="inline"/>
+                      {data.tax} <Link size={15} className="inline" />
                     </NavLink>
                   </TableCell>
                 </TableRow>

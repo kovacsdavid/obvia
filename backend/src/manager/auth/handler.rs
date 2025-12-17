@@ -19,8 +19,9 @@
 
 use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
-use crate::common::error::IntoFriendlyError;
+use crate::common::error::{FriendlyError, IntoFriendlyError};
 use crate::common::extractors::UserInput;
+use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
     NewPasswordRequestHelper, RegisterRequestHelper, ResendEmailValidationRequest,
@@ -31,8 +32,10 @@ use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::auth::service::AuthService;
 use axum::extract::Query;
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use std::collections::HashMap;
 use std::sync::Arc;
+use time::Duration;
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -57,20 +60,109 @@ use std::sync::Arc;
 #[debug_handler]
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
+    jar: CookieJar,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let result = match AuthService::try_login(auth_module.clone(), payload).await {
-        Ok(u) => u,
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
+    let (access_token, access_claims, refresh_token, _, user_public) =
+        match AuthService::try_login(auth_module.clone(), payload).await {
+            Ok(u) => u,
+            Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+        };
+
+    let response = match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
-        .data(result)
+        .data(LoginResponse::new(access_claims, user_public, access_token))
         .build()
     {
         Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+        Err(e) => Err(e
+            .into_friendly_error(auth_module.clone())
+            .await
+            .into_response()),
+    }?;
+
+    let secure_cookie = !matches!(auth_module.config().server().environment(), "dev");
+
+    let max_age: i64 = match auth_module
+        .config()
+        .auth()
+        .refresh_token_expiration_mins()
+        .try_into()
+    {
+        Ok(val) => val,
+        Err(_) => {
+            return Err(FriendlyError::internal_with_admin_notify(
+                file!(),
+                "refresh_token_expiration_mins could not be converted to i64",
+                auth_module,
+            )
+            .await
+            .into_response());
+        }
+    };
+
+    let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
+        .http_only(true)
+        .secure(secure_cookie)
+        .same_site(SameSite::Strict)
+        .path("api/auth/refresh")
+        .max_age(Duration::minutes(max_age))
+        .build();
+
+    Ok((jar.add(refresh_cookie), response).into_response())
+}
+
+pub async fn refresh(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    jar: CookieJar,
+) -> HandlerResult {
+    let (access_token, access_claims, refresh_token, _, user_public) =
+        match AuthService::refresh(auth_module.clone(), jar.clone()).await {
+            Ok(u) => u,
+            Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+        };
+
+    let response = match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(LoginResponse::new(access_claims, user_public, access_token))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e
+            .into_friendly_error(auth_module.clone())
+            .await
+            .into_response()),
+    }?;
+
+    let secure_cookie = !matches!(auth_module.config().server().environment(), "dev");
+
+    let max_age: i64 = match auth_module
+        .config()
+        .auth()
+        .refresh_token_expiration_mins()
+        .try_into()
+    {
+        Ok(val) => val,
+        Err(_) => {
+            return Err(FriendlyError::internal_with_admin_notify(
+                file!(),
+                "refresh_token_expiration_mins could not be converted to i64",
+                auth_module,
+            )
+            .await
+            .into_response());
+        }
+    };
+
+    let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
+        .http_only(true)
+        .secure(secure_cookie)
+        .same_site(SameSite::Strict)
+        .path("api/auth/refresh")
+        .max_age(Duration::days(max_age))
+        .build();
+
+    Ok((jar.add(refresh_cookie), response).into_response())
 }
 
 /// Handles user registration requests.
@@ -255,6 +347,7 @@ mod tests {
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::auth::model::EmailVerification;
+    use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
@@ -297,6 +390,19 @@ mod tests {
         repo.expect_update_user_last_login_at()
             .with(eq(user_id2))
             .returning(|_| Ok(()));
+        repo.expect_insert_refresh_token().times(1).returning(|_| {
+            Ok(RefreshToken {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                family_id: Uuid::new_v4(),
+                jti: Uuid::new_v4(),
+                iat: Local::now(),
+                exp: Local::now(),
+                replaced_by: None,
+                consumed_at: None,
+                revoked_at: None,
+            })
+        });
 
         let repo = Arc::new(repo);
 
@@ -344,7 +450,7 @@ mod tests {
                 data["token"].as_str().unwrap(),
                 config.auth().jwt_secret().as_bytes(),
                 config.auth().jwt_issuer(),
-                config.auth().jwt_audience(),
+                &format!("{}-api", config.auth().jwt_audience()),
             )
             .is_ok()
         );
@@ -637,6 +743,20 @@ mod tests {
             .with(eq(user_id2))
             .returning(|_| Ok(()));
 
+        repo.expect_insert_refresh_token().times(1).returning(|_| {
+            Ok(RefreshToken {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                family_id: Uuid::new_v4(),
+                jti: Uuid::new_v4(),
+                iat: Local::now(),
+                exp: Local::now(),
+                replaced_by: None,
+                consumed_at: None,
+                revoked_at: None,
+            })
+        });
+
         let repo = Arc::new(repo);
 
         let mut auth_module = MockAuthModule::new();
@@ -682,7 +802,7 @@ mod tests {
             data["token"].as_str().unwrap(),
             config.auth().jwt_secret().as_bytes(),
             config.auth().jwt_issuer(),
-            config.auth().jwt_audience(),
+            &format!("{}-api", config.auth().jwt_audience()),
         );
 
         assert!(claims.is_ok());

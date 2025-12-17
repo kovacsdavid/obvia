@@ -370,8 +370,9 @@ mod tests {
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
-            config.auth().jwt_audience().to_string(),
+            format!("{}-api", config.auth().jwt_audience().to_string()),
             Uuid::new_v4(),
+            None,
             None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
@@ -511,6 +512,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
             None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
@@ -658,8 +660,9 @@ mod tests {
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
-            config.auth().jwt_audience().to_string(),
+            format!("{}-api", config.auth().jwt_audience().to_string()),
             Uuid::new_v4(),
+            None,
             None,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
@@ -791,8 +794,9 @@ mod tests {
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
-            config.auth().jwt_audience().to_string(),
+            format!("{}-api", config.auth().jwt_audience().to_string()),
             jti,
+            None,
             None,
         );
 

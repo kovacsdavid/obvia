@@ -19,7 +19,7 @@
 
 use super::{
     AuthModule,
-    dto::{claims::Claims, login::LoginResponse, login::UserPublic},
+    dto::{claims::Claims, login::UserPublic},
 };
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::{
@@ -47,6 +47,7 @@ use argon2::{
 };
 use async_trait::async_trait;
 use axum::http::StatusCode;
+use axum_extra::extract::CookieJar;
 use chrono::{Duration, Utc};
 use handlebars::Handlebars;
 use jsonwebtoken::{EncodingKey, Header, encode};
@@ -90,8 +91,14 @@ pub enum AuthServiceError {
     #[error("Token generation: {0}")]
     Token(String),
 
+    #[error("RefreshTokenError: {0}")]
+    RefreshTokenError(String),
+
     #[error("MailTransport error: {0}")]
     MailTransport(String),
+
+    #[error("Nincs jogosultságod az erőforrás használatához")]
+    Unauthorized,
 }
 
 #[async_trait]
@@ -104,7 +111,8 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
             Self::UserNotFound
             | Self::InvalidPassword
             | Self::UserInactive
-            | Self::InvalidEmailValidationToken => FriendlyError::user_facing(
+            | Self::InvalidEmailValidationToken
+            | Self::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
@@ -181,7 +189,7 @@ impl AuthService {
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
         payload: LoginRequest,
-    ) -> AuthServiceResult<LoginResponse> {
+    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
         let user = auth_module
             .auth_repo()
             .get_user_by_email(&payload.email)
@@ -209,35 +217,231 @@ impl AuthService {
             .update_user_last_login_at(user.id)
             .await?;
 
-        let now = Utc::now().timestamp() as usize;
-        let exp = (Utc::now()
-            + Duration::minutes(auth_module.config().auth().jwt_expiration_mins() as i64))
-        .timestamp() as usize;
-        let nbf = now;
         let active_tenant_id = match active_user_tenant {
             None => None,
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let claims = Claims::new(
+        let (access_token, access_token_claims) = Self::gen_jwt(
             user.id,
-            exp,
-            now,
-            nbf,
             auth_module.config().auth().jwt_issuer().to_string(),
-            auth_module.config().auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            format!("{}-api", auth_module.config().auth().jwt_audience()),
+            (Utc::now()
+                + Duration::minutes(
+                    auth_module
+                        .config()
+                        .auth()
+                        .access_token_expiration_mins()
+                        .try_into()
+                        .map_err(|_| {
+                            AuthServiceError::Token(
+                                "access_token_expiration_mins can not be converted to i64"
+                                    .to_string(),
+                            )
+                        })?,
+                ))
+            .timestamp() as usize,
             active_tenant_id,
-        );
-
-        let token = encode(
-            &Header::default(),
-            &claims,
-            &EncodingKey::from_secret(auth_module.config().auth().jwt_secret().as_bytes()),
+            auth_module.config().auth().jwt_secret().as_bytes(),
+            None,
         )
         .map_err(|e| AuthServiceError::Token(e.to_string()))?;
 
-        Ok(LoginResponse::new(claims, UserPublic::from(user), token))
+        let (refresh_token, refresh_token_claims) = Self::gen_jwt(
+            user.id,
+            auth_module.config().auth().jwt_issuer().to_string(),
+            format!("{}-auth", auth_module.config().auth().jwt_audience()),
+            (Utc::now()
+                + Duration::minutes(
+                    auth_module
+                        .config()
+                        .auth()
+                        .refresh_token_expiration_mins()
+                        .try_into()
+                        .map_err(|_| {
+                            AuthServiceError::Token(
+                                "refresh_token_expiration_mins can not be converted to i64"
+                                    .to_string(),
+                            )
+                        })?,
+                ))
+            .timestamp() as usize,
+            active_tenant_id,
+            auth_module.config().auth().jwt_secret().as_bytes(),
+            Some(Uuid::new_v4()),
+        )
+        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+
+        auth_module
+            .auth_repo()
+            .insert_refresh_token(&refresh_token_claims)
+            .await?;
+
+        Ok((
+            access_token,
+            access_token_claims,
+            refresh_token,
+            refresh_token_claims,
+            user.into(),
+        ))
+    }
+
+    fn gen_jwt(
+        sub: Uuid,
+        iss: String,
+        aud: String,
+        exp: usize,
+        active_tenant_id: Option<Uuid>,
+        encoding_key: &[u8],
+        family_id: Option<Uuid>,
+    ) -> AuthServiceResult<(String, Claims)> {
+        let now = Utc::now().timestamp() as usize;
+        let nbf = now;
+
+        let claims = Claims::new(
+            sub,
+            exp,
+            now,
+            nbf,
+            iss,
+            aud,
+            Uuid::new_v4(),
+            family_id,
+            active_tenant_id,
+        );
+
+        Ok((
+            encode(
+                &Header::default(),
+                &claims,
+                &EncodingKey::from_secret(encoding_key),
+            )
+            .map_err(|e| AuthServiceError::Token(e.to_string()))?,
+            claims,
+        ))
+    }
+
+    pub async fn refresh(
+        auth_module: Arc<dyn AuthModule>,
+        jar: CookieJar,
+    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
+        let current_refresh_token = jar
+            .get("refresh_token")
+            .ok_or_else(|| AuthServiceError::Unauthorized)?
+            .value_trimmed()
+            .to_string();
+        let current_refresh_token_claims = Claims::from_token(
+            &current_refresh_token,
+            auth_module.config().auth().jwt_secret().as_bytes(),
+            auth_module.config().auth().jwt_issuer(),
+            &format!("{}-auth", auth_module.config().auth().jwt_audience()),
+        )
+        .map_err(|_| AuthServiceError::Unauthorized)?;
+
+        let user = auth_module
+            .auth_repo()
+            .get_user_by_id(current_refresh_token_claims.sub())
+            .await
+            .map_err(|e| AuthServiceError::Unauthorized)?;
+
+        if !user.is_active() {
+            auth_module
+                .auth_repo()
+                .revoke_refresh_tokens_by_user_id(current_refresh_token_claims.sub())
+                .await?;
+            return Err(AuthServiceError::Unauthorized);
+        }
+
+        let family_id = match current_refresh_token_claims.family_id() {
+            Some(family_id) => family_id,
+            None => {
+                return Err(AuthServiceError::RefreshTokenError(
+                    "missing family_id".to_string(),
+                ));
+            }
+        };
+
+        let current_refresh_token_record = match auth_module
+            .auth_repo()
+            .get_refresh_token(current_refresh_token_claims.jti())
+            .await
+        {
+            Ok(refresh_token_record) => refresh_token_record,
+            Err(_) => {
+                auth_module
+                    .auth_repo()
+                    .revoke_refresh_tokens_by_family_id(family_id)
+                    .await?;
+                return Err(AuthServiceError::Unauthorized);
+            }
+        };
+
+        let active_user_tenant = auth_module
+            .auth_repo()
+            .get_user_active_tenant(user.id)
+            .await?;
+
+        let active_tenant_id = match active_user_tenant {
+            None => None,
+            Some(user_tenant) => Some(user_tenant.tenant_id),
+        };
+
+        let (access_token, access_token_claims) = Self::gen_jwt(
+            user.id,
+            auth_module.config().auth().jwt_issuer().to_string(),
+            format!("{}-api", auth_module.config().auth().jwt_audience()),
+            (Utc::now()
+                + Duration::minutes(
+                    auth_module
+                        .config()
+                        .auth()
+                        .access_token_expiration_mins()
+                        .try_into()
+                        .map_err(|_| {
+                            AuthServiceError::Token(
+                                "access_token_expiration_mins can not be converted to i64"
+                                    .to_string(),
+                            )
+                        })?,
+                ))
+            .timestamp() as usize,
+            active_tenant_id,
+            auth_module.config().auth().jwt_secret().as_bytes(),
+            None,
+        )
+        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+
+        let (new_refresh_token, new_refresh_token_claims) = Self::gen_jwt(
+            user.id,
+            auth_module.config().auth().jwt_issuer().to_string(),
+            format!("{}-auth", auth_module.config().auth().jwt_audience()),
+            current_refresh_token_claims.exp(),
+            active_tenant_id,
+            auth_module.config().auth().jwt_secret().as_bytes(),
+            current_refresh_token_claims.family_id(),
+        )
+        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+
+        auth_module
+            .auth_repo()
+            .insert_refresh_token(&new_refresh_token_claims)
+            .await?;
+
+        auth_module
+            .auth_repo()
+            .consume_refresh_token(
+                current_refresh_token_claims.jti(),
+                new_refresh_token_claims.jti(),
+            )
+            .await?;
+
+        Ok((
+            access_token,
+            access_token_claims,
+            new_refresh_token,
+            new_refresh_token_claims,
+            user.into(),
+        ))
     }
 
     /// Attempts to register a new user in the system.

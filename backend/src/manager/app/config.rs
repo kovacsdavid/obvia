@@ -73,6 +73,7 @@ pub struct ServerConfig {
     host: String,
     port: u16,
     hostname: String,
+    environment: String,
 }
 
 pub type BasicDatabaseConfig = DatabaseConfig<String, u16, String, String, String, u32>;
@@ -380,7 +381,8 @@ pub struct AuthConfig {
     jwt_secret: String,
     jwt_issuer: String,
     jwt_audience: String,
-    jwt_expiration_mins: u64,
+    access_token_expiration_mins: u64,
+    refresh_token_expiration_mins: u64,
 }
 
 impl AppConfig {
@@ -439,13 +441,17 @@ impl ServerConfig {
     pub fn host(&self) -> &str {
         &self.host
     }
-
     /// Returns the port number.
     pub fn port(&self) -> u16 {
         self.port
     }
+    /// Returns the hostname.
     pub fn hostname(&self) -> &str {
         &self.hostname
+    }
+    /// Returns the environment.
+    pub fn environment(&self) -> &str {
+        &self.environment
     }
 }
 
@@ -462,9 +468,13 @@ impl AuthConfig {
     pub fn jwt_audience(&self) -> &str {
         &self.jwt_audience
     }
-    /// Returns the jwt_expiration_mins.
-    pub fn jwt_expiration_mins(&self) -> u64 {
-        self.jwt_expiration_mins
+    /// Returns the access_token_expiration_mins.
+    pub fn access_token_expiration_mins(&self) -> u64 {
+        self.access_token_expiration_mins
+    }
+    /// Returns the refresh_token_expiration_mins.
+    pub fn refresh_token_expiration_mins(&self) -> u64 {
+        self.refresh_token_expiration_mins
     }
 }
 
@@ -737,6 +747,7 @@ pub struct ServerConfigBuilder {
     host: Option<String>,
     port: Option<u16>,
     hostname: Option<String>,
+    environment: Option<String>,
 }
 
 impl ServerConfigBuilder {
@@ -749,6 +760,7 @@ impl ServerConfigBuilder {
             host: None,
             port: None,
             hostname: None,
+            environment: None,
         }
     }
     /// Sets the host for the configuration.
@@ -790,6 +802,10 @@ impl ServerConfigBuilder {
         self.hostname = Some(hostname);
         self
     }
+    pub fn environment(mut self, environment: String) -> Self {
+        self.environment = Some(environment);
+        self
+    }
     /// Builds a `ServerConfig` instance from the current configuration in the builder.
     ///
     /// This method attempts to create a `ServerConfig` object using the values
@@ -813,6 +829,9 @@ impl ServerConfigBuilder {
             host: self.host.ok_or("host is required".to_string())?,
             port: self.port.ok_or("port is required".to_string())?,
             hostname: self.hostname.ok_or("hostname is required".to_string())?,
+            environment: self
+                .environment
+                .ok_or("environment is required".to_string())?,
         })
     }
 }
@@ -1060,7 +1079,8 @@ pub struct AuthConfigBuilder {
     jwt_secret: Option<String>,
     jwt_issuer: Option<String>,
     jwt_audience: Option<String>,
-    jwt_expiration_mins: Option<u64>,
+    access_token_expiration_mins: Option<u64>,
+    refresh_token_expiration_mins: Option<u64>,
 }
 
 impl AuthConfigBuilder {
@@ -1082,7 +1102,8 @@ impl AuthConfigBuilder {
             jwt_secret: None,
             jwt_issuer: None,
             jwt_audience: None,
-            jwt_expiration_mins: None,
+            access_token_expiration_mins: None,
+            refresh_token_expiration_mins: None,
         }
     }
     /// Sets the JWT secret for the configuration.
@@ -1131,15 +1152,12 @@ impl AuthConfigBuilder {
         self.jwt_audience = Some(jwt_audience);
         self
     }
-    /// Sets the expiration time for JSON Web Tokens (JWT) in minutes.
-    ///
-    /// # Parameters
-    /// - `jwt_expiration_mins`: The expiration time in minutes for the JWT.
-    ///
-    /// # Returns
-    /// - `Self`: Returns the modified instance of the struct, allowing for method chaining.
-    pub fn jwt_expiration_mins(mut self, jwt_expiration_mins: u64) -> Self {
-        self.jwt_expiration_mins = Some(jwt_expiration_mins);
+    pub fn access_token_expiration_mins(mut self, access_token_expiration_mins: u64) -> Self {
+        self.access_token_expiration_mins = Some(access_token_expiration_mins);
+        self
+    }
+    pub fn refresh_token_expiration_mins(mut self, refresh_token_expiration_mins: u64) -> Self {
+        self.refresh_token_expiration_mins = Some(refresh_token_expiration_mins);
         self
     }
     /// Builds an `AuthConfig` instance from the current state of the builder.
@@ -1162,9 +1180,12 @@ impl AuthConfigBuilder {
             jwt_secret: self.jwt_secret.ok_or("jwt_secret is required")?,
             jwt_issuer: self.jwt_issuer.ok_or("jwt_issuer is required")?,
             jwt_audience: self.jwt_audience.ok_or("jwt_audience is required")?,
-            jwt_expiration_mins: self
-                .jwt_expiration_mins
-                .ok_or("jwt_expiration_mins is required")?,
+            access_token_expiration_mins: self
+                .access_token_expiration_mins
+                .ok_or("access_token_expiration_mins is required")?,
+            refresh_token_expiration_mins: self
+                .refresh_token_expiration_mins
+                .ok_or("refresh_token_expiration_mins is required")?,
         })
     }
 }
@@ -1197,7 +1218,8 @@ mod tests {
                 jwt_secret: Some("test_jwt_secret".to_string()),
                 jwt_issuer: Some("http://localhost".to_string()),
                 jwt_audience: Some("http://localhost".to_string()),
-                jwt_expiration_mins: Some(60),
+                access_token_expiration_mins: Some(5),
+                refresh_token_expiration_mins: Some(60),
             }
         }
     }
@@ -1247,6 +1269,7 @@ mod tests {
                 host: Some("127.0.0.1".to_string()),
                 port: Some(3000),
                 hostname: Some("example.com".to_string()),
+                environment: Some("test".to_string()),
             }
         }
     }

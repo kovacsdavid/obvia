@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as customersApi from "@/components/modules/customers/lib/service.ts";
 import type { RootState } from "@/store";
 import type { CustomerUserInput } from "@/components/modules/customers/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface CustomersState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -59,7 +60,8 @@ export const update = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "customers/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.list(query, token);

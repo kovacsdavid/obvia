@@ -28,6 +28,7 @@ tower = { version = "0.5.2", features = ["full"] }
 bigdecimal = { version = "0.4.8", features = ["serde", "serde-json"] }
 handlebars = "6.3.2"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "hostname", "smtp-transport","tokio1", "tokio1-rustls-tls"] }
+time = "0.3.44"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

@@ -56,6 +56,8 @@ export function isClaims(data: unknown): data is Claims {
     typeof data.aud === "string" &&
     "jti" in data &&
     typeof data.jti === "string" &&
+    "family_id" in data &&
+    (data.family_id === null || typeof data.family_id === "string") &&
     "active_tenant" in data &&
     (data.active_tenant === null || typeof data.active_tenant === "string")
   );

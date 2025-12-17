@@ -84,6 +84,42 @@ export const loginUserRequest = createAsyncThunk(
   },
 );
 
+let refreshInFlight: Promise<void> | null = null;
+
+export const refreshAccessToken = createAsyncThunk(
+  "auth/refreshAccessToken",
+  async (_: void, { getState, dispatch }) => {
+    const rootState = getState() as RootState;
+
+    const token = rootState.auth.login.token;
+    const expiresAt = rootState.auth.login.claims?.exp;
+
+    const expiredOrNearExpiry =
+      !token || !expiresAt || expiresAt - Math.floor(Date.now() / 1000) < 30;
+
+    if (!expiredOrNearExpiry) return;
+
+    if (!refreshInFlight) {
+      refreshInFlight = (async () => {
+        try {
+          const response = await authApi.refresh();
+          if (
+            response.statusCode === 200 &&
+            typeof response.jsonData?.data !== "undefined"
+          ) {
+            dispatch(loginUser(response.jsonData?.data));
+          } else {
+            dispatch(logoutUser());
+          }
+        } finally {
+          refreshInFlight = null;
+        }
+      })();
+    }
+    await refreshInFlight;
+  },
+);
+
 export const get_claims = createAsyncThunk(
   "auth/get_claims",
   async (_, { getState }) => {

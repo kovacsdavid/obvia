@@ -60,6 +60,7 @@ pub struct Claims {
     iss: String,
     aud: String,
     jti: Uuid,
+    family_id: Option<Uuid>,
     active_tenant: Option<Uuid>,
 }
 
@@ -88,6 +89,7 @@ impl Claims {
         iss: String,
         aud: String,
         jti: Uuid,
+        family_id: Option<Uuid>,
         active_tenant: Option<Uuid>,
     ) -> Self {
         Self {
@@ -98,6 +100,7 @@ impl Claims {
             iss,
             aud,
             jti,
+            family_id,
             active_tenant,
         }
     }
@@ -201,8 +204,12 @@ impl Claims {
         self.jti
     }
 
+    /// Retrieves the family_id associated with the current context.
+    pub fn family_id(&self) -> Option<Uuid> {
+        self.family_id
+    }
+
     /// Retrieves the UUID of the active tenant associated with the current context.
-    #[allow(dead_code)]
     pub fn active_tenant(&self) -> Option<Uuid> {
         self.active_tenant
     }
@@ -244,6 +251,7 @@ mod tests {
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
             None,
+            None,
         );
         let token1 = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -280,6 +288,7 @@ mod tests {
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
             None,
+            None,
         );
         let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -311,6 +320,7 @@ mod tests {
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
             None,
+            None,
         );
         let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -341,6 +351,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
             None,
         );
         let token = claims
@@ -374,6 +385,7 @@ mod tests {
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
             None,
+            None,
         );
         let token = claims
             .to_token(config.auth().jwt_secret().as_bytes())
@@ -405,6 +417,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
             None,
         );
         let token = claims
@@ -439,6 +452,7 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            None,
             Some(active_tenant_uuid),
         );
         let token = claims

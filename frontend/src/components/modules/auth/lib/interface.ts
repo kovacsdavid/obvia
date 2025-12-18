@@ -84,6 +84,8 @@ export interface Claims {
   /** A unique identifier for the token, typically a UUID */
   jti: string;
 
+  family_id: string | null;
+
   /** The UUID of the active tenant associated with the current context */
   active_tenant: string | null;
 }

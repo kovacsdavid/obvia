@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as productsApi from "@/components/modules/products/lib/service.ts";
 import type { RootState } from "@/store";
 import type { ProductUserInput } from "@/components/modules/products/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface ProductsState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: ProductsState = {
 
 export const create = createAsyncThunk(
   "products/create",
-  async (requestData: ProductUserInput, { getState }) => {
+  async (requestData: ProductUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.create(requestData, token);
@@ -41,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "products/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.list(query, token);
@@ -50,7 +53,8 @@ export const list = createAsyncThunk(
 
 export const get_resolved = createAsyncThunk(
   "products/get_resolved",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.get_resolved(uuid, token);
@@ -59,7 +63,8 @@ export const get_resolved = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "products/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.get(uuid, token);
@@ -68,7 +73,8 @@ export const get = createAsyncThunk(
 
 export const update = createAsyncThunk(
   "products/update",
-  async (requestData: ProductUserInput, { getState }) => {
+  async (requestData: ProductUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.update(requestData, token);
@@ -77,7 +83,8 @@ export const update = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   "products/deleteItem",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.deleteItem(uuid, token);
@@ -86,7 +93,8 @@ export const deleteItem = createAsyncThunk(
 
 export const select_list = createAsyncThunk(
   "products/select_list",
-  async (list: string, { getState }) => {
+  async (list: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await productsApi.select_list(list, token);

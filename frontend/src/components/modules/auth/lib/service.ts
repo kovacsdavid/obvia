@@ -65,6 +65,30 @@ export async function login({
   });
 }
 
+export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
+  return await fetch(`/api/auth/refresh`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isLoginResponse)) ?? unexpectedFormError
+    );
+  });
+}
+
+export async function logout(): Promise<Response> {
+  return await fetch(`/api/auth/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}
+
 export async function register({
   firstName,
   lastName,

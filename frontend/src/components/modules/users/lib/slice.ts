@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as usersApi from "@/components/modules/users/lib/service.ts";
 import type { RootState } from "@/store";
 import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface UsersState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: UsersState = {
 
 export const create = createAsyncThunk(
   "users/create",
-  async (requestData: CreateUser, { rejectWithValue, getState }) => {
+  async (requestData: CreateUser, { rejectWithValue, getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {
@@ -45,7 +47,8 @@ export const create = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "users/list",
-  async (query: string | null, { rejectWithValue, getState }) => {
+  async (query: string | null, { rejectWithValue, getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     try {

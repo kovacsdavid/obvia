@@ -77,7 +77,7 @@ pub async fn require_auth(
             bearer.token(),
             config.auth().jwt_secret().as_bytes(),
             config.auth().jwt_issuer(),
-            config.auth().jwt_audience(),
+            &format!("{}-api", config.auth().jwt_audience()),
         )
         .map_err(|_| StatusCode::UNAUTHORIZED)?,
     );

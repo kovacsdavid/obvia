@@ -20,11 +20,13 @@
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
-use crate::manager::auth::model::{EmailVerification, ForgottenPassword};
+use crate::manager::auth::model::{EmailVerification, ForgottenPassword, RefreshToken};
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
+use chrono::{DateTime, Local, TimeZone, Utc};
 #[cfg(test)]
 use mockall::automock;
 use sqlx::Error;
@@ -132,6 +134,12 @@ pub trait AuthRepository: Send + Sync {
         &self,
         forgotten_password_id: Uuid,
     ) -> RepositoryResult<()>;
+    async fn insert_refresh_token(&self, claims: &Claims) -> RepositoryResult<RefreshToken>;
+    async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken>;
+    async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()>;
+    async fn revoke_refresh_token_by_jti(&self, jti: Uuid) -> RepositoryResult<()>;
+    async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()>;
+    async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
@@ -317,4 +325,74 @@ impl AuthRepository for PgPoolManager {
             .await?;
         Ok(())
     }
+    async fn insert_refresh_token(&self, claims: &Claims) -> RepositoryResult<RefreshToken> {
+        Ok(sqlx::query_as::<_, RefreshToken>(
+            "INSERT INTO refresh_tokens (
+                    user_id, family_id, jti, iat, exp
+            ) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+        )
+        .bind(claims.sub())
+        .bind(claims.family_id())
+        .bind(claims.jti())
+        .bind(usize_epoch_seconds_to_local(claims.iat())?)
+        .bind(usize_epoch_seconds_to_local(claims.exp())?)
+        .fetch_one(&self.get_main_pool())
+        .await?)
+    }
+    async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken> {
+        Ok(sqlx::query_as::<_, RefreshToken>(
+            "SELECT * FROM refresh_tokens WHERE jti = $1 AND consumed_at IS NULL AND revoked_at IS NULL",
+        )
+        .bind(jti)
+        .fetch_one(&self.get_main_pool())
+        .await?)
+    }
+    async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            "UPDATE refresh_tokens SET consumed_at = NOW(), replaced_by = $1 WHERE jti = $2 AND consumed_at IS NULL",
+        )
+        .bind(new_jti)
+        .bind(jti)
+        .execute(&self.get_main_pool())
+        .await?;
+        Ok(())
+    }
+    async fn revoke_refresh_token_by_jti(&self, jti: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE jti = $1 AND revoked_at IS NULL",
+        )
+        .bind(jti)
+        .execute(&self.get_main_pool())
+        .await?;
+        Ok(())
+    }
+    async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL",
+        )
+        .bind(user_id)
+        .execute(&self.get_main_pool())
+        .await?;
+        Ok(())
+    }
+    async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE family_id = $1 AND revoked_at IS NULL",
+        )
+        .bind(family_id)
+        .execute(&self.get_main_pool())
+        .await?;
+        Ok(())
+    }
+}
+
+pub fn usize_epoch_seconds_to_local(secs: usize) -> RepositoryResult<DateTime<Local>> {
+    let secs_i64: i64 = secs
+        .try_into()
+        .map_err(|_| RepositoryError::Custom("timestamp too large for i64".to_string()))?;
+    let utc = Utc
+        .timestamp_opt(secs_i64, 0)
+        .single()
+        .ok_or_else(|| RepositoryError::Custom("usize_epoch_seconds_to_local: utc".to_string()))?;
+    Ok(utc.with_timezone(&Local))
 }

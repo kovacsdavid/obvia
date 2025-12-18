@@ -33,7 +33,6 @@ import worksheetsReducer from "@/components/modules/worksheets/lib/slice.ts";
 import inventoryMovementsReducer from "@/components/modules/inventory_movements/lib/slice.ts";
 import storage from "redux-persist/lib/storage";
 import { persistReducer, persistStore } from "redux-persist";
-import authMiddleware from "@/store/middleware/authMiddleware.ts";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -63,7 +62,7 @@ export const store = configureStore({
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
       serializableCheck: false,
-    }).concat(authMiddleware),
+    }),
 });
 
 export const persistor = persistStore(store);

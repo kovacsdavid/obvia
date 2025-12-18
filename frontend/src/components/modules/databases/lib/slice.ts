@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as databasesApi from "@/components/modules/databases/lib/service.ts";
 import type { RootState } from "@/store";
 import type { CreateDatabase } from "@/components/modules/databases/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface DatabasesState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: DatabasesState = {
 
 export const create = createAsyncThunk(
   "databases/create",
-  async (requestData: CreateDatabase, { getState }) => {
+  async (requestData: CreateDatabase, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.create(requestData, token);
@@ -41,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "databases/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.list(query, token);
@@ -50,7 +53,8 @@ export const list = createAsyncThunk(
 
 export const activate = createAsyncThunk(
   "databases/activate",
-  async (new_tenant_id: string, { getState }) => {
+  async (new_tenant_id: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.activate(new_tenant_id, token);
@@ -59,7 +63,8 @@ export const activate = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "databases/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await databasesApi.get_resolved(uuid, token);

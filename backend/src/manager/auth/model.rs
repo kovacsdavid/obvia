@@ -39,3 +39,16 @@ pub struct ForgottenPassword {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct RefreshToken {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub family_id: Uuid,
+    pub jti: Uuid,
+    pub iat: DateTime<Local>,
+    pub exp: DateTime<Local>,
+    pub replaced_by: Option<Uuid>,
+    pub consumed_at: Option<DateTime<Local>>,
+    pub revoked_at: Option<DateTime<Local>>,
+}

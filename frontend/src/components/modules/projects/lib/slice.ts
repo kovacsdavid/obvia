@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as projectsApi from "@/components/modules/projects/lib/service.ts";
 import type { RootState } from "@/store";
 import type { ProjectUserInput } from "@/components/modules/projects/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface ProjectsState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: ProjectsState = {
 
 export const create = createAsyncThunk(
   "projects/create",
-  async (requestData: ProjectUserInput, { getState }) => {
+  async (requestData: ProjectUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return projectsApi.create(requestData, token);
@@ -41,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "projects/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return projectsApi.list(query, token);
@@ -50,7 +53,8 @@ export const list = createAsyncThunk(
 
 export const get_resolved = createAsyncThunk(
   "projects/get_resolved",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await projectsApi.get_resolved(uuid, token);
@@ -59,7 +63,8 @@ export const get_resolved = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "projects/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await projectsApi.get(uuid, token);
@@ -68,7 +73,8 @@ export const get = createAsyncThunk(
 
 export const update = createAsyncThunk(
   "projects/update",
-  async (requestData: ProjectUserInput, { getState }) => {
+  async (requestData: ProjectUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await projectsApi.update(requestData, token);
@@ -77,7 +83,8 @@ export const update = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   "projects/deleteItem",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await projectsApi.deleteItem(uuid, token);

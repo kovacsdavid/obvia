@@ -39,14 +39,14 @@ import {
 } from "@/components/ui/card.tsx";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { logoutUser } from "@/components/modules/auth/lib/slice.ts";
+import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 
 export default function Dashboard() {
   const { hasActiveDatabase } = useAuth();
   const dispatch = useAppDispatch();
 
   const handleLogout = () => {
-    dispatch(logoutUser());
+    dispatch(logoutAndRevokeRefreshToken());
   };
   const navigate = useNavigate();
   return (

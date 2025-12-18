@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as servicesApi from "@/components/modules/services/lib/service.ts";
 import type { RootState } from "@/store";
 import type { ServiceUserInput } from "@/components/modules/services/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface ServicesState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: ServicesState = {
 
 export const create = createAsyncThunk(
   "services/create",
-  async (requestData: ServiceUserInput, { getState }) => {
+  async (requestData: ServiceUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.create(requestData, token);
@@ -41,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   "services/deleteItem",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.deleteItem(uuid, token);
@@ -50,7 +53,8 @@ export const deleteItem = createAsyncThunk(
 
 export const update = createAsyncThunk(
   "services/update",
-  async (requestData: ServiceUserInput, { getState }) => {
+  async (requestData: ServiceUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.update(requestData, token);
@@ -59,7 +63,8 @@ export const update = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "services/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.list(query, token);
@@ -68,7 +73,8 @@ export const list = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "services/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.get(uuid, token);
@@ -77,7 +83,8 @@ export const get = createAsyncThunk(
 
 export const get_resolved = createAsyncThunk(
   "services/get_resolved",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.get_resolved(uuid, token);
@@ -86,7 +93,8 @@ export const get_resolved = createAsyncThunk(
 
 export const select_list = createAsyncThunk(
   "services/select_list",
-  async (list: string, { getState }) => {
+  async (list: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await servicesApi.select_list(list, token);

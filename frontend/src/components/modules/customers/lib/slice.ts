@@ -33,7 +33,8 @@ const initialState: CustomersState = {
 
 export const create = createAsyncThunk(
   "customers/create",
-  async (requestData: CustomerUserInput, { getState }) => {
+  async (requestData: CustomerUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.create(requestData, token);
@@ -42,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   "customers/deleteItem",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.deleteItem(uuid, token);
@@ -51,7 +53,8 @@ export const deleteItem = createAsyncThunk(
 
 export const update = createAsyncThunk(
   "customers/update",
-  async (requestData: CustomerUserInput, { getState }) => {
+  async (requestData: CustomerUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.update(requestData, token);
@@ -70,7 +73,8 @@ export const list = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "customers/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.get(uuid, token);
@@ -79,7 +83,8 @@ export const get = createAsyncThunk(
 
 export const get_resolved = createAsyncThunk(
   "customers/get_resolved",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await customersApi.get_resolved(uuid, token);

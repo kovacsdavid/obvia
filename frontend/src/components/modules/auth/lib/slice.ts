@@ -142,7 +142,8 @@ export const refreshAccessToken = createAsyncThunk(
 
 export const get_claims = createAsyncThunk(
   "auth/get_claims",
-  async (_, { getState }) => {
+  async (_, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await authApi.get_claims(token);

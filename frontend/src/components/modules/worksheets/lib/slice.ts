@@ -21,6 +21,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import * as worksheetsApi from "@/components/modules/worksheets/lib/service.ts";
 import type { RootState } from "@/store";
 import type { WorksheetUserInput } from "@/components/modules/worksheets/lib/interface.ts";
+import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface WorksheetsState {
   status: "idle" | "loading" | "succeeded" | "failed";
@@ -32,7 +33,8 @@ const initialState: WorksheetsState = {
 
 export const create = createAsyncThunk(
   "worksheets/create",
-  async (requestData: WorksheetUserInput, { getState }) => {
+  async (requestData: WorksheetUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return worksheetsApi.create(requestData, token);
@@ -41,7 +43,8 @@ export const create = createAsyncThunk(
 
 export const select_list = createAsyncThunk(
   "worksheets/select_list",
-  async (list: string, { getState }) => {
+  async (list: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.select_list(list, token);
@@ -50,7 +53,8 @@ export const select_list = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "worksheets/list",
-  async (query: string | null, { getState }) => {
+  async (query: string | null, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return worksheetsApi.list(query, token);
@@ -59,7 +63,8 @@ export const list = createAsyncThunk(
 
 export const get_resolved = createAsyncThunk(
   "worksheets/get_resolved",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.get_resolved(uuid, token);
@@ -68,7 +73,8 @@ export const get_resolved = createAsyncThunk(
 
 export const get = createAsyncThunk(
   "worksheets/get",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.get(uuid, token);
@@ -77,7 +83,8 @@ export const get = createAsyncThunk(
 
 export const update = createAsyncThunk(
   "worksheets/update",
-  async (requestData: WorksheetUserInput, { getState }) => {
+  async (requestData: WorksheetUserInput, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.update(requestData, token);
@@ -86,7 +93,8 @@ export const update = createAsyncThunk(
 
 export const deleteItem = createAsyncThunk(
   "worksheets/deleteItem",
-  async (uuid: string, { getState }) => {
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
     return await worksheetsApi.deleteItem(uuid, token);

@@ -17,27 +17,27 @@ Obvia ERP is designed as a full-stack web application:
 
 ### Backend
 
-- **Language**: Rust (Edition 2024)
-- **Web Framework**: Axum 0.8.4
-- **Database**: PostgreSQL with SQLx 0.8.6
-- **Authentication**: JWT (jsonwebtoken 10.0.0), Argon2 0.5.3 for password hashing
-- **Async Runtime**: Tokio 1.45.1
-- **Configuration**: TOML-based configuration files (config crate 0.15.11)
-- **Error Handling**: thiserror 2.0.12, anyhow 1.0.98
-- **Testing**: pretty_assertions 1.4.1, mockall 0.13.1
+- **Language**: Rust
+- **Web Framework**: Axum
+- **Database**: PostgreSQL with SQLx
+- **Authentication**: JWT (jsonwebtoken), Argon2 for password hashing
+- **Async Runtime**: Tokio
+- **Configuration**: TOML-based configuration files (config crate)
+- **Error Handling**: thiserror, anyhow
+- **Testing**: pretty_assertions, mockall
 
 ### Frontend
 
-- **Framework**: React 19.1.0
-- **Language**: TypeScript 5.9.3
-- **Build Tool**: Vite 7.1.9
-- **Styling**: TailwindCSS 4.1.8
-- **State Management**: Redux Toolkit 2.8.2
-- **Routing**: React Router 7.6.1
+- **Framework**: React
+- **Language**: TypeScript
+- **Build Tool**: Vite
+- **Styling**: TailwindCSS
+- **State Management**: Redux Toolkit
+- **Routing**: React Router
 - **UI Components**: Radix UI components
-- **Icons**: Lucide React 0.545.0
-- **Testing**: Vitest 3.2.3
-- **Linting**: ESLint 9.25.0 with TypeScript ESLint 8.30.1
+- **Icons**: Lucide React
+- **Testing**: Vitest
+- **Linting**: ESLint with TypeScript ESLint
 
 ## Project Structure
 
@@ -407,8 +407,6 @@ For questions or support, please contact:
 - **Email**: kapcsolat@kovacsdavid.dev
 
 ---
-
-**Copyright (C) 2025 Kovács Dávid**
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public
 License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later

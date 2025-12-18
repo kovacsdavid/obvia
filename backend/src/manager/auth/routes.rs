@@ -18,7 +18,7 @@
  */
 
 use super::handler::{
-    forgotten_password, get_claims, login, new_password, refresh, register,
+    forgotten_password, get_claims, login, logout, new_password, refresh, register,
     resend_email_verification, verify_email,
 };
 use crate::manager::auth::AuthModule;
@@ -52,7 +52,8 @@ pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
             .route("/resend_email_verification", get(resend_email_verification))
             .route("/forgotten_password", post(forgotten_password))
             .route("/new_password", post(new_password))
-            .route("/refresh", get(refresh))
+            .route("/refresh", post(refresh))
+            .route("/logout", post(logout))
             .with_state(auth_module),
     )
 }

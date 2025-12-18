@@ -101,17 +101,25 @@ pub async fn login(
         }
     };
 
-    let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
+    let refresh_cookie = Cookie::build(("refresh_token", refresh_token.clone()))
         .http_only(true)
         .secure(secure_cookie)
         .same_site(SameSite::Strict)
-        .path("api/auth/refresh")
+        .path("/api/auth/refresh")
+        .max_age(Duration::minutes(max_age))
+        .build();
+    let logout_cookie = Cookie::build(("logout_token", refresh_token))
+        .http_only(true)
+        .secure(secure_cookie)
+        .same_site(SameSite::Strict)
+        .path("/api/auth/logout")
         .max_age(Duration::minutes(max_age))
         .build();
 
-    Ok((jar.add(refresh_cookie), response).into_response())
+    Ok((jar.add(refresh_cookie).add(logout_cookie), response).into_response())
 }
 
+#[debug_handler]
 pub async fn refresh(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
@@ -154,15 +162,35 @@ pub async fn refresh(
         }
     };
 
-    let refresh_cookie = Cookie::build(("refresh_token", refresh_token))
+    let refresh_cookie = Cookie::build(("refresh_token", refresh_token.clone()))
         .http_only(true)
         .secure(secure_cookie)
         .same_site(SameSite::Strict)
-        .path("api/auth/refresh")
-        .max_age(Duration::days(max_age))
+        .path("/api/auth/refresh")
+        .max_age(Duration::minutes(max_age))
+        .build();
+    let logout_cookie = Cookie::build(("logout_token", refresh_token))
+        .http_only(true)
+        .secure(secure_cookie)
+        .same_site(SameSite::Strict)
+        .path("/api/auth/logout")
+        .max_age(Duration::minutes(max_age))
         .build();
 
-    Ok((jar.add(refresh_cookie), response).into_response())
+    Ok((jar.add(refresh_cookie).add(logout_cookie), response).into_response())
+}
+
+#[debug_handler]
+pub async fn logout(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    jar: CookieJar,
+) -> HandlerResult {
+    let _ = AuthService::logout(auth_module.clone(), jar.clone()).await;
+
+    Ok((jar
+        .remove(Cookie::from("refresh_token"))
+        .remove(Cookie::from("logout_token")),)
+        .into_response())
 }
 
 /// Handles user registration requests.

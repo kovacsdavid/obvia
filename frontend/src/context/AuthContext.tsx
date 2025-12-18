@@ -24,7 +24,7 @@ import type { RootState } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
 import {
   loginUserRequest,
-  logoutUser,
+  logoutAndRevokeRefreshToken,
 } from "@/components/modules/auth/lib/slice.ts";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return dispach(loginUserRequest({ email, password }));
   };
   const logout = () => {
-    dispach(logoutUser());
+    dispach(logoutAndRevokeRefreshToken());
   };
 
   return (

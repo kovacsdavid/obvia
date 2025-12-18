@@ -84,6 +84,26 @@ export const loginUserRequest = createAsyncThunk(
   },
 );
 
+let logoutAndRevokeInFlight: Promise<void> | null = null;
+
+export const logoutAndRevokeRefreshToken = createAsyncThunk(
+  "auth/logoutAndRevokeRefreshToken",
+  async (_: void, { dispatch }) => {
+    if (!logoutAndRevokeInFlight) {
+      logoutAndRevokeInFlight = (async () => {
+        try {
+          await authApi.logout();
+          dispatch(logoutUser());
+        } finally {
+          logoutAndRevokeInFlight = null;
+          dispatch(logoutUser());
+        }
+      })();
+    }
+    await logoutAndRevokeInFlight;
+  },
+);
+
 let refreshInFlight: Promise<void> | null = null;
 
 export const refreshAccessToken = createAsyncThunk(

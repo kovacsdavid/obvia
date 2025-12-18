@@ -34,7 +34,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/context/AuthContext";
-import { logoutUser } from "@/components/modules/auth/lib/slice.ts";
+import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui";
@@ -80,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation();
   const { isLoggedIn, hasActiveDatabase } = useAuth();
   const handleLogout = () => {
-    dispatch(logoutUser());
+    dispatch(logoutAndRevokeRefreshToken());
   };
   const { toggleSidebar, isMobile } = useSidebar();
 

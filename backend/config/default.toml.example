@@ -20,6 +20,7 @@
 host = "0.0.0.0"
 port = 3000
 hostname = "example.com"
+environment = "prod"
 
 # === Main Database settings ===
 [main_database]
@@ -44,7 +45,8 @@ pool_size = 10
 jwt_secret = "your_super_secret_jwt_key"
 jwt_issuer = "obvia"
 jwt_audience = "obvia_users"
-jwt_expiration_mins = "480"
+access_token_expiration_mins = 5
+refresh_token_expiration_mins = 480
 
 [mail]
 smtp_host = "smtp_host"

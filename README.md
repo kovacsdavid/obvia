@@ -175,8 +175,10 @@ customize it for your environment.
 
 ```toml
 [server]
-host = "0.0.0.0"        # Server host address
-port = 3000             # Server port
+host = "0.0.0.0"           # Server host address
+port = 3000                # Server port
+hostname = "example.com"   # Server hostname
+environment = "prod"       # Server environment
 ```
 
 #### Main Database
@@ -211,6 +213,8 @@ jwt_secret = "your_super_secret_jwt_key"    # Secret key for JWT signing (change
 jwt_issuer = "obvia"                        # JWT issuer
 jwt_audience = "obvia_users"                # JWT audience
 jwt_expiration_mins = "480"                 # Token expiration (8 hours)
+access_token_expiration_mins = 5            # Access token expiration in mins
+refresh_token_expiration_mins = 480         # Refresh token expiration in mins
 ```
 
 **Important**: Always change the `jwt_secret` to a strong, random value in production environments.

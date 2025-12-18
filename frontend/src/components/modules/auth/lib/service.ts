@@ -66,7 +66,7 @@ export async function login({
 }
 
 export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
-  return await fetch(`/api/auth/refresh`, {
+  return await fetch(`/api/auth/t/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -80,7 +80,7 @@ export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
 }
 
 export async function logout(): Promise<Response> {
-  return await fetch(`/api/auth/logout`, {
+  return await fetch(`/api/auth/t/logout`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

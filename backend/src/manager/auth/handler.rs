@@ -81,42 +81,22 @@ pub async fn login(
             .into_response()),
     }?;
 
-    let secure_cookie = !matches!(auth_module.config().server().environment(), "dev");
-
-    let max_age: i64 = match auth_module
-        .config()
-        .auth()
-        .refresh_token_expiration_mins()
-        .try_into()
-    {
+    let refresh_cookie = match gen_refresh_cookie(
+        refresh_token,
+        !matches!(auth_module.config().server().environment(), "dev"),
+        auth_module.config().auth().refresh_token_expiration_mins(),
+    ) {
         Ok(val) => val,
-        Err(_) => {
-            return Err(FriendlyError::internal_with_admin_notify(
-                file!(),
-                "refresh_token_expiration_mins could not be converted to i64",
-                auth_module,
-            )
-            .await
-            .into_response());
+        Err(e) => {
+            return Err(
+                FriendlyError::internal_with_admin_notify(file!(), e, auth_module)
+                    .await
+                    .into_response(),
+            );
         }
     };
 
-    let refresh_cookie = Cookie::build(("refresh_token", refresh_token.clone()))
-        .http_only(true)
-        .secure(secure_cookie)
-        .same_site(SameSite::Strict)
-        .path("/api/auth/refresh")
-        .max_age(Duration::minutes(max_age))
-        .build();
-    let logout_cookie = Cookie::build(("logout_token", refresh_token))
-        .http_only(true)
-        .secure(secure_cookie)
-        .same_site(SameSite::Strict)
-        .path("/api/auth/logout")
-        .max_age(Duration::minutes(max_age))
-        .build();
-
-    Ok((jar.add(refresh_cookie).add(logout_cookie), response).into_response())
+    Ok((jar.add(refresh_cookie), response).into_response())
 }
 
 #[debug_handler]
@@ -142,42 +122,39 @@ pub async fn refresh(
             .into_response()),
     }?;
 
-    let secure_cookie = !matches!(auth_module.config().server().environment(), "dev");
-
-    let max_age: i64 = match auth_module
-        .config()
-        .auth()
-        .refresh_token_expiration_mins()
-        .try_into()
-    {
+    let refresh_cookie = match gen_refresh_cookie(
+        refresh_token,
+        !matches!(auth_module.config().server().environment(), "dev"),
+        auth_module.config().auth().refresh_token_expiration_mins(),
+    ) {
         Ok(val) => val,
-        Err(_) => {
-            return Err(FriendlyError::internal_with_admin_notify(
-                file!(),
-                "refresh_token_expiration_mins could not be converted to i64",
-                auth_module,
-            )
-            .await
-            .into_response());
+        Err(e) => {
+            return Err(
+                FriendlyError::internal_with_admin_notify(file!(), e, auth_module)
+                    .await
+                    .into_response(),
+            );
         }
     };
 
-    let refresh_cookie = Cookie::build(("refresh_token", refresh_token.clone()))
-        .http_only(true)
-        .secure(secure_cookie)
-        .same_site(SameSite::Strict)
-        .path("/api/auth/refresh")
-        .max_age(Duration::minutes(max_age))
-        .build();
-    let logout_cookie = Cookie::build(("logout_token", refresh_token))
-        .http_only(true)
-        .secure(secure_cookie)
-        .same_site(SameSite::Strict)
-        .path("/api/auth/logout")
-        .max_age(Duration::minutes(max_age))
-        .build();
+    Ok((jar.add(refresh_cookie), response).into_response())
+}
 
-    Ok((jar.add(refresh_cookie).add(logout_cookie), response).into_response())
+fn gen_refresh_cookie(
+    refresh_token: String,
+    secure_cookie: bool,
+    refresh_token_expiration_mins: u64,
+) -> Result<Cookie<'static>, String> {
+    let max_age: i64 = refresh_token_expiration_mins
+        .try_into()
+        .map_err(|_| "refresh_token_expiration_mins could not be converted to i64".to_string())?;
+    Ok(Cookie::build(("refresh_token", refresh_token))
+        .http_only(true)
+        .secure(secure_cookie)
+        .same_site(SameSite::Strict)
+        .path("/api/auth/t")
+        .max_age(Duration::minutes(max_age))
+        .build())
 }
 
 #[debug_handler]
@@ -187,9 +164,8 @@ pub async fn logout(
 ) -> HandlerResult {
     let _ = AuthService::logout(auth_module.clone(), jar.clone()).await;
 
-    Ok((jar
-        .remove(Cookie::from("refresh_token"))
-        .remove(Cookie::from("logout_token")),)
+    Ok(jar
+        .remove(Cookie::build("refresh_token").path("/api/auth/t"))
         .into_response())
 }
 

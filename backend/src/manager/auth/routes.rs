@@ -52,8 +52,8 @@ pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
             .route("/resend_email_verification", get(resend_email_verification))
             .route("/forgotten_password", post(forgotten_password))
             .route("/new_password", post(new_password))
-            .route("/refresh", post(refresh))
-            .route("/logout", post(logout))
+            .route("/t/refresh", post(refresh)) // "[t]oken" nest is for cookie path restriction
+            .route("/t/logout", post(logout)) // "[t]oken" nest is for cookie path restriction
             .with_state(auth_module),
     )
 }

@@ -445,20 +445,20 @@ impl AuthService {
     }
 
     pub async fn logout(auth_module: Arc<dyn AuthModule>, jar: CookieJar) -> AuthServiceResult<()> {
-        let logout_token = jar
-            .get("logout_token")
+        let refresh_token = jar
+            .get("refresh_token")
             .ok_or_else(|| AuthServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
-        let logout_token_claims = Claims::from_token(
-            &logout_token,
+        let refresh_token_claims = Claims::from_token(
+            &refresh_token,
             auth_module.config().auth().jwt_secret().as_bytes(),
             auth_module.config().auth().jwt_issuer(),
             &format!("{}-auth", auth_module.config().auth().jwt_audience()),
         )
         .map_err(|_| AuthServiceError::Unauthorized)?;
 
-        let family_id = match logout_token_claims.family_id() {
+        let family_id = match refresh_token_claims.family_id() {
             Some(family_id) => family_id,
             None => {
                 return Err(AuthServiceError::RefreshTokenError(

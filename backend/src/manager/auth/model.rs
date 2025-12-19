@@ -21,6 +21,7 @@ use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
+use sqlx::types::JsonValue;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct EmailVerification {
@@ -51,4 +52,37 @@ pub struct RefreshToken {
     pub replaced_by: Option<Uuid>,
     pub consumed_at: Option<DateTime<Local>>,
     pub revoked_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum AccountEventType {
+    Login,
+    Logout,
+    PasswordChange,
+    EmailChange,
+    MfaEnable,
+    MfaDisable,
+    PasswordResetRequest,
+    AccountLocked,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum AccountEventStatus {
+    Success,
+    Failure,
+    Blocked,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct AccountEventLogEntry {
+    pub id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub identifier: Option<String>,
+    pub event_type: AccountEventType,
+    pub status: AccountEventStatus,
+    pub user_agent: Option<String>,
+    pub metadata: Option<JsonValue>,
+    pub created_at: DateTime<Local>
 }

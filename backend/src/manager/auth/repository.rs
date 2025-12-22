@@ -17,12 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::net::IpAddr;
+
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
-use crate::manager::auth::model::{EmailVerification, ForgottenPassword, RefreshToken};
+use crate::manager::auth::model::{
+    AccountEventLogEntry, AccountEventStatus, AccountEventType, EmailVerification,
+    ForgottenPassword, RefreshToken,
+};
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
@@ -140,6 +145,17 @@ pub trait AuthRepository: Send + Sync {
     async fn revoke_refresh_token_by_jti(&self, jti: Uuid) -> RepositoryResult<()>;
     async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()>;
     async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()>;
+    #[allow(clippy::too_many_arguments)]
+    async fn insert_account_event_log(
+        &self,
+        user_id: Uuid,
+        identifier: Option<String>,
+        event_type: AccountEventType,
+        event_status: AccountEventStatus,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
+        metadata: serde_json::Value,
+    ) -> RepositoryResult<AccountEventLogEntry>;
 }
 
 #[async_trait]
@@ -383,6 +399,31 @@ impl AuthRepository for PgPoolManager {
         .execute(&self.get_main_pool())
         .await?;
         Ok(())
+    }
+    async fn insert_account_event_log(
+        &self,
+        user_id: Uuid,
+        identifier: Option<String>,
+        event_type: AccountEventType,
+        event_status: AccountEventStatus,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
+        metadata: serde_json::Value,
+    ) -> RepositoryResult<AccountEventLogEntry> {
+        Ok(sqlx::query_as::<_, AccountEventLogEntry>(
+            "INSERT INTO account_event_log (
+                    user_id, identifier, event_type, status, ip_address, user_agent, metadata
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        )
+        .bind(user_id)
+        .bind(identifier)
+        .bind(event_type)
+        .bind(event_status)
+        .bind(ip_address)
+        .bind(user_agent)
+        .bind(metadata)
+        .fetch_one(&self.get_main_pool())
+        .await?)
     }
 }
 

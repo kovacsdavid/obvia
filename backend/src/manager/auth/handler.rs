@@ -20,7 +20,7 @@
 use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientIp, UserInput};
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -36,6 +36,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use std::collections::HashMap;
 use std::sync::Arc;
 use time::Duration;
+use tracing::debug;
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -61,8 +62,10 @@ use time::Duration;
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    ClientIp(client_ip): ClientIp,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
+    debug!("Debug client_ip: {client_ip}");
     let (access_token, access_claims, refresh_token, _, user_public) =
         match AuthService::try_login(auth_module.clone(), payload).await {
             Ok(u) => u,

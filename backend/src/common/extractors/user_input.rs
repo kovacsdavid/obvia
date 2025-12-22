@@ -16,38 +16,13 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::error::FriendlyError;
-use axum::Json;
+
 use axum::extract::{FromRequest, Request};
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
-use tracing::Level;
 
-pub struct ValidJson<T>(pub T);
-
-impl<T, S> FromRequest<S> for ValidJson<T>
-where
-    T: DeserializeOwned,
-    S: Send + Sync,
-{
-    type Rejection = Response;
-
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Json(payload) = Json::<T>::from_request(req, state).await.map_err(|_| {
-            FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::BAD_REQUEST,
-                file!(),
-                "Invalid JSON",
-            )
-            .into_response()
-        })?;
-
-        Ok(ValidJson(payload))
-    }
-}
+use crate::common::extractors::ValidJson;
 
 pub struct UserInput<T, H>(pub T, pub PhantomData<H>);
 

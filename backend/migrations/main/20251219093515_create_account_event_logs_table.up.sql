@@ -19,7 +19,7 @@
 
 CREATE TABLE account_event_log (
     id uuid primary key default uuid_generate_v4(),
-    user_id uuid references users(id),
+    user_id uuid,
     identifier varchar(255),
     event_type varchar(64) not null,
     status varchar(32) not null,
@@ -27,6 +27,7 @@ CREATE TABLE account_event_log (
     user_agent text,
     metadata jsonb,
     created_at timestamptz not null default now(),
+    foreign key (user_id) references users(id)
 );
 
 CREATE INDEX idx_account_event_log_user_id ON account_event_log(user_id);

@@ -20,7 +20,7 @@
 use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::extractors::{ClientIp, UserInput};
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -62,10 +62,15 @@ use tracing::debug;
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
-    ClientIp(client_ip): ClientIp,
+    ClientContext { ip, user_agent }: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    debug!("Debug client_ip: {client_ip}");
+    debug!("Debug client_ip: {ip}");
+    match user_agent {
+        Some(v) => debug!("Debug user_agent: {v}"),
+        None => debug!("Debug user_agent: missing"),
+    };
+
     let (access_token, access_claims, refresh_token, _, user_public) =
         match AuthService::try_login(auth_module.clone(), payload).await {
             Ok(u) => u,

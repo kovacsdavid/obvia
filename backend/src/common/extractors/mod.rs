@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod client_ip;
+pub(crate) mod client_context;
 pub(crate) mod user_input;
 pub(crate) mod valid_json;
 
-pub(crate) use client_ip::ClientIp;
+pub(crate) use client_context::ClientContext;
 pub(crate) use user_input::UserInput;
 pub(crate) use valid_json::ValidJson;

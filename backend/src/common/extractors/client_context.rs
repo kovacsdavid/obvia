@@ -23,22 +23,31 @@ use axum::{
 };
 use std::net::{IpAddr, SocketAddr};
 
-pub struct ClientIp(pub IpAddr);
+pub struct ClientContext {
+    pub ip: IpAddr,
+    pub user_agent: Option<String>,
+}
 
-impl<S> FromRequestParts<S> for ClientIp
+impl<S> FromRequestParts<S> for ClientContext
 where
     S: Send + Sync,
 {
     type Rejection = std::convert::Infallible;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let user_agent = parts
+            .headers
+            .get(axum::http::header::USER_AGENT)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+
         if let Some(ip) = parts
             .headers
             .get("x-real-ip")
             .and_then(|v| v.to_str().ok())
             .and_then(|s| s.parse::<IpAddr>().ok())
         {
-            return Ok(ClientIp(ip));
+            return Ok(ClientContext { ip, user_agent });
         }
 
         if let Some(ip) = parts
@@ -48,13 +57,19 @@ where
             .and_then(|s| s.split(',').next())
             .and_then(|s| s.trim().parse::<IpAddr>().ok())
         {
-            return Ok(ClientIp(ip));
+            return Ok(ClientContext { ip, user_agent });
         }
 
         if let Some(ConnectInfo(addr)) = parts.extensions.get::<ConnectInfo<SocketAddr>>() {
-            return Ok(ClientIp(addr.ip()));
+            return Ok(ClientContext {
+                ip: addr.ip(),
+                user_agent,
+            });
         }
 
-        Ok(ClientIp(IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1))))
+        Ok(ClientContext {
+            ip: IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
+            user_agent,
+        })
     }
 }

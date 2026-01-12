@@ -17,12 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+CREATE TYPE account_event_type AS ENUM (
+    'login', 'logout', 'password_change', 'email_change',
+    'mfa_enable', 'mfa_disable', 'password_reset_request', 'account_locked',
+    'mfa_recovery_code_used'
+);
+
+CREATE TYPE account_event_status AS ENUM (
+    'success', 'failure', 'blocked'
+);
+
 CREATE TABLE account_event_log (
     id uuid primary key default uuid_generate_v4(),
     user_id uuid,
     identifier varchar(255),
-    event_type varchar(64) not null,
-    status varchar(32) not null,
+    event_type account_event_type not null,
+    status account_event_status not null,
     ip_address inet,
     user_agent text,
     metadata jsonb,
@@ -34,3 +44,4 @@ CREATE INDEX idx_account_event_log_user_id ON account_event_log(user_id);
 CREATE INDEX idx_account_event_log_ip_address ON account_event_log(ip_address);
 CREATE INDEX idx_account_event_log_event_type ON account_event_log(event_type);
 CREATE INDEX idx_account_event_log_created_at ON account_event_log(created_at);
+CREATE INDEX idx_account_event_log_status ON account_event_log(status);

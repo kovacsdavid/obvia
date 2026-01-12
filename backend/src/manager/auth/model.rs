@@ -56,6 +56,7 @@ pub struct RefreshToken {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[sqlx(type_name = "account_event_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AccountEventType {
     Login,
@@ -69,6 +70,7 @@ pub enum AccountEventType {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[sqlx(type_name = "account_event_status", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 pub enum AccountEventStatus {
     Success,

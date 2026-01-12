@@ -148,14 +148,19 @@ pub trait AuthRepository: Send + Sync {
     #[allow(clippy::too_many_arguments)]
     async fn insert_account_event_log(
         &self,
-        user_id: Uuid,
+        user_id: Option<Uuid>,
         identifier: Option<String>,
         event_type: AccountEventType,
         event_status: AccountEventStatus,
         ip_address: Option<IpAddr>,
         user_agent: Option<String>,
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     ) -> RepositoryResult<AccountEventLogEntry>;
+    async fn account_event_log_failures_by_ip(
+        &self,
+        ip_address: IpAddr,
+        interval_mins: i64,
+    ) -> RepositoryResult<i64>;
 }
 
 #[async_trait]
@@ -402,13 +407,13 @@ impl AuthRepository for PgPoolManager {
     }
     async fn insert_account_event_log(
         &self,
-        user_id: Uuid,
+        user_id: Option<Uuid>,
         identifier: Option<String>,
         event_type: AccountEventType,
         event_status: AccountEventStatus,
         ip_address: Option<IpAddr>,
         user_agent: Option<String>,
-        metadata: serde_json::Value,
+        metadata: Option<serde_json::Value>,
     ) -> RepositoryResult<AccountEventLogEntry> {
         Ok(sqlx::query_as::<_, AccountEventLogEntry>(
             "INSERT INTO account_event_log (
@@ -424,6 +429,26 @@ impl AuthRepository for PgPoolManager {
         .bind(metadata)
         .fetch_one(&self.get_main_pool())
         .await?)
+    }
+    async fn account_event_log_failures_by_ip(
+        &self,
+        ip_address: IpAddr,
+        interval_mins: i64,
+    ) -> RepositoryResult<i64> {
+        Ok(sqlx::query_scalar(
+            r#"SELECT count(id)
+               FROM account_event_log
+               WHERE status = 'failure'
+                AND ip_address = $1
+                AND created_at > NOW() - $2::interval"#,
+        )
+        .bind(ip_address)
+        .bind(format!("{interval_mins} minutes"))
+        .fetch_optional(&self.get_main_pool())
+        .await?
+        .ok_or_else(|| {
+            RepositoryError::Custom("account_event_log_failures_by_ip: invalid value".to_string())
+        })?)
     }
 }
 

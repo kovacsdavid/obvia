@@ -21,7 +21,13 @@ use super::{
     AuthModule,
     dto::{claims::Claims, login::UserPublic},
 };
-use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
+use crate::{
+    common::extractors::ClientContext,
+    manager::auth::{
+        dto::{login::LoginRequest, register::RegisterRequest},
+        model::{AccountEventStatus, AccountEventType},
+    },
+};
 use crate::{
     common::types::value_object::ValueObjectable,
     manager::{
@@ -99,6 +105,9 @@ pub enum AuthServiceError {
 
     #[error("Nincs jogosultságod az erőforrás használatához")]
     Unauthorized,
+
+    #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
+    TooManyAttempts(i64),
 }
 
 #[async_trait]
@@ -112,7 +121,8 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
             | Self::InvalidPassword
             | Self::UserInactive
             | Self::InvalidEmailValidationToken
-            | Self::Unauthorized => FriendlyError::user_facing(
+            | Self::Unauthorized
+            | Self::TooManyAttempts(_) => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
@@ -188,15 +198,51 @@ impl AuthService {
     /// - `chrono` crate for timestamps and expiration calculations.
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
-        payload: LoginRequest,
+        payload: &LoginRequest,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
-        let user = auth_module
+        Self::rate_limiter(60, 10, auth_module.clone(), payload, client_context).await?;
+
+        let user = match auth_module
             .auth_repo()
             .get_user_by_email(&payload.email)
             .await
-            .map_err(|e| AuthServiceError::UserNotFound)?;
+        {
+            Ok(user) => user,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::UserNotFound);
+            }
+        };
 
         if !user.is_active() {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.clone()),
+                    AccountEventType::Login,
+                    AccountEventStatus::Failure,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
+                .await?;
             return Err(AuthServiceError::UserInactive);
         }
 
@@ -208,9 +254,26 @@ impl AuthService {
         let parsed_hash = PasswordHash::new(&user.password_hash)
             .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
 
-        Argon2::default()
-            .verify_password(payload.password.as_bytes(), &parsed_hash)
-            .map_err(|_| AuthServiceError::InvalidPassword)?;
+        match Argon2::default().verify_password(payload.password.as_bytes(), &parsed_hash) {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::InvalidPassword);
+            }
+        };
 
         auth_module
             .auth_repo()
@@ -277,6 +340,19 @@ impl AuthService {
             .insert_refresh_token(&refresh_token_claims)
             .await?;
 
+        let _ = auth_module
+            .auth_repo()
+            .insert_account_event_log(
+                Some(user.id),
+                Some(payload.email.clone()),
+                AccountEventType::Login,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
+            )
+            .await?;
+
         Ok((
             access_token,
             access_token_claims,
@@ -284,6 +360,59 @@ impl AuthService {
             refresh_token_claims,
             user.into(),
         ))
+    }
+
+    async fn rate_limiter(
+        attempt_interval_mins: i64,
+        max_attempts: i64,
+        auth_module: Arc<dyn AuthModule>,
+        payload: &LoginRequest,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<()> {
+        let event_log_entries = match auth_module
+            .auth_repo()
+            .account_event_log_failures_by_ip(client_context.ip, attempt_interval_mins)
+            .await
+        {
+            Ok(val) => val,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Blocked,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+            }
+        };
+
+        if event_log_entries > max_attempts {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    None,
+                    Some(payload.email.clone()),
+                    AccountEventType::Login,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error":
+                            AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                    })),
+                )
+                .await?;
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+        }
+        Ok(())
     }
 
     fn gen_jwt(

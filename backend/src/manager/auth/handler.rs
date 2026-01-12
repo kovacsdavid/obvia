@@ -36,7 +36,6 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use std::collections::HashMap;
 use std::sync::Arc;
 use time::Duration;
-use tracing::debug;
 
 /// Handles the login process for a user in an asynchronous manner.
 ///
@@ -62,17 +61,11 @@ use tracing::debug;
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
-    ClientContext { ip, user_agent }: ClientContext,
+    client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    debug!("Debug client_ip: {ip}");
-    match user_agent {
-        Some(v) => debug!("Debug user_agent: {v}"),
-        None => debug!("Debug user_agent: missing"),
-    };
-
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::try_login(auth_module.clone(), payload).await {
+        match AuthService::try_login(auth_module.clone(), &payload, &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };
@@ -339,6 +332,7 @@ mod tests {
     use axum::http::Request;
     use axum::http::StatusCode;
     use chrono::Local;
+    use ipnetwork::IpNetwork;
     use lettre::transport::smtp::response::Category;
     use lettre::transport::smtp::response::Code;
     use lettre::transport::smtp::response::Detail;
@@ -348,6 +342,7 @@ mod tests {
     use sqlx::error::{DatabaseError, ErrorKind};
     use std::error::Error;
     use std::fmt::{Debug, Display, Formatter};
+    use std::net::Ipv4Addr;
     use std::sync::Arc;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -358,6 +353,9 @@ mod tests {
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
+    use crate::manager::auth::model::AccountEventLogEntry;
+    use crate::manager::auth::model::AccountEventStatus;
+    use crate::manager::auth::model::AccountEventType;
     use crate::manager::auth::model::EmailVerification;
     use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::tests::MockAuthModule;
@@ -415,6 +413,28 @@ mod tests {
                 revoked_at: None,
             })
         });
+
+        repo.expect_account_event_log_failures_by_ip()
+            .times(1)
+            .returning(|_, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 
@@ -495,6 +515,28 @@ mod tests {
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(|_| Ok(None));
+
+        repo.expect_account_event_log_failures_by_ip()
+            .times(1)
+            .returning(|_, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Failure,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 
@@ -768,6 +810,28 @@ mod tests {
                 revoked_at: None,
             })
         });
+
+        repo.expect_account_event_log_failures_by_ip()
+            .times(1)
+            .returning(|_, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 

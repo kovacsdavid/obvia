@@ -104,9 +104,10 @@ pub async fn login(
 pub async fn refresh(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    client_context: ClientContext,
 ) -> HandlerResult {
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::refresh(auth_module.clone(), jar.clone()).await {
+        match AuthService::refresh(auth_module.clone(), jar.clone(), &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };

@@ -18,13 +18,13 @@
  */
 
 CREATE TYPE account_event_type AS ENUM (
-    'login', 'logout', 'password_change', 'email_change',
+    'login', 'refresh', 'logout', 'password_change', 'email_change',
     'mfa_enable', 'mfa_disable', 'password_reset_request', 'account_locked',
     'mfa_recovery_code_used'
 );
 
 CREATE TYPE account_event_status AS ENUM (
-    'success', 'failure', 'blocked'
+    'success', 'failure', 'blocked', 'error'
 );
 
 CREATE TABLE account_event_log (

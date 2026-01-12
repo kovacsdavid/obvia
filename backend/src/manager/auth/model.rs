@@ -60,6 +60,7 @@ pub struct RefreshToken {
 #[serde(rename_all = "snake_case")]
 pub enum AccountEventType {
     Login,
+    Refresh,
     Logout,
     PasswordChange,
     EmailChange,
@@ -76,6 +77,7 @@ pub enum AccountEventStatus {
     Success,
     Failure,
     Blocked,
+    Error,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]

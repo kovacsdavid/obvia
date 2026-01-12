@@ -156,9 +156,16 @@ pub trait AuthRepository: Send + Sync {
         user_agent: Option<String>,
         metadata: Option<serde_json::Value>,
     ) -> RepositoryResult<AccountEventLogEntry>;
-    async fn account_event_log_failures_by_ip(
+    async fn account_event_log_ip_and_event_status_count(
         &self,
         ip_address: IpAddr,
+        event_status: AccountEventStatus,
+        interval_mins: i64,
+    ) -> RepositoryResult<i64>;
+    async fn account_event_log_by_ip_and_event_type_count(
+        &self,
+        ip_address: IpAddr,
+        event_type: AccountEventType,
         interval_mins: i64,
     ) -> RepositoryResult<i64>;
 }
@@ -430,24 +437,52 @@ impl AuthRepository for PgPoolManager {
         .fetch_one(&self.get_main_pool())
         .await?)
     }
-    async fn account_event_log_failures_by_ip(
+    async fn account_event_log_ip_and_event_status_count(
         &self,
         ip_address: IpAddr,
+        event_status: AccountEventStatus,
         interval_mins: i64,
     ) -> RepositoryResult<i64> {
         Ok(sqlx::query_scalar(
             r#"SELECT count(id)
                FROM account_event_log
-               WHERE status = 'failure'
-                AND ip_address = $1
-                AND created_at > NOW() - $2::interval"#,
+               WHERE status = $1
+                AND ip_address = $2
+                AND created_at > NOW() - $3::interval"#,
         )
+        .bind(event_status)
         .bind(ip_address)
         .bind(format!("{interval_mins} minutes"))
         .fetch_optional(&self.get_main_pool())
         .await?
         .ok_or_else(|| {
-            RepositoryError::Custom("account_event_log_failures_by_ip: invalid value".to_string())
+            RepositoryError::Custom(
+                "account_event_log_ip_and_event_status_count: invalid value".to_string(),
+            )
+        })?)
+    }
+    async fn account_event_log_by_ip_and_event_type_count(
+        &self,
+        ip_address: IpAddr,
+        event_type: AccountEventType,
+        interval_mins: i64,
+    ) -> RepositoryResult<i64> {
+        Ok(sqlx::query_scalar(
+            r#"SELECT count(id)
+               FROM account_event_log
+               WHERE event_type = $1
+                AND ip_address = $2
+                AND created_at > NOW() - $3::interval"#,
+        )
+        .bind(event_type)
+        .bind(ip_address)
+        .bind(format!("{interval_mins} minutes"))
+        .fetch_optional(&self.get_main_pool())
+        .await?
+        .ok_or_else(|| {
+            RepositoryError::Custom(
+                "account_event_log_by_ip_and_event_type_count: invalid value".to_string(),
+            )
         })?)
     }
 }

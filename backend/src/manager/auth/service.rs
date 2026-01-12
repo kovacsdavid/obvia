@@ -62,9 +62,11 @@ use lettre::{
     address::AddressError,
     message::{Mailbox, header::ContentType},
 };
+use rand::Rng;
 use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::time::{Duration as TokioDuration, sleep};
 use tracing::Level;
 use uuid::Uuid;
 
@@ -201,12 +203,14 @@ impl AuthService {
         payload: &LoginRequest,
         client_context: &ClientContext,
     ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
-        Self::rate_limiter(
+        Self::rate_limit_by_event_status(
             60,
             10,
             auth_module.clone(),
             Some(payload.email.clone()),
             client_context,
+            AccountEventStatus::Failure,
+            AccountEventType::Login,
         )
         .await?;
 
@@ -369,16 +373,22 @@ impl AuthService {
         ))
     }
 
-    async fn rate_limiter(
+    async fn rate_limit_by_event_status(
         attempt_interval_mins: i64,
         max_attempts: i64,
         auth_module: Arc<dyn AuthModule>,
         identifier: Option<String>,
         client_context: &ClientContext,
+        event_status: AccountEventStatus,
+        event_type: AccountEventType,
     ) -> AuthServiceResult<()> {
         let event_log_entries = match auth_module
             .auth_repo()
-            .account_event_log_failures_by_ip(client_context.ip, attempt_interval_mins)
+            .account_event_log_ip_and_event_status_count(
+                client_context.ip,
+                event_status,
+                attempt_interval_mins,
+            )
             .await
         {
             Ok(val) => val,
@@ -388,7 +398,7 @@ impl AuthService {
                     .insert_account_event_log(
                         None,
                         identifier,
-                        AccountEventType::Login,
+                        event_type,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
                         client_context.user_agent.clone(),
@@ -407,7 +417,65 @@ impl AuthService {
                 .insert_account_event_log(
                     None,
                     identifier,
-                    AccountEventType::Login,
+                    event_type,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error":
+                            AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                    })),
+                )
+                .await?;
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+        }
+        Ok(())
+    }
+
+    async fn rate_limit_by_event_type(
+        attempt_interval_mins: i64,
+        max_attempts: i64,
+        auth_module: Arc<dyn AuthModule>,
+        identifier: Option<String>,
+        client_context: &ClientContext,
+        event_type: AccountEventType,
+    ) -> AuthServiceResult<()> {
+        let event_log_entries = match auth_module
+            .auth_repo()
+            .account_event_log_by_ip_and_event_type_count(
+                client_context.ip,
+                event_type.clone(),
+                attempt_interval_mins,
+            )
+            .await
+        {
+            Ok(val) => val,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        identifier,
+                        event_type,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+            }
+        };
+
+        if event_log_entries > max_attempts {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    None,
+                    identifier,
+                    event_type,
                     AccountEventStatus::Blocked,
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
@@ -1088,20 +1156,93 @@ impl AuthService {
     pub async fn forgotten_password(
         auth_module: Arc<dyn AuthModule>,
         payload: ForgottenPasswordRequest,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<()> {
-        let user = auth_module
+        Self::rate_limit_by_event_type(
+            120,
+            5,
+            auth_module.clone(),
+            Some(payload.email.extract().get_value().to_owned()),
+            client_context,
+            AccountEventType::PasswordResetRequest,
+        )
+        .await?;
+        Self::rate_limit_by_event_status(
+            60,
+            10,
+            auth_module.clone(),
+            Some(payload.email.extract().get_value().to_owned()),
+            client_context,
+            AccountEventStatus::Failure,
+            AccountEventType::PasswordResetRequest,
+        )
+        .await?;
+        let user = match auth_module
             .auth_repo()
             .get_user_by_email(payload.email.extract().get_value())
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.email.extract().get_value().to_owned()),
+                        AccountEventType::PasswordResetRequest,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                let sleep_secs = rand::rng().random_range(1000..=6000);
+                sleep(TokioDuration::from_millis(sleep_secs)).await;
+                return Ok(());
+            }
+        };
         if user.is_active() {
             let forgotten_password = auth_module
                 .auth_repo()
                 .insert_forgotten_password(user.id)
                 .await?;
-            Self::send_forgotten_password_email(auth_module, &user, forgotten_password).await?;
+            Self::send_forgotten_password_email(auth_module.clone(), &user, forgotten_password)
+                .await?;
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.extract().get_value().to_owned()),
+                    AccountEventType::PasswordResetRequest,
+                    AccountEventStatus::Success,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    None,
+                )
+                .await?;
+            let sleep_secs = rand::rng().random_range(1000..=4000);
+            sleep(TokioDuration::from_millis(sleep_secs)).await;
             Ok(())
         } else {
-            Err(AuthServiceError::UserInactive)
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.extract().get_value().to_owned()),
+                    AccountEventType::PasswordResetRequest,
+                    AccountEventStatus::Failure,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
+                .await?;
+            let sleep_secs = rand::rng().random_range(1000..=6000);
+            sleep(TokioDuration::from_millis(sleep_secs)).await;
+            Ok(())
         }
     }
     pub async fn new_password(

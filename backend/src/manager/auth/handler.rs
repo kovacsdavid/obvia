@@ -286,9 +286,10 @@ pub async fn get_claims(
 
 pub async fn forgotten_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::forgotten_password(auth_module.clone(), user_input).await {
+    match AuthService::forgotten_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -296,7 +297,7 @@ pub async fn forgotten_password(
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
-            "A jelszó emlékeztető e-mail kiküldése sikeresen megtörtént",
+            "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
         ))
         .build()
     {
@@ -416,9 +417,9 @@ mod tests {
             })
         });
 
-        repo.expect_account_event_log_failures_by_ip()
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_, _| Ok(0));
+            .returning(|_, _, _| Ok(0));
 
         repo.expect_insert_account_event_log()
             .times(1)
@@ -518,9 +519,9 @@ mod tests {
             .with(eq(user_id2))
             .returning(|_| Ok(None));
 
-        repo.expect_account_event_log_failures_by_ip()
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_, _| Ok(0));
+            .returning(|_, _, _| Ok(0));
 
         repo.expect_insert_account_event_log()
             .times(1)
@@ -813,9 +814,9 @@ mod tests {
             })
         });
 
-        repo.expect_account_event_log_failures_by_ip()
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_, _| Ok(0));
+            .returning(|_, _, _| Ok(0));
 
         repo.expect_insert_account_event_log()
             .times(1)

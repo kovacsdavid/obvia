@@ -156,7 +156,7 @@ export default function ForgottenPassword() {
           <GlobalSuccess
             success={{
               message:
-                "A jelszóemlékeztető e-mail kiküldése sikeresen megtörtént",
+                "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
             }}
           />
         ) : (

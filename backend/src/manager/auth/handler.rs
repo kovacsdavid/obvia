@@ -163,8 +163,9 @@ fn gen_refresh_cookie(
 pub async fn logout(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    client_context: ClientContext,
 ) -> HandlerResult {
-    let _ = AuthService::logout(auth_module.clone(), jar.clone()).await;
+    let _ = AuthService::logout(auth_module.clone(), jar.clone(), &client_context).await;
 
     Ok(jar
         .remove(Cookie::build("refresh_token").path("/api/auth/t"))

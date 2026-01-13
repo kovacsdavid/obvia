@@ -21,7 +21,13 @@ use super::{
     AuthModule,
     dto::{claims::Claims, login::UserPublic},
 };
-use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
+use crate::{
+    common::extractors::ClientContext,
+    manager::auth::{
+        dto::{login::LoginRequest, register::RegisterRequest},
+        model::{AccountEventStatus, AccountEventType},
+    },
+};
 use crate::{
     common::types::value_object::ValueObjectable,
     manager::{
@@ -56,9 +62,11 @@ use lettre::{
     address::AddressError,
     message::{Mailbox, header::ContentType},
 };
+use rand::Rng;
 use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;
+use tokio::time::{Duration as TokioDuration, sleep};
 use tracing::Level;
 use uuid::Uuid;
 
@@ -99,6 +107,9 @@ pub enum AuthServiceError {
 
     #[error("Nincs jogosultságod az erőforrás használatához")]
     Unauthorized,
+
+    #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
+    TooManyAttempts(i64),
 }
 
 #[async_trait]
@@ -112,7 +123,8 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
             | Self::InvalidPassword
             | Self::UserInactive
             | Self::InvalidEmailValidationToken
-            | Self::Unauthorized => FriendlyError::user_facing(
+            | Self::Unauthorized
+            | Self::TooManyAttempts(_) => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
@@ -188,93 +200,292 @@ impl AuthService {
     /// - `chrono` crate for timestamps and expiration calculations.
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
-        payload: LoginRequest,
+        payload: &LoginRequest,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
-        let user = auth_module
+        Self::rate_limit_by_event_status(
+            60,
+            10,
+            auth_module.clone(),
+            Some(payload.email.clone()),
+            client_context,
+            AccountEventStatus::Failure,
+            AccountEventType::Login,
+        )
+        .await?;
+
+        let user = match auth_module
             .auth_repo()
             .get_user_by_email(&payload.email)
             .await
-            .map_err(|e| AuthServiceError::UserNotFound)?;
+        {
+            Ok(user) => user,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::UserNotFound);
+            }
+        };
 
         if !user.is_active() {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.clone()),
+                    AccountEventType::Login,
+                    AccountEventStatus::Failure,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
+                .await?;
             return Err(AuthServiceError::UserInactive);
         }
 
-        let active_user_tenant = auth_module
+        let active_user_tenant = match auth_module
             .auth_repo()
             .get_user_active_tenant(user.id)
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
-        let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
+        let parsed_hash = match PasswordHash::new(&user.password_hash) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Hash(e.to_string()));
+            }
+        };
 
-        Argon2::default()
-            .verify_password(payload.password.as_bytes(), &parsed_hash)
-            .map_err(|_| AuthServiceError::InvalidPassword)?;
+        match Argon2::default().verify_password(payload.password.as_bytes(), &parsed_hash) {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::InvalidPassword);
+            }
+        };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .update_user_last_login_at(user.id)
-            .await?;
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
         let active_tenant_id = match active_user_tenant {
             None => None,
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let (access_token, access_token_claims) = Self::gen_jwt(
+        let (access_token, access_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .access_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "access_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(payload.email.clone()),
+                            AccountEventType::Login,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             None,
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        let (refresh_token, refresh_token_claims) = Self::gen_jwt(
+        let (refresh_token, refresh_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-auth", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().refresh_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .refresh_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "refresh_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(payload.email.clone()),
+                            AccountEventType::Login,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             Some(Uuid::new_v4()),
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .insert_refresh_token(&refresh_token_claims)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        let _ = auth_module
+            .auth_repo()
+            .insert_account_event_log(
+                Some(user.id),
+                Some(payload.email.clone()),
+                AccountEventType::Login,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
+            )
             .await?;
 
         Ok((
@@ -284,6 +495,135 @@ impl AuthService {
             refresh_token_claims,
             user.into(),
         ))
+    }
+
+    async fn rate_limit_by_event_status(
+        attempt_interval_mins: i64,
+        max_attempts: i64,
+        auth_module: Arc<dyn AuthModule>,
+        identifier: Option<String>,
+        client_context: &ClientContext,
+        event_status: AccountEventStatus,
+        event_type: AccountEventType,
+    ) -> AuthServiceResult<()> {
+        let event_log_entries = match auth_module
+            .auth_repo()
+            .account_event_log_ip_and_event_status_count(
+                client_context.ip,
+                event_status,
+                attempt_interval_mins,
+            )
+            .await
+        {
+            Ok(val) => val,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        identifier,
+                        event_type,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+            }
+        };
+
+        if event_log_entries >= max_attempts {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    None,
+                    identifier,
+                    event_type,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error":
+                            AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                    })),
+                )
+                .await?;
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+        }
+        Ok(())
+    }
+
+    async fn rate_limit_by_event_type(
+        attempt_interval_mins: i64,
+        max_attempts: i64,
+        auth_module: Arc<dyn AuthModule>,
+        identifier: Option<String>,
+        client_context: &ClientContext,
+        event_type: AccountEventType,
+    ) -> AuthServiceResult<()> {
+        let event_log_entries = match auth_module
+            .auth_repo()
+            .account_event_log_by_ip_and_event_type_count(
+                client_context.ip,
+                event_type.clone(),
+                attempt_interval_mins,
+            )
+            .await
+        {
+            Ok(val) => val,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        identifier,
+                        event_type,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+            }
+        };
+
+        if event_log_entries >= max_attempts {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    None,
+                    identifier,
+                    event_type,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error":
+                            AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                    })),
+                )
+                .await?;
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
+        }
+        Ok(())
+    }
+
+    fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
+        (Utc::now()
+            + Duration::minutes(expiration_mins.try_into().map_err(|_| {
+                AuthServiceError::Token(
+                    "refresh_token_expiration_mins can not be converted to i64".to_string(),
+                )
+            })?))
+        .timestamp()
+        .try_into()
+        .map_err(|_| AuthServiceError::Token("exp can not be converted to usize".to_string()))
     }
 
     fn gen_jwt(
@@ -324,30 +664,128 @@ impl AuthService {
     pub async fn refresh(
         auth_module: Arc<dyn AuthModule>,
         jar: CookieJar,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
         let current_refresh_token = jar
             .get("refresh_token")
             .ok_or_else(|| AuthServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
-        let current_refresh_token_claims = Claims::from_token(
+        let current_refresh_token_claims = match Claims::from_token(
             &current_refresh_token,
             auth_module.config().auth().jwt_secret().as_bytes(),
             auth_module.config().auth().jwt_issuer(),
             &format!("{}-auth", auth_module.config().auth().jwt_audience()),
-        )
-        .map_err(|_| AuthServiceError::Unauthorized)?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                match Claims::dangerous_from_token_allow_expired(
+                    &current_refresh_token,
+                    auth_module.config().auth().jwt_secret().as_bytes(),
+                    auth_module.config().auth().jwt_issuer(),
+                    &format!("{}-auth", auth_module.config().auth().jwt_audience()),
+                ) {
+                    Ok(dangerous_claims) => {
+                        auth_module
+                            .auth_repo()
+                            .insert_account_event_log(
+                                Some(dangerous_claims.sub()),
+                                Some(dangerous_claims.sub().to_string()),
+                                AccountEventType::Refresh,
+                                AccountEventStatus::Blocked,
+                                Some(client_context.ip),
+                                client_context.user_agent.clone(),
+                                Some(json!({
+                                    "error": e.to_string()
+                                })),
+                            )
+                            .await?;
+                    }
+                    Err(_) => {
+                        auth_module
+                            .auth_repo()
+                            .insert_account_event_log(
+                                None,
+                                None,
+                                AccountEventType::Refresh,
+                                AccountEventStatus::Blocked,
+                                Some(client_context.ip),
+                                client_context.user_agent.clone(),
+                                Some(json!({
+                                    "error": e.to_string()
+                                })),
+                            )
+                            .await?;
+                    }
+                };
+                return Err(AuthServiceError::Unauthorized);
+            }
+        };
 
-        let user = auth_module
+        let user = match auth_module
             .auth_repo()
             .get_user_by_id(current_refresh_token_claims.sub())
             .await
-            .map_err(|e| AuthServiceError::Unauthorized)?;
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(current_refresh_token_claims.sub()),
+                        Some(current_refresh_token_claims.sub().to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Unauthorized);
+            }
+        };
 
         if !user.is_active() {
-            auth_module
+            match auth_module
                 .auth_repo()
                 .revoke_refresh_tokens_by_user_id(current_refresh_token_claims.sub())
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => {
+                    auth_module
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.id.to_string()),
+                            AccountEventType::Refresh,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e.into());
+                }
+            };
+
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(user.id.to_string()),
+                    AccountEventType::Refresh,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
                 .await?;
             return Err(AuthServiceError::Unauthorized);
         }
@@ -355,6 +793,20 @@ impl AuthService {
         let family_id = match current_refresh_token_claims.family_id() {
             Some(family_id) => family_id,
             None => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": "missing family_id".to_string()
+                        })),
+                    )
+                    .await?;
                 return Err(AuthServiceError::RefreshTokenError(
                     "missing family_id".to_string(),
                 ));
@@ -367,51 +819,129 @@ impl AuthService {
             .await
         {
             Ok(refresh_token_record) => refresh_token_record,
-            Err(_) => {
-                auth_module
+            Err(e) => {
+                match auth_module
                     .auth_repo()
                     .revoke_refresh_tokens_by_family_id(family_id)
+                    .await
+                {
+                    Ok(_) => (),
+                    Err(e) => {
+                        auth_module
+                            .auth_repo()
+                            .insert_account_event_log(
+                                Some(user.id),
+                                Some(user.id.to_string()),
+                                AccountEventType::Refresh,
+                                AccountEventStatus::Error,
+                                Some(client_context.ip),
+                                client_context.user_agent.clone(),
+                                Some(json!({
+                                    "error": e.to_string()
+                                })),
+                            )
+                            .await?;
+                        return Err(e.into());
+                    }
+                };
+
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Blocked,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
                     .await?;
                 return Err(AuthServiceError::Unauthorized);
             }
         };
 
-        let active_user_tenant = auth_module
+        let active_user_tenant = match auth_module
             .auth_repo()
             .get_user_active_tenant(user.id)
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
         let active_tenant_id = match active_user_tenant {
             None => None,
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let (access_token, access_token_claims) = Self::gen_jwt(
+        let (access_token, access_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .access_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "access_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.id.to_string()),
+                            AccountEventType::Refresh,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             None,
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        let (new_refresh_token, new_refresh_token_claims) = Self::gen_jwt(
+        let (new_refresh_token, new_refresh_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-auth", auth_module.config().auth().jwt_audience()),
@@ -419,19 +949,90 @@ impl AuthService {
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             current_refresh_token_claims.family_id(),
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .insert_refresh_token(&new_refresh_token_claims)
-            .await?;
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .consume_refresh_token(
                 current_refresh_token_claims.jti(),
                 new_refresh_token_claims.jti(),
+            )
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(user.id.to_string()),
+                        AccountEventType::Refresh,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        let _ = auth_module
+            .auth_repo()
+            .insert_account_event_log(
+                Some(user.id),
+                Some(user.id.to_string()),
+                AccountEventType::Refresh,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
             )
             .await?;
 
@@ -444,31 +1045,100 @@ impl AuthService {
         ))
     }
 
-    pub async fn logout(auth_module: Arc<dyn AuthModule>, jar: CookieJar) -> AuthServiceResult<()> {
+    pub async fn logout(
+        auth_module: Arc<dyn AuthModule>,
+        jar: CookieJar,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<()> {
         let refresh_token = jar
             .get("refresh_token")
             .ok_or_else(|| AuthServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
-        let refresh_token_claims = Claims::from_token(
+        let dangerous_refresh_claims = match Claims::dangerous_from_token_allow_expired(
             &refresh_token,
             auth_module.config().auth().jwt_secret().as_bytes(),
             auth_module.config().auth().jwt_issuer(),
             &format!("{}-auth", auth_module.config().auth().jwt_audience()),
-        )
-        .map_err(|_| AuthServiceError::Unauthorized)?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        None,
+                        AccountEventType::Logout,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Unauthorized);
+            }
+        };
 
-        let family_id = match refresh_token_claims.family_id() {
+        let family_id = match dangerous_refresh_claims.family_id() {
             Some(family_id) => family_id,
             None => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(dangerous_refresh_claims.sub()),
+                        Some(dangerous_refresh_claims.sub().to_string()),
+                        AccountEventType::Logout,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": "missing family_id".to_string()
+                        })),
+                    )
+                    .await?;
                 return Err(AuthServiceError::RefreshTokenError(
                     "missing family_id".to_string(),
                 ));
             }
         };
-        auth_module
+        match auth_module
             .auth_repo()
             .revoke_refresh_tokens_by_family_id(family_id)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(dangerous_refresh_claims.sub()),
+                        Some(dangerous_refresh_claims.sub().to_string()),
+                        AccountEventType::Logout,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": "missing family_id".to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        let _ = auth_module
+            .auth_repo()
+            .insert_account_event_log(
+                Some(dangerous_refresh_claims.sub()),
+                Some(dangerous_refresh_claims.sub().to_string()),
+                AccountEventType::Logout,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
+            )
             .await?;
 
         Ok(())
@@ -627,20 +1297,93 @@ impl AuthService {
     pub async fn forgotten_password(
         auth_module: Arc<dyn AuthModule>,
         payload: ForgottenPasswordRequest,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<()> {
-        let user = auth_module
+        Self::rate_limit_by_event_type(
+            120,
+            5,
+            auth_module.clone(),
+            Some(payload.email.extract().get_value().to_owned()),
+            client_context,
+            AccountEventType::PasswordResetRequest,
+        )
+        .await?;
+        Self::rate_limit_by_event_status(
+            60,
+            10,
+            auth_module.clone(),
+            Some(payload.email.extract().get_value().to_owned()),
+            client_context,
+            AccountEventStatus::Failure,
+            AccountEventType::PasswordResetRequest,
+        )
+        .await?;
+        let user = match auth_module
             .auth_repo()
             .get_user_by_email(payload.email.extract().get_value())
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.email.extract().get_value().to_owned()),
+                        AccountEventType::PasswordResetRequest,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                let sleep_secs = rand::rng().random_range(1000..=6000);
+                sleep(TokioDuration::from_millis(sleep_secs)).await;
+                return Ok(());
+            }
+        };
         if user.is_active() {
             let forgotten_password = auth_module
                 .auth_repo()
                 .insert_forgotten_password(user.id)
                 .await?;
-            Self::send_forgotten_password_email(auth_module, &user, forgotten_password).await?;
+            Self::send_forgotten_password_email(auth_module.clone(), &user, forgotten_password)
+                .await?;
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.extract().get_value().to_owned()),
+                    AccountEventType::PasswordResetRequest,
+                    AccountEventStatus::Success,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    None,
+                )
+                .await?;
+            let sleep_secs = rand::rng().random_range(1000..=4000);
+            sleep(TokioDuration::from_millis(sleep_secs)).await;
             Ok(())
         } else {
-            Err(AuthServiceError::UserInactive)
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(payload.email.extract().get_value().to_owned()),
+                    AccountEventType::PasswordResetRequest,
+                    AccountEventStatus::Failure,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
+                .await?;
+            let sleep_secs = rand::rng().random_range(1000..=6000);
+            sleep(TokioDuration::from_millis(sleep_secs)).await;
+            Ok(())
         }
     }
     pub async fn new_password(

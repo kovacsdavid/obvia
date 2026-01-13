@@ -160,7 +160,7 @@ export async function forgottenPassword(
     body: JSON.stringify({
       email: forgottenPasswordRequest.email,
     }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
+    signal: AbortSignal.timeout(10000),
   }).then(async (response: Response) => {
     return (
       (await ProcessResponse(response, isForgottenPasswordResponse)) ??

@@ -20,7 +20,7 @@
 use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -61,10 +61,11 @@ use time::Duration;
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::try_login(auth_module.clone(), payload).await {
+        match AuthService::try_login(auth_module.clone(), &payload, &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };
@@ -103,9 +104,10 @@ pub async fn login(
 pub async fn refresh(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    client_context: ClientContext,
 ) -> HandlerResult {
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::refresh(auth_module.clone(), jar.clone()).await {
+        match AuthService::refresh(auth_module.clone(), jar.clone(), &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };
@@ -161,8 +163,9 @@ fn gen_refresh_cookie(
 pub async fn logout(
     State(auth_module): State<Arc<dyn AuthModule>>,
     jar: CookieJar,
+    client_context: ClientContext,
 ) -> HandlerResult {
-    let _ = AuthService::logout(auth_module.clone(), jar.clone()).await;
+    let _ = AuthService::logout(auth_module.clone(), jar.clone(), &client_context).await;
 
     Ok(jar
         .remove(Cookie::build("refresh_token").path("/api/auth/t"))
@@ -283,9 +286,10 @@ pub async fn get_claims(
 
 pub async fn forgotten_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::forgotten_password(auth_module.clone(), user_input).await {
+    match AuthService::forgotten_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -293,7 +297,7 @@ pub async fn forgotten_password(
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
-            "A jelszó emlékeztető e-mail kiküldése sikeresen megtörtént",
+            "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
         ))
         .build()
     {
@@ -331,6 +335,7 @@ mod tests {
     use axum::http::Request;
     use axum::http::StatusCode;
     use chrono::Local;
+    use ipnetwork::IpNetwork;
     use lettre::transport::smtp::response::Category;
     use lettre::transport::smtp::response::Code;
     use lettre::transport::smtp::response::Detail;
@@ -340,6 +345,7 @@ mod tests {
     use sqlx::error::{DatabaseError, ErrorKind};
     use std::error::Error;
     use std::fmt::{Debug, Display, Formatter};
+    use std::net::Ipv4Addr;
     use std::sync::Arc;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -350,6 +356,9 @@ mod tests {
     use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
+    use crate::manager::auth::model::AccountEventLogEntry;
+    use crate::manager::auth::model::AccountEventStatus;
+    use crate::manager::auth::model::AccountEventType;
     use crate::manager::auth::model::EmailVerification;
     use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::tests::MockAuthModule;
@@ -407,6 +416,28 @@ mod tests {
                 revoked_at: None,
             })
         });
+
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .returning(|_, _, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 
@@ -487,6 +518,28 @@ mod tests {
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(|_| Ok(None));
+
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .returning(|_, _, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Failure,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 
@@ -760,6 +813,28 @@ mod tests {
                 revoked_at: None,
             })
         });
+
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .returning(|_, _, _| Ok(0));
+
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .returning(|_, _, _, _, _, _, _| {
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id: Some(Uuid::new_v4()),
+                    identifier: Some("test@example.com".to_string()),
+                    event_type: AccountEventType::Login,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Local::now(),
+                })
+            });
 
         let repo = Arc::new(repo);
 

@@ -18,8 +18,10 @@
  */
 
 use chrono::{DateTime, Local};
+use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use sqlx::types::JsonValue;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -51,4 +53,42 @@ pub struct RefreshToken {
     pub replaced_by: Option<Uuid>,
     pub consumed_at: Option<DateTime<Local>>,
     pub revoked_at: Option<DateTime<Local>>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[sqlx(type_name = "account_event_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum AccountEventType {
+    Login,
+    Refresh,
+    Logout,
+    PasswordChange,
+    EmailChange,
+    MfaEnable,
+    MfaDisable,
+    PasswordResetRequest,
+    AccountLocked,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[sqlx(type_name = "account_event_status", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
+pub enum AccountEventStatus {
+    Success,
+    Failure,
+    Blocked,
+    Error,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct AccountEventLogEntry {
+    pub id: Uuid,
+    pub user_id: Option<Uuid>,
+    pub identifier: Option<String>,
+    pub event_type: AccountEventType,
+    pub status: AccountEventStatus,
+    pub ip_address: Option<IpNetwork>,
+    pub user_agent: Option<String>,
+    pub metadata: Option<JsonValue>,
+    pub created_at: DateTime<Local>,
 }

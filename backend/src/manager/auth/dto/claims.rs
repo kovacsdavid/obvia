@@ -138,6 +138,26 @@ impl Claims {
         )
     }
 
+    // WARNING: Do not use this function unless you explicitly need some data from an expired token!
+    pub fn dangerous_from_token_allow_expired(
+        s: &str,
+        decoding_key: &[u8],
+        iss: &str,
+        aud: &str,
+    ) -> Result<Self, String> {
+        let mut validator = Validation::new(Algorithm::HS256);
+        validator.validate_nbf = true;
+        validator.validate_exp = false; // !
+        validator.set_issuer(&[iss]);
+        validator.set_audience(&[aud]);
+        validator.set_required_spec_claims(&["sub", "exp", "iat", "nbf", "iss", "aud", "jti"]);
+        Ok(
+            decode::<Claims>(s, &DecodingKey::from_secret(decoding_key), &validator)
+                .map_err(|_| String::from("Invalid token"))?
+                .claims,
+        )
+    }
+
     /// Converts the current instance of the object into a valid token string using a provided encoding key.
     ///
     /// # Arguments

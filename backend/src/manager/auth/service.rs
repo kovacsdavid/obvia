@@ -257,13 +257,51 @@ impl AuthService {
             return Err(AuthServiceError::UserInactive);
         }
 
-        let active_user_tenant = auth_module
+        let active_user_tenant = match auth_module
             .auth_repo()
             .get_user_active_tenant(user.id)
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
-        let parsed_hash = PasswordHash::new(&user.password_hash)
-            .map_err(|e| AuthServiceError::Hash(e.to_string()))?;
+        let parsed_hash = match PasswordHash::new(&user.password_hash) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Hash(e.to_string()));
+            }
+        };
 
         match Argon2::default().verify_password(payload.password.as_bytes(), &parsed_hash) {
             Ok(_) => (),
@@ -286,70 +324,156 @@ impl AuthService {
             }
         };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .update_user_last_login_at(user.id)
-            .await?;
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
         let active_tenant_id = match active_user_tenant {
             None => None,
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let (access_token, access_token_claims) = Self::gen_jwt(
+        let (access_token, access_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .access_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "access_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(payload.email.clone()),
+                            AccountEventType::Login,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             None,
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        let (refresh_token, refresh_token_claims) = Self::gen_jwt(
+        let (refresh_token, refresh_token_claims) = match Self::gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-auth", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().refresh_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .refresh_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "refresh_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(payload.email.clone()),
+                            AccountEventType::Login,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             Some(Uuid::new_v4()),
-        )
-        .map_err(|e| AuthServiceError::Token(e.to_string()))?;
+        ) {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(AuthServiceError::Token(e.to_string()));
+            }
+        };
 
-        auth_module
+        match auth_module
             .auth_repo()
             .insert_refresh_token(&refresh_token_claims)
-            .await?;
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
         let _ = auth_module
             .auth_repo()
@@ -411,7 +535,7 @@ impl AuthService {
             }
         };
 
-        if event_log_entries > max_attempts {
+        if event_log_entries >= max_attempts {
             auth_module
                 .auth_repo()
                 .insert_account_event_log(
@@ -469,7 +593,7 @@ impl AuthService {
             }
         };
 
-        if event_log_entries > max_attempts {
+        if event_log_entries >= max_attempts {
             auth_module
                 .auth_repo()
                 .insert_account_event_log(
@@ -488,6 +612,18 @@ impl AuthService {
             return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
         }
         Ok(())
+    }
+
+    fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
+        (Utc::now()
+            + Duration::minutes(expiration_mins.try_into().map_err(|_| {
+                AuthServiceError::Token(
+                    "refresh_token_expiration_mins can not be converted to i64".to_string(),
+                )
+            })?))
+        .timestamp()
+        .try_into()
+        .map_err(|_| AuthServiceError::Token("exp can not be converted to usize".to_string()))
     }
 
     fn gen_jwt(
@@ -761,21 +897,26 @@ impl AuthService {
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            (Utc::now()
-                + Duration::minutes(
+            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+                Ok(v) => v,
+                Err(e) => {
                     auth_module
-                        .config()
-                        .auth()
-                        .access_token_expiration_mins()
-                        .try_into()
-                        .map_err(|_| {
-                            AuthServiceError::Token(
-                                "access_token_expiration_mins can not be converted to i64"
-                                    .to_string(),
-                            )
-                        })?,
-                ))
-            .timestamp() as usize,
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.id.to_string()),
+                            AccountEventType::Refresh,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            },
             active_tenant_id,
             auth_module.config().auth().jwt_secret().as_bytes(),
             None,

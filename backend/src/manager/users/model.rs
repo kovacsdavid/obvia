@@ -19,7 +19,18 @@
 
 use serde::Serialize;
 use sqlx::prelude::FromRow;
+use thiserror::Error;
+use totp_rs::{Algorithm, Secret, TOTP};
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum UserModelError {
+    #[error("GetMfaToken error: {0}")]
+    MfaToken(String),
+
+    #[error("Invalid MFA token")]
+    InvalidMfaToken,
+}
 
 /// Represents a user entity with various attributes typically associated with user models.
 ///
@@ -56,6 +67,8 @@ pub struct User {
     pub created_at: chrono::DateTime<chrono::Local>,
     pub updated_at: chrono::DateTime<chrono::Local>,
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
+    pub is_mfa_enabled: bool,
+    pub mfa_secret: Option<String>,
 }
 
 impl User {
@@ -64,5 +77,42 @@ impl User {
     }
     pub fn need_email_verification(&self) -> bool {
         self.status == "unchecked_email"
+    }
+    pub fn is_mfa_enabled(&self) -> bool {
+        self.is_mfa_enabled
+    }
+    pub fn init_mfa_secret(mut self) -> Self {
+        self.mfa_secret = Some(Secret::default().to_encoded().to_string());
+        self
+    }
+    pub fn get_mfa_token(&self) -> Result<String, UserModelError> {
+        let totp = TOTP::new(
+            Algorithm::SHA1,
+            6,
+            1,
+            30,
+            Secret::Encoded(
+                self.mfa_secret
+                    .clone()
+                    .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?,
+            )
+            .to_bytes()
+            .unwrap(),
+        )
+        .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
+        totp.generate_current()
+            .map_err(|e| UserModelError::MfaToken(e.to_string()))
+    }
+    pub fn check_mfa_token(&self, token_to_test: &str) -> Result<(), UserModelError> {
+        match self.get_mfa_token() {
+            Ok(current_mfa_token) => {
+                if current_mfa_token == token_to_test {
+                    Ok(())
+                } else {
+                    Err(UserModelError::InvalidMfaToken)
+                }
+            }
+            Err(_) => Err(UserModelError::InvalidMfaToken),
+        }
     }
 }

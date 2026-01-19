@@ -18,8 +18,8 @@
  */
 
 use super::handler::{
-    forgotten_password, get_claims, login, logout, new_password, refresh, register,
-    resend_email_verification, verify_email,
+    forgotten_password, get_claims, login, logout, new_password, otp_disable, otp_enable,
+    otp_verify, refresh, register, resend_email_verification, verify_email,
 };
 use crate::manager::auth::AuthModule;
 use axum::{
@@ -54,6 +54,9 @@ pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
             .route("/new_password", post(new_password))
             .route("/t/refresh", post(refresh)) // "[t]oken" nest is for cookie path restriction
             .route("/t/logout", post(logout)) // "[t]oken" nest is for cookie path restriction
+            .route("/otp/enable", get(otp_enable))
+            .route("/otp/verify", post(otp_verify))
+            .route("/otp/disable", post(otp_disable))
             .with_state(auth_module),
     )
 }

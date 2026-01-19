@@ -330,6 +330,8 @@ mod tests {
                     created_at: Local::now(),
                     updated_at: Local::now(),
                     deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
                 })
             });
 
@@ -603,6 +605,8 @@ mod tests {
                     created_at: Local::now(),
                     updated_at: Local::now(),
                     deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
                 })
             });
 

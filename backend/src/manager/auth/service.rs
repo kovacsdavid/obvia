@@ -24,7 +24,10 @@ use super::{
 use crate::{
     common::extractors::ClientContext,
     manager::auth::{
-        dto::{login::LoginRequest, register::RegisterRequest},
+        dto::{
+            login::{LoginRequest, OtpUserInput},
+            register::RegisterRequest,
+        },
         model::{AccountEventStatus, AccountEventType},
     },
 };
@@ -110,6 +113,12 @@ pub enum AuthServiceError {
 
     #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
     TooManyAttempts(i64),
+
+    #[error("MfaToken error: {0}")]
+    MfaToken(String),
+
+    #[error("Invalid MFA token")]
+    InvalidMfaToken,
 }
 
 #[async_trait]
@@ -156,7 +165,7 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
 
 pub struct AuthService;
 
-type AuthServiceResult<T> = Result<T, AuthServiceError>;
+pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
 
 impl AuthService {
     /// Attempts to authenticate a user based on the provided credentials. If the login succeeds, a JWT token is
@@ -1472,5 +1481,63 @@ impl AuthService {
             Ok(_) => Ok(()),
             Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
         }
+    }
+
+    pub async fn otp_enable(
+        auth_module: Arc<dyn AuthModule>,
+        claims: &Claims,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<String> {
+        let user = auth_module
+            .auth_repo()
+            .get_user_by_id(claims.sub())
+            .await?
+            .init_mfa_secret();
+
+        let new_mfa_secret = user
+            .mfa_secret
+            .clone()
+            .ok_or_else(|| AuthServiceError::MfaToken("missing secret".to_string()))?;
+
+        let _ = auth_module.auth_repo().update_user(user).await?;
+
+        Ok(new_mfa_secret)
+    }
+
+    pub async fn otp_verify(
+        auth_module: Arc<dyn AuthModule>,
+        claims: &Claims,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<()> {
+        let mut user = auth_module.auth_repo().get_user_by_id(claims.sub()).await?;
+
+        user.check_mfa_token(payload.otp.extract().get_value())
+            .map_err(|_| AuthServiceError::InvalidMfaToken)?;
+
+        user.is_mfa_enabled = true;
+
+        let _ = auth_module.auth_repo().update_user(user).await?;
+
+        Ok(())
+    }
+
+    pub async fn otp_disable(
+        auth_module: Arc<dyn AuthModule>,
+        claims: &Claims,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<()> {
+        let mut user = auth_module.auth_repo().get_user_by_id(claims.sub()).await?;
+
+        user.check_mfa_token(payload.otp.extract().get_value())
+            .map_err(|_| AuthServiceError::InvalidMfaToken)?;
+
+        user.is_mfa_enabled = false;
+        user.mfa_secret = None;
+
+        let _ = auth_module.auth_repo().update_user(user).await?;
+
+        Ok(())
     }
 }

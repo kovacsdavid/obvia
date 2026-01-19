@@ -21,7 +21,7 @@ use super::AuthModule;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
 use crate::common::extractors::{ClientContext, UserInput};
-use crate::manager::auth::dto::login::LoginResponse;
+use crate::manager::auth::dto::login::{LoginResponse, OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
     NewPasswordRequestHelper, RegisterRequestHelper, ResendEmailValidationRequest,
@@ -222,6 +222,7 @@ pub async fn register(
     }
 }
 
+#[debug_handler]
 pub async fn verify_email(
     State(auth_module): State<Arc<dyn AuthModule>>,
     Query(payload): Query<HashMap<String, String>>,
@@ -246,6 +247,7 @@ pub async fn verify_email(
     }
 }
 
+#[debug_handler]
 pub async fn resend_email_verification(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<
@@ -270,6 +272,7 @@ pub async fn resend_email_verification(
     }
 }
 
+#[debug_handler]
 pub async fn get_claims(
     State(auth_module): State<Arc<dyn AuthModule>>,
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -284,6 +287,7 @@ pub async fn get_claims(
     }
 }
 
+#[debug_handler]
 pub async fn forgotten_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
     client_context: ClientContext,
@@ -306,6 +310,7 @@ pub async fn forgotten_password(
     }
 }
 
+#[debug_handler]
 pub async fn new_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
@@ -319,6 +324,78 @@ pub async fn new_password(
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "A jelszó megváltoztatása sikeresen megtörtént",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_enable(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> HandlerResult {
+    let response =
+        match AuthService::otp_enable(auth_module.clone(), &claims, &client_context).await {
+            Ok(v) => v,
+            Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+        };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(response)
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_verify(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
+) -> HandlerResult {
+    match AuthService::otp_verify(auth_module.clone(), &claims, &user_input, &client_context).await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A kétlépcsős azonosítás aktiválása megtörtént!",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_disable(
+    State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
+) -> HandlerResult {
+    match AuthService::otp_disable(auth_module.clone(), &claims, &user_input, &client_context).await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A kétlépcsős azonosítás kikapcsolása megtörtént!",
         ))
         .build()
     {
@@ -395,6 +472,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
@@ -514,6 +593,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
@@ -621,6 +702,8 @@ mod tests {
                     created_at: Local::now(),
                     updated_at: Local::now(),
                     deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
                 }));
         repo.expect_insert_email_verification()
             .times(1)
@@ -779,6 +862,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))

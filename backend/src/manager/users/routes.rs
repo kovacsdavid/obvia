@@ -16,3 +16,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::manager::auth::middleware::require_auth;
+use crate::manager::users::handler::{get_claims, otp_disable, otp_enable, otp_verify};
+use crate::tenant::users::UsersModule;
+use axum::middleware::from_fn_with_state;
+use axum::{
+    Router,
+    routing::{get, post},
+};
+use std::sync::Arc;
+
+pub fn routes(users_module: Arc<dyn UsersModule>) -> Router {
+    Router::new().nest(
+        "/users",
+        Router::new()
+            .route("/get_claims", get(get_claims))
+            .route("/otp/enable", get(otp_enable))
+            .route("/otp/verify", post(otp_verify))
+            .route("/otp/disable", post(otp_disable))
+            .layer(from_fn_with_state(users_module.config(), require_auth))
+            .with_state(users_module),
+    )
+}

@@ -52,6 +52,7 @@ import {
   Package,
   UsersRound,
   Warehouse,
+  UserRoundCog,
 } from "lucide-react";
 
 interface NavigationItem {
@@ -243,6 +244,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             publicOnly: true,
             needActiveDatabase: false,
             isActive: location.pathname.includes("/regisztracio"),
+          },
+          {
+            title: "Beállítások",
+            click: handleLogout,
+            url: "/felhasznalo/beallitasok",
+            icon: <UserRoundCog />,
+            private: true,
+            needActiveDatabase: false,
+            isActive: location.pathname.includes("/felhasznalo/beallitasok"),
           },
           {
             title: "Kijelentkezés",

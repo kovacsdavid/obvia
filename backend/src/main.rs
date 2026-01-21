@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #![forbid(unsafe_code)]
 mod common;
 mod manager;
@@ -27,89 +28,17 @@ use axum::Router;
 use std::sync::Arc;
 use tokio::signal;
 
-/// Initializes the application by setting up the necessary configuration, state, and database.
-///
-/// This function performs the following tasks in sequence:
-/// 1. Initializes the log subscriber to enable logging.
-/// 2. Loads the application configuration.
-/// 3. Establishes a connection pool manager for PostgreSQL.
-/// 4. Creates the shared application state, which includes the database connection pool and configuration.
-/// 5. Builds the application router using the shared application state.
-/// 6. Initializes connection pools for tenants.
-/// 7. Performs database migrations to ensure the schema is up-to-date.
-///
-/// # Returns
-/// A tuple containing:
-/// - The shared application configuration wrapped in an `Arc<AppConfig>`.
-/// - The configured `Router` for handling requests.
-///
-/// # Errors
-/// This function returns an error wrapped in `anyhow::Result` if:
-/// - The configuration file cannot be loaded.
-/// - The PostgreSQL connection pool cannot be initialized.
-/// - The tenant connection pools cannot be initialized.
-/// - The database migrations fail.
 async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
     init_subscriber();
     let app = init_default_app().await?;
     Ok(app)
 }
 
-/// The entry point of the asynchronous Tokio application.
-///
-/// This function is defined as the main function for the application using the `#[tokio::main]`
-/// attribute macro, which sets up the Tokio runtime automatically. Using this macro allows
-/// the function to run asynchronous code.
-///
-/// # Returns
-///
-/// A result of type `anyhow::Result<()>`, which represents either a successful execution
-/// (OK with empty tuple) or an error (Err containing the error details).
-///
-/// # Errors
-///
-/// If the `serve()` function, which is called within this function, returns an error,
-/// this function propagates it upwards.
-///
-/// The `serve()` function is expected to perform the main operations of the application,
-/// such as starting a web server or handling other asynchronous tasks.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     serve().await
 }
 
-/// Asynchronously starts and configures the server, then begins serving requests.
-///
-/// This function initializes the application and its configuration, binds a TCP listener
-/// to the specified address and port, and starts serving incoming requests using `axum`.
-/// The server is configured to handle graceful shutdown when a shutdown signal is received.
-///
-/// # Returns
-///
-/// - `Ok(())` if the server runs successfully and terminates gracefully.
-/// - An `anyhow::Error` if an error occurs during initialization, binding, or serving.
-///
-/// # Errors
-/// This function will return an error if:
-/// - Initialization (`init`) fails.
-/// - Binding the TCP listener to the specified address fails.
-///
-/// # Graceful Shutdown
-/// The server listens for a shutdown signal and terminates gracefully upon receipt.
-///
-/// # Example
-/// ```rust,no_run
-/// #[tokio::main]
-/// async fn main() -> anyhow::Result<()> {
-///     serve().await
-/// }
-/// ```
-///
-/// This starts the server and listens for incoming API calls on the configured address.
-///
-/// # Related
-/// - `init`: A function to initialize the app and configuration.
-/// - `shutdown_signal`: A helper for detecting shutdown signals.
 async fn serve() -> anyhow::Result<()> {
     let (config, app) = init().await?;
 
@@ -122,19 +51,6 @@ async fn serve() -> anyhow::Result<()> {
     Ok(())
 }
 
-/// Asynchronously waits for a shutdown signal.
-///
-/// This function listens for either a `Ctrl+C` signal (on all platforms) or a terminate signal
-/// on Unix systems (e.g., `SIGTERM`). When either of these signals is received, it completes
-/// its execution, allowing the application to perform a graceful shutdown.
-///
-/// ## Platform-specific Behavior
-/// - On Unix systems, it listens for `SIGTERM` in addition to `Ctrl+C`.
-/// - On non-Unix systems, only `Ctrl+C` is supported.
-///
-/// ## Errors
-/// - If the `Ctrl+C` handler cannot be installed, this function panics with an appropriate error message.
-/// - On Unix, if the `SIGTERM` handler cannot be installed, this function also panics.
 async fn shutdown_signal() {
     let ctrl_c = async {
         signal::ctrl_c()

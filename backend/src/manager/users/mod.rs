@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-mod error;
-mod handler;
+pub(crate) mod error;
+pub(crate) mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;
-mod routes;
-mod service;
+pub(crate) mod routes;
+pub(crate) mod service;
 
 pub fn init_users_module() -> UsersModuleBuilder {
     UsersModuleBuilder::default()

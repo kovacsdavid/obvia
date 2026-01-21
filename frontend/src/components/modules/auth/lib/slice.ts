@@ -171,6 +171,16 @@ export const newPassword = createAsyncThunk(
   },
 );
 
+export const enableOtp = createAsyncThunk(
+  "auth/enableOtp",
+  async (_, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await authApi.enableOtp(token);
+  },
+);
+
 interface LoginUser {
   token: string;
   user: User;

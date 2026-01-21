@@ -16,49 +16,47 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::manager::app::config::AppConfig;
-use crate::manager::app::database::PoolManager;
+
+use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::manager::users::repository::UsersRepository;
 use std::sync::Arc;
 
 pub(crate) mod dto;
 pub(crate) mod model;
 pub(crate) mod repository;
 
-pub fn init_default_users_module(
-    pool_manager_config: Arc<dyn PoolManager>,
-    config: Arc<AppConfig>,
-) {
-    todo!()
+pub trait UsersModule: ConfigProvider + MailTransporter + Send + Sync {
+    fn users_repo(&self) -> Arc<dyn UsersRepository>;
 }
 
-pub struct UsersModule {}
-
-pub struct UsersModuleBuilder {}
-
-impl UsersModuleBuilder {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    pub fn build(self) -> Result<UsersModule, String> {
-        Ok(UsersModule {})
-    }
-}
-
-#[cfg(not(test))]
-impl Default for UsersModuleBuilder {
-    fn default() -> Self {
-        Self::new()
+impl UsersModule for DefaultAppState {
+    fn users_repo(&self) -> Arc<dyn UsersRepository> {
+        self.pool_manager.clone()
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use super::*;
+    use crate::manager::app::config::AppConfig;
+    use async_trait::async_trait;
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
 
-    impl Default for UsersModuleBuilder {
-        fn default() -> Self {
-            todo!()
+    mock!(
+        pub UsersModule {}
+        impl ConfigProvider for UsersModule {
+            fn config(&self) -> Arc<AppConfig>;
         }
-    }
+        #[async_trait]
+        impl MailTransporter for UsersModule {
+            async fn send(&self, message: Message) -> Result<Response, Error>;
+        }
+        impl UsersModule for UsersModule {
+            fn users_repo(&self) -> Arc<dyn UsersRepository>;
+        }
+    );
 }

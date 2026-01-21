@@ -16,3 +16,102 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
+use crate::common::error::IntoFriendlyError;
+use crate::common::extractors::{ClientContext, UserInput};
+use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
+use crate::manager::auth::middleware::AuthenticatedUser;
+use crate::manager::users::service::UsersService;
+use crate::tenant::users::UsersModule;
+use axum::{debug_handler, extract::State, http::StatusCode, response::IntoResponse};
+use std::sync::Arc;
+
+#[debug_handler]
+pub async fn get_claims(
+    State(users_module): State<Arc<dyn UsersModule>>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> HandlerResult {
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(claims)
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_enable(
+    State(users_module): State<Arc<dyn UsersModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+) -> HandlerResult {
+    let response =
+        match UsersService::otp_enable(users_module.clone(), &claims, &client_context).await {
+            Ok(v) => v,
+            Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
+        };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(response)
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_verify(
+    State(users_module): State<Arc<dyn UsersModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
+) -> HandlerResult {
+    match UsersService::otp_verify(users_module.clone(), &claims, &user_input, &client_context)
+        .await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A kétlépcsős azonosítás aktiválása megtörtént!",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
+    }
+}
+
+#[debug_handler]
+pub async fn otp_disable(
+    State(users_module): State<Arc<dyn UsersModule>>,
+    client_context: ClientContext,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
+) -> HandlerResult {
+    match UsersService::otp_disable(users_module.clone(), &claims, &user_input, &client_context)
+        .await
+    {
+        Ok(v) => v,
+        Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(SimpleMessageResponse::new(
+            "A kétlépcsős azonosítás kikapcsolása megtörtént!",
+        ))
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
+    }
+}

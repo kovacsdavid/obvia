@@ -29,6 +29,7 @@ import {
 import type {
   Claims,
   ClaimsResponse,
+  EnableOtpResponse,
   ForgottenPasswordResponse,
   LoginData,
   LoginResponse,
@@ -138,6 +139,14 @@ export function isNewPasswordResponse(
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,
+    isFormError,
+  );
+}
+
+export function isEnableOtpResponse(data: unknown): data is EnableOtpResponse {
+  return isCommonResponse<string, FormError>(
+    data,
+    (data: unknown): data is string => typeof data === "string",
     isFormError,
   );
 }

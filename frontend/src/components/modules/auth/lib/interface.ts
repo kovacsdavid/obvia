@@ -102,3 +102,4 @@ export type ForgottenPasswordResponse = CommonResponse<
   FormError
 >;
 export type NewPasswordResponse = CommonResponse<SimpleMessageData, FormError>;
+export type EnableOtpResponse = CommonResponse<string, SimpleError>;

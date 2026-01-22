@@ -31,6 +31,26 @@ const initialState: UsersState = {
   status: "idle",
 };
 
+export const enableOtp = createAsyncThunk(
+  "users/enableOtp",
+  async (_, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await usersApi.enableOtp(token);
+  },
+);
+
+export const verifyOtp = createAsyncThunk(
+  "users/verifyOtp",
+  async (otp: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await usersApi.verifyOtp(otp, token);
+  },
+);
+
 export const create = createAsyncThunk(
   "users/create",
   async (requestData: CreateUser, { rejectWithValue, getState, dispatch }) => {

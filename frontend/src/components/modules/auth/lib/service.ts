@@ -24,7 +24,6 @@ import {
 } from "@/services/utils/consts.ts";
 import {
   type ClaimsResponse,
-  type EnableOtpResponse,
   type ForgottenPasswordRequest,
   type ForgottenPasswordResponse,
   type LoginRequest,
@@ -41,7 +40,6 @@ import {
 } from "@/lib/interfaces/common.ts";
 import {
   isClaimsResponse,
-  isEnableOtpResponse,
   isForgottenPasswordResponse,
   isLoginResponse,
   isNewPasswordResponse,
@@ -189,23 +187,6 @@ export async function newPassword(
     return (
       (await ProcessResponse(response, isNewPasswordResponse)) ??
       unexpectedError
-    );
-  });
-}
-
-export async function enableOtp(
-  token: string | null,
-): Promise<ProcessedResponse<EnableOtpResponse>> {
-  return await fetch(`/api/users/otp/enable`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isEnableOtpResponse)) ?? unexpectedError
     );
   });
 }

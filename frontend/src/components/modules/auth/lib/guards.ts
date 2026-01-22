@@ -37,6 +37,7 @@ import type {
   NewPasswordResponse,
   RegisterResponse,
   VerifyEmailResponse,
+  VerifyOtpResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 
 export function isClaims(data: unknown): data is Claims {
@@ -147,6 +148,14 @@ export function isEnableOtpResponse(data: unknown): data is EnableOtpResponse {
   return isCommonResponse<string, FormError>(
     data,
     (data: unknown): data is string => typeof data === "string",
+    isFormError,
+  );
+}
+
+export function isVerifyOtpResponse(data: unknown): data is VerifyOtpResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
     isFormError,
   );
 }

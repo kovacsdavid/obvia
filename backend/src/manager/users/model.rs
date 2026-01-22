@@ -79,7 +79,9 @@ impl User {
                     .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?,
             )
             .to_bytes()
-            .unwrap(),
+            .map_err(|e| UserModelError::MfaToken(e.to_string()))?,
+            Some("obvia".to_string()),
+            self.email.clone(),
         )
         .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
         totp.generate_current()

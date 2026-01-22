@@ -42,7 +42,7 @@ pub enum UsersServiceError {
     #[error("MfaToken error: {0}")]
     MfaToken(String),
 
-    #[error("Invalid MFA token")]
+    #[error("A kétlépcsős azonosításhoz hasznát kód hibás!")]
     InvalidMfaToken,
 }
 
@@ -53,14 +53,16 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            UsersServiceError::Unauthorized => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                GeneralError {
-                    message: UsersServiceError::Unauthorized.to_string(),
-                },
-            ),
+            UsersServiceError::Unauthorized | UsersServiceError::InvalidMfaToken => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    GeneralError {
+                        message: self.to_string(),
+                    },
+                )
+            }
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),

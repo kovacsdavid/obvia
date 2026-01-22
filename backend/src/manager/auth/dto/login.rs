@@ -41,6 +41,7 @@ pub struct UserPublic {
     pub last_name: Option<String>,
     pub status: String,
     pub profile_picture_url: Option<String>,
+    pub is_mfa_enabled: bool,
 }
 
 impl From<User> for UserPublic {
@@ -52,6 +53,7 @@ impl From<User> for UserPublic {
             last_name: value.last_name,
             status: value.status,
             profile_picture_url: value.profile_picture_url,
+            is_mfa_enabled: value.is_mfa_enabled,
         }
     }
 }

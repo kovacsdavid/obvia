@@ -40,6 +40,7 @@ interface User {
   last_name: string | null;
   status: string;
   profile_picture_url: string | null;
+  is_mfa_enabled: boolean;
 }
 
 interface AuthState {
@@ -168,16 +169,6 @@ export const newPassword = createAsyncThunk(
   "auth/newPassword",
   async (newPasswordRequest: NewPasswordRequest) => {
     return await authApi.newPassword(newPasswordRequest);
-  },
-);
-
-export const enableOtp = createAsyncThunk(
-  "auth/enableOtp",
-  async (_, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await authApi.enableOtp(token);
   },
 );
 

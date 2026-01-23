@@ -434,9 +434,11 @@ export default function Edit({
           <div className="text-right mt-8">
             <Button
               className="mr-3"
-              type="submit"
               variant="outline"
-              onClick={() => navigate(-1)}
+              onClick={(e: React.FormEvent) => {
+                e.preventDefault();
+                navigate(-1);
+              }}
             >
               Mégse
             </Button>

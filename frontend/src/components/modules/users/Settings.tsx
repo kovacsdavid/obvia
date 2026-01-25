@@ -27,7 +27,11 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { enableOtp, verifyOtp, disableOtp} from "@/components/modules/users/lib/slice.ts";
+import {
+  enableOtp,
+  verifyOtp,
+  disableOtp,
+} from "@/components/modules/users/lib/slice.ts";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeClosed } from "lucide-react";
 import type { SimpleError } from "@/lib/interfaces/common";
@@ -66,7 +70,7 @@ export default function Settings() {
       });
     },
     [dispatch, otp],
-);
+  );
 
   const handleVerfiyMfa = useCallback(
     (e: React.FormEvent) => {
@@ -105,7 +109,10 @@ export default function Settings() {
 
   return (
     <>
-      <Dialog open={openDisableOtpDialog} onOpenChange={setOpenDisableOtpDialog}>
+      <Dialog
+        open={openDisableOtpDialog}
+        onOpenChange={setOpenDisableOtpDialog}
+      >
         <DialogContent className="text-center">
           <DialogTitle>Kétlépcsős azonosítás kikapcsolása</DialogTitle>
           <form

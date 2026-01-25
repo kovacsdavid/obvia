@@ -34,7 +34,7 @@ import type {
   ForgottenPasswordResponse,
   LoginData,
   LoginResponse,
-  LoginUser,
+  User,
   NewPasswordResponse,
   RegisterResponse,
   VerifyEmailResponse,
@@ -70,7 +70,7 @@ export function isClaimsResponse(data: unknown): data is ClaimsResponse {
   return isCommonResponse(data, isClaims, isSimpleError);
 }
 
-export function isLoginUser(data: unknown): data is LoginUser {
+export function isUser(data: unknown): data is User {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -86,7 +86,9 @@ export function isLoginUser(data: unknown): data is LoginUser {
     typeof data.status === "string" &&
     "profile_picture_url" in data &&
     (data.profile_picture_url === null ||
-      typeof data.profile_picture_url === "string")
+      typeof data.profile_picture_url === "string") &&
+    "is_mfa_enabled" in data &&
+    typeof data.is_mfa_enabled === "boolean"
   );
 }
 
@@ -97,7 +99,7 @@ export function isLoginData(data: unknown): data is LoginData {
     "claims" in data &&
     isClaims(data.claims) &&
     "user" in data &&
-    isLoginUser(data.user) &&
+    isUser(data.user) &&
     "token" in data &&
     typeof data.token === "string"
   );
@@ -161,8 +163,9 @@ export function isVerifyOtpResponse(data: unknown): data is VerifyOtpResponse {
   );
 }
 
-
-export function isDisableOtpResponse(data: unknown): data is DisableOtpResponse {
+export function isDisableOtpResponse(
+  data: unknown,
+): data is DisableOtpResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,

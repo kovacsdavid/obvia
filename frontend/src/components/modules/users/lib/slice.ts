@@ -51,7 +51,6 @@ export const verifyOtp = createAsyncThunk(
   },
 );
 
-
 export const disableOtp = createAsyncThunk(
   "users/disableOtp",
   async (otp: string, { getState, dispatch }) => {

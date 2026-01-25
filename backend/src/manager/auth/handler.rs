@@ -395,6 +395,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 
@@ -499,6 +500,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "invalidpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 
@@ -798,6 +800,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 

@@ -31,6 +31,7 @@ use uuid::Uuid;
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+    pub otp: Option<String>,
 }
 
 #[derive(Serialize, Debug)]

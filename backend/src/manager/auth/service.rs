@@ -111,11 +111,11 @@ pub enum AuthServiceError {
     #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
     TooManyAttempts(i64),
 
-    #[error("MfaToken error: {0}")]
-    MfaToken(String),
+    #[error("totp-required")]
+    MfaRequired,
 
-    #[error("Invalid MFA token")]
-    InvalidMfaToken,
+    #[error("Hibás kétlépcsős azonosító kód!")]
+    MfaInvalid,
 }
 
 #[async_trait]
@@ -130,7 +130,9 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
             | Self::UserInactive
             | Self::InvalidEmailValidationToken
             | Self::Unauthorized
-            | Self::TooManyAttempts(_) => FriendlyError::user_facing(
+            | Self::TooManyAttempts(_)
+            | Self::MfaRequired
+            | Self::MfaInvalid => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
@@ -165,45 +167,6 @@ pub struct AuthService;
 pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
 
 impl AuthService {
-    /// Attempts to authenticate a user based on the provided credentials. If the login succeeds, a JWT token is
-    /// generated and returned along with the user's public information.
-    ///
-    /// # Arguments
-    /// * `repo` - A repository implementing the `AuthRepository` trait, responsible for querying user data.
-    /// * `auth_module` - A shared reference to the `AuthModule`, containing the configurations required for authentication.
-    /// * `payload` - The `LoginRequest` struct containing the user's email and password provided for login.
-    ///
-    /// # Returns
-    /// * `Ok(OkResponse<LoginResponse>)` - Contains the authenticated user's public information and the generated JWT token
-    ///   if login is successful.
-    /// * `Err(FriendlyError)` - Returns an error in the following scenarios:
-    ///   - If the user does not exist or the email is invalid, an `UNAUTHORIZED` error is returned with a user-facing message.
-    ///   - If the provided password does not match the stored password hash, an `UNAUTHORIZED` error is returned.
-    ///   - If any internal issue occurs, such as invalid password hashing or issues in generating the JWT token,
-    ///     an internal error is returned.
-    ///
-    /// # Errors
-    /// - `FriendlyError::UserFacing` - If the user provides incorrect credentials (email or password).
-    /// - `FriendlyError::Internal` - If an internal issue occurs, such as hashing or token encoding errors.
-    ///
-    /// # Workflow
-    /// 1. Retrieves the user data by email using the `AuthRepository`.
-    /// 2. Verifies the provided password against the stored password hash using the Argon2 algorithm.
-    /// 3. Prepares JWT claims, including user ID, issued-at, expiration, not-before timestamps, issuer, audience,
-    ///    and a unique token identifier.
-    /// 4. Generates a JWT token using the derived claims and a secret key.
-    /// 5. Returns the user's public information and generated token on successful login.
-    ///
-    /// # Security Notes
-    /// - This function ensures that sensitive information such as the authentication secret and password hash
-    ///   are not exposed. Errors are surfaced through generic user-facing messages to ensure security.
-    /// - Password verification is performed using a secure Argon2 hashing algorithm.
-    ///
-    /// # Dependencies
-    /// - `AuthRepository` for fetching user details.
-    /// - `argon2` crate for password hashing and verification.
-    /// - `jsonwebtoken` crate for JWT creation.
-    /// - `chrono` crate for timestamps and expiration calculations.
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
         payload: &LoginRequest,
@@ -263,31 +226,6 @@ impl AuthService {
             return Err(AuthServiceError::UserInactive);
         }
 
-        let active_user_tenant = match auth_module
-            .auth_repo()
-            .get_user_active_tenant(user.id)
-            .await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                auth_module
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(user.id),
-                        Some(payload.email.clone()),
-                        AccountEventType::Login,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
-                return Err(e.into());
-            }
-        };
-
         let parsed_hash = match PasswordHash::new(&user.password_hash) {
             Ok(v) => v,
             Err(e) => {
@@ -330,12 +268,40 @@ impl AuthService {
             }
         };
 
-        match auth_module
+        if user.is_mfa_enabled() {
+            match &payload.otp {
+                Some(v) => {
+                    match user.check_mfa_token(v) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            auth_module
+                                .auth_repo()
+                                .insert_account_event_log(
+                                    Some(user.id),
+                                    Some(payload.email.clone()),
+                                    AccountEventType::Login,
+                                    AccountEventStatus::Failure,
+                                    Some(client_context.ip),
+                                    client_context.user_agent.clone(),
+                                    Some(json!({
+                                        "error": e.to_string()
+                                    })),
+                                )
+                                .await?;
+                            return Err(AuthServiceError::MfaInvalid);
+                        }
+                    };
+                }
+                None => return Err(AuthServiceError::MfaRequired),
+            }
+        }
+
+        let active_user_tenant = match auth_module
             .auth_repo()
-            .update_user_last_login_at(user.id)
+            .get_user_active_tenant(user.id)
             .await
         {
-            Ok(_) => (),
+            Ok(v) => v,
             Err(e) => {
                 auth_module
                     .auth_repo()
@@ -459,6 +425,31 @@ impl AuthService {
         match auth_module
             .auth_repo()
             .insert_refresh_token(&refresh_token_claims)
+            .await
+        {
+            Ok(_) => (),
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(user.id),
+                        Some(payload.email.clone()),
+                        AccountEventType::Login,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        match auth_module
+            .auth_repo()
+            .update_user_last_login_at(user.id)
             .await
         {
             Ok(_) => (),

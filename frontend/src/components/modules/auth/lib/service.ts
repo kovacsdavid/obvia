@@ -50,13 +50,20 @@ import {
 export async function login({
   email,
   password,
+  otp,
 }: LoginRequest): Promise<ProcessedResponse<LoginResponse>> {
+  let body = null;
+  if (typeof otp === "string" && otp.trim().length > 0) {
+    body = JSON.stringify({ email, password, otp });
+  } else {
+    body = JSON.stringify({ email, password });
+  }
   return await fetch(`/api/auth/login`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ email, password }),
+    body,
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
     return (

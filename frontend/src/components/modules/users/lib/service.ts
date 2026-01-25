@@ -27,12 +27,12 @@ import {
   type ProcessedResponse,
 } from "@/lib/interfaces/common";
 import type {
-    DisableOtpResponse,
+  DisableOtpResponse,
   EnableOtpResponse,
   VerifyOtpResponse,
 } from "../../auth/lib/interface";
 import {
-    isDisableOtpResponse,
+  isDisableOtpResponse,
   isEnableOtpResponse,
   isVerifyOtpResponse,
 } from "../../auth/lib/guards";

@@ -1366,7 +1366,7 @@ impl AuthService {
     ) -> AuthServiceResult<()> {
         Self::rate_limit_by_event_type(
             120,
-            6,
+            5,
             auth_module.clone(),
             Some(payload.token.to_string()),
             client_context,
@@ -1374,8 +1374,8 @@ impl AuthService {
         )
         .await?;
         Self::rate_limit_by_event_status(
-            120,
-            3,
+            60,
+            10,
             auth_module.clone(),
             Some(payload.token.to_string()),
             client_context,

@@ -51,6 +51,17 @@ export const verifyOtp = createAsyncThunk(
   },
 );
 
+
+export const disableOtp = createAsyncThunk(
+  "users/disableOtp",
+  async (otp: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await usersApi.disableOtp(otp, token);
+  },
+);
+
 export const create = createAsyncThunk(
   "users/create",
   async (requestData: CreateUser, { rejectWithValue, getState, dispatch }) => {

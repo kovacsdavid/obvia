@@ -27,10 +27,12 @@ import {
   type ProcessedResponse,
 } from "@/lib/interfaces/common";
 import type {
+    DisableOtpResponse,
   EnableOtpResponse,
   VerifyOtpResponse,
 } from "../../auth/lib/interface";
 import {
+    isDisableOtpResponse,
   isEnableOtpResponse,
   isVerifyOtpResponse,
 } from "../../auth/lib/guards";
@@ -105,6 +107,27 @@ export async function verifyOtp(
   }).then(async (response: Response) => {
     return (
       (await ProcessResponse(response, isVerifyOtpResponse)) ?? unexpectedError
+    );
+  });
+}
+
+export async function disableOtp(
+  otp: string,
+  token: string | null,
+): Promise<ProcessedResponse<DisableOtpResponse>> {
+  return await fetch(`/api/users/otp/disable`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      otp,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isDisableOtpResponse)) ?? unexpectedError
     );
   });
 }

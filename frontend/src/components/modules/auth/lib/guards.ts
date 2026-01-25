@@ -29,6 +29,7 @@ import {
 import type {
   Claims,
   ClaimsResponse,
+  DisableOtpResponse,
   EnableOtpResponse,
   ForgottenPasswordResponse,
   LoginData,
@@ -153,6 +154,15 @@ export function isEnableOtpResponse(data: unknown): data is EnableOtpResponse {
 }
 
 export function isVerifyOtpResponse(data: unknown): data is VerifyOtpResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
+    isFormError,
+  );
+}
+
+
+export function isDisableOtpResponse(data: unknown): data is DisableOtpResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,

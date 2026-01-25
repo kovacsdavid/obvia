@@ -27,16 +27,18 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { enableOtp, verifyOtp } from "@/components/modules/users/lib/slice.ts";
+import { enableOtp, verifyOtp, disableOtp} from "@/components/modules/users/lib/slice.ts";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeClosed } from "lucide-react";
 import type { SimpleError } from "@/lib/interfaces/common";
 import type { RootState } from "@/store";
 import { useAppSelector } from "@/store/hooks.ts";
+import { chMfaStatus } from "@/components/modules/auth/lib/slice";
 
 export default function Settings() {
   const dispatch = useAppDispatch();
   const [openVerifyOtpDialog, setOpenVerifyOtpDialog] = React.useState(false);
+  const [openDisableOtpDialog, setOpenDisableOtpDialog] = React.useState(false);
   const [secret, setSecret] = React.useState("");
   const [showSecret, setShowSecret] = React.useState(false);
   const [otp, setOtp] = React.useState("");
@@ -45,9 +47,26 @@ export default function Settings() {
   const user_email = useMemo(() => user?.email, [user]);
   const user_is_mfa_enabled = useMemo(() => user?.is_mfa_enabled, [user]);
 
-  const handleDisableMfa = useCallback(() => {
-    console.log("not implemented yet!");
-  }, []);
+  const handleDisableMfa = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      dispatch(disableOtp(otp)).then((response) => {
+        if (disableOtp.fulfilled.match(response)) {
+          if (
+            response.payload.statusCode === 200 &&
+            typeof response.payload.jsonData?.data !== "undefined"
+          ) {
+            setOtp("");
+            setOpenDisableOtpDialog(false);
+            dispatch(chMfaStatus(false));
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setOtpErrors(response.payload.jsonData.error);
+          }
+        }
+      });
+    },
+    [dispatch, otp],
+);
 
   const handleVerfiyMfa = useCallback(
     (e: React.FormEvent) => {
@@ -60,6 +79,7 @@ export default function Settings() {
           ) {
             setOtp("");
             setOpenVerifyOtpDialog(false);
+            dispatch(chMfaStatus(true));
           } else if (typeof response.payload.jsonData?.error !== "undefined") {
             setOtpErrors(response.payload.jsonData.error);
           }
@@ -85,6 +105,38 @@ export default function Settings() {
 
   return (
     <>
+      <Dialog open={openDisableOtpDialog} onOpenChange={setOpenDisableOtpDialog}>
+        <DialogContent className="text-center">
+          <DialogTitle>Kétlépcsős azonosítás kikapcsolása</DialogTitle>
+          <form
+            onSubmit={handleDisableMfa}
+            className="space-y-4"
+            autoComplete={"off"}
+          >
+            <GlobalError error={otpErrors} />
+            <Label htmlFor="otp">Megerősítő kód</Label>
+            <Input
+              id="otp"
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
+            <Button
+              className="mr-3"
+              variant="outline"
+              onClick={(e: React.FormEvent) => {
+                e.preventDefault();
+                setOtp("");
+                setOpenDisableOtpDialog(false);
+                setOtpErrors(null);
+              }}
+            >
+              Mégse
+            </Button>
+            <Button type="submit">Megerősítés</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog open={openVerifyOtpDialog} onOpenChange={setOpenVerifyOtpDialog}>
         <DialogContent className="text-center">
           <DialogTitle>Kétlépcsős azonosítás bekapcsolása</DialogTitle>
@@ -150,7 +202,7 @@ export default function Settings() {
             <Button
               style={{ color: "red" }}
               variant="outline"
-              onClick={() => handleDisableMfa()}
+              onClick={() => setOpenDisableOtpDialog(true)}
             >
               Kétlépcsős azonosítás kikapcsolása
             </Button>

@@ -204,8 +204,13 @@ const authSlice = createSlice({
       state.login.hasActiveDatabase =
         action.payload.claims.active_tenant !== null;
     },
+    chMfaStatus(state, action: PayloadAction<boolean>) {
+      if (state.login.user !== null) {
+        state.login.user.is_mfa_enabled = action.payload;
+      }
+    }
   },
 });
 
-export const { logoutUser, updateToken, loginUser } = authSlice.actions;
+export const { logoutUser, updateToken, loginUser, chMfaStatus } = authSlice.actions;
 export default authSlice.reducer;

@@ -116,6 +116,9 @@ pub enum AuthServiceError {
 
     #[error("Hibás kétlépcsős azonosító kód!")]
     MfaInvalid,
+
+    #[error("Hibás elfelejtett jelszó hivatkozás!")]
+    InvalidForgottenPasswordToken,
 }
 
 #[async_trait]
@@ -132,7 +135,8 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
             | Self::Unauthorized
             | Self::TooManyAttempts(_)
             | Self::MfaRequired
-            | Self::MfaInvalid => FriendlyError::user_facing(
+            | Self::MfaInvalid
+            | Self::InvalidForgottenPasswordToken => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
@@ -1405,7 +1409,7 @@ impl AuthService {
                         })),
                     )
                     .await?;
-                return Err(e.into());
+                return Err(AuthServiceError::InvalidForgottenPasswordToken);
             }
         };
 
@@ -1430,7 +1434,7 @@ impl AuthService {
                         })),
                     )
                     .await?;
-                return Err(e.into());
+                return Err(AuthServiceError::InvalidForgottenPasswordToken);
             }
         };
 

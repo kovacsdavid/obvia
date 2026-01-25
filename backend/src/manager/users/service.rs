@@ -44,6 +44,9 @@ pub enum UsersServiceError {
 
     #[error("A kétlépcsős azonosításhoz hasznát kód hibás!")]
     InvalidMfaToken,
+
+    #[error("A kétépcsős azonosítás aktiválása korábban már megtörtént!")]
+    MfaAlreadyActive,
 }
 
 #[async_trait]
@@ -53,16 +56,16 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            UsersServiceError::Unauthorized | UsersServiceError::InvalidMfaToken => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    },
-                )
-            }
+            UsersServiceError::Unauthorized
+            | UsersServiceError::InvalidMfaToken
+            | UsersServiceError::MfaAlreadyActive => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                },
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -90,8 +93,13 @@ impl UsersService {
         let user = users_module
             .users_repo()
             .get_user_by_id(claims.sub())
-            .await?
-            .init_mfa_secret();
+            .await?;
+
+        if user.is_mfa_enabled() {
+            return Err(UsersServiceError::MfaAlreadyActive);
+        }
+
+        let user = user.init_mfa_secret();
 
         let new_mfa_secret = user
             .mfa_secret
@@ -113,6 +121,10 @@ impl UsersService {
             .users_repo()
             .get_user_by_id(claims.sub())
             .await?;
+
+        if user.is_mfa_enabled() {
+            return Err(UsersServiceError::MfaAlreadyActive);
+        }
 
         user.check_mfa_token(payload.otp.extract().get_value())
             .map_err(|_| UsersServiceError::InvalidMfaToken)?;

@@ -249,9 +249,10 @@ pub async fn forgotten_password(
 #[debug_handler]
 pub async fn new_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::new_password(auth_module.clone(), user_input).await {
+    match AuthService::new_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }

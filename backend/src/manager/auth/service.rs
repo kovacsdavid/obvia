@@ -756,7 +756,7 @@ impl AuthService {
                         .auth_repo()
                         .insert_account_event_log(
                             Some(user.id),
-                            Some(user.id.to_string()),
+                            Some(user.email),
                             AccountEventType::Refresh,
                             AccountEventStatus::Error,
                             Some(client_context.ip),
@@ -774,7 +774,7 @@ impl AuthService {
                 .auth_repo()
                 .insert_account_event_log(
                     Some(user.id),
-                    Some(user.id.to_string()),
+                    Some(user.email),
                     AccountEventType::Refresh,
                     AccountEventStatus::Blocked,
                     Some(client_context.ip),
@@ -794,7 +794,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -828,7 +828,7 @@ impl AuthService {
                             .auth_repo()
                             .insert_account_event_log(
                                 Some(user.id),
-                                Some(user.id.to_string()),
+                                Some(user.email),
                                 AccountEventType::Refresh,
                                 AccountEventStatus::Error,
                                 Some(client_context.ip),
@@ -846,7 +846,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Blocked,
                         Some(client_context.ip),
@@ -871,7 +871,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -901,7 +901,7 @@ impl AuthService {
                         .auth_repo()
                         .insert_account_event_log(
                             Some(user.id),
-                            Some(user.id.to_string()),
+                            Some(user.email),
                             AccountEventType::Refresh,
                             AccountEventStatus::Error,
                             Some(client_context.ip),
@@ -924,7 +924,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -953,7 +953,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -978,7 +978,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -1006,7 +1006,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         Some(user.id),
-                        Some(user.id.to_string()),
+                        Some(user.email),
                         AccountEventType::Refresh,
                         AccountEventStatus::Error,
                         Some(client_context.ip),
@@ -1024,7 +1024,7 @@ impl AuthService {
             .auth_repo()
             .insert_account_event_log(
                 Some(user.id),
-                Some(user.id.to_string()),
+                Some(user.email.clone()),
                 AccountEventType::Refresh,
                 AccountEventStatus::Success,
                 Some(client_context.ip),
@@ -1141,30 +1141,6 @@ impl AuthService {
         Ok(())
     }
 
-    /// Attempts to register a new user in the system.
-    ///
-    /// This function performs the following tasks:
-    /// 1. Hashes the provided password from the registration payload.
-    /// 2. Attempts to store the user's information, along with the hashed password, in the provided repository.
-    ///
-    /// # Arguments
-    /// - `repo`: A reference to an object implementing the `AuthRepository` trait for user storage operations. Must be thread-safe (`Send` and `Sync`).
-    /// - `password_hasher`: A thread-safe reference-counted pointer to an object implementing the `AuthPasswordHasher` trait for password hashing.
-    /// - `payload`: A `RegisterRequest` object containing the user's registration information (e.g., email, password).
-    ///
-    /// # Returns
-    /// - `Ok(OkResponse<SimpleMessageResponse>)`: If the user is successfully registered, returns a success message wrapped in an `OkResponse`.
-    /// - `Err(FriendlyError)`: If any error occurs during registration, it produces a `FriendlyError`:
-    ///   - If the provided email already exists in the repository, a user-facing error (`StatusCode::CONFLICT`) is returned with the message: "Ez az e-mail cím már foglalt" ("This email address is already taken").
-    ///   - For any other errors during password hashing or database operations, an internal error is returned.
-    ///
-    /// # Errors
-    /// - `FriendlyError::UserFacing`: Indicates business logic errors, such as duplicate email addresses.
-    /// - `FriendlyError::Internal`: Indicates unexpected system errors during operations (e.g., failed hashing or database issues).
-    ///
-    /// # Notes
-    /// - The email duplication check relies on the database rejecting duplicate entries based on a unique constraint.
-    /// - Ensure that the password hashing utility is properly configured and secure.
     pub async fn try_register(
         auth_module: Arc<dyn AuthModule>,
         payload: RegisterRequest,
@@ -1386,25 +1362,174 @@ impl AuthService {
     pub async fn new_password(
         auth_module: Arc<dyn AuthModule>,
         payload: NewPasswordRequest,
+        client_context: &ClientContext,
     ) -> AuthServiceResult<()> {
-        let forgotten_password = auth_module
+        Self::rate_limit_by_event_type(
+            120,
+            6,
+            auth_module.clone(),
+            Some(payload.token.to_string()),
+            client_context,
+            AccountEventType::PasswordChange,
+        )
+        .await?;
+        Self::rate_limit_by_event_status(
+            120,
+            3,
+            auth_module.clone(),
+            Some(payload.token.to_string()),
+            client_context,
+            AccountEventStatus::Failure,
+            AccountEventType::PasswordChange,
+        )
+        .await?;
+
+        let forgotten_password = match auth_module
             .auth_repo()
             .get_forgotten_password(payload.token)
-            .await?;
-        let mut user = auth_module
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        None,
+                        Some(payload.token.to_string()),
+                        AccountEventType::PasswordChange,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        let mut user = match auth_module
             .auth_repo()
             .get_user_by_id(forgotten_password.user_id)
-            .await?;
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                auth_module
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(forgotten_password.user_id),
+                        Some(payload.token.to_string()),
+                        AccountEventType::PasswordChange,
+                        AccountEventStatus::Failure,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
         if user.is_active() {
-            user.password_hash =
-                Self::generate_password_hash(payload.password.extract().get_value().as_bytes())?;
-            auth_module.auth_repo().update_user(user).await?;
-            auth_module
+            user.password_hash = match Self::generate_password_hash(
+                payload.password.extract().get_value().as_bytes(),
+            ) {
+                Ok(v) => v,
+                Err(e) => {
+                    auth_module
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.email),
+                            AccountEventType::PasswordChange,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e);
+                }
+            };
+
+            match auth_module.auth_repo().update_user(user.clone()).await {
+                Ok(_) => (),
+                Err(e) => {
+                    auth_module
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.email),
+                            AccountEventType::PasswordChange,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e.into());
+                }
+            };
+            match auth_module
                 .auth_repo()
                 .invalidate_forgotten_password(forgotten_password.id)
+                .await
+            {
+                Ok(_) => (),
+                Err(e) => {
+                    auth_module
+                        .auth_repo()
+                        .insert_account_event_log(
+                            Some(user.id),
+                            Some(user.email),
+                            AccountEventType::PasswordChange,
+                            AccountEventStatus::Error,
+                            Some(client_context.ip),
+                            client_context.user_agent.clone(),
+                            Some(json!({
+                                "error": e.to_string()
+                            })),
+                        )
+                        .await?;
+                    return Err(e.into());
+                }
+            };
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(user.email),
+                    AccountEventType::PasswordChange,
+                    AccountEventStatus::Success,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    None,
+                )
                 .await?;
             Ok(())
         } else {
+            auth_module
+                .auth_repo()
+                .insert_account_event_log(
+                    Some(user.id),
+                    Some(user.email),
+                    AccountEventType::PasswordChange,
+                    AccountEventStatus::Blocked,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": "Inactive user".to_string()
+                    })),
+                )
+                .await?;
             Err(AuthServiceError::UserInactive)
         }
     }

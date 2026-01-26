@@ -18,8 +18,8 @@
  */
 
 use super::handler::{
-    forgotten_password, get_claims, login, logout, new_password, refresh, register,
-    resend_email_verification, verify_email,
+    forgotten_password, login, logout, new_password, refresh, register, resend_email_verification,
+    verify_email,
 };
 use crate::manager::auth::AuthModule;
 use axum::{
@@ -28,26 +28,12 @@ use axum::{
 };
 use std::sync::Arc;
 
-/// Configures and returns a `Router` with authentication-specific routes.
-///
-/// # Parameters
-/// - `auth_module`: An `Arc<AuthModule>` that contains the authentication logic and shared state.
-///   This is passed to the routes as state, enabling access to necessary authentication mechanisms.
-///
-/// # Returns
-/// A `Router` instance with the following nested routes under the `/auth` path:
-/// - `POST /auth/register`: Calls the `register` handler to handle user registration.
-/// - `POST /auth/login`: Calls the `login` handler to handle user login.
-///
-/// # Dependencies
-/// - `axum`: Used for creating the `Router` and defining the HTTP routes.
 pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()
             .route("/register", post(register))
             .route("/login", post(login))
-            .route("/get_claims", get(get_claims))
             .route("/verify_email", get(verify_email))
             .route("/resend_email_verification", get(resend_email_verification))
             .route("/forgotten_password", post(forgotten_password))

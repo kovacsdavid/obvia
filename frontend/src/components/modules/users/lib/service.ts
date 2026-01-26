@@ -17,8 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { globalRequestTimeout } from "@/services/utils/consts.ts";
+import {
+  globalRequestTimeout,
+  unexpectedError,
+} from "@/services/utils/consts.ts";
 import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
+import {
+  ProcessResponse,
+  type ProcessedResponse,
+} from "@/lib/interfaces/common";
+import type {
+  DisableOtpResponse,
+  EnableOtpResponse,
+  VerifyOtpResponse,
+} from "../../auth/lib/interface";
+import {
+  isDisableOtpResponse,
+  isEnableOtpResponse,
+  isVerifyOtpResponse,
+} from "../../auth/lib/guards";
 
 export async function create(
   { email, lastName, firstName, phone, status }: CreateUser,
@@ -53,5 +70,64 @@ export async function list(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
+  });
+}
+
+export async function enableOtp(
+  token: string | null,
+): Promise<ProcessedResponse<EnableOtpResponse>> {
+  return await fetch(`/api/users/otp/enable`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isEnableOtpResponse)) ?? unexpectedError
+    );
+  });
+}
+
+export async function verifyOtp(
+  otp: string,
+  token: string | null,
+): Promise<ProcessedResponse<VerifyOtpResponse>> {
+  return await fetch(`/api/users/otp/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      otp,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isVerifyOtpResponse)) ?? unexpectedError
+    );
+  });
+}
+
+export async function disableOtp(
+  otp: string,
+  token: string | null,
+): Promise<ProcessedResponse<DisableOtpResponse>> {
+  return await fetch(`/api/users/otp/disable`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      otp,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isDisableOtpResponse)) ?? unexpectedError
+    );
   });
 }

@@ -29,6 +29,7 @@ pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
+pub(crate) mod types;
 
 pub trait AuthModule: ConfigProvider + MailTransporter + Send + Sync {
     fn auth_repo(&self) -> Arc<dyn AuthRepository>;

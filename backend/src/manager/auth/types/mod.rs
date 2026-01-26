@@ -17,44 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod error;
-pub(crate) mod handler;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod routes;
-pub(crate) mod service;
+pub(crate) mod otp;
 
-pub fn init_users_module() -> UsersModuleBuilder {
-    UsersModuleBuilder::default()
-}
-
-pub struct UsersModule {}
-
-pub struct UsersModuleBuilder {}
-
-impl UsersModuleBuilder {
-    pub fn new() -> Self {
-        Self {}
-    }
-    pub fn build(self) -> Result<UsersModule, String> {
-        Ok(UsersModule {})
-    }
-}
-
-#[cfg(not(test))]
-impl Default for UsersModuleBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-
-    impl Default for UsersModuleBuilder {
-        fn default() -> Self {
-            UsersModuleBuilder {}
-        }
-    }
-}
+pub(crate) use otp::Otp;

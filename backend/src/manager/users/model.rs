@@ -19,26 +19,19 @@
 
 use serde::Serialize;
 use sqlx::prelude::FromRow;
+use thiserror::Error;
+use totp_rs::{Algorithm, Secret, TOTP};
 use uuid::Uuid;
 
-/// Represents a user entity with various attributes typically associated with user models.
-///
-/// # Attributes
-/// - `id` (`Uuid`): Unique identifier for the user.
-/// - `email` (`String`): The email address of the user.
-/// - `password_hash` (`String`): The hashed value of the user's password.
-/// - `first_name` (`Option<String>`): The first name of the user. Optional.
-/// - `last_name` (`Option<String>`): The last name of the user. Optional.
-/// - `phone` (`Option<String>`): The phone number of the user. Optional.
-/// - `status` (`String`): The current status of the user (e.g., active, inactive).
-/// - `last_login_at` (`Option<chrono::DateTime<chrono::Utc>>`): The timestamp of the user's most recent login. Optional.
-/// - `profile_picture_url` (`Option<String>`): URL to the user's profile picture. Optional.
-/// - `locale` (`Option<String>`): The locale (language/culture preference) of the user. Optional.
-/// - `invited_by` (`Option<Uuid>`): The ID of the user who invited this user, if applicable. Optional.
-/// - `email_verified_at` (`Option<chrono::DateTime<chrono::Utc>>`): The timestamp of when the user's email was verified. Optional.
-/// - `created_at` (`chrono::DateTime<chrono::Utc>`): The timestamp of when the user account was created.
-/// - `updated_at` (`chrono::DateTime<chrono::Utc>`): The timestamp of the last update to the user's record.
-/// - `deleted_at` (`Option<chrono::DateTime<chrono::Utc>>`): The timestamp of when the user's account was deleted, if applicable. Optional.
+#[derive(Debug, Error)]
+pub enum UserModelError {
+    #[error("GetMfaToken error: {0}")]
+    MfaToken(String),
+
+    #[error("Invalid MFA token")]
+    InvalidMfaToken,
+}
+
 #[derive(Serialize, FromRow, Debug, Clone)]
 pub struct User {
     pub id: Uuid,
@@ -56,6 +49,8 @@ pub struct User {
     pub created_at: chrono::DateTime<chrono::Local>,
     pub updated_at: chrono::DateTime<chrono::Local>,
     pub deleted_at: Option<chrono::DateTime<chrono::Local>>,
+    pub is_mfa_enabled: bool,
+    pub mfa_secret: Option<String>,
 }
 
 impl User {
@@ -64,5 +59,44 @@ impl User {
     }
     pub fn need_email_verification(&self) -> bool {
         self.status == "unchecked_email"
+    }
+    pub fn is_mfa_enabled(&self) -> bool {
+        self.is_mfa_enabled
+    }
+    pub fn init_mfa_secret(mut self) -> Self {
+        self.mfa_secret = Some(Secret::default().to_encoded().to_string());
+        self
+    }
+    pub fn get_mfa_token(&self) -> Result<String, UserModelError> {
+        let totp = TOTP::new(
+            Algorithm::SHA1,
+            6,
+            1,
+            30,
+            Secret::Encoded(
+                self.mfa_secret
+                    .clone()
+                    .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?,
+            )
+            .to_bytes()
+            .map_err(|e| UserModelError::MfaToken(e.to_string()))?,
+            Some("obvia".to_string()),
+            self.email.clone(),
+        )
+        .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
+        totp.generate_current()
+            .map_err(|e| UserModelError::MfaToken(e.to_string()))
+    }
+    pub fn check_mfa_token(&self, token_to_test: &str) -> Result<(), UserModelError> {
+        match self.get_mfa_token() {
+            Ok(current_mfa_token) => {
+                if current_mfa_token == token_to_test {
+                    Ok(())
+                } else {
+                    Err(UserModelError::InvalidMfaToken)
+                }
+            }
+            Err(_) => Err(UserModelError::InvalidMfaToken),
+        }
     }
 }

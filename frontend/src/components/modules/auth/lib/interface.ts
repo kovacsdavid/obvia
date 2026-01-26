@@ -24,6 +24,16 @@ import {
   type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
+export interface User {
+  id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+  status: string;
+  profile_picture_url: string | null;
+  is_mfa_enabled: boolean;
+}
+
 export interface RegisterRequest {
   firstName: string;
   lastName: string;
@@ -35,21 +45,13 @@ export interface RegisterRequest {
 export interface LoginRequest {
   email: string;
   password: string;
+  otp: string | null;
 }
 
 export interface LoginData {
   claims: Claims;
-  user: LoginUser;
+  user: User;
   token: string;
-}
-
-export interface LoginUser {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  status: string;
-  profile_picture_url: string | null;
 }
 
 export interface ForgottenPasswordRequest {
@@ -102,3 +104,6 @@ export type ForgottenPasswordResponse = CommonResponse<
   FormError
 >;
 export type NewPasswordResponse = CommonResponse<SimpleMessageData, FormError>;
+export type EnableOtpResponse = CommonResponse<string, SimpleError>;
+export type VerifyOtpResponse = CommonResponse<SimpleMessageData, FormError>;
+export type DisableOtpResponse = CommonResponse<SimpleMessageData, FormError>;

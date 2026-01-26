@@ -1,6 +1,6 @@
 [package]
 name = "obvia_backend"
-version = "0.24.0"
+version = "0.25.0"
 edition = "2024"
 
 [dependencies]
@@ -30,6 +30,7 @@ handlebars = "6.3.2"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "hostname", "smtp-transport","tokio1", "tokio1-rustls-tls"] }
 time = "0.3.44"
 ipnetwork = { version = "0.20.0", features = ["serde"] }
+totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

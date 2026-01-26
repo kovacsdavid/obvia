@@ -34,6 +34,7 @@ type AuthContextType = {
   login: (
     email: string,
     password: string,
+    otp: string | null,
   ) => Promise<PayloadAction<any, any, any>>;
   logout: () => void;
 };
@@ -49,8 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     (state: RootState) => state.auth.login.hasActiveDatabase,
   );
 
-  const login = (email: string, password: string) => {
-    return dispach(loginUserRequest({ email, password }));
+  const login = (email: string, password: string, otp: string | null) => {
+    return dispach(loginUserRequest({ email, password, otp }));
   };
   const logout = () => {
     dispach(logoutAndRevokeRefreshToken());

@@ -28,7 +28,6 @@ use crate::manager::auth::dto::register::{
     ResendEmailValidationRequestHelper,
 };
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::auth::service::AuthService;
 use axum::extract::Query;
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
@@ -37,26 +36,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use time::Duration;
 
-/// Handles the login process for a user in an asynchronous manner.
-///
-/// # Parameters
-/// - `State(auth_module)`: An instance of `AuthModule` wrapped in an `Arc`, providing access
-///   to authentication-related functionality such as pool management and configurations.
-///   It's extracted from the application state.
-/// - `Json(payload)`: A `LoginRequest` object extracted from the JSON body of the request.
-///   This contains the credentials or necessary data for authentication.
-///
-/// # Returns
-/// A `Response` object, wrapped in an `async` function, which represents the outcome of the
-/// login operation. This response may contain a success token, error message, or other
-/// authentication-related information depending on the login process's result.
-///
-/// # Functionality
-/// - Delegates the core login logic to the `login_inner` function to handle authentication.
-/// - The repository for authentication (`AuthRepository`) is created using a `PoolWrapper`
-///   that is initialized with the main database connection pool via the `pool_manager`.
-/// - The `login_inner` function handles the login operation utilizing the provided
-///   repository and `payload`.
 #[debug_handler]
 pub async fn login(
     State(auth_module): State<Arc<dyn AuthModule>>,
@@ -172,34 +151,6 @@ pub async fn logout(
         .into_response())
 }
 
-/// Handles user registration requests.
-///
-/// This function is an HTTP handler that processes a user registration request by:
-/// 1. Validating the incoming payload.
-/// 2. Passing the data to the appropriate module for handling the registration logic.
-///
-/// # Parameters
-/// - `State(auth_module)`: Provides a shared reference to the `AuthModule`,
-///   which contains the necessary components for handling authentication and user
-///   management. The `AuthModule` is wrapped in an `Arc` for thread-safe shared access.
-/// - `payload`: The incoming user registration request payload. This is wrapped in a
-///   `Result` to handle potential payload rejections due to deserialization errors.
-///
-/// # Returns
-/// An asynchronous HTTP `Response` containing the result of the registration process. The response
-/// includes the appropriate status code and/or error messages.
-///
-/// # Implementation Details
-/// - This handler calls an internal function `register_inner`, which manages the logic for
-///   processing the registration request.
-/// - For repository interaction, the function dynamically constructs an instance of `PoolWrapper`
-///   using the pool managed by the `AuthModule`. `PoolWrapper` implements the `AuthRepository` trait
-///   to abstract database access.
-///
-/// # Errors
-/// - Returns appropriate error responses if:
-///   - The payload is invalid or rejected (e.g., malformed JSON).
-///   - There is any issue during the registration process (e.g., database connectivity issues).
 #[debug_handler]
 pub async fn register(
     State(auth_module): State<Arc<dyn AuthModule>>,
@@ -222,6 +173,7 @@ pub async fn register(
     }
 }
 
+#[debug_handler]
 pub async fn verify_email(
     State(auth_module): State<Arc<dyn AuthModule>>,
     Query(payload): Query<HashMap<String, String>>,
@@ -246,6 +198,7 @@ pub async fn verify_email(
     }
 }
 
+#[debug_handler]
 pub async fn resend_email_verification(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<
@@ -270,20 +223,7 @@ pub async fn resend_email_verification(
     }
 }
 
-pub async fn get_claims(
-    State(auth_module): State<Arc<dyn AuthModule>>,
-    AuthenticatedUser(claims): AuthenticatedUser,
-) -> HandlerResult {
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(claims)
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
-}
-
+#[debug_handler]
 pub async fn forgotten_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
     client_context: ClientContext,
@@ -306,11 +246,13 @@ pub async fn forgotten_password(
     }
 }
 
+#[debug_handler]
 pub async fn new_password(
     State(auth_module): State<Arc<dyn AuthModule>>,
+    client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::new_password(auth_module.clone(), user_input).await {
+    match AuthService::new_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -395,6 +337,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
@@ -452,6 +396,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 
@@ -514,6 +459,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
@@ -554,6 +501,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "invalidpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 
@@ -621,6 +569,8 @@ mod tests {
                     created_at: Local::now(),
                     updated_at: Local::now(),
                     deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
                 }));
         repo.expect_insert_email_verification()
             .times(1)
@@ -779,6 +729,8 @@ mod tests {
                 created_at: Local::now(),
                 updated_at: Local::now(),
                 deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
             }));
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
@@ -849,6 +801,7 @@ mod tests {
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
             password: "correctpassword".to_string(),
+            otp: None,
         })
         .unwrap();
 

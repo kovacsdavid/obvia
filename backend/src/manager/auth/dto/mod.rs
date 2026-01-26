@@ -18,5 +18,5 @@
  */
 
 pub(crate) mod claims;
-pub(super) mod login;
+pub(crate) mod login;
 pub(crate) mod register;

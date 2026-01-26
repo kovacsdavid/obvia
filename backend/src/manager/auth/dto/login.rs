@@ -17,59 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::auth::dto::claims::Claims;
+use std::fmt::{Display, Formatter};
+
+use crate::common::error::FormErrorResponse;
+use crate::manager::auth::types::Otp;
 use crate::manager::users::model::User;
+use crate::{common::types::ValueObject, manager::auth::dto::claims::Claims};
+use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Represents a login request payload.
-///
-/// This struct is used to deserialize incoming JSON data for user authentication purposes.
-/// It contains the email and password fields required for login.
-///
-/// # Fields
-/// - `email` (String): The email address of the user trying to log in.
-/// - `password` (String): The plain text password of the user trying to log in.
-///
-/// # Example JSON
-/// ```json
-/// {
-///   "email": "user@example.com",
-///   "password": "securepassword123"
-/// }
-/// ```
-///
-/// # Usage
-/// This struct is part of the web application's authentication flow
-/// where the client sends their login credentials, and the server deserializes
-/// the request into this struct for processing.
-///
-/// # Security
-/// - Make sure to handle the `password` field securely and avoid logging, storing or exposing it
-///   in any other ways
 #[derive(Deserialize, Serialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+    pub otp: Option<String>,
 }
 
-/// Represents a public view of a user with limited information.
-///
-/// This struct is typically used to expose user data in contexts where detailed
-/// or sensitive user information should not be disclosed.
-///
-/// # Fields
-///
-/// * `id` - A unique identifier for the user, represented as a UUID.
-/// * `email` - The user's email address.
-/// * `first_name` - The user's first name, which is optional. This field may be `None`
-///   if no first name is provided.
-/// * `last_name` - The user's last name, which is optional. This field may be `None`
-///   if no last name is provided.
-/// * `status` - A string representing the current status of the user. The possible
-///   values for this field depend on the application's specific requirements.
-/// * `profile_picture_url` - An optional URL pointing to the user's profile picture.
-///   This field may be `None` if no profile picture is set.
 #[derive(Serialize, Debug)]
 pub struct UserPublic {
     pub id: Uuid,
@@ -78,25 +42,10 @@ pub struct UserPublic {
     pub last_name: Option<String>,
     pub status: String,
     pub profile_picture_url: Option<String>,
+    pub is_mfa_enabled: bool,
 }
 
 impl From<User> for UserPublic {
-    /// Converts a `User` instance into a corresponding instance of the current struct.
-    ///
-    /// # Parameters
-    /// - `value`: An instance of the `User` struct to be converted.
-    ///
-    /// # Returns
-    /// A new instance of the current struct containing fields mapped from the provided
-    /// `User` instance.
-    ///
-    /// # Field Mapping
-    /// - `id`: Copied from `value.id`.
-    /// - `email`: Copied from `value.email`.
-    /// - `first_name`: Copied from `value.first_name`.
-    /// - `last_name`: Copied from `value.last_name`.
-    /// - `status`: Copied from `value.status`.
-    /// - `profile_picture_url`: Copied from `value.profile_picture_url`.
     fn from(value: User) -> Self {
         Self {
             id: value.id,
@@ -105,20 +54,11 @@ impl From<User> for UserPublic {
             last_name: value.last_name,
             status: value.status,
             profile_picture_url: value.profile_picture_url,
+            is_mfa_enabled: value.is_mfa_enabled,
         }
     }
 }
 
-/// The `LoginResponse` struct represents the response sent back to the client
-/// after a successful login attempt. It contains user information and an
-/// authentication token.
-///
-/// # Fields
-///
-/// * `user` - A `UserPublic` struct that holds the public-facing information
-///   about the authenticated user.
-/// * `token` - A string representing the authentication JWT token issued to the
-///   user for subsequent requests.
 #[derive(Serialize, Debug)]
 pub struct LoginResponse {
     claims: Claims,
@@ -127,14 +67,6 @@ pub struct LoginResponse {
 }
 
 impl LoginResponse {
-    /// Creates a new instance of the struct with the given user and token.
-    ///
-    /// # Parameters
-    /// - `user`: A `UserPublic` instance representing the user's public information.
-    /// - `token`: A `String` containing the token associated with the user.
-    ///
-    /// # Returns
-    /// - Returns a new instance of the struct containing the provided `user` and `token`.
     pub fn new(claims: Claims, user: UserPublic, token: String) -> Self {
         Self {
             claims,
@@ -142,16 +74,65 @@ impl LoginResponse {
             token,
         }
     }
-    /// Returns a reference to the `token` field of the struct.
-    ///
-    /// # Purpose
-    /// This method provides read-only access to the `token` field within the struct.
-    /// It is marked with `#[allow(dead_code)]` to suppress warnings in case the function is unused.
-    ///
-    /// # Returns
-    /// A reference to the `String` stored in the `token` field.
     #[allow(dead_code)]
     pub fn token(&self) -> &String {
         &self.token
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct OtpUserInputHelper {
+    pub otp: String,
+}
+
+#[derive(Debug, Serialize, Default)]
+pub struct OtpUserInputError {
+    pub otp: Option<String>,
+}
+
+impl OtpUserInputError {
+    pub fn is_empty(&self) -> bool {
+        self.otp.is_none()
+    }
+}
+
+impl Display for OtpUserInputError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match serde_json::to_string(self) {
+            Ok(json) => write!(f, "OtpUserInputError: {}", json),
+            Err(e) => write!(f, "OtpUserInputError: {}", e),
+        }
+    }
+}
+
+impl FormErrorResponse for OtpUserInputError {}
+
+impl IntoResponse for OtpUserInputError {
+    fn into_response(self) -> Response {
+        self.get_error_response()
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OtpUserInput {
+    pub otp: ValueObject<Otp>,
+}
+
+impl TryFrom<OtpUserInputHelper> for OtpUserInput {
+    type Error = OtpUserInputError;
+    fn try_from(value: OtpUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = OtpUserInputError::default();
+
+        let otp = ValueObject::new(Otp(value.otp)).inspect_err(|e| {
+            error.otp = Some(e.to_string());
+        });
+
+        if error.is_empty() {
+            Ok(OtpUserInput {
+                otp: otp.map_err(|_| OtpUserInputError::default())?,
+            })
+        } else {
+            Err(error)
+        }
     }
 }

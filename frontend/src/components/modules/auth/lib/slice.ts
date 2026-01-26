@@ -26,21 +26,14 @@ import * as authApi from "@/components/modules/auth/lib/service.ts";
 import type {
   Claims,
   ForgottenPasswordRequest,
+  User,
+  LoginData,
   LoginRequest,
   NewPasswordRequest,
   RegisterRequest,
 } from "@/components/modules/auth/lib/interface.ts";
 import type { RootState } from "@/store";
 import type { NewTokenResponse } from "@/components/modules/databases/lib/interface.ts";
-
-interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  status: string;
-  profile_picture_url: string | null;
-}
 
 interface AuthState {
   login: {
@@ -171,17 +164,11 @@ export const newPassword = createAsyncThunk(
   },
 );
 
-interface LoginUser {
-  token: string;
-  user: User;
-  claims: Claims;
-}
-
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    loginUser(state, action: PayloadAction<LoginUser>) {
+    loginUser(state, action: PayloadAction<LoginData>) {
       state.login.claims = action.payload.claims;
       state.login.user = action.payload.user;
       state.login.token = action.payload.token;
@@ -203,8 +190,14 @@ const authSlice = createSlice({
       state.login.hasActiveDatabase =
         action.payload.claims.active_tenant !== null;
     },
+    chMfaStatus(state, action: PayloadAction<boolean>) {
+      if (state.login.user !== null) {
+        state.login.user.is_mfa_enabled = action.payload;
+      }
+    },
   },
 });
 
-export const { logoutUser, updateToken, loginUser } = authSlice.actions;
+export const { logoutUser, updateToken, loginUser, chMfaStatus } =
+  authSlice.actions;
 export default authSlice.reducer;

@@ -29,13 +29,16 @@ import {
 import type {
   Claims,
   ClaimsResponse,
+  DisableOtpResponse,
+  EnableOtpResponse,
   ForgottenPasswordResponse,
   LoginData,
   LoginResponse,
-  LoginUser,
+  User,
   NewPasswordResponse,
   RegisterResponse,
   VerifyEmailResponse,
+  VerifyOtpResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 
 export function isClaims(data: unknown): data is Claims {
@@ -67,7 +70,7 @@ export function isClaimsResponse(data: unknown): data is ClaimsResponse {
   return isCommonResponse(data, isClaims, isSimpleError);
 }
 
-export function isLoginUser(data: unknown): data is LoginUser {
+export function isUser(data: unknown): data is User {
   return (
     typeof data === "object" &&
     data !== null &&
@@ -83,7 +86,9 @@ export function isLoginUser(data: unknown): data is LoginUser {
     typeof data.status === "string" &&
     "profile_picture_url" in data &&
     (data.profile_picture_url === null ||
-      typeof data.profile_picture_url === "string")
+      typeof data.profile_picture_url === "string") &&
+    "is_mfa_enabled" in data &&
+    typeof data.is_mfa_enabled === "boolean"
   );
 }
 
@@ -94,7 +99,7 @@ export function isLoginData(data: unknown): data is LoginData {
     "claims" in data &&
     isClaims(data.claims) &&
     "user" in data &&
-    isLoginUser(data.user) &&
+    isUser(data.user) &&
     "token" in data &&
     typeof data.token === "string"
   );
@@ -135,6 +140,32 @@ export function isForgottenPasswordResponse(
 export function isNewPasswordResponse(
   data: unknown,
 ): data is NewPasswordResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
+    isFormError,
+  );
+}
+
+export function isEnableOtpResponse(data: unknown): data is EnableOtpResponse {
+  return isCommonResponse<string, FormError>(
+    data,
+    (data: unknown): data is string => typeof data === "string",
+    isFormError,
+  );
+}
+
+export function isVerifyOtpResponse(data: unknown): data is VerifyOtpResponse {
+  return isCommonResponse<SimpleMessageData, FormError>(
+    data,
+    isSimpleMessageData,
+    isFormError,
+  );
+}
+
+export function isDisableOtpResponse(
+  data: unknown,
+): data is DisableOtpResponse {
   return isCommonResponse<SimpleMessageData, FormError>(
     data,
     isSimpleMessageData,

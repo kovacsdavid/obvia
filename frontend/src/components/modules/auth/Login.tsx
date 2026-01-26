@@ -32,10 +32,13 @@ import {
 } from "@/components/ui/card.tsx";
 import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [openOtpDialog, setOpenOtpDialog] = React.useState(false);
   const status = useAppSelector((state: RootState) => state.auth.login.status);
   const { errors, setErrors, unexpectedError } = useFormError();
   const navigate = useNavigate();
@@ -49,9 +52,11 @@ export default function Login() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    login(email, password).then(async (response) => {
+  const handleSubmit = (e: React.FormEvent | null) => {
+    if (e !== null) {
+      e.preventDefault();
+    }
+    login(email, password, otp).then(async (response) => {
       if (loginUserRequest.fulfilled.match(response)) {
         if (
           response.payload.statusCode === 200 &&
@@ -65,12 +70,22 @@ export default function Login() {
             }),
           );
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setPassword("");
-          setErrors(response.payload.jsonData.error);
+          if (response.payload.jsonData.error.message === "totp-required") {
+            setOtp("");
+            setOpenOtpDialog(true);
+          } else {
+            setOtp("");
+            setOpenOtpDialog(false);
+            setErrors(response.payload.jsonData.error);
+          }
         } else {
+          setOpenOtpDialog(false);
+          setOtp("");
           unexpectedError(response.payload.statusCode);
         }
       } else {
+        setOpenOtpDialog(false);
+        setOtp("");
         unexpectedError();
       }
     });
@@ -78,6 +93,25 @@ export default function Login() {
 
   return (
     <>
+      <Dialog open={openOtpDialog} onOpenChange={setOpenOtpDialog}>
+        <DialogContent className="text-center">
+          <DialogTitle>Kétlépcsős azonosítás</DialogTitle>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={"off"}
+          >
+            <Label htmlFor="otp">Azonosító kód</Label>
+            <Input
+              id="otp"
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+            />
+            <Button type="submit">Bejelentkezés</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <GlobalError error={errors} />
       <Card className={"max-w-lg mx-auto"}>
         <CardHeader>

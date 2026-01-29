@@ -40,6 +40,10 @@ import { useSelectList } from "@/hooks/use_select_list.ts";
 import type { InventoryMovement } from "./lib/interface";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
 import { formatNumber, parseNumber } from "@/lib/utils.ts";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
+import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
+import type { Inventory } from "../inventory/lib/interface";
+import { Plus } from "lucide-react";
 
 interface EditProps {
   showCard?: boolean;
@@ -94,6 +98,17 @@ export default function Edit({
   useEffect(() => {
     setInventoryId(routeInventoryId);
   }, [routeInventoryId]);
+  const [openNewInventoryDialog, setOpenNewInventoryDialog] =
+    React.useState(false);
+
+  const handleEditInventorySuccess = async (inventory: Inventory) => {
+    return loadLists().then(() => {
+      setTimeout(() => {
+        setInventoryId(inventory.id);
+      }, 0);
+      setOpenNewInventoryDialog(false);
+    });
+  };
 
   const loadLists = useCallback(() => {
     return Promise.all([
@@ -223,6 +238,18 @@ export default function Edit({
   return (
     <>
       <GlobalError error={errors} />
+      <Dialog
+        open={openNewInventoryDialog}
+        onOpenChange={setOpenNewInventoryDialog}
+      >
+        <DialogContent>
+          <DialogTitle>Raktárkészlet létrehozása</DialogTitle>
+          <InventoryEdit
+            showCard={false}
+            onSuccess={handleEditInventorySuccess}
+          />
+        </DialogContent>
+      </Dialog>
       <ConditionalCard
         showCard={showCard}
         title={`Készletmozgás ${id ? "módosítás" : "létrehozás"}`}
@@ -235,7 +262,20 @@ export default function Edit({
         >
           {!routeInventoryId && (
             <>
-              <Label htmlFor="inventoryId">Raktárkészlet</Label>
+              <div className="flex items-center w-full">
+                <div className="flex flex-1 items-center">
+                  <Label htmlFor="inventoryId">Raktárkészlet</Label>
+                </div>
+                <div className="flex items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setOpenNewInventoryDialog(true)}
+                  >
+                    <Plus />
+                  </Button>
+                </div>
+              </div>
               <Select
                 disabled={inventoryIdList.length === 0}
                 value={inventoryId ?? ""}
@@ -263,6 +303,7 @@ export default function Edit({
           <Input
             id="quantity"
             type="text"
+            placeholder="10"
             value={quantity.displayValue}
             onChange={(e) =>
               quantity.handleInputChangeWithCursor(e.target.value, e.target)
@@ -274,6 +315,7 @@ export default function Edit({
           <Input
             id="unitPrice"
             type="text"
+            placeholder="1 000,00"
             value={unitPrice.displayValue}
             onChange={(e) =>
               unitPrice.handleInputChangeWithCursor(e.target.value, e.target)

@@ -52,6 +52,9 @@ pub enum TenantsServiceError {
 
     #[error("Token error: {0}")]
     Token(String),
+
+    #[error("Jelenleg nem elérhető")]
+    CurrentlyNotAvailable,
 }
 
 #[async_trait]
@@ -61,14 +64,16 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            TenantsServiceError::AccessDenied => FriendlyError::user_facing(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                GeneralError {
-                    message: TenantsServiceError::AccessDenied.to_string(),
-                },
-            ),
+            TenantsServiceError::AccessDenied | TenantsServiceError::CurrentlyNotAvailable => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::UNAUTHORIZED,
+                    file!(),
+                    GeneralError {
+                        message: TenantsServiceError::AccessDenied.to_string(),
+                    },
+                )
+            }
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -86,44 +91,13 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
 pub struct TenantsService;
 
 impl TenantsService {
-    /// Handles the process of setting up a self-hosted tenant in the system.
-    ///
-    /// # Workflow
-    ///
-    /// 1. Converts the provided payload into a `TenantDatabaseConfig`.
-    /// 2. Tests the connectivity to the provided PostgreSQL database with SSL mode verification.
-    /// 3. Checks if the targeted database is empty.
-    /// 4. Creates a new tenant in the repository.
-    /// 5. Adds the tenant's database connection pool to the pool manager.
-    /// 6. Initializes the tenant's database schema by running migrations.
-    /// 7. Returns a success message upon the successful completion of all the steps.
-    ///
-    /// # Parameters
-    /// - `repo`: A mutable reference to a dynamic implementation of the `TenantsRepository` trait. Used to manage tenants in the system.
-    /// - `claims`: The JWT claims of the requester, typically containing user identity and access details.
-    /// - `payload`: The data required for creating a self-hosted tenant, like database configurations.
-    /// - `tenants_module`: A shared reference (`Arc`) to the `TenantsModule` which holds relevant configurations and services.
-    ///
-    /// # Returns
-    /// - `Ok(OkResponse<SimpleMessageResponse>)`: If the self-hosted tenant setup is successful.
-    /// - `Err(FriendlyError)`: If any step fails due to a validation, database connectivity, or internal system error.
-    ///
-    /// # Errors
-    /// - `FriendlyError::Internal`: Covers internal system errors, such as configuration conversion failures, tenant pool handling issues, or migration failures.
-    /// - `FriendlyError::UserFacing`: Covers user-facing errors like the inability to connect to the provided database or validation issues with the provided payload.
-    ///
-    /// # Notes
-    /// - The database connectivity is tested with `PgSslMode::VerifyFull` for enhanced security.
-    /// - If the function fails at any step, an appropriate error message is returned to help diagnose the issue.
-    /// - All errors are logged using the specified `trace` levels for debugging purposes.
-    ///
-    /// # Panics
-    /// This function does not explicitly panic. However, unexpected panics may occur if dependent modules or traits are not correctly implemented.
+    #[expect(unreachable_code)]
     pub async fn create_self_hosted(
         claims: &Claims,
         payload: &CreateTenant,
         tenants_module: Arc<dyn TenantsModule>,
     ) -> Result<Tenant, TenantsServiceError> {
+        return Err(TenantsServiceError::CurrentlyNotAvailable);
         let config: TenantDatabaseConfig = payload
             .clone()
             .try_into()
@@ -171,47 +145,6 @@ impl TenantsService {
         Ok(tenant)
     }
 
-    /// Asynchronously manages the creation and setup of a tenant, including
-    /// the configuration and database initialization needed for a tenant environment.
-    ///
-    /// # Parameters
-    /// * `repo` - A mutable reference to an implementation of the `TenantsRepository`
-    ///   trait. This represents the repository for managing tenants in persistence
-    ///   storage.
-    /// * `claims` - JWT claims representing the current authenticated user's context. This
-    ///   could include permissions, roles, or other identifying information.
-    /// * `payload` - The `CreateRequest` object containing the data required to create the
-    ///   tenant.
-    /// * `tenants_module` - An `Arc`-wrapped instance of the `TenantsModule`,
-    ///   which provides configurations and pool management utilities for handling tenant databases.
-    ///
-    /// # Returns
-    /// * `Result<OkResponse<SimpleMessageResponse>, FriendlyError>` - In the success case, it
-    ///   returns an `OkResponse` containing a `SimpleMessageResponse` with a success message.
-    ///   In the error case, it returns a `FriendlyError` detailing the nature of the failure.
-    ///
-    /// # Workflow
-    /// 1. Calls the `setup_managed` method of the repository to initialize and persist the
-    ///    tenant using the provided payload, claims, and module configuration.
-    /// 2. If successful, initializes a tenant database pool using the tenant's ID and
-    ///    configuration derived from `TenantDatabaseConfig`.
-    /// 3. Attempts to retrieve the tenant database pool, and if found, runs database migration via
-    ///    `migrate_tenant_db`.
-    /// 4. If all steps complete successfully, confirms the creation of the tenant with
-    ///    a success message.
-    /// 5. Any failure at any step is captured and returned as a `FriendlyError`, including
-    ///    context for easier debugging.
-    ///
-    /// # Errors
-    /// The function can return a `FriendlyError` in one of the following cases:
-    /// * Failure to setup the tenant in the repository.
-    /// * Failure to add a tenant pool to the pool manager.
-    /// * Failure to retrieve the tenant pool from the pool manager.
-    /// * Failure to perform database migrations for the tenant.
-    ///
-    /// # Localization
-    /// * The success message, "Szervezeti egység létrehozása sikeresen megtörtént!", is hardcoded
-    ///   in Hungarian. Modify it if localization is necessary for other languages.
     pub async fn create_managed(
         claims: &Claims,
         payload: &CreateTenant,

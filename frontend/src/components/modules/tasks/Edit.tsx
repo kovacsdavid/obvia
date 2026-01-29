@@ -308,7 +308,7 @@ export default function Edit({
         onOpenChange={setOpenNewWorksheetDialog}
       >
         <DialogContent>
-          <DialogTitle>Új munkalap létrehozása</DialogTitle>
+          <DialogTitle>Munkalap létrehozása</DialogTitle>
           <WorksheetsEdit
             showCard={false}
             onSuccess={handleEditWorksheetsSuccess}
@@ -320,7 +320,7 @@ export default function Edit({
         onOpenChange={setOpenNewServiceDialog}
       >
         <DialogContent>
-          <DialogTitle>Új szolgáltatás létrehozása</DialogTitle>
+          <DialogTitle>Szolgáltatás létrehozása</DialogTitle>
           <ServicesEdit
             showCard={false}
             onSuccess={handleEditServicesSuccess}
@@ -329,7 +329,7 @@ export default function Edit({
       </Dialog>
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
-          <DialogTitle>Új adó létrehozása</DialogTitle>
+          <DialogTitle>Adó létrehozása</DialogTitle>
           <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
         </DialogContent>
       </Dialog>
@@ -343,7 +343,20 @@ export default function Edit({
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="worksheet_id">Munkalap</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="worksheet_id">Munkalap</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewWorksheetDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select value={worksheetId} onValueChange={setWorksheetId}>
             <SelectTrigger className={"w-full"}>
               <SelectValue />
@@ -357,15 +370,20 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"worksheet_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewWorksheetDialog(true)}
-          >
-            <Plus /> Új munkalap
-          </Button>
-
-          <Label htmlFor="service_id">Szolgáltatás</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="service_id">Szolgáltatás</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewServiceDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select value={serviceId} onValueChange={setServiceId}>
             <SelectTrigger className={"w-full"}>
               <SelectValue />
@@ -379,13 +397,6 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"service_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewServiceDialog(true)}
-          >
-            <Plus /> Új szolgáltatás
-          </Button>
 
           <Label htmlFor="description">Leírás</Label>
           <Input
@@ -420,6 +431,7 @@ export default function Edit({
           <Input
             id="quantity"
             type="text"
+            placeholder="10"
             value={quantity.displayValue}
             onChange={(e) =>
               quantity.handleInputChangeWithCursor(e.target.value, e.target)
@@ -431,6 +443,7 @@ export default function Edit({
           <Input
             id="price"
             type="text"
+            placeholder="1 000"
             value={price.displayValue}
             onChange={(e) =>
               price.handleInputChangeWithCursor(e.target.value, e.target)
@@ -438,7 +451,20 @@ export default function Edit({
           />
           <FieldError error={errors} field={"price"} />
 
-          <Label htmlFor="tax_id">Adó</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="tax_id">Adó</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewTaxDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select value={taxId} onValueChange={setTaxId}>
             <SelectTrigger className={"w-full"}>
               <SelectValue />
@@ -452,13 +478,6 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"tax_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewTaxDialog(true)}
-          >
-            <Plus /> Új adó
-          </Button>
 
           <Label htmlFor="status">Státusz</Label>
           <Select value={status} onValueChange={setStatus}>

@@ -224,7 +224,7 @@ export default function Edit() {
         onOpenChange={setOpenNewInventoryDialog}
       >
         <DialogContent>
-          <DialogTitle>Új munkalap létrehozása</DialogTitle>
+          <DialogTitle>Raktárkészlet létrehozása</DialogTitle>
           <InventoryEdit
             showCard={false}
             onSuccess={handleEditInventorySuccess}
@@ -243,7 +243,20 @@ export default function Edit() {
           >
             {!routeInventoryId && (
               <>
-                <Label htmlFor="inventoryId">Raktárkészlet</Label>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <Label htmlFor="inventoryId">Raktárkészlet</Label>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewInventoryDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
                 <Select
                   disabled={inventoryIdList.length === 0}
                   value={inventoryId ?? ""}
@@ -264,13 +277,6 @@ export default function Edit() {
                   </SelectContent>
                 </Select>
                 <FieldError error={errors} field={"inventory_id"} />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpenNewInventoryDialog(true)}
-                >
-                  <Plus /> Új raktárkészlet
-                </Button>
               </>
             )}
 
@@ -278,6 +284,7 @@ export default function Edit() {
             <Input
               id="quantity"
               type="text"
+              placeholder="10"
               value={quantity.displayValue}
               onChange={(e) =>
                 quantity.handleInputChangeWithCursor(e.target.value, e.target)

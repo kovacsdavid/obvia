@@ -185,6 +185,7 @@ export default function List({
           <Label htmlFor="name">Név</Label>
           <Input
             id="name"
+            placeholder="Sopron 4"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -194,6 +195,7 @@ export default function List({
           <Input
             id="contact_name"
             type="text"
+            placeholder="Példa Béla"
             value={contactName}
             onChange={(e) => setContactName(e.target.value)}
           />
@@ -202,6 +204,7 @@ export default function List({
           <Input
             id="contact_phone"
             type="text"
+            placeholder="+36301234567"
             value={contactPhone}
             onChange={(e) => setContactPhone(e.target.value)}
           />

@@ -216,6 +216,7 @@ export default function Edit({
           <Input
             id="name"
             type="text"
+            placeholder={customerType === "legal" ? "Példa Kft." : "Példa Béla"}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
@@ -226,6 +227,7 @@ export default function Edit({
               <Input
                 id="contact_name"
                 type="text"
+                placeholder="Példa Béla"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
               />
@@ -240,6 +242,7 @@ export default function Edit({
           <Input
             id="email"
             type="text"
+            placeholder="pelda@kovacsdavid.dev"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -252,6 +255,7 @@ export default function Edit({
           <Input
             id="phone_number"
             type="text"
+            placeholder="+36301234567"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
           />

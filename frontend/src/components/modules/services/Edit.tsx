@@ -248,7 +248,7 @@ export default function Edit({
       <GlobalError error={errors} />
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
-          <DialogTitle>Új adó létrehozása</DialogTitle>
+          <DialogTitle>Adó létrehozása</DialogTitle>
           <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
         </DialogContent>
       </Dialog>
@@ -284,14 +284,27 @@ export default function Edit({
           <Input
             id="default_price"
             type="text"
+            placeholder="1 000"
             value={defaultPrice.displayValue}
             onChange={(e) =>
               defaultPrice.handleInputChangeWithCursor(e.target.value, e.target)
             }
           />
           <FieldError error={errors} field={"default_price"} />
-
-          <Label htmlFor="default_tax_id">Alapértelmezett adózás</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="default_tax_id">Alapértelmezett adózás</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewTaxDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select
             value={defaultTaxId}
             onValueChange={(val) => setDefaultTaxId(val)}
@@ -310,13 +323,6 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"default_tax_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewTaxDialog(true)}
-          >
-            <Plus /> Új adó
-          </Button>
 
           <Label htmlFor="currency_code">Alapértelmezett pénznem</Label>
           <Select

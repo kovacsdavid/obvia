@@ -277,6 +277,7 @@ export default function Edit({
           <Input
             id="description"
             type="text"
+            placeholder="ÁFA"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -322,6 +323,7 @@ export default function Edit({
           <Input
             id="legal_text"
             type="text"
+            placeholder="Pl.: Alanyi adómenetes"
             value={legalText}
             onChange={(e) => setLegalText(e.target.value)}
           />

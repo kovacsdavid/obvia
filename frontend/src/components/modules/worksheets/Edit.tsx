@@ -221,7 +221,7 @@ export default function Edit({
         onOpenChange={setOpenNewCustomerDialog}
       >
         <DialogContent>
-          <DialogTitle>Új vevő létrehozása</DialogTitle>
+          <DialogTitle>Vevő létrehozása</DialogTitle>
           <CustomersEdit
             showCard={false}
             onSuccess={handleEditCustomersSuccess}
@@ -255,7 +255,20 @@ export default function Edit({
           />
           <FieldError error={errors} field={"description"} />
 
-          <Label htmlFor="customer_id">Vevő</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="customer_id">Vevő</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewCustomerDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select
             value={customerId}
             onValueChange={(val) => setCustomerId(val)}
@@ -274,13 +287,6 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"customer_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewCustomerDialog(true)}
-          >
-            <Plus /> Új vevő
-          </Button>
 
           <Label htmlFor="status">Státusz</Label>
           <Select value={status} onValueChange={(val) => setStatus(val)}>

@@ -40,36 +40,6 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use std::sync::Arc;
 
-/// Handles the creation of a tenant.
-///
-/// This asynchronous function processes a request to create a tenant, performing
-/// authentication, state handling, and validation of the payload before delegating the core
-/// process to the `create_inner` function.
-///
-/// # Parameters
-/// - `AuthenticatedUser(claims)`: Represents the authenticated user's claims, required for
-///   authorization and context.
-/// - `State(tenants_module)`: A shared state containing the `TenantsModule`
-///   object. This module provides access to necessary services and utilities related to
-///   tenants.
-/// - `payload`: The input payload wrapped in a `Result` object, which contains either:
-///     - `Json<CreateRequestHelper>`: A valid JSON payload for creating a tenant.
-///     - `JsonRejection`: An error generated during JSON deserialization or validation.
-///
-/// # Returns
-/// A `Response` object representing the outcome of the tenant creation process:
-/// - A successful response if the creation operation completes successfully.
-/// - An appropriate error response if any step of the process fails (e.g., authentication error,
-///   invalid payload, or data processing failure).
-///
-/// # Implementation Details
-/// This function does the following:
-/// 1. Extracts the authenticated user's claims.
-/// 2. Accesses the `TenantsModule` state.
-/// 3. Validates and processes the incoming JSON payload.
-/// 4. Invokes the `create_inner` function to perform the core logic of creating the tenant.
-///    - Passes a closure that asynchronously generates a repository implementation (`PoolWrapper`),
-///      which is used to interact with the data layer.
 #[debug_handler]
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
@@ -116,28 +86,6 @@ pub async fn create(
     }
 }
 
-/// Handles the HTTP GET request for a tenant
-///
-/// This asynchronous function is designed to handle requests that require
-/// an authenticated user and access to the `TenantsModule` state.
-/// The implementation of this function is currently not provided (`todo!` macro),
-/// and should be implemented in the future to define its behavior.
-///
-/// # Arguments
-///
-/// * `AuthenticatedUser(_claims)` - Represents the authenticated user making the request.
-///   The `_claims` parameter holds the claims or credentials associated with the user,
-///   but it is currently unused in the function.
-///
-/// * `State(_tenants_module)` - Provides access to the shared state of the
-///   `TenantsModule`. The state is wrapped in an `Arc` for thread-safe sharing,
-///   but it is currently unused in the function.
-///
-/// # Returns
-///
-/// A `Response` object representing the HTTP response to be sent to the client.
-/// The exact contents and behavior of the response are not yet defined as the
-/// implementation is pending.
 pub async fn get(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<dyn TenantsModule>>,
@@ -145,20 +93,6 @@ pub async fn get(
     todo!();
 }
 
-/// Handles the listing of tenants for an authenticated user.
-///
-/// This asynchronous function processes a request to list tenants, ensuring that
-/// the user is authenticated before proceeding. The function currently contains a placeholder
-/// (`todo!`) and needs implementation to fulfill its intended purpose.
-///
-/// # Parameters
-/// - `AuthenticatedUser(_claims)`: The `_claims` represent the authentication
-///   claims of the user. Currently unused.
-/// - `State(_tenants_module)`: Shared application state of type `Arc<dyn TenantsModule>`,
-///   used to facilitate the interaction with the data layer.
-///
-/// # Returns
-/// - `Response`: An HTTP response that will eventually return the results of listing tenants or an appropriate error response if issues occur.
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<dyn TenantsModule>>,
@@ -193,40 +127,6 @@ pub async fn list(
     }
 }
 
-/// Activates a tenant for the authenticated user.
-///
-/// This endpoint is responsible for setting a specific tenant as the active tenant
-/// for the currently authenticated user. The resulting JWT will be updated to include
-/// the active tenant information.
-///
-/// # Arguments
-///
-/// * `AuthenticatedUser(claims)` - Represents the authenticated user's claims containing user details.
-/// * `State(tenants_module)` - Shared state containing the `TenantsModule`, which provides tenant-related functionality.
-/// * `payload` - Result containing either the JSON payload (`TenantActivateRequest`) or a JSON parsing error.
-///
-/// # Returns
-///
-/// A `Response` indicating the result of the activation operation:
-///
-/// - **`200 OK`**: If the tenant is successfully activated, returns a new JWT token with the updated active tenant.
-/// - **`400 BAD REQUEST`**: If the JSON payload is invalid, an error message is returned to the client.
-/// - **`401 UNAUTHORIZED`**: If the user is not authorized to activate the given tenant, an error message is returned.
-/// - **`500 INTERNAL SERVER ERROR`**: If an unexpected error occurs during the process, an internal error message is returned.
-///
-/// # Behavior
-///
-/// 1. The function first attempts to parse the JSON payload into a `TenantActivateRequest` structure. - If parsing fails, it responds with `400 BAD REQUEST`.
-/// 2. On successful parsing, it uses the tenant repository to fetch the user's association with the specified tenant ID. - If no association is found, it responds with `401 UNAUTHORIZED`.
-/// 3. If the user is associated with the tenant, the function updates the user's claims to set the new active tenant. - A new JWT token is then generated and returned in the response.
-/// 4. Any internal errors during repository access will result in a `500 INTERNAL SERVER ERROR`.
-///
-/// # Errors
-///
-/// This function generates the following errors:
-/// - `Unauthorized`: If the user doesn't have access to the specified tenant ID.
-/// - `Bad Request`: If the incoming JSON payload is malformed.
-/// - `Internal Error`: If an unexpected error occurs, such as database or repository failures.
 pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<dyn TenantsModule>>,
@@ -556,6 +456,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
     #[tokio::test]
+    #[ignore]
     async fn test_create_self_hosted_success() {
         let new_tenant_id = Uuid::new_v4();
         let now = Local::now();

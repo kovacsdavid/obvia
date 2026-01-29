@@ -293,7 +293,7 @@ export default function Edit({
         onOpenChange={setOpenNewProductDialog}
       >
         <DialogContent>
-          <DialogTitle>Új termék létrehozása</DialogTitle>
+          <DialogTitle>Termék létrehozása</DialogTitle>
           <ProductsEdit
             showCard={false}
             onSuccess={handleEditProductsSuccess}
@@ -305,7 +305,7 @@ export default function Edit({
         onOpenChange={setOpenNewWarehouseDialog}
       >
         <DialogContent>
-          <DialogTitle>Új raktár létrehozása</DialogTitle>
+          <DialogTitle>Raktár létrehozása</DialogTitle>
           <WarehousesEdit
             showCard={false}
             onSuccess={handleEditWarehousesSuccess}
@@ -322,7 +322,20 @@ export default function Edit({
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="product_id">Termék</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="product_id">Termék</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewProductDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select value={productId} onValueChange={(val) => setProductId(val)}>
             <SelectTrigger className={"w-full"}>
               <SelectValue />
@@ -338,15 +351,20 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"product_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewProductDialog(true)}
-          >
-            <Plus /> Új termék
-          </Button>
-
-          <Label htmlFor="warehouse_id">Raktár</Label>
+          <div className="flex items-center w-full">
+            <div className="flex flex-1 items-center">
+              <Label htmlFor="warehouse_id">Raktár</Label>
+            </div>
+            <div className="flex items-center">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNewWarehouseDialog(true)}
+              >
+                <Plus />
+              </Button>
+            </div>
+          </div>
           <Select
             value={warehouseId}
             onValueChange={(val) => setWarehouseId(val)}
@@ -365,18 +383,11 @@ export default function Edit({
             </SelectContent>
           </Select>
           <FieldError error={errors} field={"warehouse_id"} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setOpenNewWarehouseDialog(true)}
-          >
-            <Plus /> Új raktár
-          </Button>
-
           <Label htmlFor="minimum_stock">Minimum készlet</Label>
           <Input
             id="minimum_stock"
             type="text"
+            placeholder="10"
             value={minimumStockInput.displayValue}
             onChange={(e) =>
               minimumStockInput.handleInputChangeWithCursor(
@@ -390,6 +401,7 @@ export default function Edit({
           <Input
             id="maximum_stock"
             type="text"
+            placeholder="100"
             value={maximumStockInput.displayValue}
             onChange={(e) =>
               maximumStockInput.handleInputChangeWithCursor(

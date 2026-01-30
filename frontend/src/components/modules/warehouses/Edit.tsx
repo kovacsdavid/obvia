@@ -41,11 +41,13 @@ import type { Warehouse } from "./lib/interface";
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (warehouse: Warehouse) => void;
+  onCancel?: () => void;
 }
 
 export default function List({
   showCard = true,
   onSuccess = undefined,
+  onCancel = undefined,
 }: EditProps) {
   const [name, setName] = React.useState("");
   const [contactName, setContactName] = React.useState("");
@@ -98,6 +100,18 @@ export default function List({
     status,
     unexpectedError,
   ]);
+
+  const handleCancel = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (typeof onCancel === "function") {
+        onCancel();
+      } else {
+        navigate(-1);
+      }
+    },
+    [navigate, onCancel],
+  );
 
   const handleUpdate = useCallback(() => {
     dispatch(
@@ -223,14 +237,7 @@ export default function List({
           </Select>
           <FieldError error={errors} field={"status"} />
           <div className="text-right mt-8">
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.FormEvent) => {
-                e.preventDefault();
-                navigate(-1);
-              }}
-            >
+            <Button className="mr-3" variant="outline" onClick={handleCancel}>
               Mégse
             </Button>
             <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>

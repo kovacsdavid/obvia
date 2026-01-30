@@ -297,6 +297,7 @@ export default function Edit({
           <ProductsEdit
             showCard={false}
             onSuccess={handleEditProductsSuccess}
+            onCancel={() => setOpenNewProductDialog(false)}
           />
         </DialogContent>
       </Dialog>
@@ -309,6 +310,7 @@ export default function Edit({
           <WarehousesEdit
             showCard={false}
             onSuccess={handleEditWarehousesSuccess}
+            onCancel={() => setOpenNewWarehouseDialog(false)}
           />
         </DialogContent>
       </Dialog>

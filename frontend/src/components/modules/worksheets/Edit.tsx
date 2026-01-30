@@ -239,6 +239,7 @@ export default function Edit({
           <CustomersEdit
             showCard={false}
             onSuccess={handleEditCustomersSuccess}
+            onCancel={() => setOpenNewCustomerDialog(false)}
           />
         </DialogContent>
       </Dialog>

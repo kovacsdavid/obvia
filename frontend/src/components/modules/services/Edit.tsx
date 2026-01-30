@@ -249,7 +249,11 @@ export default function Edit({
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
           <DialogTitle>Adó létrehozása</DialogTitle>
-          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
+          <TaxesEdit
+            showCard={false}
+            onSuccess={handleEditTaxesSuccess}
+            onCancel={() => setOpenNewTaxDialog(false)}
+          />
         </DialogContent>
       </Dialog>
       <ConditionalCard

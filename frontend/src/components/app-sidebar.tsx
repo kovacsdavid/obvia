@@ -270,8 +270,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
-      collapsible={isMobile ? "offcanvas" : "icon"} {...props}
-      >
+      collapsible={isMobile ? "offcanvas" : "icon"}
+      {...props}
+    >
       <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => {

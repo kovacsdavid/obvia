@@ -49,11 +49,13 @@ import { useNumberInput } from "@/hooks/use_number_input.ts";
 interface EditProps {
   showCard?: boolean;
   onSuccess?: (service: Service) => void;
+  onCancel?: () => void;
 }
 
 export default function Edit({
   showCard = true,
   onSuccess = undefined,
+  onCancel = undefined,
 }: EditProps) {
   const [name, setName] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -130,6 +132,18 @@ export default function Edit({
     status,
     unexpectedError,
   ]);
+
+  const handleCancel = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (typeof onCancel === "function") {
+        onCancel();
+      } else {
+        navigate(-1);
+      }
+    },
+    [navigate, onCancel],
+  );
 
   const handleUpdate = useCallback(() => {
     dispatch(
@@ -361,14 +375,7 @@ export default function Edit({
           </Select>
           <FieldError error={errors} field={"status"} />
           <div className="text-right mt-8">
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.FormEvent) => {
-                e.preventDefault();
-                navigate(-1);
-              }}
-            >
+            <Button className="mr-3" variant="outline" onClick={handleCancel}>
               Mégse
             </Button>
             <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>

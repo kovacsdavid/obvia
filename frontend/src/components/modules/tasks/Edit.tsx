@@ -312,6 +312,7 @@ export default function Edit({
           <WorksheetsEdit
             showCard={false}
             onSuccess={handleEditWorksheetsSuccess}
+            onCancel={() => setOpenNewWorksheetDialog(false)}
           />
         </DialogContent>
       </Dialog>
@@ -324,13 +325,18 @@ export default function Edit({
           <ServicesEdit
             showCard={false}
             onSuccess={handleEditServicesSuccess}
+            onCancel={() => setOpenNewServiceDialog(false)}
           />
         </DialogContent>
       </Dialog>
       <Dialog open={openNewTaxDialog} onOpenChange={setOpenNewTaxDialog}>
         <DialogContent>
           <DialogTitle>Adó létrehozása</DialogTitle>
-          <TaxesEdit showCard={false} onSuccess={handleEditTaxesSuccess} />
+          <TaxesEdit
+            showCard={false}
+            onSuccess={handleEditTaxesSuccess}
+            onCancel={() => setOpenNewTaxDialog(false)}
+          />
         </DialogContent>
       </Dialog>
       <ConditionalCard

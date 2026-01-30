@@ -83,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const handleLogout = () => {
     dispatch(logoutAndRevokeRefreshToken());
   };
-  const { toggleSidebar, isMobile } = useSidebar();
+  const { toggleSidebar, setOpen, isMobile } = useSidebar();
 
   const mobileCloseOnClick = () => {
     if (isMobile) {
@@ -267,7 +267,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ],
   };
   return (
-    <Sidebar collapsible={isMobile ? "offcanvas" : "icon"} {...props}>
+    <Sidebar
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      collapsible={isMobile ? "offcanvas" : "icon"} {...props}
+      >
       <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
       <SidebarContent>
         {data.navMain.map((item) => {

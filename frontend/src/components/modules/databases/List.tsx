@@ -60,12 +60,17 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { useAppSelector } from "@/store/hooks.ts";
+import type { RootState } from "@/store";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<DatabaseList>([]);
   const { errors, setErrors, unexpectedError } = useSimpleError();
+  const active_database = useAppSelector(
+    (state: RootState) => state.auth.login.claims?.active_tenant,
+  );
 
   const updateSpecialQueryParams = useCallback(
     (parsedQuery: Record<string, string | number>) => {
@@ -185,6 +190,7 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
+                <TableHead>Aktív</TableHead>
                 <SortableTableHead
                   field="name"
                   orderBy={orderBy}
@@ -235,6 +241,11 @@ export default function List() {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </TableCell>
+                  <TableCell>
+                    {active_database === item.id ? (
+                      <PlugZap color="green" />
+                    ) : null}
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>

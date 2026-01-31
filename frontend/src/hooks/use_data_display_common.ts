@@ -68,7 +68,7 @@ export function useDataDisplayCommon(
   const orderSelect = (orderBy: string) => {
     const current_query = query_parser(searchParams.get("q"));
     current_query.order_by = orderBy;
-    current_query.order = current_query.order === "asc" ? "desc" : "asc";
+    current_query.order = current_query.order === "desc" ? "asc" : "desc";
     searchParams.set("q", query_encoder(current_query));
     setSearchParams(searchParams);
   };

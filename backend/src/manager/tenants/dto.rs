@@ -291,19 +291,57 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-/// This struct is for creating connection between users and tenants
-///
-/// Fields:
-/// - `user_id` (`Uuid`): The unique identifier for the user.
-/// - `tenant_id` (`Uuid`): The unique identifier for the tenant the user is connected to.
-/// - `role` (`String`): The role of the user in the tenant. Examples of roles could include "admin", "member", or other custom-defined roles.
-/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to the tenant, if applicable. This field is optional and may be `None` if the user created the tenant.
 #[allow(dead_code)]
 pub struct UserTenantConnect {
     pub user_id: Uuid,
     pub tenant_id: Uuid,
     pub role: String,
     pub invited_by: Option<Uuid>,
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum PublicTenant {
+    Managed(PublicTenantManaged),
+    SelfHosted(PublicTenantSelfHosted),
+}
+
+impl From<Tenant> for PublicTenant {
+    fn from(value: Tenant) -> Self {
+        if value.is_self_hosted() {
+            Self::SelfHosted(PublicTenantSelfHosted {
+                id: value.id,
+                name: value.name,
+                is_self_hosted: value.is_self_hosted,
+                db_host: value.db_host,
+                db_port: value.db_port,
+                db_name: value.db_name,
+                db_user: value.db_user,
+                db_password: "[REDACTED]".to_string(),
+                db_max_pool_size: value.db_max_pool_size,
+                db_ssl_mode: value.db_ssl_mode,
+                created_at: value.created_at,
+                updated_at: value.updated_at,
+                deleted_at: value.deleted_at,
+            })
+        } else {
+            Self::Managed(PublicTenantManaged {
+                id: value.id,
+                name: value.name,
+                is_self_hosted: value.is_self_hosted,
+                db_host: "[MANAGED]".to_string(),
+                db_port: 0,
+                db_name: "[MANAGED]".to_string(),
+                db_user: "[MANAGED]".to_string(),
+                db_password: "[REDACTED]".to_string(),
+                db_max_pool_size: value.db_max_pool_size,
+                db_ssl_mode: value.db_ssl_mode,
+                created_at: value.created_at,
+                updated_at: value.updated_at,
+                deleted_at: value.deleted_at,
+            })
+        }
+    }
 }
 
 #[derive(Serialize, Debug, Clone, Default)]

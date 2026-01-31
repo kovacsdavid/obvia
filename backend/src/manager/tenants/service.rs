@@ -26,7 +26,7 @@ use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabase
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, FilteringParams, NewTokenResponse, PublicTenantSelfHosted, TenantActivateRequest,
+    CreateTenant, FilteringParams, NewTokenResponse, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
@@ -207,13 +207,13 @@ impl TenantsService {
         filtering: &FilteringParams,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
-    ) -> Result<(PaginatorMeta, Vec<PublicTenantSelfHosted>), TenantsServiceError> {
+    ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
         let (meta, data) = repo
             .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
             .await?;
         let mut public_tenants = vec![];
         for tenant in data {
-            public_tenants.push(PublicTenantSelfHosted::from(tenant))
+            public_tenants.push(PublicTenant::from(tenant))
         }
         Ok((meta, public_tenants))
     }

@@ -193,7 +193,6 @@ export default function List() {
                 >
                   Név
                 </SortableTableHead>
-                <TableHead>Adatbázis kiszolgáló</TableHead>
                 <SortableTableHead
                   field="created_at"
                   orderBy={orderBy}
@@ -238,9 +237,6 @@ export default function List() {
                     </DropdownMenu>
                   </TableCell>
                   <TableCell>{item.name}</TableCell>
-                  <TableCell>
-                    {item.db_host}:{item.db_port}
-                  </TableCell>
                   <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
                   <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
                 </TableRow>

@@ -280,18 +280,24 @@ impl TryFrom<&QueryParam> for PaginatorParams {
     type Error = PaginatorError;
     fn try_from(value: &QueryParam) -> Result<Self, Self::Error> {
         match value.as_hash_map() {
-            Some(hmap) => Ok(PaginatorParams {
-                page: hmap
-                    .get("page")
-                    .ok_or(PaginatorError::MissingParams)?
-                    .parse()
-                    .map_err(|_| PaginatorError::InvalidPage)?,
-                limit: hmap
-                    .get("limit")
-                    .ok_or(PaginatorError::MissingParams)?
-                    .parse()
-                    .map_err(|_| PaginatorError::InvalidLimit)?,
-            }),
+            Some(hmap) => {
+                let mut paginator_params = PaginatorParams::default();
+                match hmap.get("page") {
+                    None => (),
+                    Some(v) => {
+                        paginator_params.page =
+                            v.parse().map_err(|_| PaginatorError::InvalidPage)?;
+                    }
+                }
+                match hmap.get("limit") {
+                    None => (),
+                    Some(v) => {
+                        paginator_params.limit =
+                            v.parse().map_err(|_| PaginatorError::InvalidLimit)?;
+                    }
+                }
+                Ok(paginator_params)
+            }
             None => Err(PaginatorError::MissingParams),
         }
     }

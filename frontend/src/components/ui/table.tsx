@@ -140,7 +140,7 @@ function SortableTableHead({
 
   return (
     <TableHead
-      style={{ cursor: "pointer" }}
+      style={{ cursor: "pointer", textDecoration: "underline" }}
       onClick={() => onOrderSelect(field)}
     >
       {children}{" "}

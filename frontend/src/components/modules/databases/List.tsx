@@ -82,16 +82,13 @@ export default function List() {
   );
 
   const {
-    searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
     orderBy,
-    setOrderBy,
     order,
-    setOrder,
     paginatorSelect,
     orderSelect,
     filterSelect,
@@ -122,11 +119,8 @@ export default function List() {
       }
     });
   }, [
-    searchParams,
     rawQuery,
     dispatch,
-    setOrder,
-    setOrderBy,
     setLimit,
     setPage,
     setTotal,

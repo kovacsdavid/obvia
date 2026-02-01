@@ -25,6 +25,7 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -68,18 +69,15 @@ export default function List() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -184,19 +182,82 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Szolgáltatás</TableHead>
+                <SortableTableHead
+                  field="service"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Szolgáltatás
+                </SortableTableHead>
                 <TableHead>Leírás</TableHead>
-                <TableHead>Munkalap</TableHead>
-                <TableHead>Munkaóra</TableHead>
-                <TableHead>Ár</TableHead>
+                <SortableTableHead
+                  field="worksheet"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Munkalap
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Munkaóra
+                </SortableTableHead>
+                <SortableTableHead
+                  field="price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Ár
+                </SortableTableHead>
                 <TableHead>Pénznem</TableHead>
                 <TableHead>Adó</TableHead>
-                <TableHead>Státusz</TableHead>
-                <TableHead>Prioritás</TableHead>
-                <TableHead>Határidő</TableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
+                <SortableTableHead
+                  field="priority"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Prioritás
+                </SortableTableHead>
+                <SortableTableHead
+                  field="due_date"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Határidő
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

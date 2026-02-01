@@ -31,7 +31,8 @@ impl ValueObjectable for OrderBy {
 
     fn validate(&self) -> Result<(), String> {
         match self.0.trim() {
-            "movement_date" | "created_at" | "movement_type" | "quantity" => Ok(()),
+            "movement_type" | "quantity" | "unit_price" | "total_price" | "movement_date"
+            | "created_at" => Ok(()),
             _ => Err("Hibás sorrend formátum".to_string()),
         }
     }

@@ -128,8 +128,11 @@ impl InventoryMovementsRepository for PgPoolManager {
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
-        let order_by = ordering_params.order_by.extract().get_value();
-        let order = ordering_params.order.extract().get_value();
+        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+            "" => "".to_string(),
+            order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
+        }; // SECURITY: ValueObject
+
         let query = format!(
             r#"
             SELECT
@@ -151,10 +154,10 @@ impl InventoryMovementsRepository for PgPoolManager {
             LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
             LEFT JOIN users ON inventory_movements.created_by_id = users.id
             WHERE inventory_movements.inventory_id = $1
-            ORDER BY {order_by} {order}
+            {order_by_clause}
             OFFSET $2 LIMIT $3
             "#
-        ); // SECURITY: ValueObject
+        );
 
         let items = sqlx::query_as::<_, InventoryMovementResolved>(&query)
             .bind(inventory_id)

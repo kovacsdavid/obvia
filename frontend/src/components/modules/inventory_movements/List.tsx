@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -74,18 +75,15 @@ export default function InventoryMovementsList() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -165,14 +163,56 @@ export default function InventoryMovementsList() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Típus</TableHead>
-                <TableHead>Mennyiség</TableHead>
-                <TableHead>Egységár</TableHead>
-                <TableHead>Összeg</TableHead>
+                <SortableTableHead
+                  field="movement_type"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Típus
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mennyiség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="unit_price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Egységár
+                </SortableTableHead>
+                <SortableTableHead
+                  field="total_price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Összeg
+                </SortableTableHead>
                 <TableHead>Adó</TableHead>
-                <TableHead>Mozgás dátuma</TableHead>
+                <SortableTableHead
+                  field="movement_date"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mozgás dátuma
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

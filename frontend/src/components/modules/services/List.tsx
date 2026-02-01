@@ -25,6 +25,7 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -68,18 +69,15 @@ export default function List() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -183,15 +181,50 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Megnevezés</TableHead>
+                <SortableTableHead
+                  field="name"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Megnevezés
+                </SortableTableHead>
                 <TableHead>Leírás</TableHead>
-                <TableHead>Alapértelmezett ár</TableHead>
+                <SortableTableHead
+                  field="default_price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Alapértelmezett ár
+                </SortableTableHead>
                 <TableHead>Alapértelmezett adózás</TableHead>
                 <TableHead>Alapértelmezett pénznem</TableHead>
-                <TableHead>Státusz</TableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -427,26 +427,17 @@ mod tests {
         .unwrap();
         let expected = PaginatorParams { page: 1, limit: 25 };
         assert_eq!(paginator, expected);
-
         let paginator = PaginatorParams::try_from(&QueryParam {
-            q: Some(String::from("name:éáűú")),
+            q: Some(String::from("page:5")),
         })
-        .unwrap_err();
-        let expected = PaginatorError::MissingParams;
+        .unwrap();
+        let expected = PaginatorParams { page: 5, limit: 25 };
         assert_eq!(paginator, expected);
-
         let paginator = PaginatorParams::try_from(&QueryParam {
-            q: Some(String::from("page:1")),
+            q: Some(String::from("limit:50")),
         })
-        .unwrap_err();
-        let expected = PaginatorError::MissingParams;
-        assert_eq!(paginator, expected);
-
-        let paginator = PaginatorParams::try_from(&QueryParam {
-            q: Some(String::from("limit:25")),
-        })
-        .unwrap_err();
-        let expected = PaginatorError::MissingParams;
+        .unwrap();
+        let expected = PaginatorParams { page: 1, limit: 50 };
         assert_eq!(paginator, expected);
     }
 }

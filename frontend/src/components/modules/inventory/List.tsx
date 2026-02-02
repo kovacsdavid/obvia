@@ -34,6 +34,7 @@ import {
   Trash,
 } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -77,18 +78,15 @@ export default function List() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -192,18 +190,88 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Termék</TableHead>
-                <TableHead>Raktár</TableHead>
-                <TableHead>Készlet (raktáron)</TableHead>
-                <TableHead>Foglalt</TableHead>
-                <TableHead>Rendelkezésre álló</TableHead>
-                <TableHead>Minimum készlet</TableHead>
-                <TableHead>Maximum készlet</TableHead>
+                <SortableTableHead
+                  field="product"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Termék
+                </SortableTableHead>
+                <SortableTableHead
+                  field="warehouse"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Raktár
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity_on_hand"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Készlet (raktáron)
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity_reserved"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Foglalt
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity_available"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Rendelkezésre álló
+                </SortableTableHead>
+                <SortableTableHead
+                  field="minimum_stock"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Minimum készlet
+                </SortableTableHead>
+                <SortableTableHead
+                  field="maximum_stock"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Maximum készlet
+                </SortableTableHead>
                 <TableHead>Pénznem</TableHead>
-                <TableHead>Állapot</TableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Állapot
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

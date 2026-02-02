@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let values = ["name", "created_by", "updated_at", ""];
+        let values = ["name", "created_at", "updated_at", ""];
         for value in values.iter() {
             let order: OrderBy = OrderBy(value.to_string());
             assert!(order.validate().is_ok());

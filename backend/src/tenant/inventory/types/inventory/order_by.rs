@@ -31,15 +31,13 @@ impl ValueObjectable for OrderBy {
 
     fn validate(&self) -> Result<(), String> {
         match self.0.trim() {
-            "product_id" => Ok(()),
+            "product" | "warehouse" | "quantity_on_hand" | "quantity_reserved"
+            | "quantity_available" | "minimum_stock" | "maximum_stock" | "status"
+            | "created_at" | "updated_at" => Ok(()),
             _ => Err("Hibás sorrend formátum".to_string()),
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
@@ -54,27 +52,6 @@ impl FromStr for OrderBy {
 }
 
 impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Email` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -85,16 +62,6 @@ impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
 }
 
 impl Display for OrderBy {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -107,8 +74,8 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""product_id""#).unwrap();
-        assert_eq!(order_by.extract().get_value(), "product_id");
+        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""product""#).unwrap();
+        assert_eq!(order_by.extract().get_value(), "product");
     }
 
     #[test]
@@ -128,25 +95,25 @@ mod tests {
 
     #[test]
     fn test_from_str() {
-        let order_by = OrderBy::from_str("product_id").unwrap();
-        assert_eq!(order_by.get_value(), "product_id");
+        let order_by = OrderBy::from_str("product").unwrap();
+        assert_eq!(order_by.get_value(), "product");
     }
 
     #[test]
     fn test_display() {
-        let order_by = OrderBy("product_id".to_string());
-        assert_eq!(format!("{}", order_by), "product_id");
+        let order_by = OrderBy("product".to_string());
+        assert_eq!(format!("{}", order_by), "product");
     }
 
     #[test]
     fn test_get_value() {
-        let order_by = OrderBy("product_id".to_string());
-        assert_eq!(order_by.get_value(), "product_id");
+        let order_by = OrderBy("product".to_string());
+        assert_eq!(order_by.get_value(), "product");
     }
 
     #[test]
     fn test_validation() {
-        assert!(OrderBy("product_id".to_string()).validate().is_ok());
+        assert!(OrderBy("product".to_string()).validate().is_ok());
         assert!(OrderBy("name".to_string()).validate().is_err());
         assert!(OrderBy("price".to_string()).validate().is_err());
         assert!(OrderBy("quantity".to_string()).validate().is_err());

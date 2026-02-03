@@ -145,7 +145,7 @@ impl ProductsRepository for PgPoolManager {
 
         let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
             "" => "".to_string(),
-            order_by => format!("ORDER BY products.{order_by} {}", ordering_params.order),
+            order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
 
         let sql = format!(

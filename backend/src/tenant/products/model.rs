@@ -22,37 +22,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Represents a product entity in the system.
-///
-/// This struct is used to define the properties of a product, including
-/// its identifiers, metadata, pricing details, and timestamps for tracking
-/// creation, updates, and deletions.
-///
-/// ## Fields:
-/// - `id` (`Uuid`): Unique identifier for the product.
-/// - `name` (`String`): Name of the product.
-/// - `description` (`Option<String>`): An optional description of the product.
-/// - `unit_of_measure` (`Uuid`): Identifier for the unit of measure, referencing related measurement data.
-/// - `price` (`Option<BigDecimal>`): Optional price of the product.
-/// - `cost` (`Option<BigDecimal>`): Optional cost associated with the product.
-/// - `currency_code` (`Uuid`): Identifier representing the currency used for product pricing.
-/// - `is_active` (`Option<bool>`): Optional flag indicating if the product is active.
-/// - `created_by` (`Uuid`): Identifier of the user who created the product.
-/// - `created_at` (`Option<DateTime<Local>`): Optional timestamp indicating when the product was created.
-/// - `updated_at` (`Option<DateTime<Local>`): Optional timestamp indicating when the product was last updated.
-/// - `deleted_at` (`Option<DateTime<Local>`): Optional timestamp indicating when the product was deleted (if applicable).
-///
-/// ## Attributes:
-/// - This struct is decorated with serialization, deserialization, and
-///   database row mapping attributes:
-///   - `#[derive(Debug)]`: Allows easy debugging output of struct instances.
-///   - `#[derive(Clone)]`: Enables cloning of struct instances.
-///   - `#[derive(Serialize)]`: Allows instance serialization (e.g., to JSON).
-///   - `#[derive(Deserialize)]`: Enables deserialization (e.g., from JSON).
-///   - `#[derive(FromRow)]`: Allows mapping of database rows to this struct.
-///
-/// ## Notes:
-/// - Ensure the `Uuid`, `BigDecimal`, and `DateTime<Local>` types are compatible with external libraries such as `uuid` and `chrono`.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Product {
     pub id: Uuid,
@@ -81,27 +50,6 @@ pub struct ProductResolved {
     pub deleted_at: Option<DateTime<Local>>,
 }
 
-/// The `UnitOfMeasure` struct represents a unit of measurement for items, typically used
-/// in inventory, logistics, or other systems that involve quantifiable units.
-///
-/// # Attributes
-/// - `id` (`Uuid`): A unique identifier for the unit of measure.
-/// - `unit_of_measure` (`String`): The name or description of the unit of measure, e.g., "kilogram",
-///   "liter", or "piece".
-/// - `created_at` (`DateTime<Local>`): A timestamp indicating when the unit of measure was created.
-///
-/// # Derives
-/// - `Debug`: Automatically provides functionality to format the struct for debugging purposes.
-/// - `Clone`: Allows for the struct to be cloned, creating an identical copy in memory.
-/// - `Serialize`: Enables the struct to be serialized, typically to formats like JSON or XML.
-/// - `Deserialize`: Enables the struct to be deserialized from serialized formats like JSON or XML.
-/// - `FromRow`: A trait used by certain database ORM libraries (e.g., SQLx) to map database rows
-///   to this struct.
-///
-/// # Attributes
-///
-/// This struct is designed for extensibility and integration with database systems and
-/// serialization mechanisms.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct UnitOfMeasure {
     pub id: Uuid,
@@ -110,24 +58,6 @@ pub struct UnitOfMeasure {
     pub deleted_at: Option<DateTime<Local>>,
 }
 
-/// Represents a product category within a system. Each category is uniquely identified
-/// and may have a parent category, allowing hierarchical relationships.
-///
-/// # Fields
-///
-/// * `id` (`Uuid`): - Unique identifier for the product category.
-/// * `name` (`String`): - The name of the category.
-/// * `description` (`Option<String>`): - An optional description providing additional details about the category.
-/// * `parent_id` (`Option<Uuid>`): - The unique identifier of the parent category, if this category is a subcategory. `None` if the category does not have a parent.
-/// * `created_at` (`DateTime<Local>`): - The timestamp indicating when the category was created.
-///
-/// # Derives
-///
-/// * `Debug`: Enables formatting of the struct for debugging purposes.
-/// * `Clone`: Allows the struct to be cloned.
-/// * `Serialize`: Enables serialization of the struct to formats like JSON.
-/// * `Deserialize`: Enables deserialization of the struct from formats like JSON.
-/// * `FromRow`: Allows database rows to be mapped directly into this struct (e.g., with SQL queries).
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProductCategory {
     pub id: Uuid,
@@ -137,28 +67,6 @@ pub struct ProductCategory {
     pub created_at: DateTime<Local>,
 }
 
-/// Represents a connection between a product and a product category in the system.
-///
-/// This struct is designed to map the relationship between products and
-/// their respective categories. It contains details about the identifiers
-/// for the product and category, along with timestamps for when the connection
-/// was created and (optionally) deleted.
-///
-/// # Fields
-///
-/// * `id` - A unique identifier for the connection.
-/// * `product_id` - The unique identifier of the product.
-/// * `product_category_id` - The unique identifier of the product category.
-/// * `created_at` - The timestamp indicating when the connection was created.
-/// * `deleted_at` - An optional timestamp indicating when the connection was deleted, if applicable.
-///
-/// # Derives
-///
-/// * `Debug` - Enables formatting and printing of the struct for debugging purposes.
-/// * `Clone` - Allows creating a duplicate instance of the struct.
-/// * `Serialize` - Enables serialization of the struct into formats such as JSON.
-/// * `Deserialize` - Enables deserialization of the struct from formats such as JSON.
-/// * `FromRow` - Facilitates mapping database rows to instances of this struct.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ProductCategoryConnect {
     pub id: Uuid,

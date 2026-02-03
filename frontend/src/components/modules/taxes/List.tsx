@@ -25,6 +25,7 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -68,18 +69,15 @@ export default function List() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -183,16 +181,72 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Adókulcs (%)</TableHead>
-                <TableHead>Leírás</TableHead>
-                <TableHead>Ország</TableHead>
-                <TableHead>Adó kategória</TableHead>
+                <SortableTableHead
+                  field="rate"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Adókulcs (%)
+                </SortableTableHead>
+                <SortableTableHead
+                  field="description"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Leírás
+                </SortableTableHead>
+                <SortableTableHead
+                  field="country"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Ország
+                </SortableTableHead>
+                <SortableTableHead
+                  field="tax_category"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Adó kategória
+                </SortableTableHead>
                 <TableHead>Jogi szöveg</TableHead>
-                <TableHead>Jelentési kód (NAV)</TableHead>
-                <TableHead>Státusz</TableHead>
+                <SortableTableHead
+                  field="reporting_code"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Jelentési kód (NAV)
+                </SortableTableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

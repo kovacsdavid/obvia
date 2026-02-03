@@ -25,6 +25,7 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -68,18 +69,15 @@ export default function List() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -183,16 +181,72 @@ export default function List() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Név</TableHead>
+                <SortableTableHead
+                  field="name"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Név
+                </SortableTableHead>
                 <TableHead>Leírás</TableHead>
-                <TableHead>Vevő</TableHead>
-                <TableHead>Nettó anyagköltség</TableHead>
-                <TableHead>Bruttó anyagköltség</TableHead>
-                <TableHead>Nettó munkadíj</TableHead>
-                <TableHead>Bruttó munkadíj</TableHead>
+                <SortableTableHead
+                  field="customer"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Vevő
+                </SortableTableHead>
+                <SortableTableHead
+                  field="net_material_cost"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Nettó anyagköltség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="gross_material_cost"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Bruttó anyagköltség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="net_work_cost"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Nettó munkadíj
+                </SortableTableHead>
+                <SortableTableHead
+                  field="gross_work_cost"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Bruttó munkadíj
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

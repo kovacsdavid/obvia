@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -74,18 +75,15 @@ export default function InventoryReservationsList() {
   );
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
+    orderSelect,
     //filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
@@ -154,15 +152,56 @@ export default function InventoryReservationsList() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Készlet azonosító</TableHead>
-                <TableHead>Mennyiség</TableHead>
-                <TableHead>Hivatkozás típusa</TableHead>
+                <SortableTableHead
+                  field="quantity"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mennyiség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="reference_type"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Hivatkozás típusa
+                </SortableTableHead>
                 <TableHead>Hivatkozás azonosító</TableHead>
-                <TableHead>Lefoglalva eddig</TableHead>
-                <TableHead>Státusz</TableHead>
+                <SortableTableHead
+                  field="reserved_until"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Lefoglalva eddig
+                </SortableTableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Módosítva</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Módosítva
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +234,6 @@ export default function InventoryReservationsList() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.inventory_id}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>{item.reference_type ?? "N/A"}</TableCell>
                   <TableCell>{item.reference_id ?? "N/A"}</TableCell>

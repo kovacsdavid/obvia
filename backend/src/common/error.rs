@@ -22,6 +22,7 @@ use thiserror::Error;
 use crate::common::{
     MailTransporter,
     dto::{ErrorResponse, FormError, GeneralError},
+    types::value_object::ValueObjectError,
 };
 use async_trait::async_trait;
 use axum::{
@@ -42,29 +43,6 @@ use std::sync::Arc;
 use tracing::Level;
 use tracing::event;
 
-/// An enumeration representing different types of errors that can occur.
-/// This enum implements the `Debug`, `Error`, and `Clone` traits for debugging,
-/// error handling, and cloning capabilities.
-///
-/// # Variants
-///
-/// * `UserFacing(StatusCode, String, String)`:
-///   This variant is designed to represent errors that are intended to be displayed
-///   to the user. It contains:
-///   - `StatusCode`: An HTTP status code indicating the type of error.
-///   - `String`: An error identifier or code.
-///   - `String`: A human-readable error message.
-///
-/// * `Internal(String)`:
-///   This variant represents internal errors that are not meant to be user-facing.
-///   It contains:
-///   - `String`: A description of the internal error.
-///
-/// # Error Message Localization
-///
-/// For user-facing messages, this enum is designed to provide messages
-/// localized for end users' understanding. The `Internal` variant, however,
-/// uses a generic Hungarian error message: "Váratlan hiba történt a feldolgozás során!"
 #[derive(Debug, Error, Clone)]
 pub enum FriendlyError<T>
 where
@@ -100,30 +78,6 @@ where
         fe
     }
 
-    /// Logs the error information associated with the current `FriendlyError` instance
-    /// at the specified severity level using the `tracing` crate.
-    ///
-    /// Depending on the variant of `FriendlyError`, this method will emit a different
-    /// set of log messages:
-    ///
-    /// - If the error is a `UserFacing` variant, it logs an event with the associated error
-    ///   code and message.
-    /// - If the error is an `Internal` variant, it logs an event with the internal error message.
-    ///
-    /// # Parameters
-    /// - `severity`: The `Level` indicating the severity of the log entry (e.g., `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`).
-    ///
-    /// # Returns
-    /// - `Self`: Returns the current instance of `FriendlyError` unchanged so that further
-    ///   method chaining can be performed if necessary.
-    ///
-    /// # Behavior
-    /// - For each severity level, the appropriate log entry is generated using the `event!` macro.
-    ///   The severity level determines the priority of the log entry.
-    ///
-    /// # Note
-    /// - Make sure that the `tracing` subscriber is properly initialized, otherwise the logs
-    ///   emitted may not be recorded or displayed.
     fn trace(self, severity: Level) -> Self {
         match &self {
             FriendlyError::UserFacing(status, loc, body) => match severity {
@@ -292,17 +246,6 @@ where
     async fn into_friendly_error(self, mailer: Arc<dyn MailTransporter>) -> FriendlyError<T>;
 }
 
-/// Represents errors that can occur while interacting with the database.
-///
-/// This enumeration defines a single variant:
-/// - `DatabaseError`: Represents a general database error and includes a descriptive message.
-///
-/// # Variants
-/// - `DatabaseError(String)`:
-///     - Contains the error message as a `String`, describing the nature of the database error.
-///
-/// # Notes
-/// - It is compatible with the `thiserror` crate to provide human-readable error messages via the `Display` implementation.
 #[derive(Debug, Error)]
 pub enum RepositoryError {
     #[error("Database error: {0}")]
@@ -325,6 +268,15 @@ pub enum RepositoryError {
 
     #[error("Tenant pool not found")]
     TenantPoolNotFound,
+}
+
+impl From<ValueObjectError> for RepositoryError {
+    fn from(value: ValueObjectError) -> Self {
+        match value {
+            ValueObjectError::InvalidInput(e) => Self::InvalidInput(e.to_string()),
+            _ => Self::Custom(value.to_string()),
+        }
+    }
 }
 
 impl RepositoryError {

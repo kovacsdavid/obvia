@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
@@ -165,7 +164,7 @@ impl WorksheetsRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -250,17 +249,17 @@ impl WorksheetsRepository for PgPoolManager {
             "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
-        .bind(worksheet.name.extract().get_value())
+        .bind(worksheet.name.as_str())
         .bind(
             worksheet
                 .description
                 .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
+                .map(|d| d.as_str()),
         )
         .bind(worksheet.customer_id)
         .bind(worksheet.project_id)
         .bind(sub)
-        .bind(worksheet.status.extract().get_value())
+        .bind(worksheet.status.as_str())
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }
@@ -286,16 +285,11 @@ impl WorksheetsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(worksheet.name.extract().get_value())
-        .bind(
-            worksheet
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(worksheet.name.as_str())
+        .bind(worksheet.description.as_ref().map(|d| d.as_str()))
         .bind(worksheet.customer_id)
         .bind(worksheet.project_id)
-        .bind(worksheet.status.extract().get_value())
+        .bind(worksheet.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

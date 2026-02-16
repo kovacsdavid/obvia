@@ -19,7 +19,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::InventoryUserInput;
@@ -150,7 +149,7 @@ impl InventoryRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -211,23 +210,11 @@ impl InventoryRepository for PgPoolManager {
     ) -> RepositoryResult<Inventory> {
         let minimum_stock = match &inventory.minimum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
         let maximum_stock = match &inventory.maximum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
@@ -238,8 +225,8 @@ impl InventoryRepository for PgPoolManager {
             .bind(inventory.warehouse_id)
             .bind(minimum_stock)
             .bind(maximum_stock)
-            .bind(inventory.currency_code.extract().get_value())
-            .bind(inventory.status.extract().get_value())
+            .bind(inventory.currency_code.as_str())
+            .bind(inventory.status.as_str())
             .bind(sub)
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
@@ -258,23 +245,11 @@ impl InventoryRepository for PgPoolManager {
         // Convert optional ValueObjects for minimum_stock and maximum_stock to Option<i32>
         let minimum_stock = match &inventory.minimum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
         let maximum_stock = match &inventory.maximum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
@@ -295,8 +270,8 @@ impl InventoryRepository for PgPoolManager {
         .bind(inventory.warehouse_id)
         .bind(minimum_stock)
         .bind(maximum_stock)
-        .bind(inventory.currency_code.extract().get_value())
-        .bind(inventory.status.extract().get_value())
+        .bind(inventory.currency_code.as_str())
+        .bind(inventory.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

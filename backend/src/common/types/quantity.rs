@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,20 +27,20 @@ pub struct Quantity(pub String);
 impl ValueObjectable for Quantity {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0.trim().is_empty() {
-            Err(String::from("A mező kitöltése kötelező!"))
+            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező!"))
         } else {
             let value = self
                 .0
                 .trim()
                 .replace(",", ".")
                 .parse::<f64>()
-                .map_err(|_| String::from("Hibás mennyiség formátum!"))?;
+                .map_err(|_| ValueObjectError::InvalidInput("Hibás mennyiség formátum!"))?;
             if value >= 0_f64 {
                 Ok(())
             } else {
-                Err(String::from(
+                Err(ValueObjectError::InvalidInput(
                     "A megadott érték csak 0 vagy annál nagyobb szám lehet!",
                 ))
             }

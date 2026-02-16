@@ -19,7 +19,6 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::dto::TagUserInput;
@@ -108,7 +107,7 @@ impl TagsRepository for PgPoolManager {
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY tags.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -156,12 +155,8 @@ impl TagsRepository for PgPoolManager {
         Ok(sqlx::query_as::<_, Tag>(
             "INSERT INTO tags (name, description, created_by_id) VALUES ($1, $2, $3) RETURNING *",
         )
-        .bind(tag.name.extract().get_value())
-        .bind(
-            tag.description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(tag.name.as_str())
+        .bind(tag.description.as_ref().map(|d| d.as_str()))
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -181,12 +176,8 @@ impl TagsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(tag.name.extract().get_value())
-        .bind(
-            tag.description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(tag.name.as_str())
+        .bind(tag.description.as_ref().map(|d| d.as_str()))
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

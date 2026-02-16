@@ -18,8 +18,8 @@
  */
 
 use crate::common::error::FormErrorResponse;
+use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
-use crate::common::types::{ValueObject, ValueObjectable};
 use crate::tenant::inventory_reservations::types::{
     InventoryReferenceType, InventoryReservationsReservedUntil, InventoryReservationsStatus,
 };

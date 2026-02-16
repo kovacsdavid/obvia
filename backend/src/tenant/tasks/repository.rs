@@ -19,7 +19,6 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::dto::TaskUserInput;
@@ -124,7 +123,7 @@ impl TasksRepository for PgPoolManager {
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -186,26 +185,16 @@ impl TasksRepository for PgPoolManager {
     ) -> RepositoryResult<Task> {
         let quantity = match &task.quantity {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let price = match &task.price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -215,17 +204,17 @@ impl TasksRepository for PgPoolManager {
         )
             .bind(task.worksheet_id)
             .bind(task.service_id)
-            .bind(task.currency_code.extract().get_value())
+            .bind(task.currency_code.as_str())
             .bind(quantity)
             .bind(price)
             .bind(task.tax_id)
             .bind(sub)
-            .bind(task.status.extract().get_value())
+            .bind(task.status.as_str())
             .bind(task.priority.as_ref()
-                .map(|d| d.extract().get_value().as_str()))
+                .map(|d| d.as_str()))
             .bind(due_date)
             .bind(task.description.as_ref()
-                .map(|d| d.extract().get_value().as_str()))
+                .map(|d| d.as_str()))
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
         )
@@ -238,7 +227,7 @@ impl TasksRepository for PgPoolManager {
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d %H:%M:%S")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -262,30 +251,14 @@ impl TasksRepository for PgPoolManager {
         )
         .bind(task.worksheet_id)
         .bind(task.service_id)
-        .bind(task.currency_code.extract().get_value())
-        .bind(
-            task.quantity
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            task.price
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.currency_code.as_str())
+        .bind(task.quantity.as_ref().map(|d| d.as_str()))
+        .bind(task.price.as_ref().map(|d| d.as_str()))
         .bind(task.tax_id)
-        .bind(task.status.extract().get_value())
-        .bind(
-            task.priority
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.status.as_str())
+        .bind(task.priority.as_ref().map(|d| d.as_str()))
         .bind(due_date)
-        .bind(
-            task.description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.description.as_ref().map(|d| d.as_str()))
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

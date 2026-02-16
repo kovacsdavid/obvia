@@ -220,7 +220,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match value.db_port {
                 Some(val) => {
-                    db_port = match ValueObject::new(DbPort(val as i64)) {
+                    db_port = match ValueObject::new(DbPort(val.to_string())) {
                         Ok(db_port) => Some(db_port),
                         Err(e) => {
                             error.db_port = Some(e.to_string());

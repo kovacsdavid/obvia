@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,11 +27,11 @@ pub struct Name(pub String);
 impl ValueObjectable for Name {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         if !self.0.trim().is_empty() {
             Ok(())
         } else {
-            Err(String::from("A mező kitöltése kötelező"))
+            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező"))
         }
     }
 
@@ -59,12 +59,11 @@ impl<'de> Deserialize<'de> for ValueObject<Name> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_name() {
         let name: ValueObject<Name> = serde_json::from_str(r#""Test Service""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Test Service");
+        assert_eq!(name.as_str(), "Test Service");
     }
 
     #[test]
@@ -130,6 +129,6 @@ mod tests {
     #[test]
     fn test_name_deserialization() {
         let name: ValueObject<Name> = serde_json::from_str(r#""Test Service""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Test Service");
+        assert_eq!(name.as_str(), "Test Service");
     }
 }

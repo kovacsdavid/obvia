@@ -21,18 +21,15 @@ use super::{
     AuthModule,
     dto::{claims::Claims, login::UserPublic},
 };
+use crate::manager::{
+    auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
+    users::model::User,
+};
 use crate::{
     common::extractors::ClientContext,
     manager::auth::{
         dto::{login::LoginRequest, register::RegisterRequest},
         model::{AccountEventStatus, AccountEventType},
-    },
-};
-use crate::{
-    common::types::value_object::ValueObjectable,
-    manager::{
-        auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
-        users::model::User,
     },
 };
 use crate::{
@@ -1149,8 +1146,7 @@ impl AuthService {
         auth_module: Arc<dyn AuthModule>,
         payload: RegisterRequest,
     ) -> AuthServiceResult<()> {
-        let password_hash =
-            Self::generate_password_hash(payload.password.extract().get_value().as_bytes())?;
+        let password_hash = Self::generate_password_hash(payload.password.as_bytes())?;
 
         let user = auth_module
             .auth_repo()
@@ -1205,7 +1201,7 @@ impl AuthService {
     ) -> AuthServiceResult<()> {
         let user = auth_module
             .auth_repo()
-            .get_user_by_email(payload.email.extract().get_value())
+            .get_user_by_email(payload.email.as_str())
             .await?;
         if user.need_email_verification() {
             let email_verification = auth_module
@@ -1280,7 +1276,7 @@ impl AuthService {
             120,
             5,
             auth_module.clone(),
-            Some(payload.email.extract().get_value().to_owned()),
+            Some(payload.email.to_string()),
             client_context,
             AccountEventType::PasswordResetRequest,
         )
@@ -1289,7 +1285,7 @@ impl AuthService {
             60,
             10,
             auth_module.clone(),
-            Some(payload.email.extract().get_value().to_owned()),
+            Some(payload.email.to_string()),
             client_context,
             AccountEventStatus::Failure,
             AccountEventType::PasswordResetRequest,
@@ -1297,7 +1293,7 @@ impl AuthService {
         .await?;
         let user = match auth_module
             .auth_repo()
-            .get_user_by_email(payload.email.extract().get_value())
+            .get_user_by_email(payload.email.as_str())
             .await
         {
             Ok(v) => v,
@@ -1306,7 +1302,7 @@ impl AuthService {
                     .auth_repo()
                     .insert_account_event_log(
                         None,
-                        Some(payload.email.extract().get_value().to_owned()),
+                        Some(payload.email.to_string()),
                         AccountEventType::PasswordResetRequest,
                         AccountEventStatus::Failure,
                         Some(client_context.ip),
@@ -1332,7 +1328,7 @@ impl AuthService {
                 .auth_repo()
                 .insert_account_event_log(
                     Some(user.id),
-                    Some(payload.email.extract().get_value().to_owned()),
+                    Some(payload.email.to_string()),
                     AccountEventType::PasswordResetRequest,
                     AccountEventStatus::Success,
                     Some(client_context.ip),
@@ -1348,7 +1344,7 @@ impl AuthService {
                 .auth_repo()
                 .insert_account_event_log(
                     Some(user.id),
-                    Some(payload.email.extract().get_value().to_owned()),
+                    Some(payload.email.to_string()),
                     AccountEventType::PasswordResetRequest,
                     AccountEventStatus::Failure,
                     Some(client_context.ip),
@@ -1439,9 +1435,7 @@ impl AuthService {
         };
 
         if user.is_active() {
-            user.password_hash = match Self::generate_password_hash(
-                payload.password.extract().get_value().as_bytes(),
-            ) {
+            user.password_hash = match Self::generate_password_hash(payload.password.as_bytes()) {
                 Ok(v) => v,
                 Err(e) => {
                     auth_module

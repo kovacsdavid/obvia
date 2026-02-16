@@ -30,6 +30,7 @@ pub fn init_users_module() -> UsersModuleBuilder {
 
 pub struct UsersModule {}
 
+#[derive(Default)]
 pub struct UsersModuleBuilder {}
 
 impl UsersModuleBuilder {
@@ -41,20 +42,5 @@ impl UsersModuleBuilder {
     }
 }
 
-#[cfg(not(test))]
-impl Default for UsersModuleBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 #[cfg(test)]
-pub(crate) mod tests {
-    use super::*;
-
-    impl Default for UsersModuleBuilder {
-        fn default() -> Self {
-            UsersModuleBuilder {}
-        }
-    }
-}
+pub(crate) mod tests {}

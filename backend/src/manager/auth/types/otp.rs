@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -28,17 +28,17 @@ pub struct Otp(pub String);
 impl ValueObjectable for Otp {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         let trimmed = self.0.trim();
         if trimmed.len() != 6 {
-            return Err("Hibás OTP!".to_string());
+            return Err(ValueObjectError::InvalidInput("Hibás OTP!"));
         }
         match Regex::new(r##"^[0-9]{6}$"##) {
             Ok(re) => match re.is_match(trimmed) {
                 true => Ok(()),
-                false => Err("Hibás OTP!".to_string()),
+                false => Err(ValueObjectError::InvalidInput("Hibás OTP!")),
             },
-            Err(_) => Err("Hibás OTP!".to_string()),
+            Err(_) => Err(ValueObjectError::InvalidInput("Hibás OTP!")),
         }
     }
 
@@ -71,7 +71,7 @@ mod tests {
     #[test]
     fn test_valid_otp() {
         let otp: ValueObject<Otp> = serde_json::from_str(r#""123456""#).unwrap();
-        assert_eq!(otp.extract().get_value(), r#"123456"#);
+        assert_eq!(otp.as_str(), r#"123456"#);
     }
 
     #[test]

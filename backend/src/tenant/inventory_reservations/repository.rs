@@ -19,7 +19,6 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
@@ -130,8 +129,8 @@ impl InventoryReservationsRepository for PgPoolManager {
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
-        let order_by = ordering_params.order_by.extract().get_value();
-        let order = ordering_params.order.extract().get_value();
+        let order_by = ordering_params.order_by.as_str();
+        let order = ordering_params.order.as_str();
         let query = format!(
             r#"
             SELECT
@@ -180,7 +179,7 @@ impl InventoryReservationsRepository for PgPoolManager {
         let reserved_until = match input.reserved_until {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -194,23 +193,11 @@ impl InventoryReservationsRepository for PgPoolManager {
             "#,
         )
         .bind(input.inventory_id)
-        .bind(
-            input
-                .quantity
-                .extract()
-                .get_value()
-                .parse::<i32>()
-                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
-        )
-        .bind(
-            input
-                .reference_type
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(input.quantity.as_i32()?)
+        .bind(input.reference_type.as_ref().map(|d| d.as_str()))
         .bind(input.reference_id)
         .bind(reserved_until)
-        .bind(input.status.extract().get_value())
+        .bind(input.status.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

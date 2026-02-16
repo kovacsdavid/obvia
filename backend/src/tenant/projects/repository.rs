@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::dto::ProjectUserInput;
@@ -134,7 +133,7 @@ impl ProjectsRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY projects.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -187,14 +186,14 @@ impl ProjectsRepository for PgPoolManager {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         let end_date = match project.end_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -203,15 +202,10 @@ impl ProjectsRepository for PgPoolManager {
             "INSERT INTO projects (name, description, created_by_id, status, start_date, end_date)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
-        .bind(project.name.extract().get_value())
-        .bind(
-            project
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(project.name.as_str())
+        .bind(project.description.as_ref().map(|d| d.as_str()))
         .bind(sub)
-        .bind(project.status.extract().get_value())
+        .bind(project.status.as_str())
         .bind(start_date)
         .bind(end_date)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -229,14 +223,14 @@ impl ProjectsRepository for PgPoolManager {
         let start_date = match project.start_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
         let end_date = match project.end_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -253,14 +247,9 @@ impl ProjectsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(project.name.extract().get_value())
-        .bind(
-            project
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(project.status.extract().get_value())
+        .bind(project.name.as_str())
+        .bind(project.description.as_ref().map(|d| d.as_str()))
+        .bind(project.status.as_str())
         .bind(start_date)
         .bind(end_date)
         .bind(id)

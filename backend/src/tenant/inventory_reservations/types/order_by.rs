@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::ValueObjectError;
 use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -29,11 +30,11 @@ pub struct OrderBy(pub String);
 impl ValueObjectable for OrderBy {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
             "quantity" | "reference_type" | "reserved_until" | "status" | "created_at"
             | "updated_at" => Ok(()),
-            _ => Err("Hibás sorrend formátum".to_string()),
+            _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 

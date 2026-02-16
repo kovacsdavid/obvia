@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::ProductUserInput;
@@ -143,7 +142,7 @@ impl ProductsRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -197,13 +196,8 @@ impl ProductsRepository for PgPoolManager {
             "INSERT INTO products (name, description, unit_of_measure_id, status, created_by_id)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
-        .bind(product.name.extract().get_value())
-        .bind(
-            product
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(product.name.as_str())
+        .bind(product.description.as_ref().map(|d| d.as_str()))
         .bind(
             product
                 .unit_of_measure_id
@@ -211,7 +205,7 @@ impl ProductsRepository for PgPoolManager {
                     "unit_of_measure_id".to_string(),
                 ))?,
         )
-        .bind(product.status.extract().get_value())
+        .bind(product.status.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -237,13 +231,8 @@ impl ProductsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(product.name.extract().get_value())
-        .bind(
-            product
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(product.name.as_str())
+        .bind(product.description.as_ref().map(|d| d.as_str()))
         .bind(
             product
                 .unit_of_measure_id
@@ -251,7 +240,7 @@ impl ProductsRepository for PgPoolManager {
                     "unit_of_measure_id".to_string(),
                 ))?,
         )
-        .bind(product.status.extract().get_value())
+        .bind(product.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

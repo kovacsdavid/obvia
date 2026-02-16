@@ -19,7 +19,6 @@
 
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
@@ -128,7 +127,7 @@ impl InventoryMovementsRepository for PgPoolManager {
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -184,23 +183,13 @@ impl InventoryMovementsRepository for PgPoolManager {
     ) -> RepositoryResult<InventoryMovement> {
         let unit_price = match &input.unit_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("unit_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let total_price = match &input.total_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("total_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
-        let movement_type = input.movement_type.extract().get_value();
+        let movement_type = input.movement_type.as_str();
         let quantity = input
             .quantity(movement_type == "out")
             .map_err(|e| RepositoryError::InvalidInput("quantity".to_string()))?;
@@ -216,12 +205,7 @@ impl InventoryMovementsRepository for PgPoolManager {
         .bind(input.inventory_id)
         .bind(movement_type)
         .bind(quantity)
-        .bind(
-            input
-                .reference_type
-                .as_ref()
-                .map(|v| v.extract().get_value().as_str()),
-        )
+        .bind(input.reference_type.as_ref().map(|v| v.as_str()))
         .bind(input.reference_id)
         .bind(unit_price)
         .bind(input.tax_id)

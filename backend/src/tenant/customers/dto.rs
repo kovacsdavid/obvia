@@ -18,7 +18,7 @@
  */
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Email;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,
@@ -124,7 +124,7 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
         let contact_name = match ValueObject::new(CustomerContactName(value.contact_name)) {
             Ok(val) => {
                 if let Ok(customer_type) = &customer_type
-                    && customer_type.extract().get_value().as_str() == "legal"
+                    && customer_type.as_str() == "legal"
                 {
                     Some(val)
                 } else {
@@ -133,7 +133,7 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
             }
             Err(e) => {
                 if let Ok(customer_type) = &customer_type
-                    && customer_type.extract().get_value().as_str() == "legal"
+                    && customer_type.as_str() == "legal"
                 {
                     error.contact_name = Some(e.to_string());
                 }

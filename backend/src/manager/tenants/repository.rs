@@ -20,7 +20,7 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::types::DdlParameter;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
@@ -283,10 +283,8 @@ impl TenantsRepository for PgPoolManager {
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(RepositoryError::InvalidInput)?,
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(RepositoryError::InvalidInput)?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
@@ -317,7 +315,7 @@ impl TenantsRepository for PgPoolManager {
         .fetch_one(&self.get_main_pool())
         .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY tenants.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -447,18 +445,15 @@ async fn create_database_user_for_managed(
 ) -> RepositoryResult<()> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(RepositoryError::InvalidInput)?,
-        ValueObject::new(DdlParameter(tenant.db_password.to_string()))
-            .map_err(RepositoryError::InvalidInput)?
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+        ValueObject::new(DdlParameter(tenant.db_password.to_string()))?
     );
 
     let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(RepositoryError::InvalidInput)?,
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         app_config.default_tenant_database().username // safety: not user input
     );
 

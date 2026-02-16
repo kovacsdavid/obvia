@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,61 +27,26 @@ pub struct CustomerType(pub String);
 impl ValueObjectable for CustomerType {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         if &self.0 == "natural" || &self.0 == "legal" {
             Ok(())
         } else {
-            Err(String::from("Hibás vevő típus!"))
+            Err(ValueObjectError::InvalidInput("Hibás vevő típus!"))
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl Display for CustomerType {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<CustomerType> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Name` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -94,19 +59,18 @@ impl<'de> Deserialize<'de> for ValueObject<CustomerType> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_natural_customer_type() {
         let customer_type: ValueObject<CustomerType> =
             serde_json::from_str(r#""natural""#).unwrap();
-        assert_eq!(customer_type.extract().get_value(), "natural");
+        assert_eq!(customer_type.as_str(), "natural");
     }
 
     #[test]
     fn test_valid_legal_customer_type() {
         let customer_type: ValueObject<CustomerType> = serde_json::from_str(r#""legal""#).unwrap();
-        assert_eq!(customer_type.extract().get_value(), "legal");
+        assert_eq!(customer_type.as_str(), "legal");
     }
 
     #[test]
@@ -149,6 +113,9 @@ mod tests {
     fn test_validation_error_message() {
         let invalid = CustomerType("invalid".to_string());
         let result = invalid.validate();
-        assert_eq!(result.unwrap_err(), "Hibás vevő típus!");
+        assert_eq!(
+            result.unwrap_err(),
+            ValueObjectError::InvalidInput("Hibás vevő típus!")
+        );
     }
 }

@@ -20,7 +20,6 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
@@ -117,8 +116,6 @@ impl ProductsService {
                             .new_unit_of_measure
                             .as_ref()
                             .ok_or(ProductsServiceError::InvalidState)?
-                            .extract()
-                            .get_value()
                             .as_str(),
                         claims.sub(),
                         claims

@@ -24,7 +24,7 @@ macro_rules! validate_optional_string {
     ($value:expr, $error_field:expr) => {
         match ValueObject::new($value).inspect_err(|e| $error_field = Some(e.to_string())) {
             Ok(val) => {
-                if !val.extract().get_value().trim().is_empty() {
+                if !val.as_str().trim().is_empty() {
                     Some(val)
                 } else {
                     None

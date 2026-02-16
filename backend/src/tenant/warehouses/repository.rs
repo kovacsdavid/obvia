@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
@@ -131,7 +130,7 @@ impl WarehousesRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY warehouses.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -185,20 +184,10 @@ impl WarehousesRepository for PgPoolManager {
             VALUES ($1, $2, $3, $4, $5) RETURNING *
              "#,
         )
-        .bind(warehouse.name.extract().get_value())
-        .bind(
-            warehouse
-                .contact_name
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            warehouse
-                .contact_phone
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(warehouse.status.extract().get_value())
+        .bind(warehouse.name.as_str())
+        .bind(warehouse.contact_name.as_ref().map(|d| d.as_str()))
+        .bind(warehouse.contact_phone.as_ref().map(|d| d.as_str()))
+        .bind(warehouse.status.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -224,20 +213,10 @@ impl WarehousesRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(warehouse.name.extract().get_value())
-        .bind(
-            warehouse
-                .contact_name
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            warehouse
-                .contact_phone
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(warehouse.status.extract().get_value())
+        .bind(warehouse.name.as_str())
+        .bind(warehouse.contact_name.as_ref().map(|d| d.as_str()))
+        .bind(warehouse.contact_phone.as_ref().map(|d| d.as_str()))
+        .bind(warehouse.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

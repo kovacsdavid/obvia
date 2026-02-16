@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,63 +27,28 @@ pub struct Status(pub String);
 impl ValueObjectable for Status {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "active" => Ok(()),
             "fulfilled" => Ok(()),
             "cancelled" => Ok(()),
             "expired" => Ok(()),
-            _ => Err(String::from("Hibás foglalás státusz")),
+            _ => Err(ValueObjectError::InvalidInput("Hibás foglalás státusz")),
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl Display for Status {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<Status> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Name` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -113,7 +78,7 @@ mod tests {
         let invalid_status = Status("invalid".to_string());
         assert_eq!(
             invalid_status.validate(),
-            Err("Hibás foglalás státusz".to_string())
+            Err(ValueObjectError::InvalidInput("Hibás foglalás státusz"))
         );
     }
 
@@ -133,7 +98,7 @@ mod tests {
     fn test_deserialize_valid_status() {
         let json = r#""active""#;
         let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
-        assert_eq!(status.extract().get_value(), "active");
+        assert_eq!(status.as_str(), "active");
     }
 
     #[test]

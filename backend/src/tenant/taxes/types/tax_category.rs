@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,64 +27,29 @@ pub struct TaxCategory(pub String);
 impl ValueObjectable for TaxCategory {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "standard" => Ok(()),
             "reduced" => Ok(()),
             "exempt" => Ok(()),
             "reverse_charge" => Ok(()),
             "small_business_exempt" => Ok(()),
-            _ => Err(String::from("Hibás adó kategória")),
+            _ => Err(ValueObjectError::InvalidInput("Hibás adó kategória")),
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl Display for TaxCategory {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<TaxCategory> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `TaxCategory` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -97,38 +62,37 @@ impl<'de> Deserialize<'de> for ValueObject<TaxCategory> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_tax_category_standard() {
         let category: ValueObject<TaxCategory> = serde_json::from_str(r#""standard""#).unwrap();
-        assert_eq!(category.extract().get_value(), "standard");
+        assert_eq!(category.as_str(), "standard");
     }
 
     #[test]
     fn test_valid_tax_category_reduced() {
         let category: ValueObject<TaxCategory> = serde_json::from_str(r#""reduced""#).unwrap();
-        assert_eq!(category.extract().get_value(), "reduced");
+        assert_eq!(category.as_str(), "reduced");
     }
 
     #[test]
     fn test_valid_tax_category_exempt() {
         let category: ValueObject<TaxCategory> = serde_json::from_str(r#""exempt""#).unwrap();
-        assert_eq!(category.extract().get_value(), "exempt");
+        assert_eq!(category.as_str(), "exempt");
     }
 
     #[test]
     fn test_valid_tax_category_reverse_charge() {
         let category: ValueObject<TaxCategory> =
             serde_json::from_str(r#""reverse_charge""#).unwrap();
-        assert_eq!(category.extract().get_value(), "reverse_charge");
+        assert_eq!(category.as_str(), "reverse_charge");
     }
 
     #[test]
     fn test_valid_tax_category_small_business() {
         let category: ValueObject<TaxCategory> =
             serde_json::from_str(r#""small_business_exempt""#).unwrap();
-        assert_eq!(category.extract().get_value(), "small_business_exempt");
+        assert_eq!(category.as_str(), "small_business_exempt");
     }
 
     #[test]

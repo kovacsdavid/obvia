@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::types::value_object::ValueObjectError;
 use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
@@ -28,10 +30,10 @@ pub struct OrderBy(pub String);
 impl ValueObjectable for OrderBy {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
             "name" | "created_at" | "updated_at" | "" => Ok(()),
-            _ => Err("Hibás sorrend formátum".to_string()),
+            _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 
@@ -108,7 +110,7 @@ mod tests {
     #[test]
     fn test_deserialize_valid() {
         let order: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(order.extract().get_value(), "name");
+        assert_eq!(order.as_str(), "name");
     }
 
     #[test]

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
 use serde::Deserialize;
@@ -201,32 +201,13 @@ impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
 }
 
 impl From<TenantDatabaseConfig> for BasicDatabaseConfig {
-    /// Converts a `TenantDatabaseConfig` into another data type by extracting and transforming its values.
-    ///
-    /// This function takes an instance of `TenantDatabaseConfig` and constructs a new instance of the
-    /// target type (`Self`) by extracting and cloning specific values from the source.
-    ///
-    /// # Parameters
-    /// - `value`: An instance of `TenantDatabaseConfig` containing the configuration details to be converted.
-    ///
-    /// # Returns
-    /// A new instance of the target structure (`Self`) populated with the extracted and transformed values.
-    ///
-    /// # Fields Mapping:
-    /// - `host`: Extracted, de-referenced, and cloned from `value.host` using its internal methods.
-    /// - `port`: Extracted, de-referenced, and cast to `u16` from `value.port`.
-    /// - `username`: Extracted and cloned from `value.username`.
-    /// - `password`: Extracted and cloned from `value.password`.
-    /// - `database`: Extracted and cloned from `value.database`.
-    /// - `max_pool_size`: Directly assigned from `value.max_pool_size`.
-    /// - `ssl_mode`: Directly assigned from `value.ssl_mode`.
     fn from(value: TenantDatabaseConfig) -> Self {
         Self {
-            host: value.host.extract().get_value().clone(),
-            port: *value.port.extract().get_value() as u16,
-            username: value.username.extract().get_value().clone(),
-            password: value.password.extract().get_value().clone(),
-            database: value.database.extract().get_value().clone(),
+            host: value.host.to_string(),
+            port: value.port.as_u16().unwrap(), // TODO: not critical, but remove this unwrap
+            username: value.username.to_string(),
+            password: value.password.to_string(),
+            database: value.database.to_string(),
             max_pool_size: value.max_pool_size,
             ssl_mode: value.ssl_mode,
         }
@@ -235,36 +216,15 @@ impl From<TenantDatabaseConfig> for BasicDatabaseConfig {
 
 impl TryFrom<&Tenant> for TenantDatabaseConfig {
     type Error = String;
-    /// Attempts to convert an `Tenant` reference into the corresponding object of the implementing type.
-    ///
-    /// This function maps the fields of the `Tenant` into their respective strongly typed `ValueObject`
-    /// wrappers for database configuration parameters. The function validates and constructs each field, returning
-    /// an error if any field is invalid or if an intermediate operation (e.g., type conversion) fails.
-    ///
-    /// # Arguments
-    /// * `value` - A reference to an `Tenant` object that holds the database configuration details.
-    ///
-    /// # Returns
-    /// * `Ok(Self)` - If all fields are successfully validated and converted.
-    /// * `Err(Self::Error)` - If any validation or conversion fails during the mapping process.
-    ///
-    /// # Errors
-    /// Returns an error in the following cases:
-    /// * The `DbHost`, `DbPort`, `DbUser`, `DbPassword`, or `DbName` fields cannot be constructed due to invalid values.
-    /// * The conversion of `db_max_pool_size` to `u32` fails (e.g., due to the value being out of range).
-    ///
-    /// # Notes
-    /// * This implementation uses the `ValueObject::new` function to wrap raw values into their respective types.
-    /// * It's important that all fields in the `Tenant` adhere to the expected format
-    ///   and constraints for successful conversion.
     fn try_from(value: &Tenant) -> Result<Self, Self::Error> {
         PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
-            host: ValueObject::new(DbHost(value.db_host.clone()))?,
-            port: ValueObject::new(DbPort(value.db_port as i64))?,
-            username: ValueObject::new(DbUser(value.db_user.clone()))?,
-            password: ValueObject::new(DbPassword(value.db_password.clone()))?,
-            database: ValueObject::new(DbName(value.db_name.clone()))?,
+            host: ValueObject::new(DbHost(value.db_host.clone())).map_err(|e| e.to_string())?,
+            port: ValueObject::new(DbPort(value.db_port.to_string())).map_err(|e| e.to_string())?,
+            username: ValueObject::new(DbUser(value.db_user.clone())).map_err(|e| e.to_string())?,
+            password: ValueObject::new(DbPassword(value.db_password.clone()))
+                .map_err(|e| e.to_string())?,
+            database: ValueObject::new(DbName(value.db_name.clone())).map_err(|e| e.to_string())?,
             max_pool_size: Some(
                 u32::try_from(value.db_max_pool_size)
                     .map_err(|_| "Invalid pool size".to_string())?,

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,63 +27,28 @@ pub struct Description(pub String);
 impl ValueObjectable for Description {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0.len() <= 3000 {
             Ok(())
         } else {
-            Err(String::from(
+            Err(ValueObjectError::InvalidInput(
                 "A leírás nem lehet 3 000 karakternél hosszabb!",
             ))
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl Display for Description {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<Description> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Name` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -96,19 +61,18 @@ impl<'de> Deserialize<'de> for ValueObject<Description> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_description() {
         let desc: ValueObject<Description> =
             serde_json::from_str(r#""Valid description""#).unwrap();
-        assert_eq!(desc.extract().get_value(), "Valid description");
+        assert_eq!(desc.as_str(), "Valid description");
     }
 
     #[test]
     fn test_empty_description() {
         let desc: ValueObject<Description> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(desc.extract().get_value(), "");
+        assert_eq!(desc.as_str(), "");
     }
 
     #[test]
@@ -116,7 +80,7 @@ mod tests {
         let desc = "a".repeat(3000);
         let result: ValueObject<Description> =
             serde_json::from_str(&format!(r#""{}""#, desc)).unwrap();
-        assert_eq!(result.extract().get_value(), &desc);
+        assert_eq!(result.as_str(), &desc);
     }
 
     #[test]
@@ -157,7 +121,7 @@ mod tests {
     fn test_deserialize() {
         let input = r#""Test description""#;
         let deserialized: ValueObject<Description> = serde_json::from_str(input).unwrap();
-        assert_eq!(deserialized.extract().get_value(), "Test description");
+        assert_eq!(deserialized.as_str(), "Test description");
     }
 
     #[test]
@@ -165,7 +129,7 @@ mod tests {
         let special = r#""Test with !@#$%^&*()_+ and unicode 你好世界""#;
         let desc: ValueObject<Description> = serde_json::from_str(special).unwrap();
         assert_eq!(
-            desc.extract().get_value(),
+            desc.as_str(),
             r#"Test with !@#$%^&*()_+ and unicode 你好世界"#
         );
     }
@@ -174,6 +138,6 @@ mod tests {
     fn test_multiline_description() {
         let multiline = r#""Line 1\nLine 2\nLine 3""#;
         let desc: ValueObject<Description> = serde_json::from_str(multiline).unwrap();
-        assert_eq!(desc.extract().get_value(), "Line 1\nLine 2\nLine 3");
+        assert_eq!(desc.as_str(), "Line 1\nLine 2\nLine 3");
     }
 }

@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CustomerUserInput;
@@ -124,7 +123,7 @@ impl CustomersRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY customers.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -190,22 +189,22 @@ impl CustomersRepository for PgPoolManager {
             "INSERT INTO customers (name, contact_name, email, phone_number, status, customer_type, created_by_id)
                  VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         )
-        .bind(customer.name.extract().get_value())
+        .bind(customer.name.as_str())
         .bind(
             customer
                 .contact_name
                 .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
+                .map(|d| d.as_str()),
         )
-        .bind(customer.email.extract().get_value())
+        .bind(customer.email.as_str())
         .bind(
             customer
                 .phone_number
                 .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
+                .map(|d| d.as_str()),
         )
-        .bind(customer.status.extract().get_value())
-        .bind(customer.customer_type.extract().get_value())
+        .bind(customer.status.as_str())
+        .bind(customer.customer_type.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -233,22 +232,12 @@ impl CustomersRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(customer.name.extract().get_value())
-        .bind(
-            customer
-                .contact_name
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(customer.email.extract().get_value())
-        .bind(
-            customer
-                .phone_number
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(customer.status.extract().get_value())
-        .bind(customer.customer_type.extract().get_value())
+        .bind(customer.name.as_str())
+        .bind(customer.contact_name.as_ref().map(|d| d.as_str()))
+        .bind(customer.email.as_str())
+        .bind(customer.phone_number.as_ref().map(|d| d.as_str()))
+        .bind(customer.status.as_str())
+        .bind(customer.customer_type.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

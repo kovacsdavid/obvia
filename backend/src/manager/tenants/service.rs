@@ -21,7 +21,6 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::services::generate_string_csprng;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
@@ -115,7 +114,7 @@ impl TenantsService {
 
         let tenant = tenants_module
             .tenants_repo()
-            .setup_self_hosted(payload.name.extract().get_value(), &config.into(), claims)
+            .setup_self_hosted(payload.name.as_str(), &config.into(), claims)
             .await?;
 
         tenants_module
@@ -169,7 +168,7 @@ impl TenantsService {
             .tenants_repo()
             .setup_managed(
                 uuid,
-                payload.name.extract().get_value(),
+                payload.name.as_str(),
                 &db_config,
                 claims,
                 tenants_module.config().clone(),

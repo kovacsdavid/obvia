@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::services::dto::ServiceUserInput;
@@ -142,7 +141,7 @@ impl ServicesRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY services.{order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -199,12 +198,7 @@ impl ServicesRepository for PgPoolManager {
     ) -> RepositoryResult<Service> {
         let default_price = match &service.default_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("default_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         Ok(sqlx::query_as::<_, Service>(
             r#"
@@ -213,12 +207,12 @@ impl ServicesRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-            .bind(service.name.extract().get_value())
-            .bind(service.description.as_ref().map(|d| d.extract().get_value().as_str()))
+            .bind(service.name.as_str())
+            .bind(service.description.as_ref().map(|d| d.as_str()))
             .bind(default_price)
             .bind(service.default_tax_id)
-            .bind(service.currency_code.as_ref().map(|d| d.extract().get_value().as_str()))
-            .bind(service.status.extract().get_value())
+            .bind(service.currency_code.as_ref().map(|d| d.as_str()))
+            .bind(service.status.as_str())
             .bind(sub)
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?)
@@ -234,12 +228,7 @@ impl ServicesRepository for PgPoolManager {
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
         let default_price = match &service.default_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("default_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         Ok(sqlx::query_as::<_, Service>(
             r#"
@@ -254,22 +243,12 @@ impl ServicesRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(service.name.extract().get_value())
-        .bind(
-            service
-                .description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(service.name.as_str())
+        .bind(service.description.as_ref().map(|d| d.as_str()))
         .bind(default_price)
         .bind(service.default_tax_id)
-        .bind(
-            service
-                .currency_code
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(service.status.extract().get_value())
+        .bind(service.currency_code.as_ref().map(|d| d.as_str()))
+        .bind(service.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

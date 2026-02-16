@@ -20,7 +20,6 @@
 use std::net::IpAddr;
 
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
@@ -118,10 +117,10 @@ impl AuthRepository for PgPoolManager {
             ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
         )
         .bind(Uuid::new_v4())
-        .bind(payload.email.extract().get_value())
+        .bind(payload.email.as_str())
         .bind(password_hash)
-        .bind(payload.first_name.extract().get_value())
-        .bind(payload.last_name.extract().get_value())
+        .bind(payload.first_name.as_str())
+        .bind(payload.last_name.as_str())
         .fetch_one(&self.get_main_pool())
         .await?)
     }

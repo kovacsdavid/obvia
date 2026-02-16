@@ -18,7 +18,7 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{

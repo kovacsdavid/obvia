@@ -20,7 +20,6 @@
 use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::taxes::dto::TaxUserInput;
@@ -139,7 +138,7 @@ impl TaxesRepository for PgPoolManager {
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
+        let order_by_clause = match ordering_params.order_by.as_str() {
             "" => "".to_string(),
             order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
         }; // SECURITY: ValueObject
@@ -196,12 +195,7 @@ impl TaxesRepository for PgPoolManager {
     ) -> RepositoryResult<Tax> {
         let rate = match &tax.rate {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("rate".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         Ok(sqlx::query_as::<_, Tax>(
             "INSERT INTO taxes (
@@ -219,22 +213,14 @@ impl TaxesRepository for PgPoolManager {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
         )
         .bind(rate)
-        .bind(tax.description.extract().get_value())
-        .bind(tax.country_code.extract().get_value())
-        .bind(tax.tax_category.extract().get_value())
+        .bind(tax.description.as_str())
+        .bind(tax.country_code.as_str())
+        .bind(tax.tax_category.as_str())
         .bind(tax.is_rate_applicable)
-        .bind(
-            tax.legal_text
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            tax.reporting_code
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(tax.legal_text.as_ref().map(|d| d.as_str()))
+        .bind(tax.reporting_code.as_ref().map(|d| d.as_str()))
         .bind(tax.is_default)
-        .bind(tax.status.extract().get_value())
+        .bind(tax.status.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -246,12 +232,7 @@ impl TaxesRepository for PgPoolManager {
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
         let rate = match &tax.rate {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("rate".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         Ok(sqlx::query_as::<_, Tax>(
             r#"
@@ -271,22 +252,14 @@ impl TaxesRepository for PgPoolManager {
             "#,
         )
         .bind(rate)
-        .bind(tax.description.extract().get_value())
-        .bind(tax.country_code.extract().get_value())
-        .bind(tax.tax_category.extract().get_value())
+        .bind(tax.description.as_str())
+        .bind(tax.country_code.as_str())
+        .bind(tax.tax_category.as_str())
         .bind(tax.is_rate_applicable)
-        .bind(
-            tax.legal_text
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            tax.reporting_code
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(tax.legal_text.as_ref().map(|d| d.as_str()))
+        .bind(tax.reporting_code.as_ref().map(|d| d.as_str()))
         .bind(tax.is_default)
-        .bind(tax.status.extract().get_value())
+        .bind(tax.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

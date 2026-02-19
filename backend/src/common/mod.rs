@@ -45,6 +45,7 @@ pub(crate) mod error;
 pub(crate) mod extractors;
 pub(crate) mod macros;
 pub(crate) mod model;
+pub(crate) mod query_parser;
 pub(crate) mod services;
 pub(crate) mod types;
 

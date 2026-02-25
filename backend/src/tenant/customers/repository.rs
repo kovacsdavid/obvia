@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
-use crate::tenant::customers::types::customer::CustomerOrderBy;
+use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -41,9 +41,7 @@ pub trait CustomersRepository: Send + Sync {
     ) -> RepositoryResult<CustomerResolved>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<CustomerOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn get_select_list_items(
@@ -113,9 +111,7 @@ impl CustomersRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<CustomerOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         let total: (i64,) =
@@ -123,10 +119,13 @@ impl CustomersRepository for PgPoolManager {
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
                 .await?;
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY customers.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(),
+            query_params.ordering().order(),
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        }; // SECURITY: ValueObject and enum inside Query struct
 
         let sql = format!(
             r#"
@@ -152,16 +151,18 @@ impl CustomersRepository for PgPoolManager {
             "#
         );
 
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
+
         let customers = sqlx::query_as::<_, CustomerResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
+            .bind(limit)
+            .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
             .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             customers,

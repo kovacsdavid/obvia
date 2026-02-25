@@ -25,50 +25,328 @@ import {
   query_encoder,
   query_parser,
 } from "@/lib/utils.ts";
+import { extract_field } from "./get_query";
 
 describe("query_parser", () => {
   it("should parse valid query", () => {
-    const input = "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+    const input =
+      "ordering%3Atest-asc%20paging%3A1-25%20filtering%3Atest-%7Cwarehouse%201%7C";
     const result = query_parser(input);
-    const expected_result = { page: 1, limit: 25, name: "éáűú" };
+    const expected_result = {
+      ordering: {
+        order_by: "test",
+        order: "asc",
+      },
+      paging: {
+        page: 1,
+        limit: 25,
+      },
+      filtering: {
+        field: "test",
+        value: "warehouse 1",
+      },
+    };
     expect(result).toEqual(expected_result);
   });
-  it("should skip empty values", () => {
-    const input = "page%7Climit%3A%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+  it("should parse valid query different data", () => {
+    const input =
+      "ordering%3Aname-desc%20paging%3A3-30%20filtering%3Atype-%7Csome%20type%7C";
     const result = query_parser(input);
-    const expected_result = { name: "éáűú" };
+    const expected_result = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
     expect(result).toEqual(expected_result);
   });
-  it("should handle whitespaces", () => {
+  it("should parse valid query different order", () => {
+    const input =
+      "filtering%3Atype-%7Csome%20type%7C%20paging%3A3-30%20ordering%3Aname-desc";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse valid query with trailing spaces", () => {
+    const input =
+      "%20%20%20%20%20filtering%3Atype-%7Csome%20type%7C%20paging%3A3-30%20ordering%3Aname-desc%20%20%20%20";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse valid query partial 1", () => {
+    const input = "ordering%3Aname-desc";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse valid query partial 2", () => {
+    const input = "paging%3A3-30";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse valid query partial 3", () => {
+    const input = "filtering%3Atype-%7Csome%20type%7C";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse valid empty query", () => {
+    const input = "";
+    const result = query_parser(input);
+    const expected_result = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    expect(result).toEqual(expected_result);
+  });
+  it("should parse empty spaces", () => {
     const input = "   ";
     const result = query_parser(input);
-    const expected_result = {};
-    expect(result).toEqual(expected_result);
-  });
-  it("should trim whitespaces", () => {
-    const input =
-      "page%3A1%20%20%20%20%20%20%20%7Climit%3A25%7Cname%3A%20%20%20%20%20%20%20%20%20%20%20%C3%A9%C3%A1%C5%B1%C3%BA";
-    const result = query_parser(input);
-    const expected_result = { page: 1, limit: 25, name: "éáűú" };
+    const expected_result = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
     expect(result).toEqual(expected_result);
   });
 });
 
 describe("query_encoder", () => {
   it("should convert to valid query", () => {
-    const input = { page: 1, limit: 25, name: "éáűú" };
+    const input = {
+      ordering: {
+        order_by: "test",
+        order: "asc",
+      },
+      paging: {
+        page: 1,
+        limit: 25,
+      },
+      filtering: {
+        field: "test",
+        value: "warehouse 1",
+      },
+    };
     const result = query_encoder(input);
     const expected_result =
-      "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+      "ordering%3Atest-asc%20paging%3A1-25%20filtering%3Atest-%7Cwarehouse%201%7C";
 
     expect(result).toEqual(expected_result);
   });
-  it("should trim string values", () => {
-    const input = { page: 1, limit: 25, name: "   éáűú   " };
+  it("should convert to valid query different data", () => {
+    const input = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
     const result = query_encoder(input);
     const expected_result =
-      "page%3A1%7Climit%3A25%7Cname%3A%C3%A9%C3%A1%C5%B1%C3%BA";
+      "ordering%3Aname-desc%20paging%3A3-30%20filtering%3Atype-%7Csome%20type%7C";
 
+    expect(result).toEqual(expected_result);
+  });
+  it("should convert to empty string", () => {
+    const input = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    const result = query_encoder(input);
+    const expected_result = "";
+
+    expect(result).toEqual(expected_result);
+  });
+  it("should convert to partial 1", () => {
+    const input = {
+      ordering: {
+        order_by: "name",
+        order: "desc",
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    const result = query_encoder(input);
+    const expected_result = "ordering%3Aname-desc";
+
+    expect(result).toEqual(expected_result);
+  });
+  it("should convert to partial 2", () => {
+    const input = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: 3,
+        limit: 30,
+      },
+      filtering: {
+        field: null,
+        value: null,
+      },
+    };
+    const result = query_encoder(input);
+    const expected_result = "paging%3A3-30";
+
+    expect(result).toEqual(expected_result);
+  });
+  it("should convert to partial 3", () => {
+    const input = {
+      ordering: {
+        order_by: null,
+        order: null,
+      },
+      paging: {
+        page: null,
+        limit: null,
+      },
+      filtering: {
+        field: "type",
+        value: "some type",
+      },
+    };
+    const result = query_encoder(input);
+    const expected_result = "filtering%3Atype-%7Csome%20type%7C";
+
+    expect(result).toEqual(expected_result);
+  });
+});
+
+describe("extract_field", () => {
+  it("should extract ordering", () => {
+    const input = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
+    const result = extract_field(input, "ordering:");
+    const expected_result = "ordering:test-asc";
+    expect(result).toEqual(expected_result);
+  });
+  it("should extract paging", () => {
+    const input = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
+    const result = extract_field(input, "paging:");
+    const expected_result = "paging:1-25";
+    expect(result).toEqual(expected_result);
+  });
+  it("should extract filtering", () => {
+    const input = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
+    const result = extract_field(input, "filtering:");
+    const expected_result = "filtering:test-|warehouse 1|";
     expect(result).toEqual(expected_result);
   });
 });

@@ -20,6 +20,7 @@
 import { useSearchParams } from "react-router-dom";
 import { query_encoder, query_parser } from "@/lib/utils.ts";
 import React, { useEffect, useMemo } from "react";
+import type { GetQuery } from "@/lib/get_query";
 
 export function useDataDisplayCommon(
   updateSpecialQueryParams: (
@@ -35,9 +36,7 @@ export function useDataDisplayCommon(
   const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
   const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
 
-  const updateCommonQueryParams = (
-    parsedQuery: Record<string, string | number>,
-  ) => {
+  const updateCommonQueryParams = (parsedQuery: GetQuery) => {
     if ("page" in parsedQuery) {
       setPage(parsedQuery["page"] as number);
     }

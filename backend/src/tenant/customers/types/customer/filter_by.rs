@@ -24,9 +24,9 @@ use std::fmt::Display;
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct OrderBy(pub String);
+pub struct FilterBy(pub String);
 
-impl ValueObjectable for OrderBy {
+impl ValueObjectable for FilterBy {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -41,25 +41,25 @@ impl ValueObjectable for OrderBy {
     }
 }
 
-impl FromStr for OrderBy {
+impl FromStr for FilterBy {
     type Err = ValueObjectError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OrderBy(s.to_string()))
+        Ok(FilterBy(s.to_string()))
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
+impl<'de> Deserialize<'de> for ValueObject<FilterBy> {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(OrderBy(s)).map_err(serde::de::Error::custom)
+        ValueObject::new(FilterBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
-impl Display for OrderBy {
+impl Display for FilterBy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -70,70 +70,70 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_order_by() {
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(order_by.as_str(), "name");
+    fn test_valid_filter_by() {
+        let filter_by: ValueObject<FilterBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(filter_by.as_str(), "name");
     }
 
     #[test]
-    fn test_invalid_order_by() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
-        assert!(order_by.is_err());
+    fn test_invalid_filter_by() {
+        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(filter_by.is_err());
     }
 
     #[test]
-    fn test_empty_order_by() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""""#);
-        assert!(order_by.is_err());
+    fn test_empty_filter_by() {
+        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""""#);
+        assert!(filter_by.is_err());
     }
 
     #[test]
     fn test_display_implementation() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{}", order_by), "name");
+        let filter_by = FilterBy("name".to_string());
+        assert_eq!(format!("{}", filter_by), "name");
     }
 
     #[test]
     fn test_clone() {
-        let order_by = OrderBy("name".to_string());
-        let cloned = order_by.clone();
-        assert_eq!(order_by, cloned);
+        let filter_by = FilterBy("name".to_string());
+        let cloned = filter_by.clone();
+        assert_eq!(filter_by, cloned);
     }
 
     #[test]
     fn test_debug_output() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{:?}", order_by), r#"OrderBy("name")"#);
+        let filter_by = FilterBy("name".to_string());
+        assert_eq!(format!("{:?}", filter_by), r#"FilterBy("name")"#);
     }
 
     #[test]
     fn test_validation() {
-        let valid = OrderBy("name".to_string());
+        let valid = FilterBy("name".to_string());
         assert!(valid.validate().is_ok());
 
-        let invalid = OrderBy("invalid".to_string());
+        let invalid = FilterBy("invalid".to_string());
         assert!(invalid.validate().is_err());
 
-        let empty = OrderBy("".to_string());
+        let empty = FilterBy("".to_string());
         assert!(empty.validate().is_err());
     }
 
     #[test]
     fn test_get_value() {
         let value = "name".to_string();
-        let order_by = OrderBy(value.clone());
-        assert_eq!(order_by.get_value(), &value);
+        let filter_by = FilterBy(value.clone());
+        assert_eq!(filter_by.get_value(), &value);
     }
 
     #[test]
     fn test_from_str() {
-        let order_by = OrderBy::from_str("name").unwrap();
-        assert_eq!(order_by.get_value(), "name");
+        let filter_by = FilterBy::from_str("name").unwrap();
+        assert_eq!(filter_by.get_value(), "name");
     }
 
     #[test]
     fn test_deserialization_error_messages() {
-        let invalid: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
+        let invalid: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
         assert!(
             invalid
                 .unwrap_err()

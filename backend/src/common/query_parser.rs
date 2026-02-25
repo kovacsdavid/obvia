@@ -16,14 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 #![allow(dead_code)]
+use serde::Deserialize;
+use std::fmt::Display;
 use std::str::FromStr;
 use thiserror::Error;
 
 use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 
 #[derive(Error, Debug, PartialEq)]
-enum QueryError {
+pub enum GetQueryError {
     #[error("{0}")]
     InvalidInput(String),
 
@@ -31,50 +34,61 @@ enum QueryError {
     Custom(String),
 }
 
-impl From<ValueObjectError> for QueryError {
+impl From<ValueObjectError> for GetQueryError {
     fn from(value: ValueObjectError) -> Self {
         match value {
-            ValueObjectError::InvalidInput(e) => QueryError::InvalidInput(e.to_string()),
-            _ => QueryError::Custom(value.to_string()),
+            ValueObjectError::InvalidInput(e) => GetQueryError::InvalidInput(e.to_string()),
+            _ => GetQueryError::Custom(value.to_string()),
         }
     }
 }
 
 #[derive(PartialEq, Debug)]
-enum Order {
+pub enum Order {
     Ascending,
     Descending,
 }
 
 impl FromStr for Order {
-    type Err = QueryError;
+    type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "asc" => Order::Ascending,
             "desc" => Order::Descending,
-            _ => return Err(QueryError::InvalidInput("ordering".to_string())),
+            _ => return Err(GetQueryError::InvalidInput("ordering".to_string())),
         })
     }
 }
 
+impl Display for Order {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            Self::Ascending => "asc",
+            Self::Descending => "desc",
+        };
+
+        write!(f, "{str}")
+    }
+}
+
 #[derive(PartialEq, Debug, Default)]
-struct Ordering<O>
+pub struct Ordering<O>
 where
     O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    field: Option<ValueObject<O>>,
-    value: Option<Order>,
+    order_by: Option<ValueObject<O>>,
+    order: Option<Order>,
 }
 
 impl<O> Ordering<O>
 where
     O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    pub fn field(&self) -> &Option<ValueObject<O>> {
-        &self.field
+    pub fn order_by(&self) -> Option<String> {
+        Some(self.order_by.as_ref()?.to_string())
     }
-    pub fn value(&self) -> &Option<Order> {
-        &self.value
+    pub fn order(&self) -> &Option<Order> {
+        &self.order
     }
 }
 
@@ -82,7 +96,7 @@ impl<T> FromStr for Ordering<T>
 where
     T: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    type Err = QueryError;
+    type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Ordering<T>, Self::Err> {
         let collection: Vec<String> = s
             .replace("ordering:", "")
@@ -91,20 +105,20 @@ where
             .collect();
         if collection.len() == 2 {
             Ok(Ordering {
-                field: Some(ValueObject::new(T::from_str(&collection[0])?)?),
-                value: Some(Order::from_str(&collection[1])?),
+                order_by: Some(ValueObject::new(T::from_str(&collection[0])?)?),
+                order: Some(Order::from_str(&collection[1])?),
             })
         } else {
             Ok(Ordering {
-                field: None,
-                value: None,
+                order_by: None,
+                order: None,
             })
         }
     }
 }
 
 #[derive(PartialEq, Debug, Default)]
-struct Paging {
+pub struct Paging {
     page: Option<u64>,
     limit: Option<u64>,
 }
@@ -122,7 +136,7 @@ impl Paging {
 }
 
 impl FromStr for Paging {
-    type Err = QueryError;
+    type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let collection: Vec<String> = s
             .replace("paging:", "")
@@ -132,10 +146,10 @@ impl FromStr for Paging {
         if collection.len() == 2 {
             let page = collection[0]
                 .parse::<u64>()
-                .map_err(|_| QueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
             let limit = collection[1]
                 .parse::<u64>()
-                .map_err(|_| QueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
             Ok(Self {
                 page: Some(page),
                 limit: Some(limit),
@@ -150,22 +164,24 @@ impl FromStr for Paging {
 }
 
 #[derive(PartialEq, Debug)]
-struct Filtering<F>
+pub struct Filtering<F>
 where
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    field: Option<ValueObject<F>>, // Secruity: ValueObject
-    value: Option<String>,         // Secruity: You can use this only in bind queries!
+    field: Option<ValueObject<F>>,
+    value: Option<String>,
 }
 
 impl<F> Filtering<F>
 where
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
+    // Secruity: ValueObject
     pub fn field(&self) -> &Option<ValueObject<F>> {
         &self.field
     }
-    pub fn value(&self) -> &Option<String> {
+    // Secruity: Unchecked user input! You can only use this in bind queries!
+    pub fn value_unchecked(&self) -> &Option<String> {
         &self.value
     }
 }
@@ -174,7 +190,7 @@ impl<F> FromStr for Filtering<F>
 where
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    type Err = QueryError;
+    type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Filtering<F>, Self::Err> {
         let collection: Vec<String> = s
             .replace("filtering:", "")
@@ -220,7 +236,7 @@ fn extract_field<'a>(s: &'a str, field: &str) -> &'a str {
 }
 
 #[derive(PartialEq, Debug)]
-struct Query<O, F>
+pub struct GetQuery<O, F>
 where
     O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
@@ -230,18 +246,48 @@ where
     filtering: Filtering<F>,
 }
 
-impl<O, F> FromStr for Query<O, F>
+impl<O, F> GetQuery<O, F>
 where
     O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    type Err = QueryError;
-    fn from_str(s: &str) -> Result<Query<O, F>, Self::Err> {
-        Ok(Query {
+    pub fn ordering(&self) -> &Ordering<O> {
+        &self.ordering
+    }
+    pub fn paging(&self) -> &Paging {
+        &self.paging
+    }
+    pub fn filtering(&self) -> &Filtering<F> {
+        &self.filtering
+    }
+}
+
+impl<O, F> FromStr for GetQuery<O, F>
+where
+    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+{
+    type Err = GetQueryError;
+    fn from_str(s: &str) -> Result<GetQuery<O, F>, Self::Err> {
+        Ok(GetQuery {
             ordering: Ordering::from_str(extract_field(s, "ordering:"))?,
             paging: Paging::from_str(extract_field(s, "paging:"))?,
             filtering: Filtering::from_str(extract_field(s, "filtering:"))?,
         })
+    }
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CommonRawQuery {
+    q: Option<String>,
+}
+
+impl CommonRawQuery {
+    pub fn as_str(&self) -> &str {
+        match &self.q {
+            Some(v) => v,
+            None => "",
+        }
     }
 }
 
@@ -251,7 +297,6 @@ mod tests {
     use crate::common::types::ValueObjectable;
     use crate::common::types::value_object::ValueObjectError;
     use serde::Serialize;
-    use std::fmt::Display;
 
     #[derive(Debug, PartialEq, Clone, Serialize)]
     pub struct TestOrderBy(pub String);
@@ -315,7 +360,7 @@ mod tests {
         }
     }
 
-    impl<O, F> Query<O, F>
+    impl<O, F> GetQuery<O, F>
     where
         O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
         F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
@@ -334,7 +379,10 @@ mod tests {
         O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
     {
         pub fn new(field: Option<ValueObject<O>>, value: Option<Order>) -> Self {
-            Self { field, value }
+            Self {
+                order_by: field,
+                order: value,
+            }
         }
     }
 
@@ -359,8 +407,8 @@ mod tests {
     #[test]
     fn test_query_from_str() {
         let test_str = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = Query::new(
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = GetQuery::new(
             Ordering::new(
                 Some(ValueObject::new(TestOrderBy("test".to_string())).unwrap()),
                 Some(Order::Ascending),
@@ -377,8 +425,8 @@ mod tests {
     #[test]
     fn test_query_from_str_different_data() {
         let test_str = "ordering:name-desc paging:3-30 filtering:type-|some type|";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = Query::new(
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = GetQuery::new(
             Ordering::new(
                 Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
@@ -395,8 +443,8 @@ mod tests {
     #[test]
     fn test_query_from_str_different_order() {
         let test_str = "filtering:type-|some type| paging:3-30 ordering:name-desc";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = Query::new(
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = GetQuery::new(
             Ordering::new(
                 Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
@@ -413,8 +461,8 @@ mod tests {
     #[test]
     fn test_query_from_str_trailing_spaces() {
         let test_str = "     filtering:type-|some type| paging:3-30 ordering:name-desc    ";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = Query::new(
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = GetQuery::new(
             Ordering::new(
                 Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
@@ -431,9 +479,9 @@ mod tests {
     #[test]
     fn test_query_from_str_defaults() {
         let test_str = "";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = Query::new(
+        let query_constructed = GetQuery::new(
             Ordering::new(None, None),
             Paging::new(None, None),
             Filtering::new(None, None),
@@ -444,9 +492,9 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_1() {
         let test_str = "ordering:name-desc";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = Query::new(
+        let query_constructed = GetQuery::new(
             Ordering::new(
                 Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
@@ -460,9 +508,9 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_2() {
         let test_str = "paging:3-30";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = Query::new(
+        let query_constructed = GetQuery::new(
             Ordering::new(None, None),
             Paging::new(Some(3), Some(30)),
             Filtering::new(None, None),
@@ -473,9 +521,9 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_3() {
         let test_str = "filtering:type-|some type|";
-        let query_from_str = Query::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = Query::new(
+        let query_constructed = GetQuery::new(
             Ordering::new(None, None),
             Paging::new(None, None),
             Filtering::new(

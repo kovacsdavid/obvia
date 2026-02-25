@@ -16,7 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use std::fmt::Display;
+
+use std::{fmt::Display, num::TryFromIntError};
 use thiserror::Error;
 
 use crate::common::{
@@ -276,6 +277,12 @@ impl From<ValueObjectError> for RepositoryError {
             ValueObjectError::InvalidInput(e) => Self::InvalidInput(e.to_string()),
             _ => Self::Custom(value.to_string()),
         }
+    }
+}
+
+impl From<TryFromIntError> for RepositoryError {
+    fn from(_: TryFromIntError) -> Self {
+        Self::InvalidInput("could not parse integer".to_string())
     }
 }
 

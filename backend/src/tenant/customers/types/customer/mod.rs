@@ -19,12 +19,14 @@
 
 pub(crate) mod contact_name;
 pub(crate) mod customer_type;
+pub(crate) mod filter_by;
 pub(crate) mod name;
 pub(crate) mod order_by;
 pub(crate) mod phone_number;
 pub(crate) mod status;
 
 pub(crate) use contact_name::ContactName as CustomerContactName;
+pub(crate) use filter_by::FilterBy as CustomerFilterBy;
 pub(crate) use name::Name as CustomerName;
 pub(crate) use order_by::OrderBy as CustomerOrderBy;
 pub(crate) use phone_number::PhoneNumber as CustomerPhoneNumber;

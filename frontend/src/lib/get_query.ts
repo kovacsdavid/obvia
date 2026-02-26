@@ -33,9 +33,9 @@ export interface Filtering {
 }
 
 export interface GetQuery {
-  ordering: Ordering;
-  paging: Paging;
-  filtering: Filtering;
+  ordering?: Ordering;
+  paging?: Paging;
+  filtering?: Filtering;
 }
 
 function parse_ordering(str: string): Ordering {
@@ -115,14 +115,14 @@ export function extract_field(encodedStr: string, field: string): string {
 export function encode_get_query(get_query: GetQuery): string {
   let result = ``;
   if (
-    typeof get_query.ordering.order_by === "string" &&
-    typeof get_query.ordering.order === "string"
+    typeof get_query.ordering?.order_by === "string" &&
+    typeof get_query.ordering?.order === "string"
   ) {
     result += `ordering:${get_query.ordering.order_by}-${get_query.ordering.order}`;
   }
   if (
-    typeof get_query.paging.page === "number" &&
-    typeof get_query.paging.limit === "number"
+    typeof get_query.paging?.page === "number" &&
+    typeof get_query.paging?.limit === "number"
   ) {
     if (result.length > 0) {
       result += ` `;
@@ -130,8 +130,8 @@ export function encode_get_query(get_query: GetQuery): string {
     result += `paging:${get_query.paging.page}-${get_query.paging.limit}`;
   }
   if (
-    typeof get_query.filtering.field === "string" &&
-    typeof get_query.filtering.value === "string"
+    typeof get_query.filtering?.field === "string" &&
+    typeof get_query.filtering?.value === "string"
   ) {
     if (result.length > 0) {
       result += ` `;

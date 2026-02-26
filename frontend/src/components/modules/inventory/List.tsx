@@ -65,17 +65,15 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<InventoryResolvedList>([]);
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      console.log(parsedQuery);
-    },
-    [],
-  );
+  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+    console.log(parsedQuery);
+  }, []);
 
   const {
     rawQuery,
@@ -299,14 +297,14 @@ export default function List() {
                         </Link>
                         <DropdownMenuSeparator />
                         <Link
-                          to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({ inventory_id: item.id })}`}
+                          to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({ filtering: { field: "inventory_id", value: item.id } })}`}
                         >
                           <DropdownMenuItem>
                             <Combine /> Készletmozgatás
                           </DropdownMenuItem>
                         </Link>
                         <Link
-                          to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({ inventory_id: item.id })}`}
+                          to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({ filtering: { field: "inventory_id", value: item.id } })}`}
                         >
                           <DropdownMenuItem>
                             <Timer /> Készletfoglalás

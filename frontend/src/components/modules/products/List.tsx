@@ -56,17 +56,15 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<ProductResolvedList>([]);
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      console.log(parsedQuery);
-    },
-    [],
-  );
+  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+    console.log(parsedQuery);
+  }, []);
 
   const {
     rawQuery,

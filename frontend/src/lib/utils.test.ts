@@ -274,14 +274,6 @@ describe("query_encoder", () => {
         order_by: "name",
         order: "desc",
       },
-      paging: {
-        page: null,
-        limit: null,
-      },
-      filtering: {
-        field: null,
-        value: null,
-      },
     };
     const result = query_encoder(input);
     const expected_result = "ordering%3Aname-desc";
@@ -290,17 +282,9 @@ describe("query_encoder", () => {
   });
   it("should convert to partial 2", () => {
     const input = {
-      ordering: {
-        order_by: null,
-        order: null,
-      },
       paging: {
         page: 3,
         limit: 30,
-      },
-      filtering: {
-        field: null,
-        value: null,
       },
     };
     const result = query_encoder(input);
@@ -310,14 +294,6 @@ describe("query_encoder", () => {
   });
   it("should convert to partial 3", () => {
     const input = {
-      ordering: {
-        order_by: null,
-        order: null,
-      },
-      paging: {
-        page: null,
-        limit: null,
-      },
       filtering: {
         field: "type",
         value: "some type",

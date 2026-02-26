@@ -62,6 +62,7 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
+import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const [nameFilter, setNameFilter] = React.useState<string>("");
@@ -72,14 +73,11 @@ export default function List() {
     (state: RootState) => state.auth.login.claims?.active_tenant,
   );
 
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      if ("name" in parsedQuery) {
-        setNameFilter(parsedQuery["name"] as string);
-      }
-    },
-    [],
-  );
+  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+    if ("name" in parsedQuery) {
+      setNameFilter(parsedQuery["name"] as string);
+    }
+  }, []);
 
   const {
     rawQuery,

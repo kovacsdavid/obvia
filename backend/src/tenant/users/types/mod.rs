@@ -18,13 +18,5 @@
  */
 
 pub(crate) mod filter_by;
-pub(crate) mod order_by;
-pub(crate) mod reference_type;
-pub(crate) mod reserved_until;
-pub(crate) mod status;
 
-pub(crate) use filter_by::FilterBy as InventoryReservationFilterBy;
-pub(crate) use order_by::OrderBy as InventoryReservationOrderBy;
-pub(crate) use reference_type::ReferenceType as InventoryReferenceType;
-pub(crate) use reserved_until::ReservedUntil as InventoryReservationsReservedUntil;
-pub(crate) use status::Status as InventoryReservationsStatus;
+pub(crate) use filter_by::FilterBy as UserFilterBy;

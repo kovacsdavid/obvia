@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
-use crate::tenant::worksheets::types::worksheet::WorksheetOrderBy;
+use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -45,9 +45,7 @@ pub trait WorksheetsRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<WorksheetOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<WorksheetOrderBy, WorksheetFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
     async fn insert(
@@ -154,86 +152,176 @@ impl WorksheetsRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<WorksheetOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<WorksheetOrderBy, WorksheetFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM worksheets
+                    WHERE deleted_at IS NULL
+                        AND $1::TEXT IS NULL OR worksheets.{filter_by}::TEXT ILIKE $1"#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            WITH material_costs AS (SELECT reference_id                                                                         as worksheet_id,
-                                           sum(abs(inventory_movements.quantity) *
-                                               COALESCE(inventory_movements.unit_price, 0))                                     as net_material_cost,
-                                           sum((abs(inventory_movements.quantity) * COALESCE(inventory_movements.unit_price, 0)) *
-                                               (CASE
-                                                    WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
-                                                    ELSE 1
-                                                   END))                                                                        as gross_material_cost
-                                    FROM inventory_movements
-                                             LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
-                                    WHERE reference_type = 'worksheets'
-                                      AND movement_type = 'out'
-                                    GROUP BY reference_id),
-                 work_costs AS (SELECT worksheet_id,
-                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0)) as net_work_cost,
-                                       sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0) * (CASE
-                                                                     WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
-                                                                     ELSE 1
-                                           END))               as gross_work_cost
-                                FROM tasks
-                                         LEFT JOIN taxes ON tasks.tax_id = taxes.id
-                                WHERE tasks.deleted_at IS NULL
-                                GROUP BY worksheet_id)
-            SELECT worksheets.id                              as id,
-                   worksheets.name                            as name,
-                   worksheets.description                     as description,
-                   worksheets.customer_id                     as customer_id,
-                   customers.name                             as customer,
-                   worksheets.project_id                      as project_id,
-                   projects.name                              as project,
-                   worksheets.created_by_id                   as created_by_id,
-                   users.last_name || ' ' || users.first_name as created_by,
-                   worksheets.status                          as status,
-                   worksheets.created_at                      as created_at,
-                   worksheets.updated_at                      as updated_at,
-                   worksheets.deleted_at                      as deleted_at,
-                   COALESCE(mc.net_material_cost, 0)          as net_material_cost,
-                   COALESCE(mc.gross_material_cost, 0)        as gross_material_cost,
-                   COALESCE(wc.net_work_cost, 0)              as net_work_cost,
-                   COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
-            FROM worksheets
-            LEFT JOIN customers ON worksheets.customer_id = customers.id
-            LEFT JOIN projects ON worksheets.project_id = projects.id
-            LEFT JOIN users ON worksheets.created_by_id = users.id
-            LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
-            LEFT JOIN work_costs wc ON wc.worksheet_id = worksheets.id
-            WHERE worksheets.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let worksheets = sqlx::query_as::<_, WorksheetResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let worksheets = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                    WITH material_costs AS (SELECT reference_id                                                                         as worksheet_id,
+                                                   sum(abs(inventory_movements.quantity) *
+                                                       COALESCE(inventory_movements.unit_price, 0))                                     as net_material_cost,
+                                                   sum((abs(inventory_movements.quantity) * COALESCE(inventory_movements.unit_price, 0)) *
+                                                       (CASE
+                                                            WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                            ELSE 1
+                                                           END))                                                                        as gross_material_cost
+                                            FROM inventory_movements
+                                                     LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+                                            WHERE reference_type = 'worksheets'
+                                              AND movement_type = 'out'
+                                            GROUP BY reference_id),
+                         work_costs AS (SELECT worksheet_id,
+                                               sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0)) as net_work_cost,
+                                               sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0) * (CASE
+                                                                             WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                                             ELSE 1
+                                                   END))               as gross_work_cost
+                                        FROM tasks
+                                                 LEFT JOIN taxes ON tasks.tax_id = taxes.id
+                                        WHERE tasks.deleted_at IS NULL
+                                        GROUP BY worksheet_id)
+                    SELECT worksheets.id                              as id,
+                           worksheets.name                            as name,
+                           worksheets.description                     as description,
+                           worksheets.customer_id                     as customer_id,
+                           customers.name                             as customer,
+                           worksheets.project_id                      as project_id,
+                           projects.name                              as project,
+                           worksheets.created_by_id                   as created_by_id,
+                           users.last_name || ' ' || users.first_name as created_by,
+                           worksheets.status                          as status,
+                           worksheets.created_at                      as created_at,
+                           worksheets.updated_at                      as updated_at,
+                           worksheets.deleted_at                      as deleted_at,
+                           COALESCE(mc.net_material_cost, 0)          as net_material_cost,
+                           COALESCE(mc.gross_material_cost, 0)        as gross_material_cost,
+                           COALESCE(wc.net_work_cost, 0)              as net_work_cost,
+                           COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
+                    FROM worksheets
+                    LEFT JOIN customers ON worksheets.customer_id = customers.id
+                    LEFT JOIN projects ON worksheets.project_id = projects.id
+                    LEFT JOIN users ON worksheets.created_by_id = users.id
+                    LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
+                    LEFT JOIN work_costs wc ON wc.worksheet_id = worksheets.id
+                    WHERE worksheets.deleted_at IS NULL
+                        AND $1::TEXT IS NULL OR worksheets.{filter_by}::TEXT ILIKE $1
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, WorksheetResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    WITH material_costs AS (SELECT reference_id                                                                         as worksheet_id,
+                                                   sum(abs(inventory_movements.quantity) *
+                                                       COALESCE(inventory_movements.unit_price, 0))                                     as net_material_cost,
+                                                   sum((abs(inventory_movements.quantity) * COALESCE(inventory_movements.unit_price, 0)) *
+                                                       (CASE
+                                                            WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                            ELSE 1
+                                                           END))                                                                        as gross_material_cost
+                                            FROM inventory_movements
+                                                     LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+                                            WHERE reference_type = 'worksheets'
+                                              AND movement_type = 'out'
+                                            GROUP BY reference_id),
+                         work_costs AS (SELECT worksheet_id,
+                                               sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0)) as net_work_cost,
+                                               sum(abs(COALESCE(quantity, 0)) * COALESCE(price, 0) * (CASE
+                                                                             WHEN taxes.is_rate_applicable THEN ((taxes.rate / 100) + 1)
+                                                                             ELSE 1
+                                                   END))               as gross_work_cost
+                                        FROM tasks
+                                                 LEFT JOIN taxes ON tasks.tax_id = taxes.id
+                                        WHERE tasks.deleted_at IS NULL
+                                        GROUP BY worksheet_id)
+                    SELECT worksheets.id                              as id,
+                           worksheets.name                            as name,
+                           worksheets.description                     as description,
+                           worksheets.customer_id                     as customer_id,
+                           customers.name                             as customer,
+                           worksheets.project_id                      as project_id,
+                           projects.name                              as project,
+                           worksheets.created_by_id                   as created_by_id,
+                           users.last_name || ' ' || users.first_name as created_by,
+                           worksheets.status                          as status,
+                           worksheets.created_at                      as created_at,
+                           worksheets.updated_at                      as updated_at,
+                           worksheets.deleted_at                      as deleted_at,
+                           COALESCE(mc.net_material_cost, 0)          as net_material_cost,
+                           COALESCE(mc.gross_material_cost, 0)        as gross_material_cost,
+                           COALESCE(wc.net_work_cost, 0)              as net_work_cost,
+                           COALESCE(wc.gross_work_cost, 0)            as gross_work_cost
+                    FROM worksheets
+                    LEFT JOIN customers ON worksheets.customer_id = customers.id
+                    LEFT JOIN projects ON worksheets.project_id = projects.id
+                    LEFT JOIN users ON worksheets.created_by_id = users.id
+                    LEFT JOIN material_costs mc ON mc.worksheet_id = worksheets.id
+                    LEFT JOIN work_costs wc ON wc.worksheet_id = worksheets.id
+                    WHERE worksheets.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, WorksheetResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             worksheets,

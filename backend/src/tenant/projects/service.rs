@@ -17,15 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::projects::ProjectsModule;
 use crate::tenant::projects::dto::ProjectUserInput;
 use crate::tenant::projects::model::{Project, ProjectResolved};
 use crate::tenant::projects::repository::ProjectsRepository;
-use crate::tenant::projects::types::project::ProjectOrderBy;
+use crate::tenant::projects::types::project::{ProjectFilterBy, ProjectOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -148,17 +148,13 @@ impl ProjectsService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<ProjectOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<ProjectOrderBy, ProjectFilterBy>,
         claims: &Claims,
         repo: Arc<dyn ProjectsRepository>,
     ) -> ProjectsServiceResult<(PaginatorMeta, Vec<ProjectResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(ProjectsServiceError::Unauthorized)?,

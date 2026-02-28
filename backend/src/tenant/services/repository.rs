@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
-use crate::tenant::services::types::service::ServiceOrderBy;
+use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -45,9 +45,7 @@ pub trait ServicesRepository: Send + Sync + 'static {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<ServiceOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>;
     async fn insert(
@@ -131,59 +129,122 @@ impl ServicesRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<ServiceOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM services WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM services
+                        WHERE deleted_at IS NULL
+                            AND $1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE $1"#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM services WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY services.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT
-                services.id,
-                services.name,
-                services.description,
-                services.default_price,
-                services.default_tax_id,
-                taxes.description as default_tax,
-                services.currency_code,
-                currencies.code as currency,
-                services.status,
-                services.created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                services.created_at,
-                services.updated_at,
-                services.deleted_at
-            FROM services 
-            LEFT JOIN users ON services.created_by_id = users.id
-            LEFT JOIN taxes ON services.default_tax_id = taxes.id
-            LEFT JOIN currencies ON services.currency_code = currencies.code
-            WHERE services.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let services = sqlx::query_as::<_, ServiceResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let services = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        services.id,
+                        services.name,
+                        services.description,
+                        services.default_price,
+                        services.default_tax_id,
+                        taxes.description as default_tax,
+                        services.currency_code,
+                        currencies.code as currency,
+                        services.status,
+                        services.created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        services.created_at,
+                        services.updated_at,
+                        services.deleted_at
+                    FROM services 
+                    LEFT JOIN users ON services.created_by_id = users.id
+                    LEFT JOIN taxes ON services.default_tax_id = taxes.id
+                    LEFT JOIN currencies ON services.currency_code = currencies.code
+                    WHERE services.deleted_at IS NULL
+                        AND $1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE $1
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, ServiceResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        services.id,
+                        services.name,
+                        services.description,
+                        services.default_price,
+                        services.default_tax_id,
+                        taxes.description as default_tax,
+                        services.currency_code,
+                        currencies.code as currency,
+                        services.status,
+                        services.created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        services.created_at,
+                        services.updated_at,
+                        services.deleted_at
+                    FROM services 
+                    LEFT JOIN users ON services.created_by_id = users.id
+                    LEFT JOIN taxes ON services.default_tax_id = taxes.id
+                    LEFT JOIN currencies ON services.currency_code = currencies.code
+                    WHERE services.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, ServiceResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             services,

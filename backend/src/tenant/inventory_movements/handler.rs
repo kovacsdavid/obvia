@@ -16,28 +16,29 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder, UuidParam,
+    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::Order;
-use crate::common::types::ValueObject;
+use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::{
     InventoryMovementUserInput, InventoryMovementUserInputHelper,
 };
 use crate::tenant::inventory_movements::service::InventoryMovementsService;
-use crate::tenant::inventory_movements::types::InventoryMovementOrderBy;
+use crate::tenant::inventory_movements::types::{
+    InventoryMovementFilterBy, InventoryMovementOrderBy,
+};
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -187,29 +188,27 @@ pub async fn delete(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
-    Query(payload): Query<QueryParam>,
+    Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let inventory_id = payload
-        .as_hash_map()
-        .and_then(|m| m.get("inventory_id").cloned())
-        .and_then(|s| Uuid::parse_str(&s).ok())
-        .ok_or_else(|| {
-            FriendlyError::internal(
-                file!(),
-                "Hiányzó vagy hibás raktárkészlet azonosító".to_string(),
-            )
-            .into_response()
-        })?;
+    // TODO!
+    //let inventory_id = payload
+    //    .as_hash_map()
+    //    .and_then(|m| m.get("inventory_id").cloned())
+    //    .and_then(|s| Uuid::parse_str(&s).ok())
+    //    .ok_or_else(|| {
+    //        FriendlyError::internal(
+    //            file!(),
+    //            "Hiányzó vagy hibás raktárkészlet azonosító".to_string(),
+    //        )
+    //        .into_response()
+    //    })?;
+    let inventory_id = Uuid::new_v4(); // TMP!
 
     let (meta, data) = match InventoryMovementsService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(InventoryMovementOrderBy("movement_date".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            order: ValueObject::new(Order("desc".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        }),
-        &FilteringParams::from(&payload),
+        &GetQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(
+            payload.as_str(),
+        )
+        .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         inventory_movements_module.inventory_movements_repo(),
         inventory_id,

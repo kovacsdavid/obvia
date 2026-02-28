@@ -17,27 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SuccessResponseBuilder,
-};
+use crate::common::dto::{EmptyType, HandlerResult, SuccessResponseBuilder};
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
-use crate::common::types::Order;
-use crate::common::types::ValueObject;
+use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, CreateTenantHelper, FilteringParams, PublicTenantManaged, PublicTenantSelfHosted,
+    CreateTenant, CreateTenantHelper, PublicTenantManaged, PublicTenantSelfHosted,
     TenantActivateRequest,
 };
 use crate::manager::tenants::service::TenantsService;
-use crate::manager::tenants::types::TenantsOrderBy;
+use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -96,17 +94,11 @@ pub async fn get(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<dyn TenantsModule>>,
-    Query(payload): Query<QueryParam>,
+    Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TenantsService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(TenantsOrderBy("name".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            order: ValueObject::new(Order("asc".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        }),
-        &FilteringParams::from(&payload),
+        &GetQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.as_str())
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tenants_module.tenants_repo(),
     )

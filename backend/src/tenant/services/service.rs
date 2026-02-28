@@ -16,17 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::repository::ServicesRepository;
-use crate::tenant::services::types::service::ServiceOrderBy;
+use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -180,17 +181,13 @@ impl ServicesService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<ServiceOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
         claims: &Claims,
         repo: Arc<dyn ServicesRepository>,
     ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,

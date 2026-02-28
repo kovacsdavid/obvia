@@ -16,17 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::repository::TasksRepository;
-use crate::tenant::tasks::types::task::TaskOrderBy;
+use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -212,17 +213,13 @@ impl TasksService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<TaskOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<TaskOrderBy, TaskFilterBy>,
         claims: &Claims,
         repo: Arc<dyn TasksRepository>,
     ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,

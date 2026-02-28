@@ -20,7 +20,6 @@
 use crate::common::types::value_object::ValueObjectError;
 use crate::common::types::{ValueObject, ValueObjectable};
 use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
 use std::fmt::Display;
 use std::str::FromStr;
 
@@ -50,7 +49,7 @@ impl ValueObjectable for OrderBy {
 }
 
 impl FromStr for OrderBy {
-    type Err = Infallible;
+    type Err = ValueObjectError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(OrderBy(s.to_string()))

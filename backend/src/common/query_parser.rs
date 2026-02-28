@@ -168,7 +168,7 @@ pub struct Filtering<F>
 where
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
-    field: Option<ValueObject<F>>,
+    filter_by: Option<ValueObject<F>>,
     value: Option<String>,
 }
 
@@ -177,12 +177,12 @@ where
     F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     // Secruity: ValueObject
-    pub fn field(&self) -> &Option<ValueObject<F>> {
-        &self.field
+    pub fn filter_by(&self) -> Option<&str> {
+        self.filter_by.as_ref().map(|v| v.as_str())
     }
     // Secruity: Unchecked user input! You can only use this in bind queries!
-    pub fn value_unchecked(&self) -> &Option<String> {
-        &self.value
+    pub fn value_unchecked(&self) -> Option<&str> {
+        self.value.as_deref()
     }
 }
 
@@ -200,12 +200,12 @@ where
         if collection.len() == 2 {
             let value = collection[1].replace("|", "");
             Ok(Filtering {
-                field: Some(ValueObject::new(F::from_str(&collection[0])?)?),
+                filter_by: Some(ValueObject::new(F::from_str(&collection[0])?)?),
                 value: Some(value),
             })
         } else {
             Ok(Filtering {
-                field: None,
+                filter_by: None,
                 value: None,
             })
         }
@@ -400,7 +400,10 @@ mod tests {
             field: Option<ValueObject<T>>, // Secruity: ValueObject
             value: Option<String>,         // Secruity: You can use this only in bind queries!
         ) -> Self {
-            Self { field, value }
+            Self {
+                filter_by: field,
+                value,
+            }
         }
     }
 

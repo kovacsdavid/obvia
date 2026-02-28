@@ -18,18 +18,19 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::query_parser::GetQuery;
 use crate::common::services::generate_string_csprng;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, FilteringParams, NewTokenResponse, PublicTenant, TenantActivateRequest,
+    CreateTenant, NewTokenResponse, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
-use crate::manager::tenants::types::TenantsOrderBy;
+use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
@@ -201,15 +202,11 @@ impl TenantsService {
     }
 
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<TenantsOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<TenantOrderBy, TenantFilterBy>,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
     ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
-        let (meta, data) = repo
-            .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
-            .await?;
+        let (meta, data) = repo.get_all_by_user_id(claims.sub(), get_query).await?;
         let mut public_tenants = vec![];
         for tenant in data {
             public_tenants.push(PublicTenant::from(tenant))

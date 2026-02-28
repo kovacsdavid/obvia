@@ -17,25 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder, UuidParam,
+    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::Order;
-use crate::common::types::ValueObject;
+use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::{TaskUserInput, TaskUserInputHelper};
 use crate::tenant::tasks::service::TasksService;
-use crate::tenant::tasks::types::task::TaskOrderBy;
+use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -182,17 +180,11 @@ pub async fn select_list(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<dyn TasksModule>>,
-    Query(payload): Query<QueryParam>,
+    Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TasksService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(TaskOrderBy("updated_at".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            order: ValueObject::new(Order("asc".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        }),
-        &FilteringParams::from(&payload),
+        &GetQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.as_str())
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tasks_module.tasks_repo(),
     )

@@ -19,12 +19,14 @@
 
 pub(crate) mod default_price;
 pub(crate) mod description;
+pub(crate) mod filter_by;
 pub(crate) mod name;
 pub(crate) mod order_by;
 pub(crate) mod status;
 
 pub(crate) use default_price::DefaultPrice as ServiceDefaultPrice;
 pub(crate) use description::Description as ServiceDescription;
+pub(crate) use filter_by::FilterBy as ServiceFilterBy;
 pub(crate) use name::Name as ServiceName;
 pub(crate) use order_by::OrderBy as ServiceOrderBy;
 pub(crate) use status::Status as ServiceStatus;

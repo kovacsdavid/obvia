@@ -114,50 +114,106 @@ impl CustomersRepository for PgPoolManager {
         query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM customers
+                           WHERE deleted_at IS NULL
+                               AND $1::TEXT IS NULL OR customers.{filter_by}::TEXT ILIKE $1"#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         let order_by_clause = match (
-            query_params.ordering().order_by(),
-            query_params.ordering().order(),
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
         ) {
             (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
             (_, _) => "".to_string(),
-        }; // SECURITY: ValueObject and enum inside Query struct
-
-        let sql = format!(
-            r#"
-            SELECT
-                customers.id as id,
-                customers.name as name,
-                customers.contact_name as contact_name,
-                customers.email as email,
-                customers.phone_number as phone_number,
-                customers.status as status,
-                customers.customer_type as customer_type,
-                customers.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                customers.created_at as created_at,
-                customers.updated_at as updated_at,
-                customers.deleted_at as deleted_at
-            FROM customers
-            LEFT JOIN users ON customers.created_by_id = users.id
-            WHERE customers.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        };
 
         let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let customers = sqlx::query_as::<_, CustomerResolved>(&sql)
-            .bind(limit)
-            .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let customers = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                        SELECT
+                            customers.id as id,
+                            customers.name as name,
+                            customers.contact_name as contact_name,
+                            customers.email as email,
+                            customers.phone_number as phone_number,
+                            customers.status as status,
+                            customers.customer_type as customer_type,
+                            customers.created_by_id as created_by_id,
+                            users.last_name || ' ' || users.first_name as created_by,
+                            customers.created_at as created_at,
+                            customers.updated_at as updated_at,
+                            customers.deleted_at as deleted_at
+                        FROM customers
+                        LEFT JOIN users ON customers.created_by_id = users.id
+                        WHERE customers.deleted_at IS NULL
+                            AND $1::TEXT IS NULL OR customers.{filter_by}::TEXT ILIKE $1
+                        {order_by_clause}
+                        LIMIT $2
+                        OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, CustomerResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                        SELECT
+                            customers.id as id,
+                            customers.name as name,
+                            customers.contact_name as contact_name,
+                            customers.email as email,
+                            customers.phone_number as phone_number,
+                            customers.status as status,
+                            customers.customer_type as customer_type,
+                            customers.created_by_id as created_by_id,
+                            users.last_name || ' ' || users.first_name as created_by,
+                            customers.created_at as created_at,
+                            customers.updated_at as updated_at,
+                            customers.deleted_at as deleted_at
+                        FROM customers
+                        LEFT JOIN users ON customers.created_by_id = users.id
+                        WHERE customers.deleted_at IS NULL
+                        {order_by_clause}
+                        LIMIT $1
+                        OFFSET $2
+                        "#
+                );
+
+                sqlx::query_as::<_, CustomerResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {

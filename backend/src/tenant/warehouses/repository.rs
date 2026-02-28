@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
-use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
+use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -45,9 +45,7 @@ pub trait WarehousesRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<WarehouseOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
     async fn insert(
@@ -120,53 +118,110 @@ impl WarehousesRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<WarehouseOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM warehouses
+                        WHERE deleted_at IS NULL
+                            AND $1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE $1"#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY warehouses.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT
-                warehouses.id as id,
-                warehouses.name as name,
-                warehouses.contact_name as contact_name,
-                warehouses.contact_phone as contact_phone,
-                warehouses.status as status,
-                warehouses.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                warehouses.created_at as created_at,
-                warehouses.updated_at as updated_at,
-                warehouses.deleted_at as deleted_at
-            FROM warehouses
-            LEFT JOIN users ON warehouses.created_by_id = users.id
-            WHERE warehouses.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let warehouses = sqlx::query_as::<_, WarehouseResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let warehouses = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        warehouses.id as id,
+                        warehouses.name as name,
+                        warehouses.contact_name as contact_name,
+                        warehouses.contact_phone as contact_phone,
+                        warehouses.status as status,
+                        warehouses.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        warehouses.created_at as created_at,
+                        warehouses.updated_at as updated_at,
+                        warehouses.deleted_at as deleted_at
+                    FROM warehouses
+                    LEFT JOIN users ON warehouses.created_by_id = users.id
+                    WHERE warehouses.deleted_at IS NULL
+                        AND $1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE $1
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, WarehouseResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        warehouses.id as id,
+                        warehouses.name as name,
+                        warehouses.contact_name as contact_name,
+                        warehouses.contact_phone as contact_phone,
+                        warehouses.status as status,
+                        warehouses.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        warehouses.created_at as created_at,
+                        warehouses.updated_at as updated_at,
+                        warehouses.deleted_at as deleted_at
+                    FROM warehouses
+                    LEFT JOIN users ON warehouses.created_by_id = users.id
+                    WHERE warehouses.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, WarehouseResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             warehouses,

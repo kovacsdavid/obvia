@@ -18,6 +18,7 @@
  */
 
 pub(crate) mod description;
+pub(crate) mod filter_by;
 pub(crate) mod legal_text;
 pub(crate) mod order_by;
 pub(crate) mod rate;
@@ -26,6 +27,7 @@ pub(crate) mod status;
 pub(crate) mod tax_category;
 
 pub(crate) use description::Description as TaxDescription;
+pub(crate) use filter_by::FilterBy as TaxFilterBy;
 pub(crate) use legal_text::LegalText as TaxLegalText;
 pub(crate) use order_by::OrderBy as TaxOrderBy;
 pub(crate) use rate::Rate as TaxRate;

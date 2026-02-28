@@ -18,24 +18,22 @@
  */
 
 use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder, UuidParam,
+    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
 };
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::types::Order;
-use crate::common::types::ValueObject;
+use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::{WarehouseUserInput, WarehouseUserInputHelper};
 use crate::tenant::warehouses::service::WarehousesService;
-use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
+use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -206,17 +204,11 @@ pub async fn create(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
-    Query(payload): Query<QueryParam>,
+    Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match WarehousesService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(WarehouseOrderBy("name".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            order: ValueObject::new(Order("asc".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        }),
-        &FilteringParams::from(&payload),
+        &GetQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.as_str())
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         warehouses_module.warehouses_repo(),
     )

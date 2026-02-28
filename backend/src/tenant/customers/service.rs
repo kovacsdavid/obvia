@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
@@ -157,13 +158,13 @@ impl CustomersService {
             .await?)
     }
     pub async fn get_paged_list(
-        query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
+        get_query: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
         claims: &Claims,
         repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         Ok(repo
             .get_all_paged(
-                query_params,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(CustomersServiceError::Unauthorized)?,

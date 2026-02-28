@@ -17,10 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod filter_by;
 pub(crate) mod movement_type;
 pub(crate) mod order_by;
 pub(crate) mod reference_type;
 
+pub(crate) use filter_by::FilterBy as InventoryMovementFilterBy;
 pub(crate) use movement_type::MovementType as InventoryMovementType;
 pub(crate) use order_by::OrderBy as InventoryMovementOrderBy;
 pub(crate) use reference_type::ReferenceType as InventoryReferenceType;

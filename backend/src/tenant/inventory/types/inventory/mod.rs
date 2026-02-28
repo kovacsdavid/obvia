@@ -17,8 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+pub(crate) mod filter_by;
 pub(crate) mod order_by;
 pub(crate) mod status;
 
+pub(crate) use filter_by::FilterBy as InventoryFilterBy;
 pub(crate) use order_by::OrderBy as InventoryOrderBy;
 pub(crate) use status::Status as InventoryStatus;

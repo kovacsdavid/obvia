@@ -19,16 +19,18 @@
 
 use crate::common::MailTransporter;
 use crate::common::dto::GeneralError;
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
-use crate::tenant::inventory_movements::types::InventoryMovementOrderBy;
+use crate::tenant::inventory_movements::types::{
+    InventoryMovementFilterBy, InventoryMovementOrderBy,
+};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -164,18 +166,14 @@ impl InventoryMovementsService {
     }
 
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<InventoryMovementOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         claims: &Claims,
         repo: Arc<dyn InventoryMovementsRepository>,
         inventory_id: Uuid,
     ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(InventoryMovementsServiceError::Unauthorized)?,

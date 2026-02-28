@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams; // TODO: this is not the right filtering params
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
-use crate::tenant::products::types::product::ProductOrderBy;
+use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -45,9 +45,7 @@ pub trait ProductsRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<ProductOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<ProductOrderBy, ProductFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
     async fn insert(
@@ -132,55 +130,114 @@ impl ProductsRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<ProductOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<ProductOrderBy, ProductFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM products
+                        WHERE deleted_at IS NULL
+                            AND $1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE $1"#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM products WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY {order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT
-                products.id as id,
-                products.name as name,
-                products.description as description,
-                products.unit_of_measure_id as unit_of_measure_id,
-                units_of_measure.unit_of_measure as unit_of_measure,
-                products.status as status,
-                products.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                products.created_at as created_at,
-                products.updated_at as updated_at,
-                products.deleted_at as deleted_at
-            FROM products
-            LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
-            LEFT JOIN users ON products.created_by_id = users.id
-            WHERE products.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let products = sqlx::query_as::<_, ProductResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let products = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        products.id as id,
+                        products.name as name,
+                        products.description as description,
+                        products.unit_of_measure_id as unit_of_measure_id,
+                        units_of_measure.unit_of_measure as unit_of_measure,
+                        products.status as status,
+                        products.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        products.created_at as created_at,
+                        products.updated_at as updated_at,
+                        products.deleted_at as deleted_at
+                    FROM products
+                    LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
+                    LEFT JOIN users ON products.created_by_id = users.id
+                    WHERE products.deleted_at IS NULL
+                        AND $1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE $1
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, ProductResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        products.id as id,
+                        products.name as name,
+                        products.description as description,
+                        products.unit_of_measure_id as unit_of_measure_id,
+                        units_of_measure.unit_of_measure as unit_of_measure,
+                        products.status as status,
+                        products.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        products.created_at as created_at,
+                        products.updated_at as updated_at,
+                        products.deleted_at as deleted_at
+                    FROM products
+                    LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
+                    LEFT JOIN users ON products.created_by_id = users.id
+                    WHERE products.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, ProductResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             products,

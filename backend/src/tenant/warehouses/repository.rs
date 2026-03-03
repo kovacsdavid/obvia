@@ -129,7 +129,7 @@ impl WarehousesRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM warehouses
                         WHERE deleted_at IS NULL
-                            AND $1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE $1"#
+                            AND ($1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -173,7 +173,7 @@ impl WarehousesRepository for PgPoolManager {
                     FROM warehouses
                     LEFT JOIN users ON warehouses.created_by_id = users.id
                     WHERE warehouses.deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE $1
+                        AND ($1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

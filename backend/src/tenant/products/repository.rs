@@ -141,7 +141,7 @@ impl ProductsRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM products
                         WHERE deleted_at IS NULL
-                            AND $1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE $1"#
+                            AND ($1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -187,7 +187,7 @@ impl ProductsRepository for PgPoolManager {
                     LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
                     LEFT JOIN users ON products.created_by_id = users.id
                     WHERE products.deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE $1
+                        AND ($1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

@@ -140,7 +140,7 @@ impl ServicesRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM services
                         WHERE deleted_at IS NULL
-                            AND $1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE $1"#
+                            AND ($1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -190,7 +190,7 @@ impl ServicesRepository for PgPoolManager {
                     LEFT JOIN taxes ON services.default_tax_id = taxes.id
                     LEFT JOIN currencies ON services.currency_code = currencies.code
                     WHERE services.deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE $1
+                        AND ($1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

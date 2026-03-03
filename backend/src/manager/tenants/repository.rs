@@ -144,7 +144,7 @@ impl TenantsRepository for PgPoolManager {
                 WHERE user_tenants.user_id = $1
                     AND tenants.deleted_at IS NULL
                     AND user_tenants.deleted_at IS NULL
-                    AND $2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE $2"#,
+                    AND ($2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
                 ))
                 .bind(user_uuid)
                 .bind(value_unchecked)
@@ -189,7 +189,7 @@ impl TenantsRepository for PgPoolManager {
                         WHERE user_tenants.user_id = $1
                             AND tenants.deleted_at IS NULL
                             AND user_tenants.deleted_at IS NULL
-                            AND $2::TEXT IS NULL OR tenants.{filter_by} ILIKE $2
+                            AND ($2::TEXT IS NULL OR tenants.{filter_by} ILIKE '%' || $2 || '%')
                         {order_by_clause}
                         LIMIT $3
                         OFFSET $4

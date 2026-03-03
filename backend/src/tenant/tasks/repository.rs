@@ -123,7 +123,7 @@ impl TasksRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM tasks
                         WHERE deleted_at IS NULL
-                            AND $1::TEXT IS NULL OR tasks.{filter_by}::TEXT ILIKE $1"#
+                            AND ($1::TEXT IS NULL OR tasks.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -179,7 +179,7 @@ impl TasksRepository for PgPoolManager {
                     LEFT JOIN taxes ON tasks.tax_id = taxes.id
                     LEFT JOIN users ON tasks.created_by_id = users.id
                     WHERE tasks.deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR tasks.{filter_by}::TEXT ILIKE $1
+                        AND ($1::TEXT IS NULL OR tasks.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

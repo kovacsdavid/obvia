@@ -122,7 +122,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM inventory_movements
                         WHERE inventory_id = $1
-                            AND $2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE $2"#,
+                            AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
                 ))
                     .bind(inventory_id)
                     .bind(value_unchecked)
@@ -176,7 +176,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                     LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
                     LEFT JOIN users ON inventory_movements.created_by_id = users.id
                     WHERE inventory_movements.inventory_id = $1
-                        AND $2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE $2
+                        AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     {order_by_clause}
                     OFFSET $3
                     LIMIT $4

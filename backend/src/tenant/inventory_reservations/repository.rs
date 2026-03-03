@@ -126,7 +126,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                     SELECT COUNT(*)
                     FROM inventory_reservations
                     WHERE inventory_id = $1
-                        AND $2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE $2
+                        AND ($2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     "#,
                 ))
                 .bind(inventory_id)
@@ -180,7 +180,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                     FROM inventory_reservations
                     LEFT JOIN users ON inventory_reservations.created_by_id = users.id
                     WHERE inventory_reservations.inventory_id = $1
-                        AND $2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE $2
+                        AND ($2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     {order_by_clause}
                     OFFSET $3
                     LIMIT $4

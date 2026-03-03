@@ -138,7 +138,7 @@ impl TaxesRepository for PgPoolManager {
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM taxes
                     WHERE deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE $1"#,
+                        AND ($1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#,
                 ))
                 .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -189,7 +189,7 @@ impl TaxesRepository for PgPoolManager {
                     LEFT JOIN users ON taxes.created_by_id = users.id
                     LEFT JOIN countries ON taxes.country_code = countries.code
                     WHERE taxes.deleted_at IS NULL
-                        AND $1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE $1
+                        AND ($1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

@@ -76,7 +76,7 @@ export default function List() {
     order,
     paginatorSelect,
     orderSelect,
-    //filterSelect,
+    filterSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
@@ -162,9 +162,10 @@ export default function List() {
                     </div>
                     <div className="grid gap-2">
                       <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
+                        <Label htmlFor="name">Név</Label>
                         <Input
                           id="name"
+                          onBlur={(e) => filterSelect("name", e.target.value)}
                           defaultValue=""
                           className="col-span-2 h-8"
                         />

@@ -28,7 +28,7 @@ export interface Paging {
 }
 
 export interface Filtering {
-  field: string | null;
+  filter_by: string | null;
   value: string | null;
 }
 
@@ -72,12 +72,12 @@ function parse_filtering(str: string): Filtering {
   const collection = str.replace("filtering:", "").split("-");
   if (collection.length === 2) {
     return {
-      field: collection[0],
+      filter_by: collection[0],
       value: collection[1].replaceAll("|", ""),
     };
   }
   return {
-    field: null,
+    filter_by: null,
     value: null,
   };
 }
@@ -130,13 +130,13 @@ export function encode_get_query(get_query: GetQuery): string {
     result += `paging:${get_query.paging.page}-${get_query.paging.limit}`;
   }
   if (
-    typeof get_query.filtering?.field === "string" &&
+    typeof get_query.filtering?.filter_by === "string" &&
     typeof get_query.filtering?.value === "string"
   ) {
     if (result.length > 0) {
       result += ` `;
     }
-    result += `filtering:${get_query.filtering.field}-|${get_query.filtering.value}|`;
+    result += `filtering:${get_query.filtering.filter_by}-|${get_query.filtering.value}|`;
   }
   return result;
 }

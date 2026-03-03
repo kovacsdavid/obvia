@@ -19,11 +19,11 @@
 
 import { useSearchParams } from "react-router-dom";
 import { query_encoder, query_parser } from "@/lib/utils.ts";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import type { GetQuery } from "@/lib/get_query";
 
 export function useDataDisplayCommon(
-  updateSpecialQueryParams: (parsedQuery: GetQuery) => void,
+  updateSpecialQueryParams: ((parsedQuery: GetQuery) => void) | null,
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
@@ -33,8 +33,10 @@ export function useDataDisplayCommon(
   const [order, setOrder] = React.useState("asc");
   const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
   const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
+  const [filterBy, setFilterBy] = React.useState<string>("");
+  const [filterValue, setFilterValue] = React.useState<string>("");
 
-  const updateCommonQueryParams = (getQuery: GetQuery) => {
+  const updateCommonQueryParams = useCallback((getQuery: GetQuery) => {
     if (
       typeof getQuery.paging?.page === "number" &&
       typeof getQuery.paging?.limit === "number"
@@ -55,14 +57,23 @@ export function useDataDisplayCommon(
       setOrderBy("created_at");
       setOrder("asc");
     }
-  };
+    if (
+      typeof getQuery?.filtering?.filter_by === "string"
+      && typeof getQuery?.filtering?.value === "string"
+    ) {
+      setFilterBy(getQuery.filtering.filter_by);
+      setFilterValue(getQuery.filtering.value);
+    }
+  }, []);
 
   useEffect(() => {
     // TODO: improve this
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updateCommonQueryParams(parsedQuery);
-    updateSpecialQueryParams(parsedQuery);
-  }, [parsedQuery, updateSpecialQueryParams]);
+    if (typeof updateSpecialQueryParams === "function") {
+      updateSpecialQueryParams(parsedQuery);
+    }
+  }, [parsedQuery, updateSpecialQueryParams, updateCommonQueryParams]);
 
   const paginatorSelect = (pageNumber: number) => {
     const currentQuery = query_parser(searchParams.get("q"));
@@ -105,7 +116,7 @@ export function useDataDisplayCommon(
     const currentQuery = query_parser(searchParams.get("q"));
     if (value.trim().length > 0) {
       currentQuery.filtering = {
-        field,
+        filter_by: field,
         value,
       };
       searchParams.set("q", query_encoder(currentQuery));
@@ -139,5 +150,9 @@ export function useDataDisplayCommon(
     filterSelect,
     totalPages,
     parsedQuery,
+    filterBy,
+    setFilterBy,
+    filterValue,
+    setFilterValue,
   };
 }

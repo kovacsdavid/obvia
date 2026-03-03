@@ -42,7 +42,7 @@ describe("query_parser", () => {
         limit: 25,
       },
       filtering: {
-        field: "test",
+        filter_by: "test",
         value: "warehouse 1",
       },
     };
@@ -62,7 +62,7 @@ describe("query_parser", () => {
         limit: 30,
       },
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };
@@ -82,7 +82,7 @@ describe("query_parser", () => {
         limit: 30,
       },
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };
@@ -102,7 +102,7 @@ describe("query_parser", () => {
         limit: 30,
       },
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };
@@ -121,7 +121,7 @@ describe("query_parser", () => {
         limit: null,
       },
       filtering: {
-        field: null,
+        filter_by: null,
         value: null,
       },
     };
@@ -140,7 +140,7 @@ describe("query_parser", () => {
         limit: 30,
       },
       filtering: {
-        field: null,
+        filter_by: null,
         value: null,
       },
     };
@@ -159,7 +159,7 @@ describe("query_parser", () => {
         limit: null,
       },
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };
@@ -178,7 +178,7 @@ describe("query_parser", () => {
         limit: null,
       },
       filtering: {
-        field: null,
+        filter_by: null,
         value: null,
       },
     };
@@ -197,7 +197,7 @@ describe("query_parser", () => {
         limit: null,
       },
       filtering: {
-        field: null,
+        filter_by: null,
         value: null,
       },
     };
@@ -217,7 +217,7 @@ describe("query_encoder", () => {
         limit: 25,
       },
       filtering: {
-        field: "test",
+        filter_by: "test",
         value: "warehouse 1",
       },
     };
@@ -238,7 +238,7 @@ describe("query_encoder", () => {
         limit: 30,
       },
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };
@@ -259,7 +259,7 @@ describe("query_encoder", () => {
         limit: null,
       },
       filtering: {
-        field: null,
+        filter_by: null,
         value: null,
       },
     };
@@ -295,7 +295,7 @@ describe("query_encoder", () => {
   it("should convert to partial 3", () => {
     const input = {
       filtering: {
-        field: "type",
+        filter_by: "type",
         value: "some type",
       },
     };

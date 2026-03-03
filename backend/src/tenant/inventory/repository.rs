@@ -145,10 +145,15 @@ impl InventoryRepository for PgPoolManager {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "product" => "products.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string()))
+                };
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM inventory
-                        WHERE deleted_at IS NULL
-                            AND ($1::TEXT IS NULL OR inventory.{filter_by}::TEXT ILIKE '%' || $1 || '%')
+                        LEFT JOIN products ON inventory.product_id = products.id
+                        WHERE inventory.deleted_at IS NULL
+                            AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
                     "#
                 ))
                 .bind(value_unchecked)
@@ -177,6 +182,10 @@ impl InventoryRepository for PgPoolManager {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "product" => "products.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string()))
+                };
                 let sql = format!(
                     r#"
                     SELECT
@@ -204,7 +213,7 @@ impl InventoryRepository for PgPoolManager {
                     LEFT JOIN currencies ON inventory.currency_code = currencies.code
                     LEFT JOIN users ON inventory.created_by_id = users.id
                     WHERE inventory.deleted_at IS NULL
-                        AND ($1::TEXT IS NULL OR inventory.{filter_by}::TEXT ILIKE '%' || $1 || '%')
+                        AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
                     {order_by_clause}
                     LIMIT $2
                     OFFSET $3

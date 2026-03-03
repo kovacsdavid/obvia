@@ -65,15 +65,11 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
-import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<InventoryResolvedList>([]);
-  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-    console.log(parsedQuery);
-  }, []);
 
   const {
     rawQuery,
@@ -85,9 +81,11 @@ export default function List() {
     order,
     paginatorSelect,
     orderSelect,
-    //filterSelect,
+    filterSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+    filterValue,
+    setFilterValue,
+  } = useDataDisplayCommon(null);
 
   const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
@@ -171,10 +169,12 @@ export default function List() {
                     </div>
                     <div className="grid gap-2">
                       <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
+                        <Label htmlFor="product">Termék</Label>
                         <Input
                           id="name"
-                          defaultValue=""
+                          onBlur={(e) => filterSelect("product", e.target.value)}
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>
@@ -297,14 +297,14 @@ export default function List() {
                         </Link>
                         <DropdownMenuSeparator />
                         <Link
-                          to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({ filtering: { field: "inventory_id", value: item.id } })}`}
+                          to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({ filtering: { filter_by: "inventory_id", value: item.id } })}`}
                         >
                           <DropdownMenuItem>
                             <Combine /> Készletmozgatás
                           </DropdownMenuItem>
                         </Link>
                         <Link
-                          to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({ filtering: { field: "inventory_id", value: item.id } })}`}
+                          to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({ filtering: { filter_by: "inventory_id", value: item.id } })}`}
                         >
                           <DropdownMenuItem>
                             <Timer /> Készletfoglalás

@@ -56,15 +56,11 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
-import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<CustomerResolvedList>([]);
-  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-    console.log(parsedQuery);
-  }, []);
 
   const {
     rawQuery,
@@ -78,7 +74,9 @@ export default function List() {
     orderSelect,
     filterSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+    filterValue,
+    setFilterValue,
+  } = useDataDisplayCommon(null);
 
   const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
@@ -166,7 +164,8 @@ export default function List() {
                         <Input
                           id="name"
                           onBlur={(e) => filterSelect("name", e.target.value)}
-                          defaultValue=""
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>

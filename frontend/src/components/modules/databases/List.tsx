@@ -62,22 +62,14 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
-import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
-  const [nameFilter, setNameFilter] = React.useState<string>("");
   const dispatch = useAppDispatch();
   const [data, setData] = React.useState<DatabaseList>([]);
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const active_database = useAppSelector(
     (state: RootState) => state.auth.login.claims?.active_tenant,
   );
-
-  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-    if ("name" in parsedQuery) {
-      setNameFilter(parsedQuery["name"] as string);
-    }
-  }, []);
 
   const {
     rawQuery,
@@ -91,7 +83,9 @@ export default function List() {
     orderSelect,
     filterSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+    filterValue,
+    setFilterValue,
+  } = useDataDisplayCommon(null);
 
   const activateDatabase = useActivateDatabase();
 
@@ -167,8 +161,8 @@ export default function List() {
                         <Input
                           id="name"
                           onBlur={(e) => filterSelect("name", e.target.value)}
-                          value={nameFilter}
-                          onChange={(e) => setNameFilter(e.target.value)}
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>

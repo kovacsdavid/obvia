@@ -31,7 +31,7 @@ impl ValueObjectable for FilterBy {
 
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
-            "name" | "customer_type" | "status" | "created_at" | "updated_at" => Ok(()),
+            "product" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }

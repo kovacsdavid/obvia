@@ -36,7 +36,7 @@ export function query_parser(encodedStr: unknown): GetQuery {
       limit: null,
     },
     filtering: {
-      field: null,
+      filter_by: null,
       value: null,
     },
   };

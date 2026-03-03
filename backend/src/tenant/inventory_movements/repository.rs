@@ -144,7 +144,7 @@ impl InventoryMovementsRepository for PgPoolManager {
             query_params.ordering().order_by(), // Security: ValueObject
             query_params.ordering().order(),    // Security: enum
         ) {
-            (Some(order_by), Some(order)) => format!("ORDER BY customers.{order_by} {order}"),
+            (Some(order_by), Some(order)) => format!("ORDER BY inventory_movements.{order_by} {order}"),
             (_, _) => "".to_string(),
         };
 

@@ -59,7 +59,7 @@ use lettre::{
     address::AddressError,
     message::{Mailbox, header::ContentType},
 };
-use rand::Rng;
+use rand::RngExt;
 use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;

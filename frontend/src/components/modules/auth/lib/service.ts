@@ -52,7 +52,7 @@ export async function login({
   password,
   otp,
 }: LoginRequest): Promise<ProcessedResponse<LoginResponse>> {
-  let body = null;
+  let body;
   if (typeof otp === "string" && otp.trim().length > 0) {
     body = JSON.stringify({ email, password, otp });
   } else {

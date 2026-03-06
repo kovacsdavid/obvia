@@ -55,6 +55,9 @@ pub enum TenantsServiceError {
 
     #[error("Jelenleg nem elérhető")]
     CurrentlyNotAvailable,
+
+    #[error("rng error")]
+    RngError,
 }
 
 #[async_trait]
@@ -159,7 +162,7 @@ impl TenantsService {
                 .clone(),
             port: tenants_module.config().default_tenant_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
-            password: generate_string_csprng(40),
+            password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
             max_pool_size: None,
             ssl_mode: Some(String::from("disable")),

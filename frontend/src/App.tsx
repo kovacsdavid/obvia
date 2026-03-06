@@ -175,7 +175,7 @@ const ROUTE_CONFIGS: RouteConfig[] = [
     isPrivate: true,
   },
   {
-    path: "/raktarkeszlet-foglalas/lista",
+    path: "/raktarkeszlet-foglalas/lista/:inventoryId",
     element: InventoryReservationsList,
     isPrivate: true,
   },

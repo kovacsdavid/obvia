@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/dropdown-menu.tsx";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -130,48 +131,44 @@ export default function List() {
       <Card>
         <CardHeader>
           <CardTitle>Adatbázisok</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={"flex justify-between items-center mb-6"}>
-            <div className="flex gap-2">
-              <Link to={"/adatbazis/letrehozas"}>
-                <Button style={{ color: "green" }} variant="outline">
-                  <Plus color="green" /> Új
+          <CardAction>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button className={"mr-2"} variant="outline">
+                  Szűrő <Funnel />
                 </Button>
-              </Link>
-            </div>
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline">
-                    Szűrő <Funnel />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <h4 className="leading-none font-medium">Szűrő</h4>
-                      <p className="text-muted-foreground text-sm">
-                        Szűkítsd a találatok listáját szűrőfeltételekkel!
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Név</Label>
-                        <Input
-                          id="name"
-                          onBlur={(e) => filterSelect("name", e.target.value)}
-                          value={filterValue}
-                          onChange={(e) => setFilterValue(e.target.value)}
-                          className="col-span-2 h-8"
-                        />
-                      </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="leading-none font-medium">Szűrő</h4>
+                    <p className="text-muted-foreground text-sm">
+                      Szűkítsd a találatok listáját szűrőfeltételekkel!
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="name">Név</Label>
+                      <Input
+                        id="name"
+                        onBlur={(e) => filterSelect("name", e.target.value)}
+                        value={filterValue}
+                        onChange={(e) => setFilterValue(e.target.value)}
+                        className="col-span-2 h-8"
+                      />
                     </div>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Link to={"/adatbazis/letrehozas"}>
+              <Button style={{ color: "green" }} variant="outline">
+                Új <Plus color="green" />
+              </Button>
+            </Link>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>

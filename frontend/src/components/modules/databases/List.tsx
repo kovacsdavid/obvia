@@ -18,7 +18,7 @@
  */
 
 import { Link } from "react-router-dom";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { list } from "@/components/modules/databases/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {

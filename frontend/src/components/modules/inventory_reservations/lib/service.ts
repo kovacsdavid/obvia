@@ -73,15 +73,18 @@ export async function create(
 }
 
 export async function list(
-  query: string | null,
+  params: {
+    inventoryId: string;
+    query: string | null;
+  },
   token: string | null,
 ): Promise<
   ProcessedResponse<PaginatedInventoryReservationResolvedListResponse>
 > {
   const uri =
-    query === null
-      ? `/api/inventory_reservations/list`
-      : `/api/inventory_reservations/list?q=${query}`;
+    params.query === null
+      ? `/api/inventory_reservations/list?inventory_id=${params.inventoryId}`
+      : `/api/inventory_reservations/list?inventory_id=${params.inventoryId}&q=${params.query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {

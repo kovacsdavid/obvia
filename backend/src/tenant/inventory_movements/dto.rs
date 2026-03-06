@@ -170,3 +170,21 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct InventoryMovementsRawQuery {
+    inventory_id: Uuid,
+    q: Option<String>,
+}
+
+impl InventoryMovementsRawQuery {
+    pub fn inventory_id(&self) -> Uuid {
+        self.inventory_id
+    }
+    pub fn q_as_str(&self) -> &str {
+        match &self.q {
+            Some(v) => v,
+            None => "",
+        }
+    }
+}

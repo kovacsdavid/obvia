@@ -147,7 +147,7 @@ impl InventoryRepository for PgPoolManager {
             (Some(filter_by), Some(value_unchecked)) => {
                 let filter_by = match filter_by {
                     "product" => "products.name",
-                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string()))
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
                 };
                 sqlx::query_as(&format!(
                     r#"SELECT COUNT(*) FROM inventory
@@ -184,7 +184,7 @@ impl InventoryRepository for PgPoolManager {
             (Some(filter_by), Some(value_unchecked)) => {
                 let filter_by = match filter_by {
                     "product" => "products.name",
-                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string()))
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
                 };
                 let sql = format!(
                     r#"

@@ -71,8 +71,8 @@ mod tests {
 
     #[test]
     fn test_valid_filter_by() {
-        let filter_by: ValueObject<FilterBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(filter_by.as_str(), "name");
+        let filter_by: ValueObject<FilterBy> = serde_json::from_str(r#""product""#).unwrap();
+        assert_eq!(filter_by.as_str(), "product");
     }
 
     #[test]
@@ -89,26 +89,26 @@ mod tests {
 
     #[test]
     fn test_display_implementation() {
-        let filter_by = FilterBy("name".to_string());
-        assert_eq!(format!("{}", filter_by), "name");
+        let filter_by = FilterBy("product".to_string());
+        assert_eq!(format!("{}", filter_by), "product");
     }
 
     #[test]
     fn test_clone() {
-        let filter_by = FilterBy("name".to_string());
+        let filter_by = FilterBy("product".to_string());
         let cloned = filter_by.clone();
         assert_eq!(filter_by, cloned);
     }
 
     #[test]
     fn test_debug_output() {
-        let filter_by = FilterBy("name".to_string());
-        assert_eq!(format!("{:?}", filter_by), r#"FilterBy("name")"#);
+        let filter_by = FilterBy("product".to_string());
+        assert_eq!(format!("{:?}", filter_by), r#"FilterBy("product")"#);
     }
 
     #[test]
     fn test_validation() {
-        let valid = FilterBy("name".to_string());
+        let valid = FilterBy("product".to_string());
         assert!(valid.validate().is_ok());
 
         let invalid = FilterBy("invalid".to_string());
@@ -120,15 +120,15 @@ mod tests {
 
     #[test]
     fn test_get_value() {
-        let value = "name".to_string();
+        let value = "product".to_string();
         let filter_by = FilterBy(value.clone());
         assert_eq!(filter_by.get_value(), &value);
     }
 
     #[test]
     fn test_from_str() {
-        let filter_by = FilterBy::from_str("name").unwrap();
-        assert_eq!(filter_by.get_value(), "name");
+        let filter_by = FilterBy::from_str("product").unwrap();
+        assert_eq!(filter_by.get_value(), "product");
     }
 
     #[test]

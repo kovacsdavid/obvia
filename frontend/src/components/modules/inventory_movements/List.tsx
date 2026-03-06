@@ -17,6 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover.tsx";
 import React, { useCallback, useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -40,10 +45,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table.tsx";
-import { Button, GlobalError } from "@/components/ui";
+import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
-import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
+import { Eye, Funnel, MoreHorizontal, Plus, Trash } from "lucide-react";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
@@ -82,31 +87,35 @@ export default function InventoryMovementsList() {
     order,
     paginatorSelect,
     orderSelect,
-    //filterSelect,
+    filterSelect,
     totalPages,
+    filterValue,
+    setFilterValue,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
   const refresh = useCallback(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      if (list.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined" &&
-          typeof response.payload.jsonData?.meta !== "undefined"
-        ) {
-          setPage(response.payload.jsonData.meta.page);
-          setLimit(response.payload.jsonData.meta.limit);
-          setTotal(response.payload.jsonData.meta.total);
-          setData(response.payload.jsonData.data);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
+    dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
+      async (response) => {
+        if (list.fulfilled.match(response)) {
+          if (
+            response.payload.statusCode === 200 &&
+            typeof response.payload.jsonData?.data !== "undefined" &&
+            typeof response.payload.jsonData?.meta !== "undefined"
+          ) {
+            setPage(response.payload.jsonData.meta.page);
+            setLimit(response.payload.jsonData.meta.limit);
+            setTotal(response.payload.jsonData.meta.total);
+            setData(response.payload.jsonData.data);
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors(response.payload.jsonData.error);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
-          unexpectedError(response.payload.statusCode);
+          unexpectedError();
         }
-      } else {
-        unexpectedError();
-      }
-    });
+      },
+    );
   }, [
     dispatch,
     rawQuery,
@@ -115,6 +124,7 @@ export default function InventoryMovementsList() {
     setTotal,
     setErrors,
     unexpectedError,
+    routeInventoryId,
   ]);
 
   const handleDelete = (id: string) => {
@@ -149,9 +159,38 @@ export default function InventoryMovementsList() {
         <CardHeader>
           <CardTitle>Készletmozgások</CardTitle>
           <CardAction>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button className={"justify-self-end mr-2"} variant="outline">
+                  Szűrő <Funnel />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="leading-none font-medium">Szűrő</h4>
+                    <p className="text-muted-foreground text-sm">
+                      Szűkítsd a találatok listáját szűrőfeltételekkel!
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="name">Név</Label>
+                      <Input
+                        id="name"
+                        onBlur={(e) => filterSelect("name", e.target.value)}
+                        value={filterValue}
+                        onChange={(e) => setFilterValue(e.target.value)}
+                        className="col-span-2 h-8"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Link to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}>
               <Button style={{ color: "green" }} variant="outline">
-                <Plus color="green" /> Új
+                Új <Plus color="green" />
               </Button>
             </Link>
           </CardAction>

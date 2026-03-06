@@ -56,15 +56,11 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
-import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<TaskResolvedList>([]);
-  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-    console.log(parsedQuery);
-  }, []);
 
   const {
     rawQuery,
@@ -76,9 +72,11 @@ export default function List() {
     order,
     paginatorSelect,
     orderSelect,
-    //filterSelect,
+    filterSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+    filterValue,
+    setFilterValue,
+  } = useDataDisplayCommon(null);
 
   const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
@@ -162,10 +160,12 @@ export default function List() {
                     </div>
                     <div className="grid gap-2">
                       <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
+                        <Label htmlFor="name">Név</Label>
                         <Input
                           id="name"
-                          defaultValue=""
+                          onBlur={(e) => filterSelect("name", e.target.value)}
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>

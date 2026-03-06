@@ -58,8 +58,8 @@ export function useDataDisplayCommon(
       setOrder("asc");
     }
     if (
-      typeof getQuery?.filtering?.filter_by === "string"
-      && typeof getQuery?.filtering?.value === "string"
+      typeof getQuery?.filtering?.filter_by === "string" &&
+      typeof getQuery?.filtering?.value === "string"
     ) {
       setFilterBy(getQuery.filtering.filter_by);
       setFilterValue(getQuery.filtering.value);

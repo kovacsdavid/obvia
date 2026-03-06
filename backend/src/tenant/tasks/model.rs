@@ -64,23 +64,6 @@ pub struct TaskResolved {
     pub description: Option<String>,
 }
 
-/// Represents the association of a task assigned to a user, along with metadata about its creation and potential deletion.
-///
-/// ## Fields
-///
-/// - `id`: Unique identifier for the task assignment.
-/// - `user_id`: Identifier of the user to whom the task is assigned.
-/// - `task_id`: Identifier of the task that is assigned.
-/// - `created_by`: Identifier of the user or entity that created this task assignment.
-/// - `created_at`: The timestamp of when the task assignment was created.
-/// - `deleted_at`: Optional timestamp for when the task assignment was deleted. If `None`, the task assignment has not been deleted.
-///
-/// ## Traits
-///
-/// - `#[derive(Debug)]`: Allows formatting for debugging purposes.
-/// - `#[derive(Clone)]`: Provides the ability to clone instances of the struct.
-/// - `#[derive(Serialize, Deserialize)]`: Enables serialization and deserialization for interaction with external systems or formats.
-/// - `#[derive(FromRow)]`: Allows mapping of database query results to this struct.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct TaskAssignment {
     pub id: Uuid,

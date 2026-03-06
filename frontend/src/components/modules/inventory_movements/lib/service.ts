@@ -75,13 +75,16 @@ export async function create(
 }
 
 export async function list(
-  query: string | null,
+  params: {
+    inventoryId: string;
+    query: string | null;
+  },
   token: string | null,
 ): Promise<ProcessedResponse<PaginatedInventoryMovementResolvedListResponse>> {
   const uri =
-    query === null
-      ? `/api/inventory_movements/list`
-      : `/api/inventory_movements/list?q=${query}`;
+    params.query === null
+      ? `/api/inventory_movements/list?inventory_id=${params.inventoryId}`
+      : `/api/inventory_movements/list?inventory_id=${params.inventoryId}&q=${params.query}`;
   return await fetch(uri, {
     method: "GET",
     headers: {

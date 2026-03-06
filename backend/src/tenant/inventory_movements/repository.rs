@@ -144,7 +144,9 @@ impl InventoryMovementsRepository for PgPoolManager {
             query_params.ordering().order_by(), // Security: ValueObject
             query_params.ordering().order(),    // Security: enum
         ) {
-            (Some(order_by), Some(order)) => format!("ORDER BY inventory_movements.{order_by} {order}"),
+            (Some(order_by), Some(order)) => {
+                format!("ORDER BY inventory_movements.{order_by} {order}")
+            }
             (_, _) => "".to_string(),
         };
 
@@ -178,8 +180,8 @@ impl InventoryMovementsRepository for PgPoolManager {
                     WHERE inventory_movements.inventory_id = $1
                         AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     {order_by_clause}
-                    OFFSET $3
-                    LIMIT $4
+                    LIMIT $3
+                    OFFSET $4
                     "#
                 );
 
@@ -214,8 +216,8 @@ impl InventoryMovementsRepository for PgPoolManager {
                     LEFT JOIN users ON inventory_movements.created_by_id = users.id
                     WHERE inventory_movements.inventory_id = $1
                     {order_by_clause}
-                    OFFSET $2
-                    LIMIT $3
+                    LIMIT $2
+                    OFFSET $3
                     "#
                 );
 

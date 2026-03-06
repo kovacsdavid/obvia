@@ -76,8 +76,10 @@ export default function List() {
     order,
     paginatorSelect,
     orderSelect,
-    //filterSelect,
+    filterSelect,
     totalPages,
+    filterValue,
+    setFilterValue,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
   const refresh = useCallback(() => {
@@ -162,10 +164,14 @@ export default function List() {
                     </div>
                     <div className="grid gap-2">
                       <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
+                        <Label htmlFor="description">Leírás</Label>
                         <Input
-                          id="name"
-                          defaultValue=""
+                          id="description"
+                          onBlur={(e) =>
+                            filterSelect("description", e.target.value)
+                          }
+                          value={filterValue}
+                          onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
                         />
                       </div>

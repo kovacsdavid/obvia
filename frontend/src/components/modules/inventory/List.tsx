@@ -49,7 +49,7 @@ import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { deleteItem, list } from "@/components/modules/inventory/lib/slice.ts";
 import { type InventoryResolvedList } from "@/components/modules/inventory/lib/interface.ts";
-import { formatDateToYMDHMS, query_encoder } from "@/lib/utils.ts";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -172,7 +172,9 @@ export default function List() {
                         <Label htmlFor="product">Termék</Label>
                         <Input
                           id="name"
-                          onBlur={(e) => filterSelect("product", e.target.value)}
+                          onBlur={(e) =>
+                            filterSelect("product", e.target.value)
+                          }
                           value={filterValue}
                           onChange={(e) => setFilterValue(e.target.value)}
                           className="col-span-2 h-8"
@@ -296,16 +298,12 @@ export default function List() {
                           </DropdownMenuItem>
                         </Link>
                         <DropdownMenuSeparator />
-                        <Link
-                          to={`/raktarkeszlet-mozgas/lista?q=${query_encoder({ filtering: { filter_by: "inventory_id", value: item.id } })}`}
-                        >
+                        <Link to={`/raktarkeszlet-mozgas/lista/${item.id}`}>
                           <DropdownMenuItem>
                             <Combine /> Készletmozgatás
                           </DropdownMenuItem>
                         </Link>
-                        <Link
-                          to={`/raktarkeszlet-foglalas/lista?q=${query_encoder({ filtering: { filter_by: "inventory_id", value: item.id } })}`}
-                        >
+                        <Link to={`/raktarkeszlet-foglalas/lista/${item.id}`}>
                           <DropdownMenuItem>
                             <Timer /> Készletfoglalás
                           </DropdownMenuItem>

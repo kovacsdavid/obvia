@@ -18,9 +18,11 @@
  */
 
 pub(crate) mod description;
+pub(crate) mod filter_by;
 pub(crate) mod name;
 pub(crate) mod order_by;
 
 pub(crate) use description::Description as TagDescription;
+pub(crate) use filter_by::FilterBy as TagFilterBy;
 pub(crate) use name::Name as TagName;
 pub(crate) use order_by::OrderBy as TagOrderBy;

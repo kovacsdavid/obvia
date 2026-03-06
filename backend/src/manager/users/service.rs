@@ -21,7 +21,6 @@ use crate::common::MailTransporter;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::extractors::ClientContext;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
@@ -233,7 +232,7 @@ impl UsersService {
         }
 
         match user
-            .check_mfa_token(payload.otp.extract().get_value())
+            .check_mfa_token(payload.otp.as_str())
             .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),
@@ -392,7 +391,7 @@ impl UsersService {
         };
 
         match user
-            .check_mfa_token(payload.otp.extract().get_value())
+            .check_mfa_token(payload.otp.as_str())
             .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),

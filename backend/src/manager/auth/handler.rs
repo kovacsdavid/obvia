@@ -549,7 +549,7 @@ mod tests {
                     && Argon2::default()
                         .verify_password(
                             b"Password1!",
-                            &PasswordHash::new(&hashed_password).unwrap(),
+                            &PasswordHash::new(hashed_password).unwrap(),
                         )
                         .is_ok()
             })
@@ -578,7 +578,7 @@ mod tests {
             .returning(|user_id| {
                 Ok(EmailVerification {
                     id: Uuid::new_v4(),
-                    user_id: user_id,
+                    user_id,
                     valid_until: chrono::Local::now() + chrono::Duration::days(1),
                     created_at: chrono::Local::now(),
                     deleted_at: None,

@@ -19,12 +19,11 @@
 
 import { useSearchParams } from "react-router-dom";
 import { query_encoder, query_parser } from "@/lib/utils.ts";
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
+import type { GetQuery } from "@/lib/get_query";
 
 export function useDataDisplayCommon(
-  updateSpecialQueryParams: (
-    parsedQuery: Record<string, string | number>,
-  ) => void,
+  updateSpecialQueryParams: ((parsedQuery: GetQuery) => void) | null,
 ) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [page, setPage] = React.useState<number>(1);
@@ -34,55 +33,97 @@ export function useDataDisplayCommon(
   const [order, setOrder] = React.useState("asc");
   const rawQuery = useMemo(() => searchParams.get("q"), [searchParams]);
   const parsedQuery = useMemo(() => query_parser(rawQuery), [rawQuery]);
+  const [filterBy, setFilterBy] = React.useState<string>("");
+  const [filterValue, setFilterValue] = React.useState<string>("");
 
-  const updateCommonQueryParams = (
-    parsedQuery: Record<string, string | number>,
-  ) => {
-    if ("page" in parsedQuery) {
-      setPage(parsedQuery["page"] as number);
+  const updateCommonQueryParams = useCallback((getQuery: GetQuery) => {
+    if (
+      typeof getQuery.paging?.page === "number" &&
+      typeof getQuery.paging?.limit === "number"
+    ) {
+      setPage(getQuery.paging.page);
+      setLimit(getQuery.paging.limit);
+    } else {
+      setPage(1);
+      setLimit(25);
     }
-    if ("limit" in parsedQuery) {
-      setLimit(parsedQuery["limit"] as number);
+    if (
+      typeof getQuery.ordering?.order_by === "string" &&
+      typeof getQuery.ordering?.order === "string"
+    ) {
+      setOrderBy(getQuery.ordering.order_by);
+      setOrder(getQuery.ordering?.order);
+    } else {
+      setOrderBy("created_at");
+      setOrder("asc");
     }
-    if ("order_by" in parsedQuery) {
-      setOrderBy(parsedQuery["order_by"] as string);
+    if (
+      typeof getQuery?.filtering?.filter_by === "string" &&
+      typeof getQuery?.filtering?.value === "string"
+    ) {
+      setFilterBy(getQuery.filtering.filter_by);
+      setFilterValue(getQuery.filtering.value);
     }
-    if ("order" in parsedQuery) {
-      setOrder(parsedQuery["order"] as string);
-    }
-  };
+  }, []);
 
   useEffect(() => {
     // TODO: improve this
     // eslint-disable-next-line react-hooks/set-state-in-effect
     updateCommonQueryParams(parsedQuery);
-    updateSpecialQueryParams(parsedQuery);
-  }, [parsedQuery, updateSpecialQueryParams]);
+    if (typeof updateSpecialQueryParams === "function") {
+      updateSpecialQueryParams(parsedQuery);
+    }
+  }, [parsedQuery, updateSpecialQueryParams, updateCommonQueryParams]);
 
   const paginatorSelect = (pageNumber: number) => {
-    const current_query = query_parser(searchParams.get("q"));
-    current_query.page = pageNumber;
-    searchParams.set("q", query_encoder(current_query));
+    const currentQuery = query_parser(searchParams.get("q"));
+    if (
+      typeof currentQuery.paging?.page === "number" &&
+      typeof currentQuery.paging?.limit === "number"
+    ) {
+      currentQuery.paging.page = pageNumber;
+    } else {
+      currentQuery.paging = {
+        page: pageNumber,
+        limit,
+      };
+    }
+    searchParams.set("q", query_encoder(currentQuery));
     setSearchParams(searchParams);
   };
   const orderSelect = (orderBy: string) => {
-    const current_query = query_parser(searchParams.get("q"));
-    current_query.order_by = orderBy;
-    current_query.order = current_query.order === "asc" ? "desc" : "asc";
-    searchParams.set("q", query_encoder(current_query));
+    const currentQuery = query_parser(searchParams.get("q"));
+
+    if (
+      typeof currentQuery.ordering?.order_by === "string" &&
+      typeof currentQuery.ordering?.order === "string"
+    ) {
+      currentQuery.ordering = {
+        order_by: orderBy,
+        order: currentQuery.ordering?.order === "desc" ? "asc" : "desc",
+      };
+    } else {
+      currentQuery.ordering = {
+        order_by: orderBy,
+        order: "asc",
+      };
+    }
+    searchParams.set("q", query_encoder(currentQuery));
     setSearchParams(searchParams);
   };
 
-  const filterSelect = (filterBy: string, value: string) => {
+  const filterSelect = (field: string, value: string) => {
+    const currentQuery = query_parser(searchParams.get("q"));
     if (value.trim().length > 0) {
-      const current_query = query_parser(searchParams.get("q"));
-      current_query[filterBy] = value;
-      searchParams.set("q", query_encoder(current_query));
+      currentQuery.filtering = {
+        filter_by: field,
+        value,
+      };
+      searchParams.set("q", query_encoder(currentQuery));
       setSearchParams(searchParams);
     } else {
-      const current_query = query_parser(searchParams.get("q"));
-      delete current_query[filterBy];
-      searchParams.set("q", query_encoder(current_query));
+      delete currentQuery.filtering;
+      searchParams.set("q", query_encoder(currentQuery));
       setSearchParams(searchParams);
     }
   };
@@ -109,5 +150,9 @@ export function useDataDisplayCommon(
     filterSelect,
     totalPages,
     parsedQuery,
+    filterBy,
+    setFilterBy,
+    filterValue,
+    setFilterValue,
   };
 }

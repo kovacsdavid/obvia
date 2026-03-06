@@ -37,7 +37,6 @@ pub(crate) use first_name::FirstName;
 pub(crate) use float64::Float64;
 pub(crate) use integer32::Integer32;
 pub(crate) use last_name::LastName;
-pub(crate) use order::Order;
 pub(crate) use password::Password;
 // pub(crate) use positiveinteger32::PositiveInteger32;
 pub(crate) use value_object::ValueObject;

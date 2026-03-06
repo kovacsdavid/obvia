@@ -18,18 +18,20 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
-use crate::tenant::inventory_reservations::types::InventoryReservationOrderBy;
+use crate::tenant::inventory_reservations::types::{
+    InventoryReservationFilterBy, InventoryReservationOrderBy,
+};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -163,9 +165,7 @@ impl InventoryReservationsService {
     }
 
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<InventoryReservationOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         claims: &Claims,
         repo: Arc<dyn InventoryReservationsRepository>,
         inventory_id: Uuid,
@@ -173,9 +173,7 @@ impl InventoryReservationsService {
     {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(InventoryReservationsServiceError::Unauthorized)?,

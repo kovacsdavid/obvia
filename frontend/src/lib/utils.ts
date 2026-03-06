@@ -19,41 +19,35 @@
 
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { encode_get_query, parse_get_query, type GetQuery } from "./get_query";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function query_parser(
-  encodedStr: unknown,
-): Record<string, string | number> {
-  const result: Record<string, string | number> = {};
+export function query_parser(encodedStr: unknown): GetQuery {
+  const result: GetQuery = {
+    ordering: {
+      order_by: null,
+      order: null,
+    },
+    paging: {
+      page: null,
+      limit: null,
+    },
+    filtering: {
+      filter_by: null,
+      value: null,
+    },
+  };
   if (typeof encodedStr === "string") {
-    const decodedStr = decodeURIComponent(encodedStr);
-    const pairs = decodedStr.split("|");
-
-    pairs.forEach((pair) => {
-      const keyValue = pair.split(":");
-      if (keyValue.length === 2) {
-        const key = keyValue[0].trim();
-        const value = keyValue[1].trim();
-
-        if (key.length > 0 && value.length > 0) {
-          result[key] = !isNaN(Number(value)) ? Number(value) : value;
-        }
-      }
-    });
+    return parse_get_query(decodeURIComponent(encodedStr));
   }
   return result;
 }
 
-export function query_encoder(params: Record<string, string | number>): string {
-  const pairs = Object.entries(params).map(([key, valueRaw]) => {
-    const value = valueRaw.toString().trim();
-    return `${key}:${value}`;
-  });
-  const concatenated = pairs.join("|");
-  return encodeURIComponent(concatenated);
+export function query_encoder(params: GetQuery): string {
+  return encodeURIComponent(encode_get_query(params));
 }
 
 export function formatDateToYMDHMS(dateString: string): string {
@@ -97,12 +91,6 @@ export function formatDateToYMD(dateString: string): string {
   }
 }
 
-/**
- * Formats a number with thousand separators and decimal formatting
- * @param value - The number or string to format
- * @param options - Formatting options
- * @returns Formatted string with number conventions
- */
 export function formatNumber(
   value: string | number,
   options: {
@@ -176,11 +164,6 @@ export function formatNumber(
   return formatted;
 }
 
-/**
- * Parses a formatted number string to a standard number
- * @param value - The formatted string
- * @returns Parsed number or NaN if invalid
- */
 export function parseNumber(value: string): number {
   if (!value || value.trim() === "") {
     return NaN;
@@ -192,11 +175,6 @@ export function parseNumber(value: string): number {
   return parseFloat(normalized);
 }
 
-/**
- * Validates if a string is a valid number format
- * @param value - The string to validate
- * @returns True if valid  number format
- */
 export function isValidNumber(value: string): boolean {
   if (!value || value.trim() === "") {
     return true; // Allow empty values

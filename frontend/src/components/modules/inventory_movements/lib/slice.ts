@@ -83,11 +83,17 @@ export const select_list = createAsyncThunk(
 
 export const list = createAsyncThunk(
   "inventory_movements/list",
-  async (query: string | null, { getState, dispatch }) => {
+  async (
+    params: {
+      inventoryId: string;
+      query: string | null;
+    },
+    { getState, dispatch },
+  ) => {
     await dispatch(refreshAccessToken());
     const rootState = getState() as RootState;
     const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.list(query, token);
+    return await inventoryMovementsApi.list(params, token);
   },
 );
 

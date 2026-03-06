@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,7 +27,7 @@ pub struct DefaultPrice(pub String);
 impl ValueObjectable for DefaultPrice {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0.trim().is_empty() {
             Ok(())
         } else {
@@ -35,7 +35,9 @@ impl ValueObjectable for DefaultPrice {
                 .trim()
                 .replace(",", ".")
                 .parse::<f64>()
-                .map_err(|_| String::from("Hibás alapértelmezett ár formátum!"))?;
+                .map_err(|_| {
+                    ValueObjectError::InvalidInput("Hibás alapértelmezett ár formátum!")
+                })?;
             Ok(())
         }
     }
@@ -64,24 +66,23 @@ impl<'de> Deserialize<'de> for ValueObject<DefaultPrice> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_default_price() {
         let price: ValueObject<DefaultPrice> = serde_json::from_str(r#""123.45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123.45");
+        assert_eq!(price.as_str(), "123.45");
 
         let price: ValueObject<DefaultPrice> = serde_json::from_str(r#""123,45""#).unwrap();
-        assert_eq!(price.extract().get_value(), "123,45");
+        assert_eq!(price.as_str(), "123,45");
     }
 
     #[test]
     fn test_empty_default_price() {
         let price: ValueObject<DefaultPrice> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(price.extract().get_value(), "");
+        assert_eq!(price.as_str(), "");
 
         let price: ValueObject<DefaultPrice> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(price.extract().get_value(), "  ");
+        assert_eq!(price.as_str(), "  ");
     }
 
     #[test]

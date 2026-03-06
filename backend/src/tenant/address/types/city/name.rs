@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,57 +27,22 @@ pub struct Name(pub String);
 impl ValueObjectable for Name {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
-        Err(String::from("Not implemented yet!"))
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        Err(ValueObjectError::InvalidInput("Not implemented yet!"))
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl Display for Name {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<Name> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `Name` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,

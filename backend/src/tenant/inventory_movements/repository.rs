@@ -17,14 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
-use crate::tenant::inventory_movements::types::InventoryMovementOrderBy;
+use crate::tenant::inventory_movements::types::{
+    InventoryMovementFilterBy, InventoryMovementOrderBy,
+};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -42,9 +43,7 @@ pub trait InventoryMovementsRepository: Send + Sync {
     ) -> RepositoryResult<InventoryMovementResolved>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<InventoryMovementOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
@@ -111,65 +110,133 @@ impl InventoryMovementsRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<InventoryMovementOrderBy>,
-        _filtering_params: &FilteringParams,
+        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
-        let count: (i64,) = sqlx::query_as(
-            r#"
-            SELECT COUNT(*)
-            FROM inventory_movements m
-            WHERE m.inventory_id = $1
-            "#,
-        )
-        .bind(inventory_id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
-        .await?;
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM inventory_movements
+                        WHERE inventory_id = $1
+                            AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
+                ))
+                    .bind(inventory_id)
+                    .bind(value_unchecked)
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            },
+            (_, _) => {
+                sqlx::query_as(
+                    r#"SELECT COUNT(*) FROM inventory_movements
+                        WHERE inventory_id = $1"#,
+                )
+                    .bind(inventory_id)
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by = ordering_params.order_by.extract().get_value();
-        let order = ordering_params.order.extract().get_value();
-        let query = format!(
-            r#"
-            SELECT
-                inventory_movements.id,
-                inventory_movements.inventory_id,
-                inventory_movements.movement_type,
-                inventory_movements.quantity,
-                inventory_movements.reference_type,
-                inventory_movements.reference_id,
-                inventory_movements.unit_price,
-                inventory_movements.total_price,
-                inventory_movements.tax_id,
-                taxes.description as tax,
-                inventory_movements.movement_date,
-                inventory_movements.created_by_id,
-                (users.last_name || ' ' || users.first_name) AS created_by,
-                inventory_movements.created_at
-            FROM inventory_movements
-            LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
-            LEFT JOIN users ON inventory_movements.created_by_id = users.id
-            WHERE inventory_movements.inventory_id = $1
-            ORDER BY {order_by} {order}
-            OFFSET $2 LIMIT $3
-            "#
-        ); // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => {
+                format!("ORDER BY inventory_movements.{order_by} {order}")
+            }
+            (_, _) => "".to_string(),
+        };
 
-        let items = sqlx::query_as::<_, InventoryMovementResolved>(&query)
-            .bind(inventory_id)
-            .bind(paginator_params.offset())
-            .bind(paginator_params.limit)
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
+
+        let inventory_movements = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let query = format!(
+                    r#"
+                    SELECT
+                        inventory_movements.id,
+                        inventory_movements.inventory_id,
+                        inventory_movements.movement_type,
+                        inventory_movements.quantity,
+                        inventory_movements.reference_type,
+                        inventory_movements.reference_id,
+                        inventory_movements.unit_price,
+                        inventory_movements.total_price,
+                        inventory_movements.tax_id,
+                        taxes.description as tax,
+                        inventory_movements.movement_date,
+                        inventory_movements.created_by_id,
+                        (users.last_name || ' ' || users.first_name) AS created_by,
+                        inventory_movements.created_at
+                    FROM inventory_movements
+                    LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+                    LEFT JOIN users ON inventory_movements.created_by_id = users.id
+                    WHERE inventory_movements.inventory_id = $1
+                        AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')
+                    {order_by_clause}
+                    LIMIT $3
+                    OFFSET $4
+                    "#
+                );
+
+                sqlx::query_as::<_, InventoryMovementResolved>(&query)
+                    .bind(inventory_id)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let query = format!(
+                    r#"
+                    SELECT
+                        inventory_movements.id,
+                        inventory_movements.inventory_id,
+                        inventory_movements.movement_type,
+                        inventory_movements.quantity,
+                        inventory_movements.reference_type,
+                        inventory_movements.reference_id,
+                        inventory_movements.unit_price,
+                        inventory_movements.total_price,
+                        inventory_movements.tax_id,
+                        taxes.description as tax,
+                        inventory_movements.movement_date,
+                        inventory_movements.created_by_id,
+                        (users.last_name || ' ' || users.first_name) AS created_by,
+                        inventory_movements.created_at
+                    FROM inventory_movements
+                    LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+                    LEFT JOIN users ON inventory_movements.created_by_id = users.id
+                    WHERE inventory_movements.inventory_id = $1
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, InventoryMovementResolved>(&query)
+                    .bind(inventory_id)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
-                total: count.0,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
+                total: total.0,
             },
-            items,
+            inventory_movements,
         ))
     }
 
@@ -181,23 +248,13 @@ impl InventoryMovementsRepository for PgPoolManager {
     ) -> RepositoryResult<InventoryMovement> {
         let unit_price = match &input.unit_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("unit_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let total_price = match &input.total_price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("total_price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
-        let movement_type = input.movement_type.extract().get_value();
+        let movement_type = input.movement_type.as_str();
         let quantity = input
             .quantity(movement_type == "out")
             .map_err(|e| RepositoryError::InvalidInput("quantity".to_string()))?;
@@ -213,12 +270,7 @@ impl InventoryMovementsRepository for PgPoolManager {
         .bind(input.inventory_id)
         .bind(movement_type)
         .bind(quantity)
-        .bind(
-            input
-                .reference_type
-                .as_ref()
-                .map(|v| v.extract().get_value().as_str()),
-        )
+        .bind(input.reference_type.as_ref().map(|v| v.as_str()))
         .bind(input.reference_id)
         .bind(unit_price)
         .bind(input.tax_id)

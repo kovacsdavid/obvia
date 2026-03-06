@@ -19,7 +19,6 @@
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Integer32;
 use crate::common::types::ValueObject;
-use crate::common::types::value_object::ValueObjectable;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::InventoryStatus;
 use crate::validate_optional_string;

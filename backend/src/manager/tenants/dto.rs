@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::QueryParam;
 use crate::common::error::FormErrorResponse;
 use crate::common::types::ValueObject;
 use crate::manager::app::config::TenantDatabaseConfig;
@@ -28,21 +27,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
-/// A structure that represents a helper for creating a request with optional database configuration details.
-///
-/// # Fields
-///
-/// * `name` - A mandatory field that specifies the name of the request helper. This field is represented as a `String`.
-///
-/// * `db_host` - An optional field that specifies the hostname or IP address of the database. This field is represented as an `Option<String>`.
-///
-/// * `db_port` - An optional field that specifies the port number of the database. This field is represented as an `Option<i32>`.
-///
-/// * `db_name` - An optional field that specifies the name of the database. This field is represented as an `Option<String>`.
-///
-/// * `db_user` - An optional field that specifies the username for database authentication. This field is represented as an `Option<String>`.
-///
-/// * `db_password` - An optional field that specifies the password for database authentication. This field is represented as an `Option<String>`.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct CreateTenantHelper {
     pub name: String,
@@ -54,22 +38,6 @@ pub struct CreateTenantHelper {
     pub db_password: Option<String>,
 }
 
-/// This struct contains optional fields that represent the potential issues or missing information
-/// related to tenant creation
-///
-/// # Fields
-///
-/// * `name` - An optional string representing an error related to the name field of the request.
-/// * `db_host` - An optional string indicating an error related to the database host.
-/// * `db_port` - An optional string indicating an error related to the database port.
-/// * `db_name` - An optional string representing an issue with the database name.
-/// * `db_user` - An optional string indicating an error with the database user credentials or configuration.
-/// * `db_password` - An optional string representing an issue with the database password credentials.
-///
-/// # Usage
-///
-/// This struct is typically used to encapsulate errors during creation requests of a tenant
-/// and to provide detailed feedback about specific fields that may have encountered an issue.
 #[derive(Debug, Serialize)]
 pub struct CreateTenantError {
     pub name: Option<String>,
@@ -82,12 +50,6 @@ pub struct CreateTenantError {
 }
 
 impl CreateTenantError {
-    /// Checks if the current instance of the struct is empty.
-    ///
-    ///
-    /// # Returns
-    /// * `true` - If all fields are `None`.
-    /// * `false` - If at least one field has a value.
     pub fn is_empty(&self) -> bool {
         self.name.is_none()
             && self.is_self_hosted.is_none()
@@ -116,15 +78,6 @@ impl IntoResponse for CreateTenantError {
     }
 }
 
-/// A structure representing a request for creating a tenant resource.
-///
-/// # Fields
-/// - `name`: The name of the tenant to be created. This field is mandatory and must be provided during initialization.
-/// - `db_host`: An optional field specifying the hostname or IP address of the database server.
-/// - `db_port`: An optional field representing the port number for connecting to the database.
-/// - `db_name`: An optional field specifying the name of the database.
-/// - `db_user`: An optional field for the username required to connect to the database.
-/// - `db_password`: An optional field for providing the password required for authentication when connecting to the database.
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CreateTenant {
@@ -138,14 +91,6 @@ pub struct CreateTenant {
 }
 
 impl CreateTenant {
-    /// Checks if the instance is self-hosted.
-    ///
-    /// This method returns the value of the `is_self_hosted` field, indicating whether
-    /// the instance is self-hosted or not.
-    ///
-    /// # Returns
-    /// * `true` - If the instance is self-hosted.
-    /// * `false` - If the instance is not self-hosted.
     pub fn is_self_hosted(&self) -> bool {
         self.is_self_hosted
     }
@@ -220,7 +165,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match value.db_port {
                 Some(val) => {
-                    db_port = match ValueObject::new(DbPort(val as i64)) {
+                    db_port = match ValueObject::new(DbPort(val.to_string())) {
                         Ok(db_port) => Some(db_port),
                         Err(e) => {
                             error.db_port = Some(e.to_string());
@@ -291,19 +236,57 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-/// This struct is for creating connection between users and tenants
-///
-/// Fields:
-/// - `user_id` (`Uuid`): The unique identifier for the user.
-/// - `tenant_id` (`Uuid`): The unique identifier for the tenant the user is connected to.
-/// - `role` (`String`): The role of the user in the tenant. Examples of roles could include "admin", "member", or other custom-defined roles.
-/// - `invited_by` (`Option<Uuid>`): The unique identifier of the user who invited this user to the tenant, if applicable. This field is optional and may be `None` if the user created the tenant.
 #[allow(dead_code)]
 pub struct UserTenantConnect {
     pub user_id: Uuid,
     pub tenant_id: Uuid,
     pub role: String,
     pub invited_by: Option<Uuid>,
+}
+
+#[derive(Serialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum PublicTenant {
+    Managed(PublicTenantManaged),
+    SelfHosted(PublicTenantSelfHosted),
+}
+
+impl From<Tenant> for PublicTenant {
+    fn from(value: Tenant) -> Self {
+        if value.is_self_hosted() {
+            Self::SelfHosted(PublicTenantSelfHosted {
+                id: value.id,
+                name: value.name,
+                is_self_hosted: value.is_self_hosted,
+                db_host: value.db_host,
+                db_port: value.db_port,
+                db_name: value.db_name,
+                db_user: value.db_user,
+                db_password: "[REDACTED]".to_string(),
+                db_max_pool_size: value.db_max_pool_size,
+                db_ssl_mode: value.db_ssl_mode,
+                created_at: value.created_at,
+                updated_at: value.updated_at,
+                deleted_at: value.deleted_at,
+            })
+        } else {
+            Self::Managed(PublicTenantManaged {
+                id: value.id,
+                name: value.name,
+                is_self_hosted: value.is_self_hosted,
+                db_host: "[MANAGED]".to_string(),
+                db_port: 0,
+                db_name: "[MANAGED]".to_string(),
+                db_user: "[MANAGED]".to_string(),
+                db_password: "[REDACTED]".to_string(),
+                db_max_pool_size: value.db_max_pool_size,
+                db_ssl_mode: value.db_ssl_mode,
+                created_at: value.created_at,
+                updated_at: value.updated_at,
+                deleted_at: value.deleted_at,
+            })
+        }
+    }
 }
 
 #[derive(Serialize, Debug, Clone, Default)]
@@ -376,31 +359,6 @@ impl From<Tenant> for PublicTenantManaged {
             created_at: value.created_at,
             updated_at: value.updated_at,
             deleted_at: value.deleted_at,
-        }
-    }
-}
-
-pub struct FilteringParams {
-    pub name: Option<String>,
-}
-
-impl From<&QueryParam> for FilteringParams {
-    fn from(value: &QueryParam) -> Self {
-        match value.as_hash_map() {
-            None => Self { name: None },
-            Some(hmap) => {
-                let name = match hmap.get("name").cloned() {
-                    None => None,
-                    Some(name) => {
-                        if !name.trim().is_empty() {
-                            Some(format!("%{}%", name.trim()))
-                        } else {
-                            None
-                        }
-                    }
-                };
-                Self { name }
-            }
         }
     }
 }

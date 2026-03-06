@@ -19,14 +19,14 @@
 
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Float64;
+use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::value_object::ValueObjectError;
 use crate::tenant::inventory_movements::types::{InventoryMovementType, InventoryReferenceType};
 use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use std::num::ParseFloatError;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
@@ -100,11 +100,11 @@ pub struct InventoryMovementUserInput {
 }
 
 impl InventoryMovementUserInput {
-    pub fn quantity(&self, negate: bool) -> Result<f64, ParseFloatError> {
+    pub fn quantity(&self, negate: bool) -> Result<f64, ValueObjectError> {
         if negate {
-            Ok(-self.quantity.extract().get_value().parse::<f64>()?)
+            Ok(-self.quantity.as_f64()?)
         } else {
-            Ok(self.quantity.extract().get_value().parse::<f64>()?)
+            Ok(self.quantity.as_f64()?)
         }
     }
 }
@@ -167,6 +167,24 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
             })
         } else {
             Err(error)
+        }
+    }
+}
+
+#[derive(Deserialize)]
+pub struct InventoryMovementsRawQuery {
+    inventory_id: Uuid,
+    q: Option<String>,
+}
+
+impl InventoryMovementsRawQuery {
+    pub fn inventory_id(&self) -> Uuid {
+        self.inventory_id
+    }
+    pub fn q_as_str(&self) -> &str {
+        match &self.q {
+            Some(v) => v,
+            None => "",
         }
     }
 }

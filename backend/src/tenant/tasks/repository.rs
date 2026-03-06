@@ -17,14 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::types::value_object::ValueObjectable;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
-use crate::tenant::tasks::types::task::TaskOrderBy;
+use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use async_trait::async_trait;
 use chrono::NaiveDate;
 #[cfg(test)]
@@ -42,9 +41,7 @@ pub trait TasksRepository: Send + Sync {
     ) -> RepositoryResult<TaskResolved>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<TaskOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
     async fn insert(
@@ -115,64 +112,143 @@ impl TasksRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<TaskOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
-        let total: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
-            .fetch_one(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "name" => "services.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
+                };
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM tasks
+                        LEFT JOIN services ON tasks.service_id = services.id
+                        WHERE tasks.deleted_at IS NULL
+                            AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')"#
+                ))
+                .bind(value_unchecked)
+                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY tasks.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY tasks.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT
-                tasks.id as id,
-                tasks.worksheet_id as worksheet_id,
-                worksheets.name as worksheet,
-                tasks.service_id as service_id,
-                services.name as service,
-                tasks.currency_code as currency_code,
-                tasks.quantity as quantity, 
-                tasks.price as price, 
-                tasks.tax_id as tax_id,
-                taxes.description as tax,
-                tasks.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                tasks.status as status,
-                tasks.priority as priority,
-                tasks.due_date as due_date,
-                tasks.created_at as created_at,
-                tasks.updated_at as updated_at,
-                tasks.deleted_at as deleted_at,
-                tasks.description as description
-            FROM tasks
-            LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
-            LEFT JOIN services ON tasks.service_id = services.id
-            LEFT JOIN taxes ON tasks.tax_id = taxes.id
-            LEFT JOIN users ON tasks.created_by_id = users.id
-            WHERE tasks.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let tasks = sqlx::query_as::<_, TaskResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let tasks = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "name" => "services.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
+                };
+                let sql = format!(
+                    r#"
+                    SELECT
+                        tasks.id as id,
+                        tasks.worksheet_id as worksheet_id,
+                        worksheets.name as worksheet,
+                        tasks.service_id as service_id,
+                        services.name as service,
+                        tasks.currency_code as currency_code,
+                        tasks.quantity as quantity,
+                        tasks.price as price,
+                        tasks.tax_id as tax_id,
+                        taxes.description as tax,
+                        tasks.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        tasks.status as status,
+                        tasks.priority as priority,
+                        tasks.due_date as due_date,
+                        tasks.created_at as created_at,
+                        tasks.updated_at as updated_at,
+                        tasks.deleted_at as deleted_at,
+                        tasks.description as description
+                    FROM tasks
+                    LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+                    LEFT JOIN services ON tasks.service_id = services.id
+                    LEFT JOIN taxes ON tasks.tax_id = taxes.id
+                    LEFT JOIN users ON tasks.created_by_id = users.id
+                    WHERE tasks.deleted_at IS NULL
+                        AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, TaskResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        tasks.id as id,
+                        tasks.worksheet_id as worksheet_id,
+                        worksheets.name as worksheet,
+                        tasks.service_id as service_id,
+                        services.name as service,
+                        tasks.currency_code as currency_code,
+                        tasks.quantity as quantity,
+                        tasks.price as price,
+                        tasks.tax_id as tax_id,
+                        taxes.description as tax,
+                        tasks.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        tasks.status as status,
+                        tasks.priority as priority,
+                        tasks.due_date as due_date,
+                        tasks.created_at as created_at,
+                        tasks.updated_at as updated_at,
+                        tasks.deleted_at as deleted_at,
+                        tasks.description as description
+                    FROM tasks
+                    LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+                    LEFT JOIN services ON tasks.service_id = services.id
+                    LEFT JOIN taxes ON tasks.tax_id = taxes.id
+                    LEFT JOIN users ON tasks.created_by_id = users.id
+                    WHERE tasks.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, TaskResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             tasks,
@@ -186,26 +262,16 @@ impl TasksRepository for PgPoolManager {
     ) -> RepositoryResult<Task> {
         let quantity = match &task.quantity {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let price = match &task.price {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .parse::<f64>()
-                    .map_err(|_| RepositoryError::InvalidInput("price".to_string()))?,
-            ),
+            Some(v) => Some(v.as_f64()?),
         };
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -215,17 +281,17 @@ impl TasksRepository for PgPoolManager {
         )
             .bind(task.worksheet_id)
             .bind(task.service_id)
-            .bind(task.currency_code.extract().get_value())
+            .bind(task.currency_code.as_str())
             .bind(quantity)
             .bind(price)
             .bind(task.tax_id)
             .bind(sub)
-            .bind(task.status.extract().get_value())
+            .bind(task.status.as_str())
             .bind(task.priority.as_ref()
-                .map(|d| d.extract().get_value().as_str()))
+                .map(|d| d.as_str()))
             .bind(due_date)
             .bind(task.description.as_ref()
-                .map(|d| d.extract().get_value().as_str()))
+                .map(|d| d.as_str()))
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
         )
@@ -238,7 +304,7 @@ impl TasksRepository for PgPoolManager {
         let due_date = match task.due_date {
             None => None,
             Some(v) => Some(
-                NaiveDate::parse_from_str(v.extract().get_value(), "%Y-%m-%d %H:%M:%S")
+                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d %H:%M:%S")
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
@@ -262,30 +328,14 @@ impl TasksRepository for PgPoolManager {
         )
         .bind(task.worksheet_id)
         .bind(task.service_id)
-        .bind(task.currency_code.extract().get_value())
-        .bind(
-            task.quantity
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
-        .bind(
-            task.price
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.currency_code.as_str())
+        .bind(task.quantity.as_ref().map(|d| d.as_str()))
+        .bind(task.price.as_ref().map(|d| d.as_str()))
         .bind(task.tax_id)
-        .bind(task.status.extract().get_value())
-        .bind(
-            task.priority
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.status.as_str())
+        .bind(task.priority.as_ref().map(|d| d.as_str()))
         .bind(due_date)
-        .bind(
-            task.description
-                .as_ref()
-                .map(|d| d.extract().get_value().as_str()),
-        )
+        .bind(task.description.as_ref().map(|d| d.as_str()))
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

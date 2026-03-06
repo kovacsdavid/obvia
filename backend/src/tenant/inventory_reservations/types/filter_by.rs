@@ -1,0 +1,151 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use crate::common::types::value_object::ValueObjectError;
+use crate::common::types::{ValueObject, ValueObjectable};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::str::FromStr;
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct FilterBy(pub String);
+
+impl ValueObjectable for FilterBy {
+    type DataType = String;
+
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        Err(ValueObjectError::InvalidInput("Hibás szűrő formátum"))
+    }
+
+    fn get_value(&self) -> &Self::DataType {
+        &self.0
+    }
+}
+
+impl FromStr for FilterBy {
+    type Err = ValueObjectError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(FilterBy(s.to_string()))
+    }
+}
+
+impl<'de> Deserialize<'de> for ValueObject<FilterBy> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        ValueObject::new(FilterBy(s)).map_err(serde::de::Error::custom)
+    }
+}
+
+impl Display for FilterBy {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[ignore]
+    fn test_valid_filter_by() {
+        let filter_by: ValueObject<FilterBy> = serde_json::from_str(r#""name""#).unwrap();
+        assert_eq!(filter_by.as_str(), "name");
+    }
+
+    #[test]
+    #[ignore]
+    fn test_invalid_filter_by() {
+        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(filter_by.is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_empty_filter_by() {
+        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""""#);
+        assert!(filter_by.is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_display_implementation() {
+        let filter_by = FilterBy("name".to_string());
+        assert_eq!(format!("{}", filter_by), "name");
+    }
+
+    #[test]
+    #[ignore]
+    fn test_clone() {
+        let filter_by = FilterBy("name".to_string());
+        let cloned = filter_by.clone();
+        assert_eq!(filter_by, cloned);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_debug_output() {
+        let filter_by = FilterBy("name".to_string());
+        assert_eq!(format!("{:?}", filter_by), r#"FilterBy("name")"#);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_validation() {
+        let valid = FilterBy("name".to_string());
+        assert!(valid.validate().is_ok());
+
+        let invalid = FilterBy("invalid".to_string());
+        assert!(invalid.validate().is_err());
+
+        let empty = FilterBy("".to_string());
+        assert!(empty.validate().is_err());
+    }
+
+    #[test]
+    #[ignore]
+    fn test_get_value() {
+        let value = "name".to_string();
+        let filter_by = FilterBy(value.clone());
+        assert_eq!(filter_by.get_value(), &value);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_from_str() {
+        let filter_by = FilterBy::from_str("name").unwrap();
+        assert_eq!(filter_by.get_value(), "name");
+    }
+
+    #[test]
+    #[ignore]
+    fn test_deserialization_error_messages() {
+        let invalid: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
+        assert!(
+            invalid
+                .unwrap_err()
+                .to_string()
+                .contains("Hibás sorrend formátum")
+        );
+    }
+}

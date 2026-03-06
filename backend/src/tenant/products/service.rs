@@ -16,18 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::repository::ProductsRepository;
-use crate::tenant::products::types::product::ProductOrderBy;
+use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -117,8 +117,6 @@ impl ProductsService {
                             .new_unit_of_measure
                             .as_ref()
                             .ok_or(ProductsServiceError::InvalidState)?
-                            .extract()
-                            .get_value()
                             .as_str(),
                         claims.sub(),
                         claims
@@ -214,17 +212,13 @@ impl ProductsService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<ProductOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<ProductOrderBy, ProductFilterBy>,
         claims: &Claims,
         repo: Arc<dyn ProductsRepository>,
     ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,

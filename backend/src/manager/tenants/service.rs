@@ -18,19 +18,19 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::query_parser::GetQuery;
 use crate::common::services::generate_string_csprng;
-use crate::common::types::value_object::ValueObjectable;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, FilteringParams, NewTokenResponse, PublicTenantSelfHosted, TenantActivateRequest,
+    CreateTenant, NewTokenResponse, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
-use crate::manager::tenants::types::TenantsOrderBy;
+use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use sqlx::postgres::PgSslMode;
@@ -55,6 +55,9 @@ pub enum TenantsServiceError {
 
     #[error("Jelenleg nem elérhető")]
     CurrentlyNotAvailable,
+
+    #[error("rng error")]
+    RngError,
 }
 
 #[async_trait]
@@ -115,7 +118,7 @@ impl TenantsService {
 
         let tenant = tenants_module
             .tenants_repo()
-            .setup_self_hosted(payload.name.extract().get_value(), &config.into(), claims)
+            .setup_self_hosted(payload.name.as_str(), &config.into(), claims)
             .await?;
 
         tenants_module
@@ -159,7 +162,7 @@ impl TenantsService {
                 .clone(),
             port: tenants_module.config().default_tenant_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
-            password: generate_string_csprng(40),
+            password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
             max_pool_size: None,
             ssl_mode: Some(String::from("disable")),
@@ -169,7 +172,7 @@ impl TenantsService {
             .tenants_repo()
             .setup_managed(
                 uuid,
-                payload.name.extract().get_value(),
+                payload.name.as_str(),
                 &db_config,
                 claims,
                 tenants_module.config().clone(),
@@ -202,18 +205,14 @@ impl TenantsService {
     }
 
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<TenantsOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<TenantOrderBy, TenantFilterBy>,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
-    ) -> Result<(PaginatorMeta, Vec<PublicTenantSelfHosted>), TenantsServiceError> {
-        let (meta, data) = repo
-            .get_all_by_user_id(claims.sub(), paginator, ordering, filtering)
-            .await?;
+    ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
+        let (meta, data) = repo.get_all_by_user_id(claims.sub(), get_query).await?;
         let mut public_tenants = vec![];
         for tenant in data {
-            public_tenants.push(PublicTenantSelfHosted::from(tenant))
+            public_tenants.push(PublicTenant::from(tenant))
         }
         Ok((meta, public_tenants))
     }

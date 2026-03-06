@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -55,6 +56,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import type { GetQuery } from "@/lib/get_query";
 
 export default function InventoryMovementsList() {
   const dispatch = useAppDispatch();
@@ -66,51 +68,46 @@ export default function InventoryMovementsList() {
     [params],
   );
 
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      console.log(parsedQuery);
-    },
-    [],
-  );
+  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+    console.log(parsedQuery);
+  }, []);
 
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
-    //filterSelect,
+    orderSelect,
     totalPages,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
   const refresh = useCallback(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      if (list.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined" &&
-          typeof response.payload.jsonData?.meta !== "undefined"
-        ) {
-          setPage(response.payload.jsonData.meta.page);
-          setLimit(response.payload.jsonData.meta.limit);
-          setTotal(response.payload.jsonData.meta.total);
-          setData(response.payload.jsonData.data);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
+    dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
+      async (response) => {
+        if (list.fulfilled.match(response)) {
+          if (
+            response.payload.statusCode === 200 &&
+            typeof response.payload.jsonData?.data !== "undefined" &&
+            typeof response.payload.jsonData?.meta !== "undefined"
+          ) {
+            setPage(response.payload.jsonData.meta.page);
+            setLimit(response.payload.jsonData.meta.limit);
+            setTotal(response.payload.jsonData.meta.total);
+            setData(response.payload.jsonData.data);
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors(response.payload.jsonData.error);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
-          unexpectedError(response.payload.statusCode);
+          unexpectedError();
         }
-      } else {
-        unexpectedError();
-      }
-    });
+      },
+    );
   }, [
     dispatch,
     rawQuery,
@@ -119,6 +116,7 @@ export default function InventoryMovementsList() {
     setTotal,
     setErrors,
     unexpectedError,
+    routeInventoryId,
   ]);
 
   const handleDelete = (id: string) => {
@@ -155,7 +153,7 @@ export default function InventoryMovementsList() {
           <CardAction>
             <Link to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}>
               <Button style={{ color: "green" }} variant="outline">
-                <Plus color="green" /> Új
+                Új <Plus color="green" />
               </Button>
             </Link>
           </CardAction>
@@ -165,14 +163,56 @@ export default function InventoryMovementsList() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Típus</TableHead>
-                <TableHead>Mennyiség</TableHead>
-                <TableHead>Egységár</TableHead>
-                <TableHead>Összeg</TableHead>
+                <SortableTableHead
+                  field="movement_type"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Típus
+                </SortableTableHead>
+                <SortableTableHead
+                  field="quantity"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mennyiség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="unit_price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Egységár
+                </SortableTableHead>
+                <SortableTableHead
+                  field="total_price"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Összeg
+                </SortableTableHead>
                 <TableHead>Adó</TableHead>
-                <TableHead>Mozgás dátuma</TableHead>
+                <SortableTableHead
+                  field="movement_date"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mozgás dátuma
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

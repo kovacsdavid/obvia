@@ -301,7 +301,7 @@ impl<'de> Deserialize<'de> for ValueObject<Email> {
 let email = ValueObject::new(Email("user@example.com".to_string()))?;
 
 // Accessing the inner value
-let email_string = email.extract().get_value();
+let email_string = email.as_str();
 
 // In structs
 pub struct User {
@@ -532,7 +532,7 @@ SQLx provides compile-time checking of SQL queries when a database is available.
 When binding ValueObject values to queries:
 
 ```rust
-.bind(value_object.extract().get_value())
+.bind(value_object.as_str())
 ```
 
 ---

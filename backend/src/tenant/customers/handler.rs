@@ -18,24 +18,21 @@
  */
 
 use crate::common::dto::{
-    EmptyType, HandlerResult, OrderingParams, PaginatorParams, QueryParam, SimpleMessageResponse,
-    SuccessResponseBuilder, UuidParam,
+    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
 };
-use crate::common::error::FriendlyError;
-use crate::common::error::IntoFriendlyError;
+use crate::common::error::{FriendlyError, IntoFriendlyError};
 use crate::common::extractors::UserInput;
-use crate::common::types::Order;
-use crate::common::types::ValueObject;
+use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
 use crate::tenant::customers::service::CustomersService;
-use crate::tenant::customers::types::customer::CustomerOrderBy;
+use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
+use std::str::FromStr;
 use std::sync::Arc;
 
 #[debug_handler]
@@ -198,17 +195,11 @@ pub async fn delete(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<dyn CustomersModule>>,
-    Query(payload): Query<QueryParam>,
+    Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match CustomersService::get_paged_list(
-        &PaginatorParams::try_from(&payload).unwrap_or(PaginatorParams::default()),
-        &OrderingParams::try_from(&payload).unwrap_or(OrderingParams {
-            order_by: ValueObject::new(CustomerOrderBy("name".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-            order: ValueObject::new(Order("asc".to_string()))
-                .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        }),
-        &FilteringParams::from(&payload),
+        &GetQuery::<CustomerOrderBy, CustomerFilterBy>::from_str(payload.as_str())
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         customers_module.customers_repo(),
     )

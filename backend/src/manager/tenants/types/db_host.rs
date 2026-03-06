@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::types::value_object::ValueObjectError;
 use crate::common::types::{ValueObject, ValueObjectable};
 use regex::Regex;
 use serde::Deserialize;
@@ -24,30 +25,10 @@ use std::fmt::Display;
 use std::net::IpAddr;
 use std::str::FromStr;
 
-/// Represents the hostname or address of a database.
-///
-/// The `DbHost` struct is a simple wrapper around a `String` that is used
-/// to encapsulate the hostname or address of a database server. This can
-/// help ensure type safety and improve code readability by explicitly
-/// conveying the purpose of the contained value.
-///
-/// # Fields
-///
-/// * `0`: The inner `String` containing the hostname or address of the database.
 #[derive(Debug, Clone)]
 pub struct DbHost(pub String);
 
 impl Display for DbHost {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -56,25 +37,7 @@ impl Display for DbHost {
 impl ValueObjectable for DbHost {
     type DataType = String;
 
-    /// Validates the input string stored in the `self.0` field. The function checks whether the string
-    /// represents a valid global IP address or a valid domain name (subject to specific constraints).
-    ///
-    /// # Validation Process
-    /// - If the string can be parsed into an IP address, it ensures that the IP address is global
-    ///   (not a private or reserved address).
-    /// - If the string is not a valid IP address, it checks whether the string matches the structure
-    ///   of a valid domain name using a regular expression. Additionally, it ensures that the string
-    ///   does not include ".local" or "localhost", which are not considered valid.
-    ///
-    /// # Returns
-    /// - `Ok(())`: If the string passes all validation checks.
-    /// - `Err(String)`: Returns an error with the message "Hibás adatbázis kiszolgáló" (Hungarian for
-    ///   "Invalid database server") if the string is determined to be invalid.
-    ///
-    /// # Errors
-    /// - The function relies on `IpAddr::from_str` and `Regex::new`. If either fails (invalid input
-    ///   or regex compilation error), the function will handle the failure within the matching logic.
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         let res = match IpAddr::from_str(&self.0) {
             Ok(ip) => is_global(&ip),
             Err(_) => match Regex::new(
@@ -90,41 +53,16 @@ impl ValueObjectable for DbHost {
         };
         match res {
             true => Ok(()),
-            false => Err(String::from("Hibás adatbázis kiszolgáló")),
+            false => Err(ValueObjectError::InvalidInput("Hibás adatbázis kiszolgáló")),
         }
     }
 
-    /// Retrieves a reference to the value contained within the struct.
-    ///
-    /// # Returns
-    /// A reference to the internal value of type `Self::DataType`.
     fn get_value(&self) -> &Self::DataType {
         &self.0
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<DbHost> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `DbHost` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -263,7 +201,7 @@ mod tests {
         for host in valid_hosts {
             let db_host: ValueObject<DbHost> =
                 serde_json::from_str(format!("\"{}\"", &host).as_str()).unwrap();
-            assert_eq!(db_host.extract().get_value(), host);
+            assert_eq!(db_host.as_str(), host);
         }
     }
 

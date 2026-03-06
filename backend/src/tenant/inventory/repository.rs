@@ -16,15 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::types::value_object::ValueObjectable;
+use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
-use crate::tenant::inventory::types::inventory::InventoryOrderBy;
+use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -45,9 +44,7 @@ pub trait InventoryRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<InventoryOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
     async fn insert(
@@ -140,64 +137,142 @@ impl InventoryRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<InventoryOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {
-        let total: (i64,) =
-            sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "product" => "products.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
+                };
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM inventory
+                        LEFT JOIN products ON inventory.product_id = products.id
+                        WHERE inventory.deleted_at IS NULL
+                            AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
+                    "#
+                ))
+                .bind(value_unchecked)
                 .fetch_one(&self.get_tenant_pool(active_tenant)?)
-                .await?;
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
+                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY inventory.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY inventory.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT
-                inventory.id as id,
-                inventory.product_id as product_id,
-                products.name as product,
-                inventory.warehouse_id as warehouse_id,
-                warehouses.name as warehouse,
-                inventory.quantity_on_hand as quantity_on_hand,
-                inventory.quantity_reserved as quantity_reserved,
-                inventory.quantity_available as quantity_available,
-                inventory.minimum_stock as minimum_stock,
-                inventory.maximum_stock as maximum_stock,
-                inventory.currency_code as currency_code,
-                currencies.code as currency,
-                inventory.status as status,
-                inventory.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                inventory.created_at as created_at,
-                inventory.updated_at as updated_at,
-                inventory.deleted_at as deleted_at
-            FROM inventory
-            LEFT JOIN products ON inventory.product_id = products.id
-            LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
-            LEFT JOIN currencies ON inventory.currency_code = currencies.code
-            LEFT JOIN users ON inventory.created_by_id = users.id
-            WHERE inventory.deleted_at IS NULL
-            {order_by_clause}
-            LIMIT $1
-            OFFSET $2
-            "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let inventory = sqlx::query_as::<_, InventoryResolved>(&sql)
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?;
+        let inventory = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let filter_by = match filter_by {
+                    "product" => "products.name",
+                    _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
+                };
+                let sql = format!(
+                    r#"
+                    SELECT
+                        inventory.id as id,
+                        inventory.product_id as product_id,
+                        products.name as product,
+                        inventory.warehouse_id as warehouse_id,
+                        warehouses.name as warehouse,
+                        inventory.quantity_on_hand as quantity_on_hand,
+                        inventory.quantity_reserved as quantity_reserved,
+                        inventory.quantity_available as quantity_available,
+                        inventory.minimum_stock as minimum_stock,
+                        inventory.maximum_stock as maximum_stock,
+                        inventory.currency_code as currency_code,
+                        currencies.code as currency,
+                        inventory.status as status,
+                        inventory.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        inventory.created_at as created_at,
+                        inventory.updated_at as updated_at,
+                        inventory.deleted_at as deleted_at
+                    FROM inventory
+                    LEFT JOIN products ON inventory.product_id = products.id
+                    LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+                    LEFT JOIN currencies ON inventory.currency_code = currencies.code
+                    LEFT JOIN users ON inventory.created_by_id = users.id
+                    WHERE inventory.deleted_at IS NULL
+                        AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
+                    {order_by_clause}
+                    LIMIT $2
+                    OFFSET $3
+                    "#
+                );
+
+                sqlx::query_as::<_, InventoryResolved>(&sql)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT
+                        inventory.id as id,
+                        inventory.product_id as product_id,
+                        products.name as product,
+                        inventory.warehouse_id as warehouse_id,
+                        warehouses.name as warehouse,
+                        inventory.quantity_on_hand as quantity_on_hand,
+                        inventory.quantity_reserved as quantity_reserved,
+                        inventory.quantity_available as quantity_available,
+                        inventory.minimum_stock as minimum_stock,
+                        inventory.maximum_stock as maximum_stock,
+                        inventory.currency_code as currency_code,
+                        currencies.code as currency,
+                        inventory.status as status,
+                        inventory.created_by_id as created_by_id,
+                        users.last_name || ' ' || users.first_name as created_by,
+                        inventory.created_at as created_at,
+                        inventory.updated_at as updated_at,
+                        inventory.deleted_at as deleted_at
+                    FROM inventory
+                    LEFT JOIN products ON inventory.product_id = products.id
+                    LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+                    LEFT JOIN currencies ON inventory.currency_code = currencies.code
+                    LEFT JOIN users ON inventory.created_by_id = users.id
+                    WHERE inventory.deleted_at IS NULL
+                    {order_by_clause}
+                    LIMIT $1
+                    OFFSET $2
+                    "#
+                );
+
+                sqlx::query_as::<_, InventoryResolved>(&sql)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             inventory,
@@ -211,23 +286,11 @@ impl InventoryRepository for PgPoolManager {
     ) -> RepositoryResult<Inventory> {
         let minimum_stock = match &inventory.minimum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
         let maximum_stock = match &inventory.maximum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
@@ -238,8 +301,8 @@ impl InventoryRepository for PgPoolManager {
             .bind(inventory.warehouse_id)
             .bind(minimum_stock)
             .bind(maximum_stock)
-            .bind(inventory.currency_code.extract().get_value())
-            .bind(inventory.status.extract().get_value())
+            .bind(inventory.currency_code.as_str())
+            .bind(inventory.status.as_str())
             .bind(sub)
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
@@ -258,23 +321,11 @@ impl InventoryRepository for PgPoolManager {
         // Convert optional ValueObjects for minimum_stock and maximum_stock to Option<i32>
         let minimum_stock = match &inventory.minimum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("minimum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
         let maximum_stock = match &inventory.maximum_stock {
             None => None,
-            Some(v) => Some(
-                v.extract()
-                    .get_value()
-                    .trim()
-                    .parse::<i32>()
-                    .map_err(|_| RepositoryError::InvalidInput("maximum_stock".to_string()))?,
-            ),
+            Some(v) => Some(v.as_i32()?),
         };
 
         Ok(sqlx::query_as::<_, Inventory>(
@@ -295,8 +346,8 @@ impl InventoryRepository for PgPoolManager {
         .bind(inventory.warehouse_id)
         .bind(minimum_stock)
         .bind(maximum_stock)
-        .bind(inventory.currency_code.extract().get_value())
-        .bind(inventory.status.extract().get_value())
+        .bind(inventory.currency_code.as_str())
+        .bind(inventory.status.as_str())
         .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

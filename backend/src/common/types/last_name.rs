@@ -17,30 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-/// A struct representing a last name as a simple wrapper around a `String`.
-///
-/// The `LastName` struct encapsulates a single `String` value representing a last name,
-/// providing additional type safety and semantic clarity in code.
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct LastName(pub String);
 
 impl ValueObjectable for LastName {
     type DataType = String;
-    /// Validates the format of a last name by ensuring it meets certain criteria:
-    /// - The string is not empty after trimming whitespace.
-    /// - The string contains only alphabetic characters, hyphens ('-'), or spaces (' ').
-    ///
-    /// # Returns
-    /// * `Ok(())` - If the last name meets all the validation criteria.
-    /// * `Err(String)` - If the last name fails validation, returning an error message.
-    ///
-    /// # Error
-    /// Will return `"Hibás vezetéknév formátum"` if the last name is invalid.
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         let trimmed = self.0.trim();
         match !trimmed.is_empty()
             && trimmed
@@ -48,7 +34,7 @@ impl ValueObjectable for LastName {
                 .all(|c| c.is_alphabetic() || c == '-' || c == ' ')
         {
             true => Ok(()),
-            false => Err("Hibás vezetéknév formátum".to_string()),
+            false => Err(ValueObjectError::InvalidInput("Hibás vezetéknév formátum")),
         }
     }
     fn get_value(&self) -> &Self::DataType {
@@ -57,43 +43,12 @@ impl ValueObjectable for LastName {
 }
 
 impl Display for LastName {
-    /// Implements the `fmt` method from the `std::fmt::Display` or `std::fmt::Debug` trait,
-    /// enabling a custom display of the struct or type.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the instance of the type implementing this method.
-    /// - `f`: A mutable reference to a `std::fmt::Formatter` used for formatting output.
-    ///
-    /// # Returns
-    /// - `std::fmt::Result`: Indicates whether the formatting operation was successful
-    ///   (`Ok(())`) or an error occurred (`Err`).
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
 impl<'de> Deserialize<'de> for ValueObject<LastName> {
-    /// Custom deserialization function for a type that implements deserialization using Serde.
-    ///
-    /// This function takes a Serde deserializer and attempts to parse the input into a `String`.
-    /// It then wraps the string in a `LastName` and validates it by calling `ValueObject::new`.
-    /// If the validation fails, a custom deserialization error is returned.
-    ///
-    /// # Type Parameters
-    /// - `D`: The type of the deserializer, which must implement `serde::Deserializer<'de>`.
-    ///
-    /// # Parameters
-    /// - `deserializer`: The deserializer used to deserialize the input.
-    ///
-    /// # Returns
-    /// - `Result<Self, D::Error>`:
-    ///   - On success, returns the constructed and validated object wrapped in `Ok`.
-    ///   - On failure, returns a custom error wrapped in `Err`.
-    ///
-    /// # Errors
-    /// - Returns a deserialization error if:
-    ///   - The input cannot be deserialized into a `String`.
-    ///   - Validation using `ValueObject::new` fails, causing the `map_err` call to propagate an error.
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -106,24 +61,23 @@ impl<'de> Deserialize<'de> for ValueObject<LastName> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_last_name() {
         let name: ValueObject<LastName> = serde_json::from_str(r#""Smith""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Smith");
+        assert_eq!(name.as_str(), "Smith");
     }
 
     #[test]
     fn test_valid_last_name_with_hyphen() {
         let name: ValueObject<LastName> = serde_json::from_str(r#""Smith-Jones""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Smith-Jones");
+        assert_eq!(name.as_str(), "Smith-Jones");
     }
 
     #[test]
     fn test_valid_last_name_with_space() {
         let name: ValueObject<LastName> = serde_json::from_str(r#""Smith Smith""#).unwrap();
-        assert_eq!(name.extract().get_value(), "Smith Smith");
+        assert_eq!(name.as_str(), "Smith Smith");
     }
 
     #[test]

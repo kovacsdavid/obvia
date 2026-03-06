@@ -25,6 +25,7 @@ import {
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -50,38 +51,36 @@ import {
 } from "@/components/ui/dropdown-menu.tsx";
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
   const [data, setData] = React.useState<ProductResolvedList>([]);
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      console.log(parsedQuery);
-    },
-    [],
-  );
+  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+    console.log(parsedQuery);
+  }, []);
 
   const {
-    // searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
-    //filterSelect,
+    orderSelect,
+    filterSelect,
     totalPages,
+    filterValue,
+    setFilterValue,
   } = useDataDisplayCommon(updateSpecialQueryParams);
 
   const refresh = useCallback(() => {
@@ -135,61 +134,94 @@ export default function List() {
       <Card>
         <CardHeader>
           <CardTitle>Termékek</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={"flex justify-between items-center mb-6"}>
-            <div className="flex gap-2">
-              <Link to={"/termek/letrehozas"}>
-                <Button style={{ color: "green" }} variant="outline">
-                  <Plus color="green" /> Új
+          <CardAction>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  className={"mr-2"}
+                  variant="outline"
+                  style={{ marginBottom: "25px" }}
+                >
+                  Szűrő <Funnel />
                 </Button>
-              </Link>
-            </div>
-            <div className="flex gap-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    className={"justify-self-end"}
-                    variant="outline"
-                    style={{ marginBottom: "25px" }}
-                  >
-                    Szűrő <Funnel />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-80">
-                  <div className="grid gap-4">
-                    <div className="space-y-2">
-                      <h4 className="leading-none font-medium">Szűrő</h4>
-                      <p className="text-muted-foreground text-sm">
-                        Szűkítsd a találatok listáját szűrőfeltételekkel!
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      <div className="grid grid-cols-3 items-center gap-4">
-                        <Label htmlFor="name">Szűrő</Label>
-                        <Input
-                          id="name"
-                          defaultValue=""
-                          className="col-span-2 h-8"
-                        />
-                      </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="grid gap-4">
+                  <div className="space-y-2">
+                    <h4 className="leading-none font-medium">Szűrő</h4>
+                    <p className="text-muted-foreground text-sm">
+                      Szűkítsd a találatok listáját szűrőfeltételekkel!
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="grid grid-cols-3 items-center gap-4">
+                      <Label htmlFor="name">Név</Label>
+                      <Input
+                        id="name"
+                        onBlur={(e) => filterSelect("name", e.target.value)}
+                        value={filterValue}
+                        onChange={(e) => setFilterValue(e.target.value)}
+                        className="col-span-2 h-8"
+                      />
                     </div>
                   </div>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Link to={"/termek/letrehozas"}>
+              <Button style={{ color: "green" }} variant="outline">
+                Új <Plus color="green" />
+              </Button>
+            </Link>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Név</TableHead>
+                <SortableTableHead
+                  field="name"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Név
+                </SortableTableHead>
                 <TableHead>Leírás</TableHead>
-                <TableHead>Mértékegység</TableHead>
-                <TableHead>Státusz</TableHead>
+                <SortableTableHead
+                  field="unit_of_measure"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mértékegység
+                </SortableTableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Frissítve</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Frissítve
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

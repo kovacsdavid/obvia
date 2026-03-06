@@ -228,6 +228,7 @@ export default function Edit() {
           <InventoryEdit
             showCard={false}
             onSuccess={handleEditInventorySuccess}
+            onCancel={() => setOpenNewInventoryDialog(false)}
           />
         </DialogContent>
       </Dialog>

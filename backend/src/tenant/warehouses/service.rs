@@ -18,15 +18,15 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::repository::WarehousesRepository;
-use crate::tenant::warehouses::types::warehouse::WarehouseOrderBy;
+use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -149,17 +149,13 @@ impl WarehousesService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<WarehouseOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
         claims: &Claims,
         repo: Arc<dyn WarehousesRepository>,
     ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(WarehousesServiceError::Unauthorized)?,

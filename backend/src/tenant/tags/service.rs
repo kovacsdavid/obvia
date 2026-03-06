@@ -16,16 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, OrderingParams, PaginatorMeta, PaginatorParams, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::tenant::tags::TagsModule;
 use crate::tenant::tags::dto::TagUserInput;
 use crate::tenant::tags::model::{Tag, TagResolved};
 use crate::tenant::tags::repository::TagsRepository;
-use crate::tenant::tags::types::tag::TagOrderBy;
+use crate::tenant::tags::types::tag::{TagFilterBy, TagOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -148,17 +149,13 @@ impl TagsService {
             .await?)
     }
     pub async fn get_paged_list(
-        paginator: &PaginatorParams,
-        ordering: &OrderingParams<TagOrderBy>,
-        filtering: &FilteringParams,
+        get_query: &GetQuery<TagOrderBy, TagFilterBy>,
         claims: &Claims,
         repo: Arc<dyn TagsRepository>,
     ) -> TagsServiceResult<(PaginatorMeta, Vec<TagResolved>)> {
         Ok(repo
             .get_all_paged(
-                paginator,
-                ordering,
-                filtering,
+                get_query,
                 claims
                     .active_tenant()
                     .ok_or(TagsServiceError::Unauthorized)?,

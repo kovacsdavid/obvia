@@ -17,16 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{OrderingParams, PaginatorMeta, PaginatorParams};
+use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::query_parser::GetQuery;
 use crate::common::types::DdlParameter;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
-use crate::manager::tenants::dto::FilteringParams;
 use crate::manager::tenants::model::{Tenant, UserTenant};
-use crate::manager::tenants::types::TenantsOrderBy;
+use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -35,96 +35,12 @@ use sqlx::PgConnection;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// The `TenantsRepository` trait defines the interface for interacting with
-/// the tenants in the storage. It provides methods to query, insert,
-/// and retrieve tenants, supporting asynchronous operations.
-///
-/// # Methods
-///
-/// * `get_by_uuid`:
-///   - Retrieves an `Tenant` by its unique identifier (UUID).
-///   - This method may return a `DatabaseError` in case of a failure.
-///
-///   ### Parameters:
-///   - `uuid`: A reference to the UUID of the tenant to retrieve.
-///
-///   ### Returns:
-///   - `Result<Tenant, DatabaseError>`: A result containing the
-///     tenant if found, or an error if the operation fails.
-///
-/// * `insert_and_connect`:
-///   - Inserts a new `Tenant` and associates it with other entities based
-///     on the provided payload and claims.
-///   - Performs additional configuration using `app_config`.
-///
-///   ### Parameters:
-///   - `payload`: The `CreateRequest` containing the data needed to insert a new tenant.
-///   - `claims`: `Claims` associated with the authenticated user or system.
-///   - `app_config`: Shared application configuration as an `Arc<AppConfig>`.
-///
-///   ### Returns:
-///   - `Result<Tenant, DatabaseError>`: A result containing the newly created
-///     tenant, or an error if the operation fails.
-///
-/// * `get_all_by_user_uuid`:
-///   - Retrieves all `Tenant`s associated with a particular user identified by their UUID.
-///   - Marked with `#[allow(dead_code)]` to suppress warnings if not actively used.
-///
-///   ### Parameters:
-///   - `user_uuid`: A reference to the UUID of the user whose tenants
-///     are to be retrieved
-///
-///   ### Returns:
-///   - `Result<Vec<Tenant>, DatabaseError>`: A result containing a vector
-///     of tenants associated with the user, or an error if the operation fails.
-///
-/// * `get_all`:
-///   - Retrieves all `Tenant`s available in the repository.
-///
-///   ### Returns:
-///   - `Result<Vec<Tenant>, DatabaseError>`: A result containing a vector
-///     of all tenants, or an error if the operation fails.
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TenantsRepository: Send + Sync {
-    /// Retrieves an `Tenant` by its UUID.
-    ///
-    /// # Parameters
-    /// - `uuid`: A reference to the unique identifier (`Uuid`) of the tenant
-    ///           to be fetched.
-    ///
-    /// # Returns
-    /// - `Ok(Tenant)`: If the tenant with the given UUID is found
-    ///   in the database.
-    /// - `Err(DatabaseError)`: If there is an error during the database operation, or if
-    ///   the tenant could not be found.
     #[allow(dead_code)]
     async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant>;
 
-    /// Sets up a self-hosted instance for a specific tenant based on the provided payload.
-    ///
-    /// # Parameters
-    /// - `&self`: A reference to the current struct instance.
-    /// - `payload: CreateRequest` - Contains the necessary data to create and configure the self-hosted instance.
-    /// - `claims: Claims` - Represents the authorization and authentication claims of the current user or process,
-    ///   used to validate permissions or access rights.
-    /// - `app_config: Arc<AppConfig>` - A reference-counted pointer to the application configuration
-    ///   which may include global settings or contextual configuration required for the operation.
-    ///
-    /// # Returns
-    /// - `Result<Tenant, DatabaseError>`:
-    ///   - On success, returns an `Tenant` representing the created or updated self-hosted instance.
-    ///   - On failure, returns a `DatabaseError` if there are issues such as database queries or constraints.
-    ///
-    /// # Errors
-    /// This function returns a `DatabaseError` in one of the following cases:
-    /// - If there is an issue executing database operations necessary for setting up the tenant.
-    /// - If any constraint or validation fails during the setup process.
-    ///
-    /// # Notes
-    /// - This function is asynchronous and should be awaited.
-    /// - Ensure proper validation of the `payload` and `claims` before invoking this function to prevent runtime errors.
-    /// - The `app_config` should contain all required configuration values for successfully setting up the instance.
     async fn setup_self_hosted(
         &self,
         name: &str,
@@ -132,37 +48,6 @@ pub trait TenantsRepository: Send + Sync {
         claims: &Claims,
     ) -> RepositoryResult<Tenant>;
 
-    /// Sets up a managed resource based on the provided parameters.
-    ///
-    /// This asynchronous function is responsible for configuring and initializing
-    /// a managed resource using the given payload, user claims, and application configuration.
-    ///
-    /// # Arguments
-    ///
-    /// * `payload` - A `CreateRequest` object that contains the information
-    ///   necessary for creating or setting up the resource.
-    /// * `claims` - A `Claims` object that provides authentication and authorization
-    ///   information about the current user or context.
-    /// * `app_config` - An `Arc<AppConfig>` reference, which provides access to
-    ///   application-level configuration that may be required during setup.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(())` - If the managed resource setup is successful.
-    /// * `Err(DatabaseError)` - If there is an issue interacting with the database
-    ///   or other errors occur during the setup process.
-    ///
-    /// # Errors
-    ///
-    /// This function returns a `DatabaseError` in cases such as:
-    /// - Database connectivity issues.
-    /// - Validation errors while processing the `payload`.
-    /// - Insufficient permissions based on the provided `claims`.
-    ///
-    /// # Notes
-    ///
-    /// This function assumes that the caller has already validated the input `payload`
-    /// and that the `claims` contain the necessary permissions for executing the action.
     async fn setup_managed(
         &self,
         uuid: Uuid,
@@ -171,66 +56,14 @@ pub trait TenantsRepository: Send + Sync {
         claims: &Claims,
         app_config: Arc<AppConfig>,
     ) -> RepositoryResult<Tenant>;
-    /// Asynchronously retrieves all tenants associated with a specific user UUID.
-    ///
-    /// # Parameters
-    /// - `user_uuid`: A string slice representing the UUID of the user whose tenants
-    ///   are to be retrieved.
-    ///
-    /// # Returns
-    /// - `Result<Vec<Tenant>, DatabaseError>`:
-    ///   - On success: A vector containing all tenants associated with the given user UUID.
-    ///   - On failure: A `DatabaseError` indicating the reason for failure.
-    ///
-    /// # Errors
-    /// - Returns a `DatabaseError` if the query fails or if an issue occurs during retrieval.
     #[allow(dead_code)]
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<TenantsOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)>;
-    /// Retrieves all tenants from the database.
-    ///
-    /// This asynchronous function fetches and returns a list of all
-    /// `Tenant` records stored in the database. If an error occurs
-    /// during the database query, it returns a `DatabaseError`.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Vec<Tenant>)` - A vector containing all tenant records.
-    /// * `Err(DatabaseError)` - An error that occurred while querying the database.
-    ///
-    /// # Errors
-    ///
-    /// This function will return a `DatabaseError` in the following cases:
-    /// - If the connection to the database fails.
-    /// - If there's an issue with the underlying query execution.
-    ///
-    /// # Safety
-    ///
-    /// This function should not be used in any user facing scenario as it will not check if
-    /// the user is associated to the tenant or not.
     async fn get_all(&self) -> RepositoryResult<Vec<Tenant>>;
 
-    /// Retrieves the active tenant associated with a specific user by their user ID and tenant ID.
-    ///
-    /// # Arguments
-    ///
-    /// * `user_id` - A `Uuid` representing the unique identifier of the user.
-    /// * `tenant_id` - A `Uuid` representing the unique identifier of the tenant.
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(Some(UserTenant))` - If an active tenant is found for the specified user and tenant ID.
-    /// * `Ok(None)` - If no active tenant is found for the specified user and tenant ID.
-    /// * `Err(DatabaseError)` - If an error occurs while accessing the database.
-    ///
-    /// # Errors
-    ///
-    /// This function returns a `DatabaseError` if there is a failure during the database query operation.
     async fn get_user_active_tenant_by_id(
         &self,
         user_id: Uuid,
@@ -283,10 +116,8 @@ impl TenantsRepository for PgPoolManager {
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(RepositoryError::InvalidInput)?,
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-                .map_err(RepositoryError::InvalidInput)?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
@@ -300,56 +131,108 @@ impl TenantsRepository for PgPoolManager {
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        paginator_params: &PaginatorParams,
-        ordering_params: &OrderingParams<TenantsOrderBy>,
-        filtering_params: &FilteringParams,
+        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)> {
-        let total: (i64,) = sqlx::query_as(
-            "SELECT COUNT(*) FROM tenants
+        let total: (i64,) = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                sqlx::query_as(&format!(
+                    r#"SELECT COUNT(*) FROM tenants
                 LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
                 WHERE user_tenants.user_id = $1
                     AND tenants.deleted_at IS NULL
                     AND user_tenants.deleted_at IS NULL
-                    AND $2::TEXT IS NULL OR tenants.name ILIKE $2",
-        )
-        .bind(user_uuid)
-        .bind(filtering_params.name.clone())
-        .fetch_one(&self.get_main_pool())
-        .await?;
+                    AND ($2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
+                ))
+                .bind(user_uuid)
+                .bind(value_unchecked)
+                .fetch_one(&self.get_main_pool())
+                .await?
+            }
+            (_, _) => {
+                sqlx::query_as(
+                    r#"SELECT COUNT(*) FROM tenants
+                        LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
+                        WHERE user_tenants.user_id = $1
+                            AND tenants.deleted_at IS NULL
+                            AND user_tenants.deleted_at IS NULL"#,
+                )
+                .bind(user_uuid)
+                .fetch_one(&self.get_main_pool())
+                .await?
+            }
+        };
 
-        let order_by_clause = match ordering_params.order_by.extract().get_value().as_str() {
-            "" => "".to_string(),
-            order_by => format!("ORDER BY tenants.{order_by} {}", ordering_params.order),
-        }; // SECURITY: ValueObject
+        let order_by_clause = match (
+            query_params.ordering().order_by(), // Security: ValueObject
+            query_params.ordering().order(),    // Security: enum
+        ) {
+            (Some(order_by), Some(order)) => format!("ORDER BY tenants.{order_by} {order}"),
+            (_, _) => "".to_string(),
+        };
 
-        let sql = format!(
-            r#"
-            SELECT tenants.*
-                FROM tenants
-                LEFT JOIN user_tenants
-                    ON tenants.id = user_tenants.tenant_id
-                WHERE user_tenants.user_id = $1
-                    AND tenants.deleted_at IS NULL
-                    AND user_tenants.deleted_at IS NULL
-                    AND $2::TEXT IS NULL OR tenants.name ILIKE $2
-                {order_by_clause}
-                LIMIT $3
-                OFFSET $4
-                "#
-        );
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
 
-        let tenants = sqlx::query_as::<_, Tenant>(&sql)
-            .bind(user_uuid)
-            .bind(filtering_params.name.clone())
-            .bind(paginator_params.limit)
-            .bind(paginator_params.offset())
-            .fetch_all(&self.get_main_pool())
-            .await?;
+        let tenants = match (
+            query_params.filtering().filter_by(), // Security: ValueObject
+            query_params.filtering().value_unchecked(), // Security: bind
+        ) {
+            (Some(filter_by), Some(value_unchecked)) => {
+                let sql = format!(
+                    r#"
+                    SELECT tenants.*
+                        FROM tenants
+                        LEFT JOIN user_tenants
+                            ON tenants.id = user_tenants.tenant_id
+                        WHERE user_tenants.user_id = $1
+                            AND tenants.deleted_at IS NULL
+                            AND user_tenants.deleted_at IS NULL
+                            AND ($2::TEXT IS NULL OR tenants.{filter_by} ILIKE '%' || $2 || '%')
+                        {order_by_clause}
+                        LIMIT $3
+                        OFFSET $4
+                        "#
+                );
+
+                sqlx::query_as::<_, Tenant>(&sql)
+                    .bind(user_uuid)
+                    .bind(value_unchecked)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_main_pool())
+                    .await?
+            }
+            (_, _) => {
+                let sql = format!(
+                    r#"
+                    SELECT tenants.*
+                        FROM tenants
+                        LEFT JOIN user_tenants
+                            ON tenants.id = user_tenants.tenant_id
+                        WHERE user_tenants.user_id = $1
+                            AND tenants.deleted_at IS NULL
+                            AND user_tenants.deleted_at IS NULL
+                        {order_by_clause}
+                        LIMIT $2
+                        OFFSET $3
+                        "#
+                );
+
+                sqlx::query_as::<_, Tenant>(&sql)
+                    .bind(user_uuid)
+                    .bind(limit)
+                    .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
+                    .fetch_all(&self.get_main_pool())
+                    .await?
+            }
+        };
 
         Ok((
             PaginatorMeta {
-                page: paginator_params.page,
-                limit: paginator_params.limit,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
                 total: total.0,
             },
             tenants,
@@ -447,18 +330,15 @@ async fn create_database_user_for_managed(
 ) -> RepositoryResult<()> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(RepositoryError::InvalidInput)?,
-        ValueObject::new(DdlParameter(tenant.db_password.to_string()))
-            .map_err(RepositoryError::InvalidInput)?
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+        ValueObject::new(DdlParameter(tenant.db_password.to_string()))?
     );
 
     let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))
-            .map_err(RepositoryError::InvalidInput)?,
+        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         app_config.default_tenant_database().username // safety: not user input
     );
 

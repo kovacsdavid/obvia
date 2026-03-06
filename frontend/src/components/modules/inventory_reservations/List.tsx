@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card.tsx";
 import {
+  SortableTableHead,
   Table,
   TableBody,
   TableCell,
@@ -66,51 +67,42 @@ export default function InventoryReservationsList() {
     [params],
   );
 
-  const updateSpecialQueryParams = useCallback(
-    (parsedQuery: Record<string, string | number>) => {
-      console.log(parsedQuery);
-    },
-    [],
-  );
-
   const {
-    //searchParams,
     rawQuery,
     page,
     setPage,
     setLimit,
     setTotal,
-    //orderBy,
-    //setOrderBy,
-    //order,
-    //setOrder,
+    orderBy,
+    order,
     paginatorSelect,
-    //orderSelect,
-    //filterSelect,
+    orderSelect,
     totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+  } = useDataDisplayCommon(null);
 
   const refresh = useCallback(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      if (list.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined" &&
-          typeof response.payload.jsonData?.meta !== "undefined"
-        ) {
-          setPage(response.payload.jsonData.meta.page);
-          setLimit(response.payload.jsonData.meta.limit);
-          setTotal(response.payload.jsonData.meta.total);
-          setData(response.payload.jsonData.data);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
+    dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
+      async (response) => {
+        if (list.fulfilled.match(response)) {
+          if (
+            response.payload.statusCode === 200 &&
+            typeof response.payload.jsonData?.data !== "undefined" &&
+            typeof response.payload.jsonData?.meta !== "undefined"
+          ) {
+            setPage(response.payload.jsonData.meta.page);
+            setLimit(response.payload.jsonData.meta.limit);
+            setTotal(response.payload.jsonData.meta.total);
+            setData(response.payload.jsonData.data);
+          } else if (typeof response.payload.jsonData?.error !== "undefined") {
+            setErrors(response.payload.jsonData.error);
+          } else {
+            unexpectedError(response.payload.statusCode);
+          }
         } else {
-          unexpectedError(response.payload.statusCode);
+          unexpectedError();
         }
-      } else {
-        unexpectedError();
-      }
-    });
+      },
+    );
   }, [
     dispatch,
     rawQuery,
@@ -119,6 +111,7 @@ export default function InventoryReservationsList() {
     setTotal,
     setErrors,
     unexpectedError,
+    routeInventoryId,
   ]);
 
   const handleDelete = (id: string) => {
@@ -144,7 +137,7 @@ export default function InventoryReservationsList() {
           <CardAction>
             <Link to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}>
               <Button style={{ color: "green" }} variant="outline">
-                <Plus color="green" /> Új
+                Új <Plus color="green" />
               </Button>
             </Link>
           </CardAction>
@@ -154,15 +147,56 @@ export default function InventoryReservationsList() {
             <TableHeader>
               <TableRow>
                 <TableHead />
-                <TableHead>Készlet azonosító</TableHead>
-                <TableHead>Mennyiség</TableHead>
-                <TableHead>Hivatkozás típusa</TableHead>
+                <SortableTableHead
+                  field="quantity"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Mennyiség
+                </SortableTableHead>
+                <SortableTableHead
+                  field="reference_type"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Hivatkozás típusa
+                </SortableTableHead>
                 <TableHead>Hivatkozás azonosító</TableHead>
-                <TableHead>Lefoglalva eddig</TableHead>
-                <TableHead>Státusz</TableHead>
+                <SortableTableHead
+                  field="reserved_until"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Lefoglalva eddig
+                </SortableTableHead>
+                <SortableTableHead
+                  field="status"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Státusz
+                </SortableTableHead>
                 <TableHead>Létrehozta</TableHead>
-                <TableHead>Létrehozva</TableHead>
-                <TableHead>Módosítva</TableHead>
+                <SortableTableHead
+                  field="created_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Létrehozva
+                </SortableTableHead>
+                <SortableTableHead
+                  field="updated_at"
+                  orderBy={orderBy}
+                  order={order}
+                  onOrderSelect={orderSelect}
+                >
+                  Módosítva
+                </SortableTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -195,7 +229,6 @@ export default function InventoryReservationsList() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>{item.inventory_id}</TableCell>
                   <TableCell>{item.quantity}</TableCell>
                   <TableCell>{item.reference_type ?? "N/A"}</TableCell>
                   <TableCell>{item.reference_id ?? "N/A"}</TableCell>

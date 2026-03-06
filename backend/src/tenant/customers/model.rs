@@ -22,29 +22,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Represents a `Customer` entity in the application.
-///
-/// This struct defines the model for the customer data
-/// and is used to interact with database records, serialize/deserialize
-/// JSON, and track customer details.
-///
-/// # Fields
-/// - `id` (`Uuid`): The unique identifier for the customer.
-/// - `name` (`String`): The name of the customer.
-/// - `contact_name` (`Option<String>`): An optional field representing the name of the contact person for the customer.
-/// - `email` (`String`): The email address of the customer.
-/// - `phone_number` (`Option<String>`): An optional field representing the customer's phone number.
-/// - `customer_type` (`Option<String>`): An optional field specifying the type of customer (e.g., individual, corporate).
-/// - `status` (`Option<String>`): An optional field representing the customer's current status (e.g., active, inactive).
-/// - `created_at` (`DateTime<Local>`): The timestamp indicating when the customer record was created.
-/// - `updated_at` (`DateTime<Local>`): The timestamp indicating the last update to the customer record.
-/// - `deleted_at` (`Option<DateTime<Local>`): An optional field to track when the customer record was deleted, if applicable.
-///
-/// # Derives
-/// - `Debug`: Enables the struct to be formatted using the `{:?}` formatter.
-/// - `Clone`: Allows the struct to be cloned.
-/// - `Serialize` and `Deserialize`: Enables JSON serialization and deserialization of the struct.
-/// - `FromRow`: Allows mapping query rows from a database into this struct.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Customer {
     pub id: Uuid,

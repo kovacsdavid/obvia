@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,10 +27,10 @@ pub struct MovementType(pub String);
 impl ValueObjectable for MovementType {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "in" | "out" | "adjustment" | "transfer" => Ok(()),
-            _ => Err(String::from("Hibás mozgás típus")),
+            _ => Err(ValueObjectError::InvalidInput("Hibás mozgás típus")),
         }
     }
 

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::ValueObject;
 use crate::tenant::warehouses::types::warehouse::{
     WarehouseContactName, WarehouseContactPhone, WarehouseName, WarehouseStatus,
 };
@@ -102,7 +102,7 @@ impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
                 error.contact_name = Some(e.to_string());
             }) {
             Ok(val) => {
-                if !val.extract().get_value().trim().is_empty() {
+                if !val.as_str().trim().is_empty() {
                     Some(val)
                 } else {
                     None
@@ -115,7 +115,7 @@ impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
                 error.contact_phone = Some(e.to_string());
             }) {
             Ok(val) => {
-                if !val.extract().get_value().trim().is_empty() {
+                if !val.as_str().trim().is_empty() {
                     Some(val)
                 } else {
                     None

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -27,11 +27,11 @@ pub struct Status(pub String);
 impl ValueObjectable for Status {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), String> {
+    fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "active" => Ok(()),
             "inactive" => Ok(()),
-            _ => Err(String::from("Hibás szolgáltatás státusz")),
+            _ => Err(ValueObjectError::InvalidInput("Hibás szolgáltatás státusz")),
         }
     }
 
@@ -59,18 +59,17 @@ impl<'de> Deserialize<'de> for ValueObject<Status> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_status_active() {
         let status: ValueObject<Status> = serde_json::from_str(r#""active""#).unwrap();
-        assert_eq!(status.extract().get_value(), "active");
+        assert_eq!(status.as_str(), "active");
     }
 
     #[test]
     fn test_valid_status_inactive() {
         let status: ValueObject<Status> = serde_json::from_str(r#""inactive""#).unwrap();
-        assert_eq!(status.extract().get_value(), "inactive");
+        assert_eq!(status.as_str(), "inactive");
     }
 
     #[test]

@@ -38,15 +38,7 @@ import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@radix-ui/react-label";
-import { Separator } from "@/components/ui/separator";
-import {
-  Item,
-  ItemContent,
-  ItemDescriptionLong,
-  ItemTitle,
-} from "@/components/ui/item";
+import Activities from "@/components/modules/activities/Activities";
 
 export default function View() {
   const [data, setData] = React.useState<CustomerResolved | null>(null);
@@ -74,8 +66,6 @@ export default function View() {
       });
     }
   }, [dispatch, params, setErrors, unexpectedError]);
-
-  const handleSubmit = () => {};
 
   return (
     <>
@@ -143,59 +133,7 @@ export default function View() {
               </div>
             </CardContent>
           </Card>
-          <Card className={"max-w-5xl mx-auto mt-5"}>
-            <CardHeader>
-              <CardTitle>Tevékenység</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Item variant="outline" className="mb-3">
-                <ItemContent>
-                  <ItemTitle>
-                    Kovács Dávid &lt;kapcsolat@kovacsdavid.dev&gt;{" "}
-                    <span className="font-normal text-xs">
-                      2026. 03. 07. 10.32
-                    </span>
-                  </ItemTitle>
-                  <ItemDescriptionLong>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                    do eiusmod tempor incididunt ut labore et dolore magna
-                    aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                    ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                    Duis aute irure dolor in reprehenderit in voluptate velit
-                    esse cillum dolore eu fugiat nulla pariatur. Excepteur sint
-                    occaecat cupidatat non proident, sunt in culpa qui officia
-                    deserunt mollit anim id est laborum.
-                  </ItemDescriptionLong>
-                </ItemContent>
-              </Item>
-              <Item variant="outline" className="mb-3">
-                <ItemContent>
-                  <ItemTitle>
-                    Kovács Dávid &lt;kapcsolat@kovacsdavid.dev&gt;{" "}
-                    <span className="font-normal text-xs">
-                      2026. 03. 07. 11.32
-                    </span>
-                  </ItemTitle>
-                  <ItemDescriptionLong>
-                    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed
-                    do eiusmod tempor incididunt ut labore et dolore magna
-                    aliqua. Ut enim ad minim veniam, quis nostrud exercitation
-                    ullamco laboris nisi ut aliquip ex ea commodo consequat.
-                  </ItemDescriptionLong>
-                </ItemContent>
-              </Item>
-              <Separator className="mb-3 mt-5" />
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-                autoComplete={"off"}
-              >
-                <Label htmlFor="comment">Megjegyzés</Label>
-                <Textarea id="comment" />
-                <Button type="submit">Küldés</Button>
-              </form>
-            </CardContent>
-          </Card>
+          <Activities resourceId={data.id} resourceType="customers" />
         </>
       ) : null}
     </>

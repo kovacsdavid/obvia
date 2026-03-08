@@ -17,32 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as React from "react";
-import { Slot } from "@radix-ui/react-slot";
-import { type VariantProps } from "class-variance-authority";
+import { createContext } from "react";
+import type { PayloadAction } from "@reduxjs/toolkit";
 
-import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button_variants";
+type AuthContextType = {
+  isLoggedIn: boolean;
+  hasActiveDatabase: boolean;
+  login: (
+    email: string,
+    password: string,
+    otp: string | null,
+  ) => Promise<PayloadAction<any, any, any>>;
+  logout: () => void;
+};
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
-
-  return (
-    <Comp
-      data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
-}
-
-export { Button };
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);

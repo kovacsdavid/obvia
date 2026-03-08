@@ -31,9 +31,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from "@/components/ui/sidebar";
-import { useAuth } from "@/context/AuthContext";
+import { useSidebar } from "@/hooks/use_sidebar";
+import { useAuth } from "@/hooks/use_auth";
 import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { Link, useLocation } from "react-router-dom";

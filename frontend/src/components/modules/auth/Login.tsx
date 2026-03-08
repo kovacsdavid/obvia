@@ -22,7 +22,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext.tsx";
+import { useAuth } from "@/hooks/use_auth";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
 import {
   Card,
@@ -52,7 +52,7 @@ export default function Login() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleSubmit = (e: React.FormEvent | null) => {
+  const handleSubmit = (e: React.SubmitEvent | null) => {
     if (e !== null) {
       e.preventDefault();
     }

@@ -133,7 +133,7 @@ export default function Edit({
   ]);
 
   const handleCancel = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.MouseEvent) => {
       e.preventDefault();
       if (typeof onCancel === "function") {
         onCancel();
@@ -238,7 +238,7 @@ export default function Edit({
     });
   }, [dispatch, id, setErrors, unexpectedError, setListResponse, loadLists]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (typeof id === "string") {
       handleUpdate();

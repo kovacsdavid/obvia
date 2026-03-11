@@ -36,24 +36,18 @@ import {
 } from "@/components/ui/item";
 import { Button } from "@/components/ui";
 import { MessageCircle, Newspaper } from "lucide-react";
+import { type ActivityFeedEntry } from "@/components/modules/activity_feed/lib/interface";
 
 interface ActivityProps {
   resourceId: string;
   resourceType: string;
 }
 
-interface ActivityFeed {
-  activity_type: string;
-  description: string;
-  created_at: string;
-  created_by: string;
-}
-
 export default function ActivityFeed({
   resourceId,
   resourceType,
 }: ActivityProps) {
-  const [activityFeed] = React.useState<ActivityFeed[]>([
+  const [activityFeed] = React.useState<ActivityFeedEntry[]>([
     {
       activity_type: "comment",
       description: `

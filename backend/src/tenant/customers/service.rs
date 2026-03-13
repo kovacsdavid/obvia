@@ -86,7 +86,7 @@ impl CustomersService {
         repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<Customer> {
         repo.insert(
-            payload.clone(),
+            payload,
             claims.sub(),
             claims
                 .active_tenant()

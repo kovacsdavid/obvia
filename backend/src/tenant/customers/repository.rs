@@ -50,7 +50,7 @@ pub trait CustomersRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn insert(
         &self,
-        customer: CustomerUserInput,
+        customer: &CustomerUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer>;
@@ -239,7 +239,7 @@ impl CustomersRepository for PgPoolManager {
 
     async fn insert(
         &self,
-        customer: CustomerUserInput,
+        customer: &CustomerUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer> {

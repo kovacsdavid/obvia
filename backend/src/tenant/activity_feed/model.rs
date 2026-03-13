@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -16,25 +16,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![allow(clippy::module_inception)]
-#![allow(dead_code)] // TODO: Remove this when you are ready!
-#![allow(unused_variables)] // TODO: Remove this when you are ready!
 
-pub(crate) mod activity_feed;
-pub(crate) mod address;
-pub(crate) mod comments;
-pub(crate) mod common;
-pub(crate) mod currencies;
-pub(crate) mod customers;
-pub(crate) mod inventory;
-pub(crate) mod inventory_movements;
-pub(crate) mod inventory_reservations;
-pub(crate) mod products;
-pub(crate) mod projects;
-pub(crate) mod services;
-pub(crate) mod tags;
-pub(crate) mod tasks;
-pub(crate) mod taxes;
-pub(crate) mod users;
-pub(crate) mod warehouses;
-pub(crate) mod worksheets;
+use chrono::{DateTime, Local};
+use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ActivityFeed {
+    pub id: Uuid,
+    pub activity_type: String,
+    pub description: String,
+    pub created_at: DateTime<Local>,
+    pub created_by_id: Uuid,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct ActivityFeedResolved {
+    pub id: Uuid,
+    pub activity_type: String,
+    pub description: String,
+    pub created_at: DateTime<Local>,
+    pub created_by_id: Uuid,
+    pub created_by: String,
+}

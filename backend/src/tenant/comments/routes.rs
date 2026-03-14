@@ -27,7 +27,7 @@ use axum::{Router, routing::post};
 
 pub fn routes(comments_module: Arc<dyn CommentsModule>) -> Router {
     Router::new().nest(
-        "comments",
+        "/comments",
         Router::new()
             .route("/post", post(comments_post))
             .layer(from_fn_with_state(comments_module.config(), require_auth))

@@ -27,7 +27,7 @@ use axum::{Router, routing::get};
 
 pub fn routes(activity_feed_module: Arc<dyn ActivityFeedModule>) -> Router {
     Router::new().nest(
-        "activity_feed",
+        "/activity_feed",
         Router::new()
             .route("/list", get(activity_feed_list))
             .layer(from_fn_with_state(

@@ -24,6 +24,7 @@ use crate::common::types::{EmptyFilterBy, EmptyOrderBy};
 use crate::manager::app::database::PgPoolManager;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use async_trait::async_trait;
+use chrono::Local;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -45,6 +46,56 @@ impl ActivityFeedRepository for PgPoolManager {
         query_params: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
-        unimplemented!()
+        Ok((
+            PaginatorMeta {
+                page: 1,
+                limit: 25,
+                total: 100,
+            },
+            vec![
+                ActivityFeedResolved {
+                    id: Uuid::new_v4(),
+                    activity_type: String::from("comment"),
+                    description: String::from("description1"),
+                    created_at: Local::now(),
+                    created_by_id: Uuid::new_v4(),
+                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
+                },
+                ActivityFeedResolved {
+                    id: Uuid::new_v4(),
+                    activity_type: String::from("activity"),
+                    description: String::from("description2"),
+                    created_at: Local::now(),
+                    created_by_id: Uuid::new_v4(),
+                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
+                },
+                ActivityFeedResolved {
+                    id: Uuid::new_v4(),
+                    activity_type: String::from("activity"),
+                    description: String::from("description3"),
+                    created_at: Local::now(),
+                    created_by_id: Uuid::new_v4(),
+                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
+                },
+                ActivityFeedResolved {
+                    id: Uuid::new_v4(),
+                    activity_type: String::from("comment"),
+                    description: String::from(
+                        r#"
+                          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
+                          enim ad minim veniam, quis nostrud exercitation ullamco laboris
+                          nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
+                          reprehenderit in voluptate velit esse cillum dolore eu fugiat
+                          nulla pariatur. Excepteur sint occaecat cupidatat non proident,
+                          sunt in culpa qui officia deserunt mollit anim id est laborum.
+                        "#,
+                    ),
+                    created_at: Local::now(),
+                    created_by_id: Uuid::new_v4(),
+                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
+                },
+            ],
+        ))
     }
 }

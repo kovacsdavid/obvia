@@ -59,7 +59,7 @@ export async function list(
 export async function post_comment(
   resourceId: string,
   resourceType: string,
-  content: string,
+  comment: string,
   token: string | null,
 ): Promise<ProcessedResponse<PostCommentResponse>> {
   return await fetch(`/api/comments/post`, {
@@ -70,9 +70,9 @@ export async function post_comment(
     },
     signal: AbortSignal.timeout(globalRequestTimeout),
     body: JSON.stringify({
-      resource_id: resourceId,
-      resource_type: resourceType,
-      content,
+      commentable_id: resourceId,
+      commentable_type: resourceType,
+      comment,
     }),
   }).then(async (response: Response) => {
     return (

@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -34,9 +34,16 @@ import {
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Button } from "@/components/ui";
+import { Button, GlobalError } from "@/components/ui";
 import { MessageCircle, Newspaper } from "lucide-react";
 import { type ActivityFeedEntry } from "@/components/modules/activity_feed/lib/interface";
+import { useAppDispatch } from "@/store/hooks.ts";
+import {
+  postComment,
+  list,
+} from "@/components/modules/activity_feed/lib/slice.ts";
+import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
+import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 interface ActivityProps {
   resourceId: string;
@@ -47,115 +54,122 @@ export default function ActivityFeed({
   resourceId,
   resourceType,
 }: ActivityProps) {
-  const [activityFeed] = React.useState<ActivityFeedEntry[]>([
-    {
-      activity_type: "comment",
-      description: `
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat
-              nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-              sunt in culpa qui officia deserunt mollit anim id est laborum.
-      `,
-      created_at: "2026. 03. 07. 10.32",
-      created_by: "Kovács Dávid <kapcsolat@kovacsdavid.dev>",
-    },
-    {
-      activity_type: "activity",
-      description: `
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      `,
-      created_at: "2026. 03. 07. 10.32",
-      created_by: "Kovács Dávid <kapcsolat@kovacsdavid.dev>",
-    },
-    {
-      activity_type: "activity",
-      description: `
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      `,
-      created_at: "2026. 03. 07. 10.32",
-      created_by: "Kovács Dávid <kapcsolat@kovacsdavid.dev>",
-    },
-    {
-      activity_type: "comment",
-      description: `
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-              enim ad minim veniam, quis nostrud exercitation ullamco laboris
-              nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-              reprehenderit in voluptate velit esse cillum dolore eu fugiat
-              nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-              sunt in culpa qui officia deserunt mollit anim id est laborum.
-      `,
-      created_at: "2026. 03. 07. 10.32",
-      created_by: "Kovács Dávid <kapcsolat@kovacsdavid.dev>",
-    },
+  const [activityFeed, setActivityFeed] = React.useState<ActivityFeedEntry[]>(
+    [],
+  );
+  const [newComment, setNewComment] = React.useState("");
+  const dispatch = useAppDispatch();
+  const { errors, setErrors, unexpectedError } = useSimpleError();
+
+  const { setPage, setLimit, setTotal } = useDataDisplayCommon(null);
+
+  const refresh = useCallback(() => {
+    dispatch(list({ resourceId, resourceType })).then(async (response) => {
+      if (list.fulfilled.match(response)) {
+        if (
+          response.payload.statusCode === 200 &&
+          typeof response.payload.jsonData?.data !== "undefined" &&
+          typeof response.payload.jsonData?.meta !== "undefined"
+        ) {
+          setPage(response.payload.jsonData.meta.page);
+          setLimit(response.payload.jsonData.meta.limit);
+          setTotal(response.payload.jsonData.meta.total);
+          setActivityFeed(response.payload.jsonData.data);
+        } else if (typeof response.payload.jsonData?.error !== "undefined") {
+          setErrors(response.payload.jsonData.error);
+        } else {
+          unexpectedError(response.payload.statusCode);
+        }
+      } else {
+        unexpectedError();
+      }
+    });
+  }, [
+    dispatch,
+    resourceId,
+    resourceType,
+    setPage,
+    setLimit,
+    setTotal,
+    setErrors,
+    unexpectedError,
   ]);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   const handleSubmit = (e: React.SubmitEvent) => {
     e.preventDefault();
-    console.log(resourceId, resourceType);
+    dispatch(
+      postComment({ resourceId, resourceType, comment: newComment }),
+    ).then(async (response) => {
+      console.log(response);
+    });
   };
 
   return (
-    <Card className={"max-w-5xl mx-auto mt-5"}>
-      <CardHeader>
-        <CardTitle>Tevékenység</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {activityFeed.length > 0 &&
-          activityFeed.map((item) => {
-            switch (item.activity_type) {
-              case "comment":
-                return (
-                  <Item variant="outline" className="mb-3">
-                    <ItemMedia>
-                      <MessageCircle className="size-5" />
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle>{item.created_by} </ItemTitle>
-                      <ItemDescriptionLong>
-                        {item.created_at}
-                      </ItemDescriptionLong>
-                      <ItemDescriptionLong>
-                        {item.description}
-                      </ItemDescriptionLong>
-                    </ItemContent>
-                  </Item>
-                );
-              case "activity":
-                return (
-                  <Item variant="outline" size="sm" className="mb-3">
-                    <ItemMedia>
-                      <Newspaper className="size-5" />
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle>{item.description}</ItemTitle>
-                      <ItemDescriptionLong>
-                        {item.created_at}
-                      </ItemDescriptionLong>
-                    </ItemContent>
-                  </Item>
-                );
-              default:
-                return null;
-            }
-          })}
-        <Separator className="mb-3 mt-5" />
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-          autoComplete={"off"}
-        >
-          <Label htmlFor="comment">Megjegyzés</Label>
-          <Textarea id="comment" />
-          <Button type="submit">Küldés</Button>
-        </form>
-      </CardContent>
-    </Card>
+    <>
+      <GlobalError error={errors} />
+      <Card className={"max-w-5xl mx-auto mt-5"}>
+        <CardHeader>
+          <CardTitle>Tevékenység</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {activityFeed.length > 0 &&
+            activityFeed.map((item) => {
+              switch (item.activity_type) {
+                case "comment":
+                  return (
+                    <Item key={item.id} variant="outline" className="mb-3">
+                      <ItemMedia>
+                        <MessageCircle className="size-5" />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>{item.created_by}</ItemTitle>
+                        <ItemDescriptionLong>
+                          {item.created_at}
+                        </ItemDescriptionLong>
+                        <ItemDescriptionLong>
+                          {item.description}
+                        </ItemDescriptionLong>
+                      </ItemContent>
+                    </Item>
+                  );
+                case "activity":
+                  return (
+                    <Item key={item.id} variant="outline" size="sm" className="mb-3">
+                      <ItemMedia>
+                        <Newspaper className="size-5" />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>{item.description}</ItemTitle>
+                        <ItemDescriptionLong>
+                          {item.created_at}
+                        </ItemDescriptionLong>
+                      </ItemContent>
+                    </Item>
+                  );
+                default:
+                  return null;
+              }
+            })}
+          <Separator className="mb-3 mt-5" />
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            autoComplete={"off"}
+          >
+            <Label htmlFor="comment">Megjegyzés</Label>
+            <Textarea
+              id="comment"
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+            />
+            <Button type="submit">Küldés</Button>
+          </form>
+        </CardContent>
+      </Card>
+    </>
   );
 }

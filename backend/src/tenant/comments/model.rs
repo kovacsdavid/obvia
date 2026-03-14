@@ -26,7 +26,7 @@ use uuid::Uuid;
 pub struct CommentsResolved {
     pub id: Uuid,
     pub commentable_type: String,
-    pub commentable_id: String,
+    pub commentable_id: Uuid,
     pub comment: String,
     pub created_by_id: Uuid,
     pub created_by: String,

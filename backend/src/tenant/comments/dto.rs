@@ -23,7 +23,10 @@ use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::common::error::FormErrorResponse;
+use crate::{
+    common::{error::FormErrorResponse, types::ValueObject},
+    tenant::comments::types::{Comment, CommentableType},
+};
 
 #[derive(Debug, Deserialize)]
 pub struct CommentUserInputHelper {
@@ -70,14 +73,47 @@ impl IntoResponse for CommentUserInputError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommentUserInput {
     pub id: Option<Uuid>,
-    pub commentable_type: String,
+    pub commentable_type: ValueObject<CommentableType>,
     pub commentable_id: Uuid,
-    pub comment: String,
+    pub comment: ValueObject<Comment>,
 }
 
 impl TryFrom<CommentUserInputHelper> for CommentUserInput {
     type Error = CommentUserInputError;
     fn try_from(value: CommentUserInputHelper) -> Result<Self, Self::Error> {
-        unimplemented!()
+        let mut error = CommentUserInputError::default();
+
+        let id = match value.id {
+            None => None,
+            Some(id) => Uuid::parse_str(&id)
+                .inspect_err(|e| {
+                    error.id = Some("Hibás azonosító".to_string());
+                })
+                .ok(),
+        };
+
+        let commentable_type = ValueObject::new(CommentableType(value.commentable_type))
+            .inspect_err(|e| {
+                error.commentable_type = Some(e.to_string());
+            });
+
+        let commentable_id = Uuid::parse_str(&value.commentable_id).inspect_err(|e| {
+            error.commentable_id = Some("Hibás erőforrás azonosító".to_string());
+        });
+
+        let comment = ValueObject::new(Comment(value.comment)).inspect_err(|e| {
+            error.comment = Some(e.to_string());
+        });
+
+        if error.is_empty() {
+            Ok(CommentUserInput {
+                id,
+                commentable_type: commentable_type.map_err(|_| CommentUserInputError::default())?,
+                commentable_id: commentable_id.map_err(|_| CommentUserInputError::default())?,
+                comment: comment.map_err(|_| CommentUserInputError::default())?,
+            })
+        } else {
+            Err(error)
+        }
     }
 }

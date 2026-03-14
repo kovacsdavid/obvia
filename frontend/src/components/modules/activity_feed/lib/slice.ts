@@ -51,11 +51,11 @@ export const postComment = createAsyncThunk(
     {
       resourceId,
       resourceType,
-      content,
+      comment,
     }: {
       resourceId: string;
       resourceType: string;
-      content: string;
+      comment: string;
     },
     { getState, dispatch },
   ) => {
@@ -65,7 +65,7 @@ export const postComment = createAsyncThunk(
     return await activityFeedApi.post_comment(
       resourceId,
       resourceType,
-      content,
+      comment,
       token,
     );
   },

@@ -17,24 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {
-  CommonResponse,
-  FormError,
-  PaginatedDataResponse,
-  SimpleError,
-} from "@/lib/interfaces/common";
+pub(crate) mod comment;
+pub(crate) mod commentable_type;
 
-export interface ActivityFeedEntry {
-  id: string;
-  activity_type: string;
-  description: string;
-  created_at: string;
-  created_by: string;
-}
-
-export type PostCommentResponse = CommonResponse<ActivityFeedEntry, FormError>;
-
-export type PaginatedActivityFeedResponse = PaginatedDataResponse<
-  ActivityFeedEntry[],
-  SimpleError
->;
+pub(crate) use comment::Comment;
+pub(crate) use commentable_type::CommentableType;

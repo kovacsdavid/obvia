@@ -49,6 +49,10 @@ pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
                 .merge(crate::manager::auth::routes::routes(app_state.clone()))
                 .merge(crate::manager::users::routes::routes(app_state.clone()))
                 .merge(crate::manager::tenants::routes::routes(app_state.clone()))
+                .merge(crate::tenant::activity_feed::routes::routes(
+                    app_state.clone(),
+                ))
+                .merge(crate::tenant::comments::routes::routes(app_state.clone()))
                 .merge(crate::tenant::customers::routes::routes(app_state.clone()))
                 .merge(crate::tenant::inventory::routes::routes(app_state.clone()))
                 .merge(crate::tenant::inventory_movements::routes::routes(

@@ -1,0 +1,120 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use crate::common::types::value_object::ValueObjectError;
+use crate::common::types::{ValueObject, ValueObjectable};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
+use std::str::FromStr;
+
+#[derive(Debug, PartialEq, Clone, Serialize)]
+pub struct CommentableType(pub String);
+
+impl ValueObjectable for CommentableType {
+    type DataType = String;
+
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        match self.0.trim() {
+            "customers" => Ok(()),
+            _ => Err(ValueObjectError::InvalidInput(
+                "Hibás erőforrás típus formátum",
+            )),
+        }
+    }
+
+    fn get_value(&self) -> &Self::DataType {
+        &self.0
+    }
+}
+
+impl FromStr for CommentableType {
+    type Err = ValueObjectError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(CommentableType(s.to_string()))
+    }
+}
+
+impl<'de> Deserialize<'de> for ValueObject<CommentableType> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        ValueObject::new(CommentableType(s)).map_err(serde::de::Error::custom)
+    }
+}
+
+impl Display for CommentableType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_order_by() {
+        let order_by: ValueObject<CommentableType> =
+            serde_json::from_str(r#""customers""#).unwrap();
+        assert_eq!(order_by.as_str(), "customers");
+    }
+
+    #[test]
+    fn test_invalid_order_by() {
+        let cases = vec![r#""invalid""#, r#""''""#, r#"";""#];
+
+        for case in cases {
+            let order_by: Result<ValueObject<CommentableType>, _> = serde_json::from_str(case);
+            assert!(order_by.is_err());
+        }
+    }
+
+    #[test]
+    fn test_from_str() {
+        let order_by = CommentableType::from_str("customers").unwrap();
+        assert_eq!(order_by.get_value(), "customers");
+    }
+
+    #[test]
+    fn test_display() {
+        let order_by = CommentableType("customers".to_string());
+        assert_eq!(format!("{}", order_by), "customers");
+    }
+
+    #[test]
+    fn test_get_value() {
+        let order_by = CommentableType("customers".to_string());
+        assert_eq!(order_by.get_value(), "customers");
+    }
+
+    #[test]
+    fn test_validation() {
+        assert!(CommentableType("customers".to_string()).validate().is_ok());
+        assert!(CommentableType("price".to_string()).validate().is_err());
+        assert!(CommentableType("quantity".to_string()).validate().is_err());
+        assert!(
+            CommentableType("invalid_column".to_string())
+                .validate()
+                .is_err()
+        );
+    }
+}

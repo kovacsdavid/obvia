@@ -19,7 +19,6 @@
 
 use crate::common::MailTransporter;
 use crate::common::dto::GeneralError;
-use crate::common::dto::PaginatorMeta;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::comments::dto::CommentUserInput;
@@ -78,7 +77,7 @@ impl CommentsService {
         claims: &Claims,
         payload: &CommentUserInput,
         repo: Arc<dyn CommentsRepository>,
-    ) -> CommentsServiceResult<(PaginatorMeta, Vec<CommentsResolved>)> {
+    ) -> CommentsServiceResult<CommentsResolved> {
         Ok(repo
             .post(
                 payload,

@@ -39,6 +39,7 @@ import type { InventoryReservationResolved } from "@/components/modules/inventor
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
+import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryReservationResolved | null>(
@@ -73,81 +74,88 @@ export default function View() {
     <>
       <GlobalError error={errors} />
       {data !== null ? (
-        <Card className={"max-w-3xl mx-auto"}>
-          <CardHeader>
-            <CardTitle>Készletfoglalás részletei</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell>Azonosító</TableCell>
-                  <TableCell>{data.id}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Raktárkészlet</TableCell>
-                  <TableCell>
-                    <NavLink
-                      to={`/raktarkeszlet/reszletek/${data.inventory_id}`}
-                    >
-                      {data.inventory_id} <Link size={15} className="inline" />
-                    </NavLink>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Mennyiség</TableCell>
-                  <TableCell>{data.quantity}</TableCell>
-                </TableRow>
-                {data.reference_type && (
+        <>
+          <Card className={"max-w-3xl mx-auto"}>
+            <CardHeader>
+              <CardTitle>Készletfoglalás részletei</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableBody>
                   <TableRow>
-                    <TableCell>Hivatkozás típusa</TableCell>
-                    <TableCell>{data.reference_type}</TableCell>
+                    <TableCell>Azonosító</TableCell>
+                    <TableCell>{data.id}</TableCell>
                   </TableRow>
-                )}
-                {data.reference_id && (
                   <TableRow>
-                    <TableCell>Hivatkozás azonosító</TableCell>
-                    <TableCell>{data.reference_id}</TableCell>
-                  </TableRow>
-                )}
-                {data.reserved_until && (
-                  <TableRow>
-                    <TableCell>Lefoglalva eddig</TableCell>
+                    <TableCell>Raktárkészlet</TableCell>
                     <TableCell>
-                      {formatDateToYMDHMS(data.reserved_until)}
+                      <NavLink
+                        to={`/raktarkeszlet/reszletek/${data.inventory_id}`}
+                      >
+                        {data.inventory_id}{" "}
+                        <Link size={15} className="inline" />
+                      </NavLink>
                     </TableCell>
                   </TableRow>
-                )}
-                <TableRow>
-                  <TableCell>Státusz</TableCell>
-                  <TableCell>{data.status}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Létrehozta</TableCell>
-                  <TableCell>{data.created_by}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Létrehozva</TableCell>
-                  <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Módosítva</TableCell>
-                  <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-            <div className="mt-8">
-              <Button
-                className="mr-3"
-                type="submit"
-                variant="outline"
-                onClick={() => navigate(-1)}
-              >
-                Vissza
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                  <TableRow>
+                    <TableCell>Mennyiség</TableCell>
+                    <TableCell>{data.quantity}</TableCell>
+                  </TableRow>
+                  {data.reference_type && (
+                    <TableRow>
+                      <TableCell>Hivatkozás típusa</TableCell>
+                      <TableCell>{data.reference_type}</TableCell>
+                    </TableRow>
+                  )}
+                  {data.reference_id && (
+                    <TableRow>
+                      <TableCell>Hivatkozás azonosító</TableCell>
+                      <TableCell>{data.reference_id}</TableCell>
+                    </TableRow>
+                  )}
+                  {data.reserved_until && (
+                    <TableRow>
+                      <TableCell>Lefoglalva eddig</TableCell>
+                      <TableCell>
+                        {formatDateToYMDHMS(data.reserved_until)}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell>Státusz</TableCell>
+                    <TableCell>{data.status}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Létrehozta</TableCell>
+                    <TableCell>{data.created_by}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Létrehozva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Módosítva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+              <div className="mt-8">
+                <Button
+                  className="mr-3"
+                  type="submit"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                >
+                  Vissza
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <ActivityFeed
+            resourceId={data.id}
+            resourceType="inventory_reservations"
+          />
+        </>
       ) : null}
     </>
   );

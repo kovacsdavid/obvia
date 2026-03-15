@@ -31,10 +31,17 @@ impl ValueObjectable for ResourceType {
 
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
-            "customers" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput(
-                "Hibás erőforrás típus formátum",
-            )),
+            "customers"
+            | "warehouses"
+            | "taxes"
+            | "products"
+            | "inventory"
+            | "inventory_movements"
+            | "inventory_reservations"
+            | "services"
+            | "tasks"
+            | "worksheets" => Ok(()),
+            _ => Err(ValueObjectError::InvalidInput("Hibás erőforrás típus")),
         }
     }
 

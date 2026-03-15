@@ -39,6 +39,7 @@ import type { InventoryMovementResolved } from "@/components/modules/inventory_m
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
+import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryMovementResolved | null>(
@@ -73,95 +74,102 @@ export default function View() {
     <>
       <GlobalError error={errors} />
       {data !== null ? (
-        <Card className={"max-w-3xl mx-auto"}>
-          <CardHeader>
-            <CardTitle>Készletmozgás részletei</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell>Azonosító</TableCell>
-                  <TableCell>{data.id}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Raktárkészlet</TableCell>
-                  <TableCell>
-                    <NavLink
-                      to={`/raktarkeszlet/reszletek/${data.inventory_id}`}
-                    >
-                      {data.inventory_id} <Link size={15} className="inline" />
-                    </NavLink>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Típus</TableCell>
-                  <TableCell>{data.movement_type}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Mennyiség</TableCell>
-                  <TableCell>
-                    {parseFloat(data.quantity)
-                      ? Math.abs(parseFloat(data.quantity))
-                      : "N/A"}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Egységár</TableCell>
-                  <TableCell>{data.unit_price ?? "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Összeg</TableCell>
-                  <TableCell>{data.total_price ?? "N/A"}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Adó</TableCell>
-                  <TableCell>
-                    <NavLink to={`/ado/reszletek/${data.tax_id}`}>
-                      {data.tax} <Link size={15} className="inline" />
-                    </NavLink>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Mozgás dátuma</TableCell>
-                  <TableCell>
-                    {formatDateToYMDHMS(data.movement_date)}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Létrehozta</TableCell>
-                  <TableCell>{data.created_by}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell>Létrehozva</TableCell>
-                  <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                </TableRow>
-                {data.reference_type && (
+        <>
+          <Card className={"max-w-3xl mx-auto"}>
+            <CardHeader>
+              <CardTitle>Készletmozgás részletei</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableBody>
                   <TableRow>
-                    <TableCell>Hivatkozás típusa</TableCell>
-                    <TableCell>{data.reference_type}</TableCell>
+                    <TableCell>Azonosító</TableCell>
+                    <TableCell>{data.id}</TableCell>
                   </TableRow>
-                )}
-                {data.reference_id && (
                   <TableRow>
-                    <TableCell>Hivatkozás azonosító</TableCell>
-                    <TableCell>{data.reference_id}</TableCell>
+                    <TableCell>Raktárkészlet</TableCell>
+                    <TableCell>
+                      <NavLink
+                        to={`/raktarkeszlet/reszletek/${data.inventory_id}`}
+                      >
+                        {data.inventory_id}{" "}
+                        <Link size={15} className="inline" />
+                      </NavLink>
+                    </TableCell>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-            <div className="mt-8">
-              <Button
-                className="mr-3"
-                type="submit"
-                variant="outline"
-                onClick={() => navigate(-1)}
-              >
-                Vissza
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                  <TableRow>
+                    <TableCell>Típus</TableCell>
+                    <TableCell>{data.movement_type}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Mennyiség</TableCell>
+                    <TableCell>
+                      {parseFloat(data.quantity)
+                        ? Math.abs(parseFloat(data.quantity))
+                        : "N/A"}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Egységár</TableCell>
+                    <TableCell>{data.unit_price ?? "N/A"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Összeg</TableCell>
+                    <TableCell>{data.total_price ?? "N/A"}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Adó</TableCell>
+                    <TableCell>
+                      <NavLink to={`/ado/reszletek/${data.tax_id}`}>
+                        {data.tax} <Link size={15} className="inline" />
+                      </NavLink>
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Mozgás dátuma</TableCell>
+                    <TableCell>
+                      {formatDateToYMDHMS(data.movement_date)}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Létrehozta</TableCell>
+                    <TableCell>{data.created_by}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell>Létrehozva</TableCell>
+                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
+                  </TableRow>
+                  {data.reference_type && (
+                    <TableRow>
+                      <TableCell>Hivatkozás típusa</TableCell>
+                      <TableCell>{data.reference_type}</TableCell>
+                    </TableRow>
+                  )}
+                  {data.reference_id && (
+                    <TableRow>
+                      <TableCell>Hivatkozás azonosító</TableCell>
+                      <TableCell>{data.reference_id}</TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              <div className="mt-8">
+                <Button
+                  className="mr-3"
+                  type="submit"
+                  variant="outline"
+                  onClick={() => navigate(-1)}
+                >
+                  Vissza
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <ActivityFeed
+            resourceId={data.id}
+            resourceType="inventory_movements"
+          />
+        </>
       ) : null}
     </>
   );

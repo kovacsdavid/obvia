@@ -160,7 +160,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match ProjectsService::get_paged_list(
-        &GetQuery::<ProjectOrderBy, ProjectFilterBy>::from_str(payload.as_str())
+        &GetQuery::<ProjectOrderBy, ProjectFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         projects_module.projects_repo(),

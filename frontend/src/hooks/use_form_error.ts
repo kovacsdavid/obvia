@@ -20,7 +20,7 @@
 import { useCallback, useState } from "react";
 import type { FormError } from "@/lib/interfaces/common.ts";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext.tsx";
+import { useAuth } from "@/hooks/use_auth";
 
 export function useFormError() {
   const [errors, setErrors] = useState<FormError | null>(null);

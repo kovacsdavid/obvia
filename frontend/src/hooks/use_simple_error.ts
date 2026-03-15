@@ -20,7 +20,7 @@
 import type { SimpleError } from "@/lib/interfaces/common";
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext.tsx";
+import { useAuth } from "@/hooks/use_auth";
 
 export function useSimpleError() {
   const [errors, setErrors] = useState<SimpleError | null>(null);

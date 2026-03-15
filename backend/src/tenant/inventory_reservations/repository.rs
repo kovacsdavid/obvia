@@ -184,8 +184,8 @@ impl InventoryReservationsRepository for PgPoolManager {
                     WHERE inventory_reservations.inventory_id = $1
                         AND ($2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     {order_by_clause}
-                    OFFSET $3
-                    LIMIT $4
+                    LIMIT $3
+                    OFFSET $4
                     "#
                 );
 
@@ -216,8 +216,8 @@ impl InventoryReservationsRepository for PgPoolManager {
                     LEFT JOIN users ON inventory_reservations.created_by_id = users.id
                     WHERE inventory_reservations.inventory_id = $1
                     {order_by_clause}
-                    OFFSET $2
-                    LIMIT $3
+                    LIMIT $2
+                    OFFSET $3
                     "#
                 );
 

@@ -52,7 +52,7 @@ export default function Settings() {
   const user_is_mfa_enabled = useMemo(() => user?.is_mfa_enabled, [user]);
 
   const handleDisableMfa = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.SubmitEvent) => {
       e.preventDefault();
       dispatch(disableOtp(otp)).then((response) => {
         if (disableOtp.fulfilled.match(response)) {
@@ -73,7 +73,7 @@ export default function Settings() {
   );
 
   const handleVerfiyMfa = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.SubmitEvent) => {
       e.preventDefault();
       dispatch(verifyOtp(otp)).then((response) => {
         if (verifyOtp.fulfilled.match(response)) {
@@ -131,7 +131,7 @@ export default function Settings() {
             <Button
               className="mr-3"
               variant="outline"
-              onClick={(e: React.FormEvent) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 setOtp("");
                 setOpenDisableOtpDialog(false);
@@ -187,7 +187,7 @@ export default function Settings() {
             <Button
               className="mr-3"
               variant="outline"
-              onClick={(e: React.FormEvent) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 setOtp("");
                 setOpenVerifyOtpDialog(false);

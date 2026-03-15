@@ -143,3 +143,21 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
         }
     }
 }
+
+#[derive(Deserialize)]
+pub struct InventoryReservationsRawQuery {
+    inventory_id: Uuid,
+    q: Option<String>,
+}
+
+impl InventoryReservationsRawQuery {
+    pub fn inventory_id(&self) -> Uuid {
+        self.inventory_id
+    }
+    pub fn q(&self) -> &str {
+        match &self.q {
+            Some(v) => v,
+            None => "",
+        }
+    }
+}

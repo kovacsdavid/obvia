@@ -129,7 +129,7 @@ export default function Edit({
     }
   }, [dispatch, id, setErrors, unexpectedError]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (typeof id === "string") {
       handleUpdate();
@@ -171,7 +171,7 @@ export default function Edit({
             <Button
               className="mr-3"
               variant="outline"
-              onClick={(e: React.FormEvent) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 navigate(-1);
               }}

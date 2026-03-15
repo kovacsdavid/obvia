@@ -20,7 +20,9 @@
 #![allow(dead_code)] // TODO: Remove this when you are ready!
 #![allow(unused_variables)] // TODO: Remove this when you are ready!
 
+pub(crate) mod activity_feed;
 pub(crate) mod address;
+pub(crate) mod comments;
 pub(crate) mod common;
 pub(crate) mod currencies;
 pub(crate) mod customers;

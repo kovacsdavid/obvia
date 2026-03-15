@@ -32,7 +32,7 @@ export default function Create() {
   const [errors, setErrors] = useState<FormError | null>(null);
   const dispatch = useAppDispatch();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     dispatch(
       create({

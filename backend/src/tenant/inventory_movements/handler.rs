@@ -190,10 +190,8 @@ pub async fn list(
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match InventoryMovementsService::get_paged_list(
-        &GetQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(
-            payload.q_as_str(),
-        )
-        .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
+        &GetQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(payload.q())
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         inventory_movements_module.inventory_movements_repo(),
         payload.inventory_id(),

@@ -176,7 +176,7 @@ export default function Edit({
   }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.SubmitEvent) => {
       e.preventDefault();
       dispatch(
         create({
@@ -369,7 +369,7 @@ export default function Edit({
             <Button
               className="mr-3"
               variant="outline"
-              onClick={(e: React.FormEvent) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 navigate(-1);
               }}

@@ -39,6 +39,7 @@ import type { InventoryResolved } from "@/components/modules/inventory/lib/inter
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
+import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
   const [data, setData] = React.useState<InventoryResolved | null>(null);
@@ -153,6 +154,7 @@ export default function View() {
               </div>
             </CardContent>
           </Card>
+          <ActivityFeed resourceId={data.id} resourceType="inventory" />
         </>
       ) : null}
     </>

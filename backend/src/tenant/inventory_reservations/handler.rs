@@ -23,11 +23,12 @@ use crate::common::dto::{
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::query_parser::GetQuery;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::{
     InventoryReservationUserInput, InventoryReservationUserInputHelper,
+    InventoryReservationsRawQuery,
 };
 use crate::tenant::inventory_reservations::service::InventoryReservationsService;
 use crate::tenant::inventory_reservations::types::{
@@ -40,7 +41,6 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
-use uuid::Uuid;
 
 #[debug_handler]
 pub async fn get(
@@ -188,30 +188,16 @@ pub async fn delete(
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
-    Query(payload): Query<CommonRawQuery>,
+    Query(payload): Query<InventoryReservationsRawQuery>,
 ) -> HandlerResult {
-    // TODO: you may need a special query param to pass inventory_id
-    //let inventory_id = payload
-    //    .as_hash_map()
-    //    .and_then(|m| m.get("inventory_id").cloned())
-    //    .and_then(|s| Uuid::parse_str(&s).ok())
-    //    .ok_or_else(|| {
-    //        FriendlyError::internal(
-    //            file!(),
-    //            "Hiányzó vagy hibás raktárkészlet azonosító".to_string(),
-    //        )
-    //        .into_response()
-    //    })?;
-    let inventory_id = Uuid::new_v4(); // TMP !
-
     let (meta, data) = match InventoryReservationsService::get_paged_list(
         &GetQuery::<InventoryReservationOrderBy, InventoryReservationFilterBy>::from_str(
-            payload.as_str(),
+            payload.q(),
         )
         .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         inventory_reservations_module.inventory_reservations_repo(),
-        inventory_id,
+        payload.inventory_id(),
     )
     .await
     {

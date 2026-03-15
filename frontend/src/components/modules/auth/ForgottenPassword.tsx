@@ -50,7 +50,7 @@ export default function ForgottenPassword() {
   const dispatch = useAppDispatch();
   const params = useParams();
 
-  const handleSubmitNewPassword = async (e: React.FormEvent) => {
+  const handleSubmitNewPassword = async (e: React.SubmitEvent) => {
     e.preventDefault();
     const token = params["id"];
     if (typeof token === "string" && token.length === 36) {
@@ -78,7 +78,7 @@ export default function ForgottenPassword() {
     }
   };
 
-  const handleSubmitForgottenPassword = async (e: React.FormEvent) => {
+  const handleSubmitForgottenPassword = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     const response = await dispatch(

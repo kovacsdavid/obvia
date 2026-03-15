@@ -291,7 +291,7 @@ export default function Edit({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
     if (typeof id === "string") {
       handleUpdate();
@@ -522,7 +522,7 @@ export default function Edit({
             <Button
               className="mr-3"
               variant="outline"
-              onClick={(e: React.FormEvent) => {
+              onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
                 navigate(-1);
               }}

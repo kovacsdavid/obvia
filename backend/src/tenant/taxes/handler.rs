@@ -153,7 +153,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TaxesService::get_paged_list(
-        &GetQuery::<TaxOrderBy, TaxFilterBy>::from_str(payload.as_str())
+        &GetQuery::<TaxOrderBy, TaxFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         taxes_module.taxes_repo(),

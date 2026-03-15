@@ -38,6 +38,7 @@ import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
   const [data, setData] = React.useState<TaxResolved | null>(null);
@@ -140,6 +141,7 @@ export default function View() {
               </div>
             </CardContent>
           </Card>
+          <ActivityFeed resourceId={data.id} resourceType="taxes" />
         </>
       ) : null}
     </>

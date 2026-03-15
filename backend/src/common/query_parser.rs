@@ -283,7 +283,7 @@ pub struct CommonRawQuery {
 }
 
 impl CommonRawQuery {
-    pub fn as_str(&self) -> &str {
+    pub fn q(&self) -> &str {
         match &self.q {
             Some(v) => v,
             None => "",

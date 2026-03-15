@@ -31,7 +31,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { useAuth } from "@/context/AuthContext.tsx";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function Register() {
   const [firstName, setFirstName] = useState("");
@@ -62,7 +62,7 @@ export default function Register() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
 
     const response = await dispatch(

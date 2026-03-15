@@ -25,7 +25,7 @@ import { persistor, store } from "./store";
 import App from "./App";
 import "./index.css";
 import { PersistGate } from "redux-persist/integration/react";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "@/context/auth/AuthProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

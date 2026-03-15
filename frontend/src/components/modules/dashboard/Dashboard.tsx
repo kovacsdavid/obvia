@@ -18,7 +18,7 @@
  */
 
 import { Button } from "@/components/ui";
-import { useAuth } from "@/context/AuthContext.tsx";
+import { useAuth } from "@/hooks/use_auth";
 import {
   Boxes,
   Database,

@@ -17,32 +17,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::{DateTime, Local};
-use serde::{Deserialize, Serialize};
-use sqlx::FromRow;
+use std::str::FromStr;
+
+use serde::Deserialize;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct Comment {
-    pub id: Uuid,
-    pub commentable_type: String,
-    pub commentable_id: Uuid,
-    pub comment: String,
-    pub created_by_id: Uuid,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+use crate::{
+    common::types::{ValueObject, value_object::ValueObjectError},
+    tenant::activity_feed::types::ResourceType,
+};
+
+#[derive(Deserialize)]
+pub struct ActivityFeedRawQuery {
+    resource_id: Uuid,
+    resource_type: String,
+    q: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct CommentResolved {
-    pub id: Uuid,
-    pub commentable_type: String,
-    pub commentable_id: Uuid,
-    pub comment: String,
-    pub created_by_id: Uuid,
-    pub created_by: String,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+impl ActivityFeedRawQuery {
+    pub fn resource_id(&self) -> Uuid {
+        self.resource_id
+    }
+    pub fn resource_type(&self) -> Result<ValueObject<ResourceType>, ValueObjectError> {
+        ValueObject::new(ResourceType::from_str(&self.resource_type)?)
+    }
+    pub fn q(&self) -> &str {
+        match &self.q {
+            Some(v) => v,
+            None => "",
+        }
+    }
 }

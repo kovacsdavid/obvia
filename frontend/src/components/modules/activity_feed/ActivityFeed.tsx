@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/item";
 import { Button, GlobalError } from "@/components/ui";
 import { MessageCircle, Newspaper } from "lucide-react";
-import { type ActivityFeedEntry } from "@/components/modules/activity_feed/lib/interface";
+import { type ActivityFeedResolvedEntry } from "@/components/modules/activity_feed/lib/interface";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   postComment,
@@ -44,6 +44,7 @@ import {
 } from "@/components/modules/activity_feed/lib/slice.ts";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { formatDateToYMDHMS } from "@/lib/utils.ts";
 
 interface ActivityProps {
   resourceId: string;
@@ -54,9 +55,9 @@ export default function ActivityFeed({
   resourceId,
   resourceType,
 }: ActivityProps) {
-  const [activityFeed, setActivityFeed] = React.useState<ActivityFeedEntry[]>(
-    [],
-  );
+  const [activityFeed, setActivityFeed] = React.useState<
+    ActivityFeedResolvedEntry[]
+  >([]);
   const [newComment, setNewComment] = React.useState("");
   const dispatch = useAppDispatch();
   const { errors, setErrors, unexpectedError } = useSimpleError();
@@ -104,7 +105,12 @@ export default function ActivityFeed({
     dispatch(
       postComment({ resourceId, resourceType, comment: newComment }),
     ).then(async (response) => {
-      console.log(response);
+      if (postComment.fulfilled.match(response)) {
+        if (response.payload.statusCode === 201) {
+          refresh();
+          setNewComment("");
+        }
+      }
     });
   };
 
@@ -127,25 +133,30 @@ export default function ActivityFeed({
                       </ItemMedia>
                       <ItemContent>
                         <ItemTitle>{item.created_by}</ItemTitle>
-                        <ItemDescriptionLong>
-                          {item.created_at}
+                        <ItemDescriptionLong className="mb-3">
+                          {formatDateToYMDHMS(item.created_at)}
                         </ItemDescriptionLong>
                         <ItemDescriptionLong>
-                          {item.description}
+                          {item.content}
                         </ItemDescriptionLong>
                       </ItemContent>
                     </Item>
                   );
                 case "activity":
                   return (
-                    <Item key={item.id} variant="outline" size="sm" className="mb-3">
+                    <Item
+                      key={item.id}
+                      variant="outline"
+                      size="sm"
+                      className="mb-3"
+                    >
                       <ItemMedia>
                         <Newspaper className="size-5" />
                       </ItemMedia>
                       <ItemContent>
-                        <ItemTitle>{item.description}</ItemTitle>
+                        <ItemTitle>{item.content}</ItemTitle>
                         <ItemDescriptionLong>
-                          {item.created_at}
+                          {formatDateToYMDHMS(item.created_at)}
                         </ItemDescriptionLong>
                       </ItemContent>
                     </Item>

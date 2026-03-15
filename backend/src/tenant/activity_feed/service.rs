@@ -21,15 +21,17 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::GetQuery;
-use crate::common::types::{EmptyFilterBy, EmptyOrderBy};
+use crate::common::types::{EmptyFilterBy, EmptyOrderBy, ValueObject};
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::repository::ActivityFeedRepository;
+use crate::tenant::activity_feed::types::ResourceType;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum ActivityFeedServiceError {
@@ -77,11 +79,15 @@ impl ActivityFeedService {
     pub async fn get_all_paged(
         get_query: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
         claims: &Claims,
+        resource_id: Uuid,
+        resource_type: &ValueObject<ResourceType>,
         repo: Arc<dyn ActivityFeedRepository>,
     ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         Ok(repo
             .get_all_paged(
                 get_query,
+                resource_id,
+                resource_type,
                 claims
                     .active_tenant()
                     .ok_or(ActivityFeedServiceError::Unauthorized)?,

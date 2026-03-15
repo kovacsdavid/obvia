@@ -181,7 +181,7 @@ impl InventoryMovementsRawQuery {
     pub fn inventory_id(&self) -> Uuid {
         self.inventory_id
     }
-    pub fn q_as_str(&self) -> &str {
+    pub fn q(&self) -> &str {
         match &self.q {
             Some(v) => v,
             None => "",

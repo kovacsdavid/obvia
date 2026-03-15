@@ -18,11 +18,10 @@
  */
 
 use crate::common::error::RepositoryResult;
-use crate::manager::app::database::PgPoolManager;
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::comments::dto::CommentUserInput;
-use crate::tenant::comments::model::CommentsResolved;
+use crate::tenant::comments::model::Comment;
 use async_trait::async_trait;
-use chrono::Local;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -35,7 +34,7 @@ pub trait CommentsRepository: Send + Sync {
         payload: &CommentUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<CommentsResolved>;
+    ) -> RepositoryResult<Comment>;
 }
 
 #[async_trait]
@@ -45,27 +44,30 @@ impl CommentsRepository for PgPoolManager {
         payload: &CommentUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<CommentsResolved> {
-        Ok(CommentsResolved {
-            id: Uuid::new_v4(),
-            commentable_type: String::from("customer"),
-            commentable_id: Uuid::new_v4(),
-            comment: String::from(
-                r#"
-                          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-                          enim ad minim veniam, quis nostrud exercitation ullamco laboris
-                          nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-                          reprehenderit in voluptate velit esse cillum dolore eu fugiat
-                          nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-                          sunt in culpa qui officia deserunt mollit anim id est laborum.
-                        "#,
-            ),
-            created_by_id: Uuid::new_v4(),
-            created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev"),
-            created_at: Local::now(),
-            updated_at: Local::now(),
-            deleted_at: None,
-        })
+    ) -> RepositoryResult<Comment> {
+        Ok(sqlx::query_as::<_, Comment>(
+            r#"
+            INSERT INTO comments (
+                id,
+                commentable_type,
+                commentable_id,
+                comment,
+                created_by_id
+            ) VALUES (
+                $1,
+                $2,
+                $3,
+                $4,
+                $5
+            ) RETURNING *
+        "#,
+        )
+        .bind(Uuid::new_v4())
+        .bind(payload.commentable_type.as_str())
+        .bind(payload.commentable_id)
+        .bind(payload.comment.as_str())
+        .bind(sub)
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .await?)
     }
 }

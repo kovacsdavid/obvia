@@ -21,11 +21,13 @@ use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::activity_feed::repository::ActivityFeedRepository;
 use std::sync::Arc;
 
+mod dto;
 mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
+pub(crate) mod types;
 
 pub trait ActivityFeedModule: ConfigProvider + MailTransporter + Send + Sync {
     fn activity_feed_repo(&self) -> Arc<dyn ActivityFeedRepository>;

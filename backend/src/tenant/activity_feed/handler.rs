@@ -19,10 +19,11 @@
 
 use crate::common::dto::{HandlerResult, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::query_parser::GetQuery;
 use crate::common::types::{EmptyFilterBy, EmptyOrderBy};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
+use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
 use crate::tenant::activity_feed::service::ActivityFeedService;
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -35,12 +36,16 @@ use std::sync::Arc;
 pub async fn list(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(activity_feed_module): State<Arc<dyn ActivityFeedModule>>,
-    Query(payload): Query<CommonRawQuery>,
+    Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match ActivityFeedService::get_all_paged(
-        &GetQuery::<EmptyOrderBy, EmptyFilterBy>::from_str(payload.as_str())
+        &GetQuery::<EmptyOrderBy, EmptyFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
+        payload.resource_id(),
+        &payload
+            .resource_type()
+            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         activity_feed_module.activity_feed_repo(),
     )
     .await

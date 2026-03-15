@@ -22,7 +22,7 @@ use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::comments::dto::CommentUserInput;
-use crate::tenant::comments::model::CommentsResolved;
+use crate::tenant::comments::model::Comment;
 use crate::tenant::comments::repository::CommentsRepository;
 use async_trait::async_trait;
 use axum::http::StatusCode;
@@ -77,7 +77,7 @@ impl CommentsService {
         claims: &Claims,
         payload: &CommentUserInput,
         repo: Arc<dyn CommentsRepository>,
-    ) -> CommentsServiceResult<CommentsResolved> {
+    ) -> CommentsServiceResult<Comment> {
         Ok(repo
             .post(
                 payload,

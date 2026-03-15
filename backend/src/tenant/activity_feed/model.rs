@@ -25,18 +25,26 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ActivityFeed {
     pub id: Uuid,
+    pub resource_id: Uuid,
+    pub resource_type: String,
     pub activity_type: String,
     pub description: String,
-    pub created_at: DateTime<Local>,
     pub created_by_id: Uuid,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ActivityFeedResolved {
     pub id: Uuid,
+    pub resource_id: Uuid,
+    pub resource_type: String,
     pub activity_type: String,
-    pub description: String,
-    pub created_at: DateTime<Local>,
+    pub content: String,
     pub created_by_id: Uuid,
     pub created_by: String,
+    pub created_at: DateTime<Local>,
+    pub updated_at: DateTime<Local>,
+    pub deleted_at: Option<DateTime<Local>>,
 }

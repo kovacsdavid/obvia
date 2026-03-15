@@ -20,11 +20,11 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::GetQuery;
-use crate::common::types::{EmptyFilterBy, EmptyOrderBy};
-use crate::manager::app::database::PgPoolManager;
+use crate::common::types::{EmptyFilterBy, EmptyOrderBy, ValueObject};
+use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
+use crate::tenant::activity_feed::types::ResourceType;
 use async_trait::async_trait;
-use chrono::Local;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -35,6 +35,8 @@ pub trait ActivityFeedRepository: Send + Sync {
     async fn get_all_paged(
         &self,
         query_params: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
+        resource_id: Uuid,
+        resource_type: &ValueObject<ResourceType>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
 }
@@ -44,58 +46,63 @@ impl ActivityFeedRepository for PgPoolManager {
     async fn get_all_paged(
         &self,
         query_params: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
+        resource_id: Uuid,
+        resource_type: &ValueObject<ResourceType>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
+        let total: (i64,) = sqlx::query_as(
+            r#"
+                SELECT COUNT(*)
+                FROM comments
+                WHERE deleted_at IS NULL
+                    AND commentable_id = $1
+                    AND commentable_type = $2
+            "#,
+        )
+        .bind(resource_id)
+        .bind(resource_type.as_str())
+        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .await?;
+
+        let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
+
+        let sql = r#"
+            WITH normalized_feed AS (
+                SELECT
+                    comments.id,
+                    comments.commentable_id AS resource_id,
+                    comments.commentable_type AS resource_type,
+                    'comment' AS activity_type,
+                    comments.comment AS content,
+                    comments.created_by_id as created_by_id,
+                    users.last_name || ' ' || users.first_name || ' <' || users.email || '>' as created_by,
+                    comments.created_at AS created_at,
+                    comments.updated_at AS updated_at,
+                    comments.deleted_at AS deleted_at
+                FROM comments
+                LEFT JOIN users ON comments.created_by_id = users.id
+                WHERE comments.deleted_at IS NULL
+                    AND comments.commentable_id = $1
+                    AND comments.commentable_type = $2
+            )
+            SELECT *
+            FROM normalized_feed
+            ORDER BY created_at
+        "#;
+
+        let activity_feed = sqlx::query_as::<_, ActivityFeedResolved>(sql)
+            .bind(resource_id)
+            .bind(resource_type.as_str())
+            .fetch_all(&self.get_tenant_pool(active_tenant)?)
+            .await?;
+
         Ok((
             PaginatorMeta {
-                page: 1,
-                limit: 25,
-                total: 100,
+                page: query_params.paging().page().unwrap_or(1).try_into()?,
+                limit,
+                total: total.0,
             },
-            vec![
-                ActivityFeedResolved {
-                    id: Uuid::new_v4(),
-                    activity_type: String::from("comment"),
-                    description: String::from("description1"),
-                    created_at: Local::now(),
-                    created_by_id: Uuid::new_v4(),
-                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
-                },
-                ActivityFeedResolved {
-                    id: Uuid::new_v4(),
-                    activity_type: String::from("activity"),
-                    description: String::from("description2"),
-                    created_at: Local::now(),
-                    created_by_id: Uuid::new_v4(),
-                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
-                },
-                ActivityFeedResolved {
-                    id: Uuid::new_v4(),
-                    activity_type: String::from("activity"),
-                    description: String::from("description3"),
-                    created_at: Local::now(),
-                    created_by_id: Uuid::new_v4(),
-                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
-                },
-                ActivityFeedResolved {
-                    id: Uuid::new_v4(),
-                    activity_type: String::from("comment"),
-                    description: String::from(
-                        r#"
-                          Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-                          eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut
-                          enim ad minim veniam, quis nostrud exercitation ullamco laboris
-                          nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in
-                          reprehenderit in voluptate velit esse cillum dolore eu fugiat
-                          nulla pariatur. Excepteur sint occaecat cupidatat non proident,
-                          sunt in culpa qui officia deserunt mollit anim id est laborum.
-                        "#,
-                    ),
-                    created_at: Local::now(),
-                    created_by_id: Uuid::new_v4(),
-                    created_by: String::from("Kovács Dávid <kapcsolat@kovacsdavid.dev>"),
-                },
-            ],
+            activity_feed,
         ))
     }
 }

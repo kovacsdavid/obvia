@@ -40,7 +40,7 @@ export async function list(
   resourceType: string,
   token: string | null,
 ): Promise<ProcessedResponse<PaginatedActivityFeedResponse>> {
-  const uri = `/api/activity_feed/list?resourceId=${resourceId}&resourceType=${resourceType}`;
+  const uri = `/api/activity_feed/list?resource_id=${resourceId}&resource_type=${resourceType}`;
   return await fetch(uri, {
     method: "GET",
     headers: {

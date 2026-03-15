@@ -18,7 +18,7 @@
  */
 
 import type {
-  ActivityFeedEntry,
+  ActivityFeedResolvedEntry,
   PaginatedActivityFeedResponse,
   PostCommentResponse,
 } from "@/components/modules/activity_feed/lib/interface";
@@ -28,18 +28,32 @@ import {
   isPaginatedDataResponse,
 } from "@/lib/interfaces/common";
 
-export function isActivityFeedEntry(data: unknown): data is ActivityFeedEntry {
+export function isActivityFeedEntry(
+  data: unknown,
+): data is ActivityFeedResolvedEntry {
   return (
     typeof data === "object" &&
     data !== null &&
+    "id" in data &&
+    typeof data.id === "string" &&
+    "resource_id" in data &&
+    typeof data.resource_id === "string" &&
+    "resource_type" in data &&
+    typeof data.resource_type === "string" &&
     "activity_type" in data &&
     typeof data.activity_type === "string" &&
-    "description" in data &&
-    typeof data.description === "string" &&
+    "content" in data &&
+    typeof data.content === "string" &&
+    "created_by_id" in data &&
+    typeof data.created_by_id === "string" &&
+    "created_by" in data &&
+    typeof data.created_by === "string" &&
     "created_at" in data &&
     typeof data.created_at === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string"
+    "updated_at" in data &&
+    typeof data.updated_at === "string" &&
+    "deleted_at" in data &&
+    (data.deleted_at === null || typeof data.deleted_at === "string")
   );
 }
 
@@ -51,7 +65,7 @@ export function isPostCommentResponse(
 
 export function isActivityFeedArray(
   data: unknown,
-): data is ActivityFeedEntry[] {
+): data is ActivityFeedResolvedEntry[] {
   return Array.isArray(data) && data.every((item) => isActivityFeedEntry(item));
 }
 

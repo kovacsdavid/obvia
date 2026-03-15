@@ -147,7 +147,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TagsService::get_paged_list(
-        &GetQuery::<TagOrderBy, TagFilterBy>::from_str(payload.as_str())
+        &GetQuery::<TagOrderBy, TagFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tags_module.tags_repo(),

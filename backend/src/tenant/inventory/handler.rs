@@ -198,7 +198,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match InventoryService::get_paged_list(
-        &GetQuery::<InventoryOrderBy, InventoryFilterBy>::from_str(payload.as_str())
+        &GetQuery::<InventoryOrderBy, InventoryFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         inventory_module.inventory_repo(),

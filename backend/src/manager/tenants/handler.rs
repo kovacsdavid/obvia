@@ -97,7 +97,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TenantsService::get_paged_list(
-        &GetQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.as_str())
+        &GetQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tenants_module.tenants_repo(),

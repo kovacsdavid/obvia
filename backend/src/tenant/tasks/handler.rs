@@ -183,7 +183,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match TasksService::get_paged_list(
-        &GetQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.as_str())
+        &GetQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tasks_module.tasks_repo(),

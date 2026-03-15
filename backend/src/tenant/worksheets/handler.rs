@@ -242,7 +242,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match WorksheetsService::get_paged_list(
-        &GetQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.as_str())
+        &GetQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         worksheets_module.worksheets_repo(),

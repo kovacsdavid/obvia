@@ -160,7 +160,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match ProductsService::get_paged_list(
-        &GetQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.as_str())
+        &GetQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         products_module.products_repo(),

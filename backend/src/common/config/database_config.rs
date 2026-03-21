@@ -17,9 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::ValueObject;
+use crate::common::types::{DbHost, DbName, DbPassword, DbPort, DbUser, ValueObject};
 use crate::manager::tenants::model::Tenant;
-use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
 use serde::Deserialize;
 use sqlx::postgres::PgSslMode;
 use std::fmt::Display;

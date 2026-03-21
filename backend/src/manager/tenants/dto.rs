@@ -19,9 +19,10 @@
 use crate::common::config::database_config::TenantDatabaseConfig;
 use crate::common::error::FormErrorResponse;
 use crate::common::types::ValueObject;
+use crate::common::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;
-use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};
+use crate::manager::tenants::types::Name;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};

@@ -74,7 +74,6 @@ impl TryFrom<Uuid> for ValueObject<DbUser> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_db_user() {

@@ -86,7 +86,6 @@ impl<'de> Deserialize<'de> for ValueObject<DbPort> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_db_port_i64() {

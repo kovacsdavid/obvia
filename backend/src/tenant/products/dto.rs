@@ -91,7 +91,7 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
         let id = match value.id {
             None => None,
             Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
+                .inspect_err(|_| {
                     error.id = Some("Hibás azonosító".to_string());
                 })
                 .ok(),
@@ -139,117 +139,5 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateProductHelper {
-    // TODO: fields
-}
-
-pub struct UpdateProductError {
-    // TODO: fields
-}
-
-impl UpdateProductError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateProductError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProduct {
-    pub name: ValueObject<ProductName>,
-    pub description: Option<String>,
-    pub unit_of_measure: Uuid,
-    pub is_active: bool,
-    pub created_by_id: Uuid,
-}
-
-impl TryFrom<UpdateProductHelper> for UpdateProduct {
-    type Error = UpdateProductError;
-    fn try_from(value: UpdateProductHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateProductCategoryConnect {
-    pub product_id: Uuid,
-    pub product_category_id: Uuid,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProductCategoryConnect {
-    pub product_id: Option<Uuid>,
-    pub product_category_id: Option<Uuid>,
-}
-
-pub struct CreateUnitOfMeasureHelper {
-    // TODO: fields
-}
-
-pub struct CreateUnitOfMeasureError {
-    // TODO: fields
-}
-
-impl CreateUnitOfMeasureError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for CreateUnitOfMeasureError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUnitOfMeasure {
-    pub unit_of_measure: ValueObject<UnitsOfMeasure>,
-}
-
-impl TryFrom<CreateUnitOfMeasureHelper> for CreateUnitOfMeasure {
-    type Error = CreateUnitOfMeasureError;
-    fn try_from(value: CreateUnitOfMeasureHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-pub struct UpdateUnitOfMeasureHelper {
-    // TODO: fields
-}
-
-pub struct UpdateUnitOfMeasureError {
-    // TODO: fields
-}
-
-impl UpdateUnitOfMeasureError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateUnitOfMeasureError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateUnitOfMeasure {
-    pub unit_of_measure: ValueObject<UnitsOfMeasure>,
-}
-
-impl TryFrom<UpdateUnitOfMeasureHelper> for UpdateUnitOfMeasure {
-    type Error = UpdateUnitOfMeasureError;
-    fn try_from(value: UpdateUnitOfMeasureHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

@@ -86,7 +86,7 @@ impl TryFrom<CommentUserInputHelper> for CommentUserInput {
         let id = match value.id {
             None => None,
             Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
+                .inspect_err(|_| {
                     error.id = Some("Hibás azonosító".to_string());
                 })
                 .ok(),
@@ -97,7 +97,7 @@ impl TryFrom<CommentUserInputHelper> for CommentUserInput {
                 error.commentable_type = Some(e.to_string());
             });
 
-        let commentable_id = Uuid::parse_str(&value.commentable_id).inspect_err(|e| {
+        let commentable_id = Uuid::parse_str(&value.commentable_id).inspect_err(|_| {
             error.commentable_id = Some("Hibás erőforrás azonosító".to_string());
         });
 

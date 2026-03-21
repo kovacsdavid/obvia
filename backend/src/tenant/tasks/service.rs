@@ -43,9 +43,6 @@ pub enum TasksServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
-    #[error("Invalid state")]
-    InvalidState,
-
     #[error("A lista nem létezik")]
     InvalidSelectList,
 }

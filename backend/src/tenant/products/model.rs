@@ -57,21 +57,3 @@ pub struct UnitOfMeasure {
     pub created_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct ProductCategory {
-    pub id: Uuid,
-    pub name: String,
-    pub description: Option<String>,
-    pub parent_id: Option<Uuid>,
-    pub created_at: DateTime<Local>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct ProductCategoryConnect {
-    pub id: Uuid,
-    pub product_id: Uuid,
-    pub product_category_id: Uuid,
-    pub created_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
-}

@@ -23,7 +23,6 @@ import Login from "@/components/modules/auth/Login";
 import Register from "@/components/modules/auth/Register";
 import ForgottenPassword from "@/components/modules/auth/ForgottenPassword";
 import Dashboard from "@/components/modules/dashboard/Dashboard";
-import { useSelector } from "react-redux";
 import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
 import CustomerEdit from "@/components/modules/customers/Edit.tsx";
@@ -41,17 +40,9 @@ import InventoryReservationsView from "@/components/modules/inventory_reservatio
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import ProductsList from "@/components/modules/products/List.tsx";
 import ProductsView from "@/components/modules/products/View.tsx";
-import ProjectsEdit from "@/components/modules/projects/Edit.tsx";
-import ProjectsList from "@/components/modules/projects/List.tsx";
-import ProjectsView from "@/components/modules/projects/View.tsx";
-import TagsEdit from "@/components/modules/tags/Edit.tsx";
-import TagsList from "@/components/modules/tags/List.tsx";
-import TagsView from "@/components/modules/tags/View.tsx";
 import TasksEdit from "@/components/modules/tasks/Edit.tsx";
 import TasksList from "@/components/modules/tasks/List.tsx";
 import TasksView from "@/components/modules/tasks/View.tsx";
-//import UsersEdit from "@/components/users/Edit.tsx";
-//import UsersList from "@/components/users/List.tsx";
 import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
 import WarehousesList from "@/components/modules/warehouses/List.tsx";
 import WarehousesView from "@/components/modules/warehouses/View.tsx";
@@ -69,6 +60,7 @@ import ServicesList from "@/components/modules/services/List.tsx";
 import ServicesView from "@/components/modules/services/View.tsx";
 import EmailVerification from "@/components/modules/auth/EmailVerification.tsx";
 import Settings from "@/components/modules/users/Settings";
+import { useAppSelector } from "./store/hooks";
 
 interface RouteConfig {
   path: string;
@@ -191,28 +183,11 @@ const ROUTE_CONFIGS: RouteConfig[] = [
   { path: "/termek/lista", element: ProductsList, isPrivate: true },
   { path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true },
 
-  // Projects
-  { path: "/projekt/letrehozas", element: ProjectsEdit, isPrivate: true },
-  { path: "/projekt/modositas/:id", element: ProjectsEdit, isPrivate: true },
-  { path: "/projekt/lista", element: ProjectsList, isPrivate: true },
-  { path: "/projekt/reszletek/:id", element: ProjectsView, isPrivate: true },
-
-  // Tags
-  { path: "/cimke/letrehozas", element: TagsEdit, isPrivate: true },
-  { path: "/cimke/modositas/:id", element: TagsEdit, isPrivate: true },
-  { path: "/cimke/lista", element: TagsList, isPrivate: true },
-  { path: "/cimke/reszletek/:id", element: TagsView, isPrivate: true },
-
   // Tasks
   { path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true },
   { path: "/feladat/modositas/:id", element: TasksEdit, isPrivate: true },
   { path: "/feladat/lista", element: TasksList, isPrivate: true },
   { path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true },
-
-  // Users
-  // {path: "/felhasznalo/modositas", element: UsersEdit, isPrivate: true},
-  // {path: "/felhasznalo/modositas/:id", element: UsersEdit, isPrivate: true},
-  // {path: "/felhasznalo/lista", element: UsersList, isPrivate: true},
 
   // Warehouses
   { path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true },
@@ -253,7 +228,7 @@ const ROUTE_CONFIGS: RouteConfig[] = [
 ];
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
-  const user = useSelector((state: RootState) => state.auth.login.user);
+  const user = useAppSelector((state: RootState) => state.auth.login.user);
   return user ? children : <Navigate to="/bejelentkezes" replace />;
 }
 

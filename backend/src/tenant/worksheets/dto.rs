@@ -93,7 +93,7 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
         let id = match value.id {
             None => None,
             Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
+                .inspect_err(|_| {
                     error.id = Some("Hibás azonosító".to_string());
                 })
                 .ok(),
@@ -105,7 +105,7 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
         let status = ValueObject::new(WorksheetStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
-        let customer_id = Uuid::parse_str(&value.customer_id).inspect_err(|e| {
+        let customer_id = Uuid::parse_str(&value.customer_id).inspect_err(|_| {
             error.customer_id = Some("A mező kitöltése kötelező!".to_string());
         });
         let project_id = Uuid::parse_str(&value.project_id).ok();

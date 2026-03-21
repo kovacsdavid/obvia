@@ -33,16 +33,3 @@ pub struct Comment {
     pub updated_at: DateTime<Local>,
     pub deleted_at: Option<DateTime<Local>>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct CommentResolved {
-    pub id: Uuid,
-    pub commentable_type: String,
-    pub commentable_id: Uuid,
-    pub comment: String,
-    pub created_by_id: Uuid,
-    pub created_by: String,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
-}

@@ -22,7 +22,6 @@ use crate::manager::auth::repository::AuthRepository;
 use crate::manager::users::repository::UsersRepository;
 use std::sync::Arc;
 
-pub(crate) mod dto;
 pub(crate) mod model;
 pub(crate) mod repository;
 

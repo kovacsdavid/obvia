@@ -250,14 +250,10 @@ impl InventoryMovementsRepository for PgPoolManager {
             None => None,
             Some(v) => Some(v.as_f64()?),
         };
-        let total_price = match &input.total_price {
-            None => None,
-            Some(v) => Some(v.as_f64()?),
-        };
         let movement_type = input.movement_type.as_str();
         let quantity = input
             .quantity(movement_type == "out")
-            .map_err(|e| RepositoryError::InvalidInput("quantity".to_string()))?;
+            .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?;
         Ok(sqlx::query_as::<_, InventoryMovement>(
             r#"
             INSERT INTO inventory_movements (

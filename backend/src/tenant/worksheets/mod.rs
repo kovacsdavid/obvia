@@ -19,7 +19,6 @@
 
 use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::tenant::customers::repository::CustomersRepository;
-use crate::tenant::projects::repository::ProjectsRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use std::sync::Arc;
 
@@ -33,15 +32,11 @@ pub(crate) mod types;
 
 pub trait WorksheetsModule: ConfigProvider + MailTransporter + Send + Sync {
     fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-    fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
     fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
 }
 
 impl WorksheetsModule for DefaultAppState {
     fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
-        self.pool_manager.clone()
-    }
-    fn projects_repo(&self) -> Arc<dyn ProjectsRepository> {
         self.pool_manager.clone()
     }
     fn customers_repo(&self) -> Arc<dyn CustomersRepository> {
@@ -71,7 +66,6 @@ pub mod tests {
         }
         impl WorksheetsModule for WorksheetsModule {
             fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-            fn projects_repo(&self) -> Arc<dyn ProjectsRepository>;
             fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
         }
     );

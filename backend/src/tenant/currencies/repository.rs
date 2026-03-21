@@ -20,7 +20,6 @@
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::tenant::currencies::model::Currency;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
@@ -29,7 +28,6 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CurrenciesRepository: Send + Sync {
-    async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Currency>>;
     async fn get_all_countries_select_list_items(
         &self,
         active_tenant: Uuid,
@@ -38,12 +36,6 @@ pub trait CurrenciesRepository: Send + Sync {
 
 #[async_trait]
 impl CurrenciesRepository for PgPoolManager {
-    async fn get_all_countries(&self, active_tenant: Uuid) -> RepositoryResult<Vec<Currency>> {
-        Ok(sqlx::query_as::<_, Currency>(r#"SELECT * FROM currencies"#)
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
-            .await?)
-    }
-
     async fn get_all_countries_select_list_items(
         &self,
         active_tenant: Uuid,

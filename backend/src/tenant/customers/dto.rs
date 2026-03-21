@@ -98,7 +98,7 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
         let id = match value.id {
             None => None,
             Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
+                .inspect_err(|_| {
                     error.id = Some("Hibás azonosító".to_string());
                 })
                 .ok(),

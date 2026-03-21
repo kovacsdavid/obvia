@@ -61,8 +61,8 @@ impl TenantsModule for DefaultAppState {
 pub mod tests {
     use super::*;
     use crate::{
+        common::config::{AppConfig, database_config::BasicDatabaseConfig},
         common::error::RepositoryError,
-        manager::app::config::{AppConfig, BasicDatabaseConfig},
     };
     use async_trait::async_trait;
     use lettre::{

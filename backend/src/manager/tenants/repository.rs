@@ -17,12 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::config::{
+    AppConfig, BasicDatabaseConfig, database_config::DatabasePoolSizeProvider,
+};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::GetQuery;
 use crate::common::types::DdlParameter;
 use crate::common::types::ValueObject;
-use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, DatabasePoolSizeProvider};
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::{Tenant, UserTenant};

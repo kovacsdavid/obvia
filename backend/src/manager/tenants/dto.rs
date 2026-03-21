@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::config::database_config::TenantDatabaseConfig;
 use crate::common::error::FormErrorResponse;
 use crate::common::types::ValueObject;
-use crate::manager::app::config::TenantDatabaseConfig;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{DbHost, DbName, DbPassword, DbPort, DbUser, Name};

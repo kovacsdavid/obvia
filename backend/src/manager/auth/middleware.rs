@@ -28,44 +28,8 @@ use headers::{Authorization, authorization::Bearer};
 use std::sync::Arc;
 
 use super::dto::claims::Claims;
-use crate::manager::app::config::AppConfig;
+use crate::common::config::AppConfig;
 
-/// Middleware function to enforce authentication for incoming HTTP requests.
-///
-/// This function checks for the presence and validity of a JWT (JSON Web Token) in the incoming
-/// request headers. If the token is missing, invalid, or fails verification, the request will
-/// be rejected with a `401 Unauthorized` status code.
-///
-/// # Arguments
-///
-/// * `State(config)` - The shared config, wrapped in an `Arc`. This provides access to the application's configuration, including authentication settings.
-/// * `TypedHeader(Authorization(bearer))` - Extracts the `Authorization` header from the request
-///   and parses it as a `Bearer` token.
-/// * `mut req` - The incoming HTTP request that will be passed to the next middleware or handler
-///   after authentication is verified.
-/// * `next` - Represents the next middleware or handler in the processing chain.
-///
-/// # Returns
-///
-/// Returns an `Ok(Response)` if authentication succeeds and the request is passed to the next
-/// stage of processing. If authentication fails, it returns an `Err(StatusCode::UNAUTHORIZED)`.
-///
-/// # Authentication Process
-///
-/// 1. Extracts the bearer token from the `Authorization` header.
-/// 2. Decodes and verifies the token using the application's JWT configuration:
-///     - `jwt_secret`: The secret key used to validate the token's signature.
-///     - `jwt_issuer`: The expected issuer of the token.
-///     - `jwt_audience`: The expected audience of the token.
-/// 3. If the token is valid, its claims are inserted into the request's extensions for use
-///    by subsequent middleware or handlers.
-/// 4. If the token is invalid or verification fails, a `401 Unauthorized` status code is returned.
-///
-/// # Errors
-///
-/// Returns `StatusCode::UNAUTHORIZED` if:
-/// - The `Authorization` header is missing or malformed.
-/// - The token is invalid or fails verification (e.g., incorrect signature, expired, invalid issuer or audience).
 pub async fn require_auth(
     State(config): State<Arc<AppConfig>>,
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
@@ -84,23 +48,6 @@ pub async fn require_auth(
     Ok(next.run(req).await)
 }
 
-/// Represents an authenticated user in the system.
-///
-/// This struct is a tuple struct that wraps around the `Claims` object, which
-/// contains information extracted from a validated authentication token
-/// (e.g., JWT claims). The `AuthenticatedUser` struct is commonly used to identify
-/// and manage users who have successfully authenticated within the application.
-///
-/// # Fields
-/// - `0`: A `Claims` object containing user-specific data
-///
-/// # Usage
-/// The `AuthenticatedUser` struct can be leveraged in request handling or security
-/// middleware to verify user identity and enforce access control.
-///
-/// # Note
-/// Ensure that `Claims` is structured appropriately to include all necessary information
-/// for your authentication flow.
 pub struct AuthenticatedUser(pub Claims);
 
 impl<S> FromRequestParts<S> for AuthenticatedUser
@@ -109,34 +56,6 @@ where
 {
     type Rejection = Response;
 
-    /// Extracts an `AuthenticatedUser` from the request parts.
-    ///
-    /// This function is typically used in the context of Axum or similar web frameworks to
-    /// extract user authentication claims from the request's extensions. If valid claims
-    /// are available in the request parts, it wraps the claims in an `AuthenticatedUser`
-    /// struct and returns it as the result. Otherwise, it rejects the request with
-    /// a `401 Unauthorized` status code.
-    ///
-    /// # Parameters
-    /// - `parts`: A mutable reference to the request parts, which contains the extensions
-    ///   where the authentication claims might be stored.
-    /// - `_state`: A reference to the application state. In this implementation, it's not
-    ///   used but required by the trait signature.
-    ///
-    /// # Returns
-    /// - `Ok(AuthenticatedUser)` if the `Claims` are successfully retrieved and cloned
-    ///   from the request parts.
-    /// - `Err(Self::Rejection)` if the `Claims` are missing, resulting in a response
-    ///   with a `401 Unauthorized` status code and an error message.
-    ///
-    /// # Rejection
-    /// This function returns a `Response` containing:
-    /// - `401 Unauthorized` status code.
-    /// - A message indicating the absence of authentication claims: `"Missing authentication claims"`.
-    ///
-    /// # Note
-    /// Ensure that the `Claims` type is properly set in the extensions earlier in the
-    /// request lifecycle, such as in a middleware, for this extractor to work correctly.
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         parts
             .extensions

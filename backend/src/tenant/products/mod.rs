@@ -42,7 +42,7 @@ impl ProductsModule for DefaultAppState {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::manager::app::config::AppConfig;
+    use crate::common::config::AppConfig;
     use async_trait::async_trait;
     use lettre::{
         Message,

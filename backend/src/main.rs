@@ -22,7 +22,7 @@ mod common;
 mod manager;
 mod tenant;
 
-use crate::manager::app::config::AppConfig;
+use crate::common::config::AppConfig;
 use crate::manager::app::init::{init_default_app, init_subscriber};
 use axum::Router;
 use std::sync::Arc;

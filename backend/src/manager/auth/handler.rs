@@ -292,10 +292,10 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
+    use crate::common::config::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::types::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
-    use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::auth::model::AccountEventLogEntry;

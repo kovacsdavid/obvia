@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::manager::app::config::AppConfig;
+use crate::common::config::AppConfig;
 use crate::manager::app::database::PoolManager;
 use std::sync::Arc;
 

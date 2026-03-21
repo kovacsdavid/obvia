@@ -20,13 +20,13 @@
 use std::sync::Arc;
 
 use crate::{
-    common::error::RepositoryResult,
+    common::{
+        config::{AppConfig, BasicDatabaseConfig},
+        error::RepositoryResult,
+    },
     manager::{
-        app::{
-            config::{AppConfig, BasicDatabaseConfig},
-            database::{
-                ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
-            },
+        app::database::{
+            ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
         },
         tenants::repository::TenantsRepository,
     },
@@ -40,6 +40,7 @@ use sqlx::PgPool;
 use tracing::{error, info};
 use uuid::Uuid;
 
+pub(crate) mod config;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;

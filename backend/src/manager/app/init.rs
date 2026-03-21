@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::config::AppConfig;
 use crate::common::{ConfigProvider, DefaultAppState};
-use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::DatabaseMigrator;
 use anyhow::Result;
 use axum::Router;

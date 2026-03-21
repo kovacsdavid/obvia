@@ -148,8 +148,9 @@ pub async fn activate(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::manager::app::config::{
-        AppConfigBuilder, DatabasePoolSizeProvider, DatabaseUrlProvider,
+    use crate::common::config::{
+        AppConfigBuilder, database_config::DatabasePoolSizeProvider,
+        database_config::DatabaseUrlProvider,
     };
     use crate::manager::app::database::{MockConnectionTester, MockDatabaseMigrator};
     use crate::manager::auth::dto::claims::Claims;

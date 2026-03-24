@@ -35,6 +35,7 @@ pub(crate) mod db_user;
 pub(crate) mod empty_filter_by;
 pub(crate) mod empty_order_by;
 pub(crate) mod quantity;
+pub(crate) mod uuid;
 pub(crate) mod value_object;
 
 pub(crate) use currency_code::CurrencyCode;
@@ -53,5 +54,6 @@ pub(crate) use db_port::DbPort;
 pub(crate) use db_user::DbUser;
 pub(crate) use empty_filter_by::EmptyFilterBy;
 pub(crate) use empty_order_by::EmptyOrderBy;
+pub(crate) use uuid::UuidVO;
 pub(crate) use value_object::ValueObject;
-pub(crate) use value_object::ValueObjectable;
+pub(crate) use value_object::ValueObjectData;

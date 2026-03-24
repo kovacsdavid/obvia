@@ -261,6 +261,10 @@ impl ServicesRepository for PgPoolManager {
             None => None,
             Some(v) => Some(v.as_f64()?),
         };
+        let default_tax_id = match &service.default_tax_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Service>(
             r#"
             INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
@@ -271,7 +275,7 @@ impl ServicesRepository for PgPoolManager {
             .bind(service.name.as_str())
             .bind(service.description.as_ref().map(|d| d.as_str()))
             .bind(default_price)
-            .bind(service.default_tax_id)
+            .bind(default_tax_id)
             .bind(service.currency_code.as_ref().map(|d| d.as_str()))
             .bind(service.status.as_str())
             .bind(sub)
@@ -291,6 +295,10 @@ impl ServicesRepository for PgPoolManager {
             None => None,
             Some(v) => Some(v.as_f64()?),
         };
+        let default_tax_id = match &service.default_tax_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Service>(
             r#"
             UPDATE services
@@ -307,10 +315,10 @@ impl ServicesRepository for PgPoolManager {
         .bind(service.name.as_str())
         .bind(service.description.as_ref().map(|d| d.as_str()))
         .bind(default_price)
-        .bind(service.default_tax_id)
+        .bind(default_tax_id)
         .bind(service.currency_code.as_ref().map(|d| d.as_str()))
         .bind(service.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

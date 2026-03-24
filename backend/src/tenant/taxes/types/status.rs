@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Status(pub String);
 
-impl ValueObjectable for Status {
+impl ValueObjectData for Status {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for ValueObject<Status> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Status(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(Status(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_serialization() {
-        let status = ValueObject::new(Status("active".to_string())).unwrap();
+        let status = ValueObject::new_required(Status("active".to_string())).unwrap();
         let serialized = serde_json::to_string(&status).unwrap();
         assert_eq!(serialized, r#""active""#);
     }

@@ -94,12 +94,16 @@ impl TryFrom<&Tenant> for TenantDatabaseConfig {
     fn try_from(value: &Tenant) -> Result<Self, Self::Error> {
         PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
-            host: ValueObject::new(DbHost(value.db_host.clone())).map_err(|e| e.to_string())?,
-            port: ValueObject::new(DbPort(value.db_port.to_string())).map_err(|e| e.to_string())?,
-            username: ValueObject::new(DbUser(value.db_user.clone())).map_err(|e| e.to_string())?,
-            password: ValueObject::new(DbPassword(value.db_password.clone()))
+            host: ValueObject::new_required(DbHost(value.db_host.clone()))
                 .map_err(|e| e.to_string())?,
-            database: ValueObject::new(DbName(value.db_name.clone())).map_err(|e| e.to_string())?,
+            port: ValueObject::new_required(DbPort(value.db_port.to_string()))
+                .map_err(|e| e.to_string())?,
+            username: ValueObject::new_required(DbUser(value.db_user.clone()))
+                .map_err(|e| e.to_string())?,
+            password: ValueObject::new_required(DbPassword(value.db_password.clone()))
+                .map_err(|e| e.to_string())?,
+            database: ValueObject::new_required(DbName(value.db_name.clone()))
+                .map_err(|e| e.to_string())?,
             max_pool_size: Some(
                 u32::try_from(value.db_max_pool_size)
                     .map_err(|_| "Invalid pool size".to_string())?,

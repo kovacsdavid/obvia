@@ -118,8 +118,8 @@ impl TenantsRepository for PgPoolManager {
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
-            ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+            ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+            ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
@@ -332,15 +332,15 @@ async fn create_database_user_for_managed(
 ) -> RepositoryResult<()> {
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
-        ValueObject::new(DdlParameter(tenant.db_password.to_string()))?
+        ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+        ValueObject::new_required(DdlParameter(tenant.db_password.to_string()))?
     );
 
     let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        ValueObject::new(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+        ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
         app_config.default_tenant_database().username // safety: not user input
     );
 

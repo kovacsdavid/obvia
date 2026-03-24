@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::error::FormErrorResponse;
-use crate::common::types::Email;
-use crate::common::types::ValueObject;
+use crate::common::types::{Email, UuidVO, ValueObject};
 use crate::tenant::customers::types::customer::customer_type::CustomerType;
 use crate::tenant::customers::types::customer::{
     CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,
@@ -26,7 +26,6 @@ use crate::tenant::customers::types::customer::{
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct CustomerUserInputHelper {
@@ -81,7 +80,7 @@ impl IntoResponse for CustomerUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CustomerUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub name: ValueObject<CustomerName>,
     pub contact_name: Option<ValueObject<CustomerContactName>>,
     pub email: ValueObject<Email>,
@@ -95,57 +94,53 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
     fn try_from(value: CustomerUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = CustomerUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let name = ValueObject::new(CustomerName(value.name)).inspect_err(|e| {
+        let name = ValueObject::new_required(CustomerName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
-        let email = ValueObject::new(Email(value.email)).inspect_err(|e| {
+
+        let email = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
             error.email = Some(e.to_string());
         });
-        let phone_number =
-            ValueObject::new(CustomerPhoneNumber(value.phone_number)).inspect_err(|e| {
+
+        let phone_number = ValueObject::new_required(CustomerPhoneNumber(value.phone_number))
+            .inspect_err(|e| {
                 error.phone_number = Some(e.to_string());
             });
-        let status = ValueObject::new(CustomerStatus(value.status)).inspect_err(|e| {
+
+        let status = ValueObject::new_required(CustomerStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
-        let customer_type = ValueObject::new(CustomerType(value.customer_type)).inspect_err(|e| {
-            error.customer_type = Some(e.to_string());
-        });
 
-        let contact_name = match ValueObject::new(CustomerContactName(value.contact_name)) {
-            Ok(val) => {
-                if let Ok(customer_type) = &customer_type
-                    && customer_type.as_str() == "legal"
-                {
-                    Some(val)
-                } else {
-                    None
-                }
-            }
-            Err(e) => {
-                if let Ok(customer_type) = &customer_type
-                    && customer_type.as_str() == "legal"
-                {
+        let customer_type = ValueObject::new_required(CustomerType(value.customer_type))
+            .inspect_err(|e| {
+                error.customer_type = Some(e.to_string());
+            });
+
+        let contact_name = if let Ok(customer_type) = &customer_type
+            && customer_type.as_str() == "legal"
+        {
+            ValueObject::new_required(CustomerContactName(value.contact_name))
+                .inspect_err(|e| {
                     error.contact_name = Some(e.to_string());
-                }
-                None
-            }
+                })
+                .map(Some)
+        } else {
+            Ok(None)
         };
 
         if error.is_empty() {
             Ok(CustomerUserInput {
-                id,
+                id: id.map_err(|_| CustomerUserInputError::default())?,
                 name: name.map_err(|_| CustomerUserInputError::default())?,
-                contact_name,
+                contact_name: contact_name.map_err(|_| CustomerUserInputError::default())?,
                 email: email.map_err(|_| CustomerUserInputError::default())?,
                 phone_number: Some(phone_number.map_err(|_| CustomerUserInputError::default())?),
                 status: status.map_err(|_| CustomerUserInputError::default())?,

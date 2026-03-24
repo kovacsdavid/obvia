@@ -541,10 +541,10 @@ mod tests {
             .withf(move |payload_param, hashed_password| {
                 *payload_param
                     == RegisterRequest {
-                        email: ValueObject::new(Email("testuser@example.com".to_string())).unwrap(),
-                        first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
-                        last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
-                        password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
+                        email: ValueObject::new_required(Email("testuser@example.com".to_string())).unwrap(),
+                        first_name: ValueObject::new_required(FirstName("Test".to_string())).unwrap(),
+                        last_name: ValueObject::new_required(LastName("User".to_string())).unwrap(),
+                        password: ValueObject::new_required(Password("Password1!".to_string())).unwrap(),
                     }
                     && Argon2::default()
                         .verify_password(

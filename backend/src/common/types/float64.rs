@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Float64(pub String);
 
-impl ValueObjectable for Float64 {
+impl ValueObjectData for Float64 {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -57,7 +57,7 @@ impl<'de> Deserialize<'de> for ValueObject<Float64> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Float64(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(Float64(s)).map_err(serde::de::Error::custom)
     }
 }
 

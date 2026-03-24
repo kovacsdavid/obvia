@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectData};
 use regex::Regex;
 use serde::Deserialize;
 use std::fmt::Display;
@@ -34,7 +34,7 @@ impl Display for DbHost {
     }
 }
 
-impl ValueObjectable for DbHost {
+impl ValueObjectData for DbHost {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -68,7 +68,7 @@ impl<'de> Deserialize<'de> for ValueObject<DbHost> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(DbHost(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(DbHost(s)).map_err(serde::de::Error::custom)
     }
 }
 

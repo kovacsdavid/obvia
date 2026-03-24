@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectData};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -26,7 +26,7 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ResourceType(pub String);
 
-impl ValueObjectable for ResourceType {
+impl ValueObjectData for ResourceType {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -64,7 +64,7 @@ impl<'de> Deserialize<'de> for ValueObject<ResourceType> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(ResourceType(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(ResourceType(s)).map_err(serde::de::Error::custom)
     }
 }
 

@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectData};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -26,7 +26,7 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct FilterBy(pub String);
 
-impl ValueObjectable for FilterBy {
+impl ValueObjectData for FilterBy {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for ValueObject<FilterBy> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(FilterBy(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(FilterBy(s)).map_err(serde::de::Error::custom)
     }
 }
 

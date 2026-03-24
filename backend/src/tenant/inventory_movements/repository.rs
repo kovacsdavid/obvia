@@ -251,6 +251,10 @@ impl InventoryMovementsRepository for PgPoolManager {
             Some(v) => Some(v.as_f64()?),
         };
         let movement_type = input.movement_type.as_str();
+        let referecen_id = match &input.reference_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         let quantity = input
             .quantity(movement_type == "out")
             .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?;
@@ -263,13 +267,13 @@ impl InventoryMovementsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(input.inventory_id)
+        .bind(input.inventory_id.as_uuid()?)
         .bind(movement_type)
         .bind(quantity)
         .bind(input.reference_type.as_ref().map(|v| v.as_str()))
-        .bind(input.reference_id)
+        .bind(referecen_id)
         .bind(unit_price)
-        .bind(input.tax_id)
+        .bind(input.tax_id.as_uuid()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

@@ -253,6 +253,10 @@ impl InventoryReservationsRepository for PgPoolManager {
                     .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
             ),
         };
+        let reference_id = match &input.reference_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, InventoryReservation>(
             r#"
             INSERT INTO inventory_reservations (
@@ -262,10 +266,10 @@ impl InventoryReservationsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(input.inventory_id)
+        .bind(input.inventory_id.as_uuid()?)
         .bind(input.quantity.as_i32()?)
         .bind(input.reference_type.as_ref().map(|d| d.as_str()))
-        .bind(input.reference_id)
+        .bind(reference_id)
         .bind(reserved_until)
         .bind(input.status.as_str())
         .bind(sub)

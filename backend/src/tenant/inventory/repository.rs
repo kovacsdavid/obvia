@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -297,8 +298,8 @@ impl InventoryRepository for PgPoolManager {
             "INSERT INTO inventory (product_id, warehouse_id, minimum_stock, maximum_stock, currency_code, status, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
-            .bind(inventory.product_id)
-            .bind(inventory.warehouse_id)
+            .bind(inventory.product_id.as_uuid()?)
+            .bind(inventory.warehouse_id.as_uuid()?)
             .bind(minimum_stock)
             .bind(maximum_stock)
             .bind(inventory.currency_code.as_str())
@@ -342,13 +343,13 @@ impl InventoryRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(inventory.product_id)
-        .bind(inventory.warehouse_id)
+        .bind(inventory.product_id.as_uuid()?)
+        .bind(inventory.warehouse_id.as_uuid()?)
         .bind(minimum_stock)
         .bind(maximum_stock)
         .bind(inventory.currency_code.as_str())
         .bind(inventory.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

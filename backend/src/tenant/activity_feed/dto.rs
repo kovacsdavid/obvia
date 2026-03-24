@@ -39,7 +39,7 @@ impl ActivityFeedRawQuery {
         self.resource_id
     }
     pub fn resource_type(&self) -> Result<ValueObject<ResourceType>, ValueObjectError> {
-        ValueObject::new(ResourceType::from_str(&self.resource_type)?)
+        ValueObject::new_required(ResourceType::from_str(&self.resource_type)?)
     }
     pub fn q(&self) -> &str {
         match &self.q {

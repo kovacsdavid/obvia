@@ -136,7 +136,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             db_password: None,
         };
 
-        let name = ValueObject::new(Name(value.name));
+        let name = ValueObject::new_required(Name(value.name));
         let mut db_host: Option<ValueObject<DbHost>> = None;
         let mut db_port: Option<ValueObject<DbPort>> = None;
         let mut db_name: Option<ValueObject<DbName>> = None;
@@ -152,7 +152,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
                 "A mező kitöltése kötelező, ha saját adatbázist üzemeltet";
             match &value.db_host {
                 Some(val) => {
-                    db_host = match ValueObject::new(DbHost(val.clone())) {
+                    db_host = match ValueObject::new_required(DbHost(val.clone())) {
                         Ok(db_host) => Some(db_host),
                         Err(e) => {
                             error.db_host = Some(e.to_string());
@@ -166,7 +166,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match value.db_port {
                 Some(val) => {
-                    db_port = match ValueObject::new(DbPort(val.to_string())) {
+                    db_port = match ValueObject::new_required(DbPort(val.to_string())) {
                         Ok(db_port) => Some(db_port),
                         Err(e) => {
                             error.db_port = Some(e.to_string());
@@ -180,7 +180,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match &value.db_name {
                 Some(val) => {
-                    db_name = match ValueObject::new(DbName(val.clone())) {
+                    db_name = match ValueObject::new_required(DbName(val.clone())) {
                         Ok(db_name) => Some(db_name),
                         Err(e) => {
                             error.db_name = Some(e.to_string());
@@ -194,7 +194,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match &value.db_user {
                 Some(val) => {
-                    db_user = match ValueObject::new(DbUser(val.clone())) {
+                    db_user = match ValueObject::new_required(DbUser(val.clone())) {
                         Ok(db_user) => Some(db_user),
                         Err(e) => {
                             error.db_user = Some(e.to_string());
@@ -208,7 +208,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
             }
             match &value.db_password {
                 Some(val) => {
-                    db_password = match ValueObject::new(DbPassword(val.clone())) {
+                    db_password = match ValueObject::new_required(DbPassword(val.clone())) {
                         Ok(db_password) => Some(db_password),
                         Err(e) => {
                             error.db_password = Some(e.to_string());

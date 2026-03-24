@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectData};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::str::FromStr;
@@ -26,7 +26,7 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct OrderBy(pub String);
 
-impl ValueObjectable for OrderBy {
+impl ValueObjectData for OrderBy {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(OrderBy(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(OrderBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_value_object_serialization() {
-        let order_by = ValueObject::new(OrderBy("name".to_string())).unwrap();
+        let order_by = ValueObject::new_required(OrderBy("name".to_string())).unwrap();
         let serialized = serde_json::to_string(&order_by).unwrap();
         assert_eq!(serialized, r#""name""#);
     }

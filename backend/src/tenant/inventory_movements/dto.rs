@@ -19,11 +19,11 @@
 
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Float64;
+use crate::common::types::UuidVO;
 use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
 use crate::common::types::value_object::ValueObjectError;
 use crate::tenant::inventory_movements::types::{InventoryMovementType, InventoryReferenceType};
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -88,15 +88,15 @@ impl IntoResponse for InventoryMovementUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InventoryMovementUserInput {
-    pub id: Option<Uuid>,
-    pub inventory_id: Uuid,
+    pub id: Option<ValueObject<UuidVO>>,
+    pub inventory_id: ValueObject<UuidVO>,
     pub movement_type: ValueObject<InventoryMovementType>,
     pub quantity: ValueObject<Quantity>,
     pub reference_type: Option<ValueObject<InventoryReferenceType>>,
-    pub reference_id: Option<Uuid>,
+    pub reference_id: Option<ValueObject<UuidVO>>,
     pub unit_price: Option<ValueObject<Float64>>,
     pub total_price: Option<ValueObject<Float64>>,
-    pub tax_id: Uuid,
+    pub tax_id: ValueObject<UuidVO>,
 }
 
 impl InventoryMovementUserInput {
@@ -114,55 +114,62 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
     fn try_from(value: InventoryMovementUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = InventoryMovementUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let inventory_id = Uuid::parse_str(&value.inventory_id).inspect_err(|_| {
-            error.inventory_id = Some("A mező kitöltése kötelező!".to_string());
-        });
+        let inventory_id =
+            ValueObject::new_required(UuidVO(value.inventory_id)).inspect_err(|_| {
+                error.inventory_id = Some("A mező kitöltése kötelező!".to_string());
+            });
 
-        let tax_id = Uuid::parse_str(&value.tax_id).inspect_err(|_| {
+        let tax_id = ValueObject::new_required(UuidVO(value.tax_id)).inspect_err(|_| {
             error.tax_id = Some("A mező kitöltése kötelező!".to_string());
         });
 
-        let movement_type = ValueObject::new(InventoryMovementType(value.movement_type))
+        let movement_type = ValueObject::new_required(InventoryMovementType(value.movement_type))
             .inspect_err(|e| error.movement_type = Some(e.to_string()));
 
-        let quantity = ValueObject::new(Quantity(value.quantity))
+        let quantity = ValueObject::new_required(Quantity(value.quantity))
             .inspect_err(|e| error.quantity = Some(e.to_string()));
 
-        let reference_id = Uuid::parse_str(&value.reference_id).ok();
+        let reference_id = ValueObject::new_optional(UuidVO(value.reference_id)).inspect_err(|e| {
+            error.reference_id = Some(e.to_string());
+        });
 
         let reference_type = if value.reference_type.trim() == "" {
             None
         } else {
-            ValueObject::new(InventoryReferenceType(value.reference_type))
+            ValueObject::new_required(InventoryReferenceType(value.reference_type))
                 .inspect_err(|e| error.reference_type = Some(e.to_string()))
                 .ok()
         };
 
-        let unit_price = validate_optional_string!(Float64(value.unit_price), error.unit_price);
+        let unit_price = ValueObject::new_optional(Float64(value.unit_price)).inspect_err(|e| {
+            error.unit_price = Some(e.to_string());
+        });
 
-        let total_price = validate_optional_string!(Float64(value.total_price), error.total_price);
+        let total_price = ValueObject::new_optional(Float64(value.total_price)).inspect_err(|e| {
+            error.total_price = Some(e.to_string());
+        });
 
         if error.is_empty() {
             Ok(InventoryMovementUserInput {
-                id,
+                id: id.map_err(|_| InventoryMovementUserInputError::default())?,
                 inventory_id: inventory_id
                     .map_err(|_| InventoryMovementUserInputError::default())?,
                 movement_type: movement_type
                     .map_err(|_| InventoryMovementUserInputError::default())?,
                 quantity: quantity.map_err(|_| InventoryMovementUserInputError::default())?,
                 reference_type,
-                reference_id,
-                unit_price,
-                total_price,
+                reference_id: reference_id
+                    .map_err(|_| InventoryMovementUserInputError::default())?,
+                unit_price: unit_price.map_err(|_| InventoryMovementUserInputError::default())?,
+                total_price: total_price.map_err(|_| InventoryMovementUserInputError::default())?,
                 tax_id: tax_id.map_err(|_| InventoryMovementUserInputError::default())?,
             })
         } else {

@@ -123,7 +123,7 @@ impl TryFrom<OtpUserInputHelper> for OtpUserInput {
     fn try_from(value: OtpUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = OtpUserInputError::default();
 
-        let otp = ValueObject::new(Otp(value.otp)).inspect_err(|e| {
+        let otp = ValueObject::new_required(Otp(value.otp)).inspect_err(|e| {
             error.otp = Some(e.to_string());
         });
 

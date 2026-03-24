@@ -18,20 +18,19 @@
  */
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Integer32;
+use crate::common::types::UuidVO;
 use crate::common::types::ValueObject;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::InventoryStatus;
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct InventoryUserInputHelper {
     pub id: Option<String>,
-    pub product_id: Uuid,
-    pub warehouse_id: Uuid,
+    pub product_id: String,
+    pub warehouse_id: String,
     pub minimum_stock: String,
     pub maximum_stock: String,
     pub currency_code: String,
@@ -80,9 +79,9 @@ impl IntoResponse for InventoryUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InventoryUserInput {
-    pub id: Option<Uuid>,
-    pub product_id: Uuid,
-    pub warehouse_id: Uuid,
+    pub id: Option<ValueObject<UuidVO>>,
+    pub product_id: ValueObject<UuidVO>,
+    pub warehouse_id: ValueObject<UuidVO>,
     pub minimum_stock: Option<ValueObject<Integer32>>,
     pub maximum_stock: Option<ValueObject<Integer32>>,
     pub currency_code: ValueObject<CurrencyCode>,
@@ -94,35 +93,46 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
     fn try_from(value: InventoryUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = InventoryUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
+        let product_id = ValueObject::new_required(UuidVO(value.product_id)).inspect_err(|e| {
+            error.product_id = Some(e.to_string());
+        });
+
+        let warehouse_id = ValueObject::new_required(UuidVO(value.warehouse_id)).inspect_err(|e| {
+            error.warehouse_id = Some(e.to_string());
+        });
+
         let minimum_stock =
-            validate_optional_string!(Integer32(value.minimum_stock), error.minimum_stock);
+            ValueObject::new_optional(Integer32(value.minimum_stock)).inspect_err(|e| {
+                error.minimum_stock = Some(e.to_string());
+            });
 
         let maximum_stock =
-            validate_optional_string!(Integer32(value.maximum_stock), error.maximum_stock);
+            ValueObject::new_optional(Integer32(value.maximum_stock)).inspect_err(|e| {
+                error.maximum_stock = Some(e.to_string());
+            });
 
-        let status = ValueObject::new(InventoryStatus(value.status)).inspect_err(|e| {
+        let status = ValueObject::new_required(InventoryStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
-        let currency_code = ValueObject::new(CurrencyCode(value.currency_code))
+        let currency_code = ValueObject::new_required(CurrencyCode(value.currency_code))
             .inspect_err(|e| error.currency_code = Some(e.to_string()));
 
         if error.is_empty() {
             Ok(InventoryUserInput {
-                id,
-                product_id: value.product_id,
-                warehouse_id: value.warehouse_id,
-                minimum_stock,
-                maximum_stock,
+                id: id.map_err(|_| InventoryUserInputError::default())?,
+                product_id: product_id.map_err(|_| InventoryUserInputError::default())?,
+                warehouse_id: warehouse_id.map_err(|_| InventoryUserInputError::default())?,
+                minimum_stock: minimum_stock.map_err(|_| InventoryUserInputError::default())?,
+                maximum_stock: maximum_stock.map_err(|_| InventoryUserInputError::default())?,
                 currency_code: currency_code.map_err(|_| InventoryUserInputError::default())?,
                 status: status.map_err(|_| InventoryUserInputError::default())?,
             })

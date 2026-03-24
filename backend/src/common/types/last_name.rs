@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct LastName(pub String);
 
-impl ValueObjectable for LastName {
+impl ValueObjectData for LastName {
     type DataType = String;
     fn validate(&self) -> Result<(), ValueObjectError> {
         let trimmed = self.0.trim();
@@ -54,7 +54,7 @@ impl<'de> Deserialize<'de> for ValueObject<LastName> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(LastName(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(LastName(s)).map_err(serde::de::Error::custom)
     }
 }
 

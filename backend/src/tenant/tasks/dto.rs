@@ -18,26 +18,25 @@
  */
 use crate::common::error::FormErrorResponse;
 use crate::common::types::CurrencyCode;
+use crate::common::types::UuidVO;
 use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
 use crate::tenant::tasks::types::task::{
     TaskDescription, TaskDueDate, TaskPrice, TaskPriority, TaskStatus,
 };
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct TaskUserInputHelper {
     pub id: Option<String>,
-    pub worksheet_id: Uuid,
-    pub service_id: Uuid,
+    pub worksheet_id: String,
+    pub service_id: String,
     pub currency_code: String,
     pub quantity: String,
     pub price: String,
-    pub tax_id: Uuid,
+    pub tax_id: String,
     pub status: String,
     pub priority: String,
     pub due_date: String,
@@ -94,13 +93,13 @@ impl IntoResponse for TaskUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskUserInput {
-    pub id: Option<Uuid>,
-    pub worksheet_id: Uuid,
-    pub service_id: Uuid,
+    pub id: Option<ValueObject<UuidVO>>,
+    pub worksheet_id: ValueObject<UuidVO>,
+    pub service_id: ValueObject<UuidVO>,
     pub currency_code: ValueObject<CurrencyCode>,
     pub quantity: Option<ValueObject<Quantity>>,
     pub price: Option<ValueObject<TaskPrice>>,
-    pub tax_id: Uuid,
+    pub tax_id: ValueObject<UuidVO>,
     pub status: ValueObject<TaskStatus>,
     pub priority: Option<ValueObject<TaskPriority>>,
     pub due_date: Option<ValueObject<TaskDueDate>>,
@@ -112,47 +111,69 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
     fn try_from(value: TaskUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = TaskUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let status = ValueObject::new(TaskStatus(value.status)).inspect_err(|e| {
+        let worksheet_id = ValueObject::new_required(UuidVO(value.worksheet_id)).inspect_err(|e| {
+            error.worksheet_id = Some(e.to_string());
+        });
+
+        let service_id = ValueObject::new_required(UuidVO(value.service_id)).inspect_err(|e| {
+            error.service_id = Some(e.to_string());
+        });
+
+        let status = ValueObject::new_required(TaskStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
-        let priority = validate_optional_string!(TaskPriority(value.priority), error.priority);
-
-        let due_date = validate_optional_string!(TaskDueDate(value.due_date), error.due_date);
-
-        let currency_code = ValueObject::new(CurrencyCode(value.currency_code)).inspect_err(|e| {
-            error.currency_code = Some(e.to_string());
+        let priority = ValueObject::new_optional(TaskPriority(value.priority)).inspect_err(|e| {
+            error.priority = Some(e.to_string());
         });
 
-        let quantity = validate_optional_string!(Quantity(value.quantity), error.quantity);
+        let due_date = ValueObject::new_optional(TaskDueDate(value.due_date)).inspect_err(|e| {
+            error.due_date = Some(e.to_string());
+        });
 
-        let price = validate_optional_string!(TaskPrice(value.price), error.price);
+        let currency_code = ValueObject::new_required(CurrencyCode(value.currency_code))
+            .inspect_err(|e| {
+                error.currency_code = Some(e.to_string());
+            });
 
-        let description =
-            validate_optional_string!(TaskDescription(value.description), error.description);
+        let quantity = ValueObject::new_optional(Quantity(value.quantity)).inspect_err(|e| {
+            error.quantity = Some(e.to_string());
+        });
+
+        let tax_id = ValueObject::new_required(UuidVO(value.tax_id)).inspect_err(|e| {
+            error.tax_id = Some(e.to_string());
+        });
+
+        let price = ValueObject::new_optional(TaskPrice(value.price)).inspect_err(|e| {
+            error.price = Some(e.to_string());
+        });
+
+        let description = ValueObject::new_optional(TaskDescription(value.description))
+            .inspect_err(|e| {
+                error.description = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(TaskUserInput {
-                id,
-                worksheet_id: value.worksheet_id,
-                service_id: value.service_id,
+                id: id.map_err(|_| TaskUserInputError::default())?,
+                worksheet_id: worksheet_id.map_err(|_| TaskUserInputError::default())?,
+                service_id: service_id.map_err(|_| TaskUserInputError::default())?,
                 currency_code: currency_code.map_err(|_| TaskUserInputError::default())?,
-                quantity,
-                price,
-                tax_id: value.tax_id,
+                quantity: quantity.map_err(|_| TaskUserInputError::default())?,
+                price: price.map_err(|_| TaskUserInputError::default())?,
+                tax_id: tax_id.map_err(|_| TaskUserInputError::default())?,
                 status: status.map_err(|_| TaskUserInputError::default())?,
-                priority,
-                due_date,
-                description,
+                priority: priority.map_err(|_| TaskUserInputError::default())?,
+                due_date: due_date.map_err(|_| TaskUserInputError::default())?,
+                description: description.map_err(|_| TaskUserInputError::default())?,
             })
         } else {
             Err(error)

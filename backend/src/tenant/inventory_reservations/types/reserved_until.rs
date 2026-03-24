@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -25,7 +25,7 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ReservedUntil(pub String);
 
-impl ValueObjectable for ReservedUntil {
+impl ValueObjectData for ReservedUntil {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for ValueObject<ReservedUntil> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(ReservedUntil(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(ReservedUntil(s)).map_err(serde::de::Error::custom)
     }
 }
 

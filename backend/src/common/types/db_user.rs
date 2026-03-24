@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -26,7 +26,7 @@ use uuid::Uuid;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DbUser(pub String);
 
-impl ValueObjectable for DbUser {
+impl ValueObjectData for DbUser {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -60,14 +60,14 @@ impl<'de> Deserialize<'de> for ValueObject<DbUser> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(DbUser(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(DbUser(s)).map_err(serde::de::Error::custom)
     }
 }
 
 impl TryFrom<Uuid> for ValueObject<DbUser> {
     type Error = ValueObjectError;
     fn try_from(value: Uuid) -> Result<Self, Self::Error> {
-        ValueObject::new(DbUser(value.to_string()))
+        ValueObject::new_required(DbUser(value.to_string()))
     }
 }
 

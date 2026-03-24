@@ -22,6 +22,7 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::GetQuery;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::ProductUserInput;
@@ -106,10 +107,10 @@ impl ProductsService {
     ) -> ProductsServiceResult<Product> {
         let mut product = payload.clone();
 
-        product.unit_of_measure_id = if product.unit_of_measure_id.is_some() {
-            product.unit_of_measure_id
+        product.unit_of_measure_id = if let Some(units_of_measure_id) = product.unit_of_measure_id {
+            Some(units_of_measure_id)
         } else {
-            Some(
+            ValueObject::new_optional(UuidVO(
                 products_module
                     .products_repo()
                     .insert_unit_of_measure(
@@ -124,8 +125,10 @@ impl ProductsService {
                             .ok_or(ProductsServiceError::Unauthorized)?,
                     )
                     .await?
-                    .id,
-            )
+                    .id
+                    .to_string(),
+            ))
+            .map_err(|_| ProductsServiceError::InvalidState)?
         };
 
         Ok(products_module

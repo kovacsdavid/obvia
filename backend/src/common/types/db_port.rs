@@ -18,7 +18,7 @@
  */
 
 use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectable};
+use crate::common::types::{ValueObject, ValueObjectData};
 use serde::de::{self, Visitor};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -26,7 +26,7 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct DbPort(pub String);
 
-impl ValueObjectable for DbPort {
+impl ValueObjectData for DbPort {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -63,13 +63,13 @@ impl<'de> Visitor<'de> for DbPortVisitor {
     where
         E: de::Error,
     {
-        ValueObject::new(DbPort(v.to_string())).map_err(de::Error::custom)
+        ValueObject::new_required(DbPort(v.to_string())).map_err(de::Error::custom)
     }
     fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
     where
         E: de::Error,
     {
-        ValueObject::new(DbPort(v.to_string())).map_err(de::Error::custom)
+        ValueObject::new_required(DbPort(v.to_string())).map_err(de::Error::custom)
     }
 }
 

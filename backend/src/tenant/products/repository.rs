@@ -260,7 +260,8 @@ impl ProductsRepository for PgPoolManager {
                 .unit_of_measure_id
                 .ok_or(RepositoryError::InvalidInput(
                     "unit_of_measure_id".to_string(),
-                ))?,
+                ))?
+                .as_uuid()?,
         )
         .bind(product.status.as_str())
         .bind(sub)
@@ -295,10 +296,11 @@ impl ProductsRepository for PgPoolManager {
                 .unit_of_measure_id
                 .ok_or(RepositoryError::InvalidInput(
                     "unit_of_measure_id".to_string(),
-                ))?,
+                ))?
+                .as_uuid()?,
         )
         .bind(product.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

@@ -16,15 +16,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::warehouses::types::warehouse::{
     WarehouseContactName, WarehouseContactPhone, WarehouseName, WarehouseStatus,
 };
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct WarehouseUserInputHelper {
@@ -73,7 +73,7 @@ impl IntoResponse for WarehouseUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WarehouseUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub name: ValueObject<WarehouseName>,
     pub contact_name: Option<ValueObject<WarehouseContactName>>,
     pub contact_phone: Option<ValueObject<WarehouseContactPhone>>,
@@ -85,54 +85,38 @@ impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
     fn try_from(value: WarehouseUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = WarehouseUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let name = ValueObject::new(WarehouseName(value.name)).inspect_err(|e| {
+        let name = ValueObject::new_required(WarehouseName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
-        let contact_name = match ValueObject::new(WarehouseContactName(value.contact_name))
+
+        let contact_name = ValueObject::new_optional(WarehouseContactName(value.contact_name))
             .inspect_err(|e| {
                 error.contact_name = Some(e.to_string());
-            }) {
-            Ok(val) => {
-                if !val.as_str().trim().is_empty() {
-                    Some(val)
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        };
-        let contact_phone = match ValueObject::new(WarehouseContactPhone(value.contact_phone))
+            });
+
+        let contact_phone = ValueObject::new_optional(WarehouseContactPhone(value.contact_phone))
             .inspect_err(|e| {
                 error.contact_phone = Some(e.to_string());
-            }) {
-            Ok(val) => {
-                if !val.as_str().trim().is_empty() {
-                    Some(val)
-                } else {
-                    None
-                }
-            }
-            Err(_) => None,
-        };
-        let status = ValueObject::new(WarehouseStatus(value.status)).inspect_err(|e| {
+            });
+
+        let status = ValueObject::new_required(WarehouseStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
         if error.is_empty() {
             Ok(WarehouseUserInput {
-                id,
+                id: id.map_err(|_| WarehouseUserInputError::default())?,
                 name: name.map_err(|_| WarehouseUserInputError::default())?,
-                contact_name,
-                contact_phone,
+                contact_name: contact_name.map_err(|_| WarehouseUserInputError::default())?,
+                contact_phone: contact_phone.map_err(|_| WarehouseUserInputError::default())?,
                 status: status.map_err(|_| WarehouseUserInputError::default())?,
             })
         } else {

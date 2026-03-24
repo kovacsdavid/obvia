@@ -83,18 +83,21 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
     fn try_from(value: RegisterRequestHelper) -> Result<Self, Self::Error> {
         let mut error = RegisterRequestError::default();
 
-        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
             error.email = Some(e.to_string());
         });
-        let first_name_result = ValueObject::new(FirstName(value.first_name)).inspect_err(|e| {
-            error.first_name = Some(e.to_string());
-        });
-        let last_name_result = ValueObject::new(LastName(value.last_name)).inspect_err(|e| {
-            error.last_name = Some(e.to_string());
-        });
-        let password_result = ValueObject::new(Password(value.password)).inspect_err(|e| {
-            error.password = Some(e.to_string());
-        });
+        let first_name_result =
+            ValueObject::new_required(FirstName(value.first_name)).inspect_err(|e| {
+                error.first_name = Some(e.to_string());
+            });
+        let last_name_result =
+            ValueObject::new_required(LastName(value.last_name)).inspect_err(|e| {
+                error.last_name = Some(e.to_string());
+            });
+        let password_result =
+            ValueObject::new_required(Password(value.password)).inspect_err(|e| {
+                error.password = Some(e.to_string());
+            });
 
         if let Ok(password) = &password_result
             && password.as_str() != value.password_confirm
@@ -160,7 +163,7 @@ impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationReques
     fn try_from(value: ResendEmailValidationRequestHelper) -> Result<Self, Self::Error> {
         let mut error = ResendEmailValidationError::default();
 
-        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
             error.email = Some(e.to_string());
         });
 
@@ -218,7 +221,7 @@ impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
     fn try_from(value: ForgottenPasswordRequestHelper) -> Result<Self, Self::Error> {
         let mut error = ForgottenPasswordRequestError::default();
 
-        let email_result = ValueObject::new(Email(value.email)).inspect_err(|e| {
+        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
             error.email = Some(e.to_string());
         });
 
@@ -285,9 +288,10 @@ impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
             error.token = Some("Hibás azonosító".to_string());
         });
 
-        let password_result = ValueObject::new(Password(value.password)).inspect_err(|e| {
-            error.password = Some(e.to_string());
-        });
+        let password_result =
+            ValueObject::new_required(Password(value.password)).inspect_err(|e| {
+                error.password = Some(e.to_string());
+            });
 
         if let Ok(password) = &password_result
             && password.as_str() != value.password_confirm

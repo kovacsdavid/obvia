@@ -75,9 +75,6 @@ pub type DefaultSmtpTransport = AsyncSmtpTransport<Tokio1Executor>;
 pub type DefaultAppState = AppState<PgPoolManager, DefaultSmtpTransport>;
 
 impl DefaultAppState {
-    fn init_config() -> anyhow::Result<AppConfig> {
-        Ok(AppConfig::from_env()?)
-    }
     async fn init_pool_manager(config: Arc<AppConfig>) -> anyhow::Result<PgPoolManager> {
         Ok(PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?)
     }
@@ -91,8 +88,7 @@ impl DefaultAppState {
                 .build(),
         )
     }
-    pub async fn new() -> anyhow::Result<DefaultAppState> {
-        let config = Arc::new(Self::init_config()?);
+    pub async fn new(config: Arc<AppConfig>) -> anyhow::Result<DefaultAppState> {
         let pool_manager = Arc::new(Self::init_pool_manager(config.clone()).await?);
         Ok(Self {
             config: config.clone(),

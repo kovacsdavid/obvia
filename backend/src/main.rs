@@ -29,8 +29,9 @@ use std::sync::Arc;
 use tokio::signal;
 
 async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
-    init_subscriber();
-    let app = init_default_app().await?;
+    let config = AppConfig::from_env()?;
+    init_subscriber(&config);
+    let app = init_default_app(config).await?;
     Ok(app)
 }
 

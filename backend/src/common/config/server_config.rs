@@ -18,6 +18,7 @@
  */
 
 use serde::Deserialize;
+use tracing::metadata::LevelFilter;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
@@ -25,6 +26,17 @@ pub struct ServerConfig {
     bind_port: u16,
     public_base_url: String,
     environment: String,
+    #[serde(deserialize_with = "deserialize_log_level")]
+    log_level: LevelFilter,
+}
+
+fn deserialize_log_level<'de, D>(deserializer: D) -> Result<LevelFilter, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    String::deserialize(deserializer)?
+        .parse::<LevelFilter>()
+        .map_err(serde::de::Error::custom)
 }
 
 impl ServerConfig {
@@ -40,6 +52,9 @@ impl ServerConfig {
     pub fn environment(&self) -> &str {
         &self.environment
     }
+    pub fn log_level(&self) -> LevelFilter {
+        self.log_level
+    }
 }
 
 #[cfg(test)]
@@ -51,6 +66,7 @@ pub(crate) mod tests {
         port: Option<u16>,
         hostname: Option<String>,
         environment: Option<String>,
+        log_level: Option<LevelFilter>,
     }
 
     impl ServerConfigBuilder {
@@ -60,6 +76,7 @@ pub(crate) mod tests {
                 port: None,
                 hostname: None,
                 environment: None,
+                log_level: None,
             }
         }
         pub fn host(mut self, host: &str) -> Self {
@@ -78,6 +95,10 @@ pub(crate) mod tests {
             self.environment = Some(environment.to_owned());
             self
         }
+        pub fn log_level(mut self, log_level: LevelFilter) -> Self {
+            self.log_level = Some(log_level);
+            self
+        }
         pub fn build(self) -> Result<ServerConfig, String> {
             Ok(ServerConfig {
                 bind_address: self.host.ok_or("host is required".to_string())?,
@@ -86,6 +107,7 @@ pub(crate) mod tests {
                 environment: self
                     .environment
                     .ok_or("environment is required".to_string())?,
+                log_level: self.log_level.unwrap_or(LevelFilter::TRACE),
             })
         }
     }
@@ -97,6 +119,7 @@ pub(crate) mod tests {
                 .port(3000)
                 .hostname("example.com")
                 .environment("test")
+                .log_level(LevelFilter::TRACE)
         }
     }
 }

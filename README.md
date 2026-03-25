@@ -175,10 +175,11 @@ customize it for your environment.
 
 ```toml
 [server]
-host = "0.0.0.0"           # Server host address
-port = 3000                # Server port
-hostname = "example.com"   # Server hostname
-environment = "prod"       # Server environment
+bind_address = "0.0.0.0"           # Server host address
+bind_port = 3000                   # Server port
+public_base_url = "example.com"    # Server hostname
+environment = "prod"               # Server environment
+log_level = "trace"
 ```
 
 #### Main Database

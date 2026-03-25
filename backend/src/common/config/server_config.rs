@@ -21,21 +21,21 @@ use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
-    host: String,
-    port: u16,
-    hostname: String,
+    bind_address: String,
+    bind_port: u16,
+    public_base_url: String,
     environment: String,
 }
 
 impl ServerConfig {
-    pub fn host(&self) -> &str {
-        &self.host
+    pub fn bind_address(&self) -> &str {
+        &self.bind_address
     }
-    pub fn port(&self) -> u16 {
-        self.port
+    pub fn bind_port(&self) -> u16 {
+        self.bind_port
     }
-    pub fn hostname(&self) -> &str {
-        &self.hostname
+    pub fn public_base_url(&self) -> &str {
+        &self.public_base_url
     }
     pub fn environment(&self) -> &str {
         &self.environment
@@ -80,9 +80,9 @@ pub(crate) mod tests {
         }
         pub fn build(self) -> Result<ServerConfig, String> {
             Ok(ServerConfig {
-                host: self.host.ok_or("host is required".to_string())?,
-                port: self.port.ok_or("port is required".to_string())?,
-                hostname: self.hostname.ok_or("hostname is required".to_string())?,
+                bind_address: self.host.ok_or("host is required".to_string())?,
+                bind_port: self.port.ok_or("port is required".to_string())?,
+                public_base_url: self.hostname.ok_or("hostname is required".to_string())?,
                 environment: self
                     .environment
                     .ok_or("environment is required".to_string())?,

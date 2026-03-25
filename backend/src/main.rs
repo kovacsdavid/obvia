@@ -42,7 +42,8 @@ async fn main() -> anyhow::Result<()> {
 async fn serve() -> anyhow::Result<()> {
     let (config, app) = init().await?;
 
-    let addr = config.server().host().to_string() + ":" + &config.server().port().to_string();
+    let addr =
+        config.server().bind_address().to_string() + ":" + &config.server().bind_port().to_string();
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
     axum::serve(listener, app)

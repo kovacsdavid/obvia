@@ -18,6 +18,7 @@
  */
 
 use serde::Deserialize;
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     host: String,
@@ -41,55 +42,61 @@ impl ServerConfig {
     }
 }
 
-#[allow(dead_code)]
-pub struct ServerConfigBuilder {
-    host: Option<String>,
-    port: Option<u16>,
-    hostname: Option<String>,
-    environment: Option<String>,
-}
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
 
-#[allow(dead_code)]
-impl ServerConfigBuilder {
-    pub fn new() -> Self {
-        Self {
-            host: None,
-            port: None,
-            hostname: None,
-            environment: None,
+    pub struct ServerConfigBuilder {
+        host: Option<String>,
+        port: Option<u16>,
+        hostname: Option<String>,
+        environment: Option<String>,
+    }
+
+    impl ServerConfigBuilder {
+        pub fn new() -> Self {
+            Self {
+                host: None,
+                port: None,
+                hostname: None,
+                environment: None,
+            }
+        }
+        pub fn host(mut self, host: &str) -> Self {
+            self.host = Some(host.to_owned());
+            self
+        }
+        pub fn port(mut self, port: u16) -> Self {
+            self.port = Some(port);
+            self
+        }
+        pub fn hostname(mut self, hostname: &str) -> Self {
+            self.hostname = Some(hostname.to_owned());
+            self
+        }
+        pub fn environment(mut self, environment: &str) -> Self {
+            self.environment = Some(environment.to_owned());
+            self
+        }
+        pub fn build(self) -> Result<ServerConfig, String> {
+            Ok(ServerConfig {
+                host: self.host.ok_or("host is required".to_string())?,
+                port: self.port.ok_or("port is required".to_string())?,
+                hostname: self.hostname.ok_or("hostname is required".to_string())?,
+                environment: self
+                    .environment
+                    .ok_or("environment is required".to_string())?,
+            })
         }
     }
-    pub fn host(mut self, host: &str) -> Self {
-        self.host = Some(host.to_owned());
-        self
-    }
-    pub fn port(mut self, port: u16) -> Self {
-        self.port = Some(port);
-        self
-    }
-    pub fn hostname(mut self, hostname: &str) -> Self {
-        self.hostname = Some(hostname.to_owned());
-        self
-    }
-    pub fn environment(mut self, environment: &str) -> Self {
-        self.environment = Some(environment.to_owned());
-        self
-    }
-    pub fn build(self) -> Result<ServerConfig, String> {
-        Ok(ServerConfig {
-            host: self.host.ok_or("host is required".to_string())?,
-            port: self.port.ok_or("port is required".to_string())?,
-            hostname: self.hostname.ok_or("hostname is required".to_string())?,
-            environment: self
-                .environment
-                .ok_or("environment is required".to_string())?,
-        })
-    }
-}
 
-#[cfg(not(test))]
-impl Default for ServerConfigBuilder {
-    fn default() -> Self {
-        ServerConfigBuilder::new()
+    impl Default for ServerConfigBuilder {
+        fn default() -> Self {
+            ServerConfigBuilder::new()
+                .host("127.0.0.1")
+                .port(3000)
+                .hostname("example.com")
+                .environment("test")
+        }
     }
 }

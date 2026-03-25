@@ -160,97 +160,113 @@ where
     }
 }
 
-#[allow(dead_code)]
-pub struct DatabaseConfigBuilder<
-    HostType,
-    PortType,
-    UserType,
-    PasswordType,
-    DatabaseType,
-    MaxPoolSizeType,
-> {
-    host: Option<HostType>,
-    port: Option<PortType>,
-    username: Option<UserType>,
-    password: Option<PasswordType>,
-    database: Option<DatabaseType>,
-    max_pool_size: Option<MaxPoolSizeType>,
-    ssl_mode: Option<String>,
-}
+#[cfg(test)]
+pub(crate) mod tests {
+    #![allow(unused)]
 
-#[allow(dead_code)]
-impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
-    DatabaseConfigBuilder<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
-{
-    pub fn new() -> Self {
-        DatabaseConfigBuilder {
-            host: None,
-            port: None,
-            username: None,
-            password: None,
-            database: None,
-            max_pool_size: None,
-            ssl_mode: None,
-        }
-    }
-    pub fn host(mut self, host: HostType) -> Self {
-        self.host = Some(host);
-        self
-    }
-    pub fn port(mut self, port: PortType) -> Self {
-        self.port = Some(port);
-        self
-    }
-    pub fn username(mut self, username: UserType) -> Self {
-        self.username = Some(username);
-        self
-    }
-    pub fn password(mut self, password: PasswordType) -> Self {
-        self.password = Some(password);
-        self
-    }
-    pub fn database(mut self, database: DatabaseType) -> Self {
-        self.database = Some(database);
-        self
-    }
-    pub fn max_pool_size(mut self, max_pool_size: MaxPoolSizeType) -> Self {
-        self.max_pool_size = Some(max_pool_size);
-        self
-    }
-    pub fn ssl_mode(mut self, ssl_mode: String) -> Self {
-        self.ssl_mode = Some(ssl_mode);
-        self
-    }
-    pub fn build(
-        self,
-    ) -> Result<
-        DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>,
-        String,
-    > {
-        Ok(DatabaseConfig {
-            host: self.host.ok_or("host is required")?,
-            port: self.port.ok_or("port is required")?,
-            username: self.username.ok_or("username is required")?,
-            password: self.password.ok_or("password is required")?,
-            database: self.database.ok_or("database is required")?,
-            max_pool_size: self.max_pool_size,
-            ssl_mode: self.ssl_mode,
-        })
-    }
-}
+    use super::*;
 
-#[cfg(not(test))]
-impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType> Default
-    for DatabaseConfigBuilder<
+    pub struct DatabaseConfigBuilder<
         HostType,
         PortType,
         UserType,
         PasswordType,
         DatabaseType,
         MaxPoolSizeType,
-    >
-{
-    fn default() -> Self {
-        DatabaseConfigBuilder::new()
+    > {
+        host: Option<HostType>,
+        port: Option<PortType>,
+        username: Option<UserType>,
+        password: Option<PasswordType>,
+        database: Option<DatabaseType>,
+        max_pool_size: Option<MaxPoolSizeType>,
+        ssl_mode: Option<String>,
+    }
+
+    impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
+        DatabaseConfigBuilder<
+            HostType,
+            PortType,
+            UserType,
+            PasswordType,
+            DatabaseType,
+            MaxPoolSizeType,
+        >
+    {
+        pub fn new() -> Self {
+            DatabaseConfigBuilder {
+                host: None,
+                port: None,
+                username: None,
+                password: None,
+                database: None,
+                max_pool_size: None,
+                ssl_mode: None,
+            }
+        }
+        pub fn host(mut self, host: HostType) -> Self {
+            self.host = Some(host);
+            self
+        }
+        pub fn port(mut self, port: PortType) -> Self {
+            self.port = Some(port);
+            self
+        }
+        pub fn username(mut self, username: UserType) -> Self {
+            self.username = Some(username);
+            self
+        }
+        pub fn password(mut self, password: PasswordType) -> Self {
+            self.password = Some(password);
+            self
+        }
+        pub fn database(mut self, database: DatabaseType) -> Self {
+            self.database = Some(database);
+            self
+        }
+        pub fn max_pool_size(mut self, max_pool_size: MaxPoolSizeType) -> Self {
+            self.max_pool_size = Some(max_pool_size);
+            self
+        }
+        pub fn ssl_mode(mut self, ssl_mode: String) -> Self {
+            self.ssl_mode = Some(ssl_mode);
+            self
+        }
+        pub fn build(
+            self,
+        ) -> Result<
+            DatabaseConfig<
+                HostType,
+                PortType,
+                UserType,
+                PasswordType,
+                DatabaseType,
+                MaxPoolSizeType,
+            >,
+            String,
+        > {
+            Ok(DatabaseConfig {
+                host: self.host.ok_or("host is required")?,
+                port: self.port.ok_or("port is required")?,
+                username: self.username.ok_or("username is required")?,
+                password: self.password.ok_or("password is required")?,
+                database: self.database.ok_or("database is required")?,
+                max_pool_size: self.max_pool_size,
+                ssl_mode: self.ssl_mode,
+            })
+        }
+    }
+
+    impl Default for DatabaseConfigBuilder<String, u16, String, String, String, u32> {
+        fn default() -> Self {
+            DatabaseConfigBuilder::new()
+                .host(String::from("localhost"))
+                .port(5432)
+                .username(String::from("user"))
+                .password(String::from("password"))
+                .database(String::from("database"))
+                .max_pool_size(5)
+                .ssl_mode(String::from("prefer"))
+        }
     }
 }

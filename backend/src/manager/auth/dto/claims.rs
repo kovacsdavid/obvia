@@ -248,7 +248,7 @@ impl Claims {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::config::AppConfigBuilder;
+    use crate::common::config::tests::AppConfigBuilder;
     use chrono::Local;
     use std::ops::{Add, Sub};
     use std::time::Duration;

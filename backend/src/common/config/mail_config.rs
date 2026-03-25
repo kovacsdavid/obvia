@@ -113,4 +113,16 @@ pub(super) mod tests {
             })
         }
     }
+
+    impl Default for MailConfigBuilder {
+        fn default() -> Self {
+            MailConfigBuilder::new()
+                .smtp_host("localhost")
+                .smtp_user("noreply@example.com")
+                .smtp_passwd("secret")
+                .default_from("noreply@example.com")
+                .default_from_name("Example")
+                .default_notification_email("admin@example.com")
+        }
+    }
 }

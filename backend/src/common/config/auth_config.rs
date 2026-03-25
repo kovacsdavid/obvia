@@ -46,64 +46,71 @@ impl AuthConfig {
     }
 }
 
-#[allow(dead_code)]
-pub struct AuthConfigBuilder {
-    jwt_secret: Option<String>,
-    jwt_issuer: Option<String>,
-    jwt_audience: Option<String>,
-    access_token_expiration_mins: Option<u64>,
-    refresh_token_expiration_mins: Option<u64>,
-}
+#[cfg(test)]
+pub(crate) mod tests {
+    use super::*;
 
-#[allow(dead_code)]
-impl AuthConfigBuilder {
-    pub fn new() -> Self {
-        AuthConfigBuilder {
-            jwt_secret: None,
-            jwt_issuer: None,
-            jwt_audience: None,
-            access_token_expiration_mins: None,
-            refresh_token_expiration_mins: None,
+    pub struct AuthConfigBuilder {
+        jwt_secret: Option<String>,
+        jwt_issuer: Option<String>,
+        jwt_audience: Option<String>,
+        access_token_expiration_mins: Option<u64>,
+        refresh_token_expiration_mins: Option<u64>,
+    }
+
+    impl AuthConfigBuilder {
+        pub fn new() -> Self {
+            AuthConfigBuilder {
+                jwt_secret: None,
+                jwt_issuer: None,
+                jwt_audience: None,
+                access_token_expiration_mins: None,
+                refresh_token_expiration_mins: None,
+            }
+        }
+        pub fn jwt_secret(mut self, jwt_secret: &str) -> Self {
+            self.jwt_secret = Some(jwt_secret.to_owned());
+            self
+        }
+        pub fn jwt_issuer(mut self, jwt_issuer: &str) -> Self {
+            self.jwt_issuer = Some(jwt_issuer.to_owned());
+            self
+        }
+        pub fn jwt_audience(mut self, jwt_audience: &str) -> Self {
+            self.jwt_audience = Some(jwt_audience.to_owned());
+            self
+        }
+        pub fn access_token_expiration_mins(mut self, access_token_expiration_mins: u64) -> Self {
+            self.access_token_expiration_mins = Some(access_token_expiration_mins);
+            self
+        }
+        pub fn refresh_token_expiration_mins(mut self, refresh_token_expiration_mins: u64) -> Self {
+            self.refresh_token_expiration_mins = Some(refresh_token_expiration_mins);
+            self
+        }
+        pub fn build(self) -> Result<AuthConfig, String> {
+            Ok(AuthConfig {
+                jwt_secret: self.jwt_secret.ok_or("jwt_secret is required")?,
+                jwt_issuer: self.jwt_issuer.ok_or("jwt_issuer is required")?,
+                jwt_audience: self.jwt_audience.ok_or("jwt_audience is required")?,
+                access_token_expiration_mins: self
+                    .access_token_expiration_mins
+                    .ok_or("access_token_expiration_mins is required")?,
+                refresh_token_expiration_mins: self
+                    .refresh_token_expiration_mins
+                    .ok_or("refresh_token_expiration_mins is required")?,
+            })
         }
     }
-    pub fn jwt_secret(mut self, jwt_secret: &str) -> Self {
-        self.jwt_secret = Some(jwt_secret.to_owned());
-        self
-    }
-    pub fn jwt_issuer(mut self, jwt_issuer: &str) -> Self {
-        self.jwt_issuer = Some(jwt_issuer.to_owned());
-        self
-    }
-    pub fn jwt_audience(mut self, jwt_audience: &str) -> Self {
-        self.jwt_audience = Some(jwt_audience.to_owned());
-        self
-    }
-    pub fn access_token_expiration_mins(mut self, access_token_expiration_mins: u64) -> Self {
-        self.access_token_expiration_mins = Some(access_token_expiration_mins);
-        self
-    }
-    pub fn refresh_token_expiration_mins(mut self, refresh_token_expiration_mins: u64) -> Self {
-        self.refresh_token_expiration_mins = Some(refresh_token_expiration_mins);
-        self
-    }
-    pub fn build(self) -> Result<AuthConfig, String> {
-        Ok(AuthConfig {
-            jwt_secret: self.jwt_secret.ok_or("jwt_secret is required")?,
-            jwt_issuer: self.jwt_issuer.ok_or("jwt_issuer is required")?,
-            jwt_audience: self.jwt_audience.ok_or("jwt_audience is required")?,
-            access_token_expiration_mins: self
-                .access_token_expiration_mins
-                .ok_or("access_token_expiration_mins is required")?,
-            refresh_token_expiration_mins: self
-                .refresh_token_expiration_mins
-                .ok_or("refresh_token_expiration_mins is required")?,
-        })
-    }
-}
 
-#[cfg(not(test))]
-impl Default for AuthConfigBuilder {
-    fn default() -> Self {
-        AuthConfigBuilder::new()
+    impl Default for AuthConfigBuilder {
+        fn default() -> Self {
+            AuthConfigBuilder::new()
+                .jwt_secret("test_jwt_secret")
+                .jwt_issuer("http://localhost")
+                .jwt_audience("http://localhost")
+                .access_token_expiration_mins(5)
+                .refresh_token_expiration_mins(60)
+        }
     }
 }

@@ -65,119 +65,67 @@ impl AppConfig {
     }
 }
 
-#[allow(dead_code)]
-pub struct AppConfigBuilder {
-    server: Option<ServerConfig>,
-    main_database: Option<BasicDatabaseConfig>,
-    default_tenant_database: Option<BasicDatabaseConfig>,
-    auth: Option<AuthConfig>,
-    mail: Option<MailConfig>,
-}
-
-#[allow(dead_code)]
-impl AppConfigBuilder {
-    pub fn new() -> Self {
-        Self {
-            server: None,
-            main_database: None,
-            default_tenant_database: None,
-            auth: None,
-            mail: None,
-        }
-    }
-    pub fn server(mut self, server: ServerConfig) -> Self {
-        self.server = Some(server);
-        self
-    }
-    pub fn main_database(mut self, main_database: BasicDatabaseConfig) -> Self {
-        self.main_database = Some(main_database);
-        self
-    }
-    pub fn default_tenant_database(mut self, default_tenant_database: BasicDatabaseConfig) -> Self {
-        self.default_tenant_database = Some(default_tenant_database);
-        self
-    }
-    pub fn auth(mut self, auth: AuthConfig) -> Self {
-        self.auth = Some(auth);
-        self
-    }
-
-    pub fn mail(mut self, mail: MailConfig) -> Self {
-        self.mail = Some(mail);
-        self
-    }
-    pub fn build(self) -> Result<AppConfig, String> {
-        Ok(AppConfig {
-            server: self.server.ok_or("server is required")?,
-            main_database: self.main_database.ok_or("main_database is required")?,
-            default_tenant_database: self
-                .default_tenant_database
-                .ok_or("default_tenant_database")?,
-            auth: self.auth.ok_or("auth is required")?,
-            mail: self.mail.ok_or("mail is required")?,
-        })
-    }
-}
-
-#[cfg(not(test))]
-impl Default for AppConfigBuilder {
-    fn default() -> Self {
-        AppConfigBuilder::new()
-    }
-}
-
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use crate::common::config::{
-        auth_config::AuthConfigBuilder, database_config::DatabaseConfigBuilder,
-        mail_config::tests::MailConfigBuilder, server_config::ServerConfigBuilder,
+        auth_config::tests::AuthConfigBuilder, database_config::tests::DatabaseConfigBuilder,
+        mail_config::tests::MailConfigBuilder, server_config::tests::ServerConfigBuilder,
     };
 
     use super::*;
 
-    impl Default for AuthConfigBuilder {
-        fn default() -> Self {
-            AuthConfigBuilder::new()
-                .jwt_secret("test_jwt_secret")
-                .jwt_issuer("http://localhost")
-                .jwt_audience("http://localhost")
-                .access_token_expiration_mins(5)
-                .refresh_token_expiration_mins(60)
-        }
+    pub struct AppConfigBuilder {
+        server: Option<ServerConfig>,
+        main_database: Option<BasicDatabaseConfig>,
+        default_tenant_database: Option<BasicDatabaseConfig>,
+        auth: Option<AuthConfig>,
+        mail: Option<MailConfig>,
     }
 
-    impl Default for DatabaseConfigBuilder<String, u16, String, String, String, u32> {
-        fn default() -> Self {
-            DatabaseConfigBuilder::new()
-                .host(String::from("localhost"))
-                .port(5432)
-                .username(String::from("user"))
-                .password(String::from("password"))
-                .database(String::from("database"))
-                .max_pool_size(5)
-                .ssl_mode(String::from("prefer"))
+    impl AppConfigBuilder {
+        pub fn new() -> Self {
+            Self {
+                server: None,
+                main_database: None,
+                default_tenant_database: None,
+                auth: None,
+                mail: None,
+            }
         }
-    }
-
-    impl Default for ServerConfigBuilder {
-        fn default() -> Self {
-            ServerConfigBuilder::new()
-                .host("127.0.0.1")
-                .port(3000)
-                .hostname("example.com")
-                .environment("test")
+        pub fn server(mut self, server: ServerConfig) -> Self {
+            self.server = Some(server);
+            self
         }
-    }
+        pub fn main_database(mut self, main_database: BasicDatabaseConfig) -> Self {
+            self.main_database = Some(main_database);
+            self
+        }
+        pub fn default_tenant_database(
+            mut self,
+            default_tenant_database: BasicDatabaseConfig,
+        ) -> Self {
+            self.default_tenant_database = Some(default_tenant_database);
+            self
+        }
+        pub fn auth(mut self, auth: AuthConfig) -> Self {
+            self.auth = Some(auth);
+            self
+        }
 
-    impl Default for MailConfigBuilder {
-        fn default() -> Self {
-            MailConfigBuilder::new()
-                .smtp_host("localhost")
-                .smtp_user("noreply@example.com")
-                .smtp_passwd("secret")
-                .default_from("noreply@example.com")
-                .default_from_name("Example")
-                .default_notification_email("admin@example.com")
+        pub fn mail(mut self, mail: MailConfig) -> Self {
+            self.mail = Some(mail);
+            self
+        }
+        pub fn build(self) -> Result<AppConfig, String> {
+            Ok(AppConfig {
+                server: self.server.ok_or("server is required")?,
+                main_database: self.main_database.ok_or("main_database is required")?,
+                default_tenant_database: self
+                    .default_tenant_database
+                    .ok_or("default_tenant_database")?,
+                auth: self.auth.ok_or("auth is required")?,
+                mail: self.mail.ok_or("mail is required")?,
+            })
         }
     }
 

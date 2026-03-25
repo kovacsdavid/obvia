@@ -292,7 +292,7 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
-    use crate::common::config::AppConfigBuilder;
+    use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::types::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};

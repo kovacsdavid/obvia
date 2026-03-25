@@ -21,6 +21,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MailConfig {
+    mail_enabled: bool,
     smtp_host: String,
     smtp_user: String,
     smtp_passwd: String,
@@ -30,6 +31,9 @@ pub struct MailConfig {
 }
 
 impl MailConfig {
+    pub fn mail_enabled(&self) -> bool {
+        self.mail_enabled
+    }
     pub fn smtp_host(&self) -> &str {
         &self.smtp_host
     }
@@ -55,6 +59,7 @@ pub(super) mod tests {
     use super::*;
 
     pub struct MailConfigBuilder {
+        mail_enabled: Option<bool>,
         smtp_host: Option<String>,
         smtp_user: Option<String>,
         smtp_passwd: Option<String>,
@@ -66,6 +71,7 @@ pub(super) mod tests {
     impl MailConfigBuilder {
         pub fn new() -> Self {
             MailConfigBuilder {
+                mail_enabled: None,
                 smtp_host: None,
                 smtp_user: None,
                 smtp_passwd: None,
@@ -73,6 +79,10 @@ pub(super) mod tests {
                 default_from_name: None,
                 default_notification_email: None,
             }
+        }
+        pub fn mail_enabled(mut self, mail_enabled: bool) -> Self {
+            self.mail_enabled = Some(mail_enabled);
+            self
         }
         pub fn smtp_host(mut self, smtp_host: &str) -> Self {
             self.smtp_host = Some(smtp_host.to_owned());
@@ -100,6 +110,7 @@ pub(super) mod tests {
         }
         pub fn build(self) -> Result<MailConfig, String> {
             Ok(MailConfig {
+                mail_enabled: self.mail_enabled.ok_or("mail_enabled is required")?,
                 smtp_host: self.smtp_host.ok_or("smtp_host is required")?,
                 smtp_user: self.smtp_user.ok_or("smtp_user is required")?,
                 smtp_passwd: self.smtp_passwd.ok_or("smtp_passwd is required")?,
@@ -117,6 +128,7 @@ pub(super) mod tests {
     impl Default for MailConfigBuilder {
         fn default() -> Self {
             MailConfigBuilder::new()
+                .mail_enabled(false)
                 .smtp_host("localhost")
                 .smtp_user("noreply@example.com")
                 .smtp_passwd("secret")

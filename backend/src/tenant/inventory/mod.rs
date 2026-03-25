@@ -76,7 +76,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for InventoryModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl InventoryModule for InventoryModule {
             fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;

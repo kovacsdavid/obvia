@@ -218,6 +218,17 @@ access_token_expiration_mins = 5            # Access token expiration in mins
 refresh_token_expiration_mins = 480         # Refresh token expiration in mins
 ```
 
+#### Mailing
+```toml
+mail_enabled = true                                         # Is mailing enabled
+smtp_host = "smtp_host"                                     # SMTP host
+smtp_user = "smtp_user"                                     # SMTP user
+smtp_passwd = "smtp_passwd"                                 # SMTP password
+default_from = "default_from"                               # Default from address
+default_from_name = "default_from_name"                     # Default from display name
+default_notification_email = "default_notification_email"   # Default admin notification email
+```
+
 **Important**: Always change the `jwt_secret` to a strong, random value in production environments.
 
 ### Frontend Environment Variables

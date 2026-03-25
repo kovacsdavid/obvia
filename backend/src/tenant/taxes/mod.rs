@@ -62,7 +62,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for TaxesModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl TaxesModule for TaxesModule {
             fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;

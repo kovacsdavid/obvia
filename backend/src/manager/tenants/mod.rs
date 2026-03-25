@@ -80,7 +80,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for TenantsModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         #[async_trait]
         impl PoolManager for TenantsModule {

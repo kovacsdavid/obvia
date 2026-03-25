@@ -59,7 +59,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for AuthModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl AuthModule for AuthModule {
             fn auth_repo(&self) -> Arc<dyn AuthRepository>;

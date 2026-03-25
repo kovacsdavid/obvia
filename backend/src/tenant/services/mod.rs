@@ -67,7 +67,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for ServicesModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl ServicesModule for ServicesModule {
             fn services_repo(&self) -> Arc<dyn ServicesRepository>;

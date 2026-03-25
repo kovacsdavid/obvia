@@ -77,7 +77,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for TasksModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl TasksModule for TasksModule {
             fn tasks_repo(&self) -> Arc<dyn TasksRepository>;

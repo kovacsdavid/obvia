@@ -32,6 +32,7 @@ use crate::{
     },
 };
 use async_trait::async_trait;
+use lettre::message::header::{Subject, To};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     transport::smtp::{Error, authentication::Credentials, response::Response},
@@ -56,7 +57,7 @@ pub trait ConfigProvider: Send + Sync {
 
 #[async_trait]
 pub trait MailTransporter: ConfigProvider + Send + Sync {
-    async fn send(&self, message: Message) -> Result<Response, Error>;
+    async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
 }
 
 pub struct AppState<P, T>
@@ -136,8 +137,30 @@ impl<P> MailTransporter for AppState<P, DefaultSmtpTransport>
 where
     P: Send + Sync,
 {
-    async fn send(&self, message: Message) -> Result<Response, Error> {
-        self.default_smtp_transport.send(message).await
+    async fn send(&self, message: Message) -> Result<Option<Response>, Error> {
+        let subject = message.headers().get::<Subject>();
+        let to = message.headers().get::<To>();
+        if self.config().mail().mail_enabled() {
+            match self.default_smtp_transport.send(message).await {
+                Ok(r) => {
+                    info!("Mail sent: subject={:?} to={:?}", subject, to);
+                    Ok(Some(r))
+                }
+                Err(e) => {
+                    error!(
+                        "Mail transport error: subject={:?} to={:?} error={:?}",
+                        subject, to, e
+                    );
+                    Err(e)
+                }
+            }
+        } else {
+            info!(
+                "Mail sent (dry run; cfg:mail_enabled=false): subject={:?} to={:?}",
+                subject, to
+            );
+            Ok(None)
+        }
     }
 }
 

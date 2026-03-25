@@ -595,14 +595,14 @@ mod tests {
             .expect_auth_repo()
             .returning(move || repo.clone());
         auth_module.expect_send().times(1).returning(|_| {
-            Ok(Response::new(
+            Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            ))
+            )))
         });
 
         let request = Request::builder()

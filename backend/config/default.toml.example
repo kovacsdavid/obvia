@@ -50,6 +50,7 @@ access_token_expiration_mins = 5
 refresh_token_expiration_mins = 480
 
 [mail]
+mail_enabled = true
 smtp_host = "smtp_host"
 smtp_user = "smtp_user"
 smtp_passwd = "smtp_passwd"

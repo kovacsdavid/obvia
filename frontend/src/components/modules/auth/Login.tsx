@@ -33,6 +33,14 @@ import {
 import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -101,13 +109,26 @@ export default function Login() {
             className="space-y-4"
             autoComplete={"off"}
           >
-            <Label htmlFor="otp">Azonosító kód</Label>
-            <Input
-              id="otp"
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
+            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
+              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
+              <InputOTP
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e)}
+                maxLength={6}
+                pattern={REGEXP_ONLY_DIGITS}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSeparator />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </Field>
             <Button type="submit">Bejelentkezés</Button>
           </form>
         </DialogContent>

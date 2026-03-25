@@ -24,7 +24,7 @@ import {
   CardContent,
   CardTitle,
 } from "@/components/ui/card.tsx";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Button, GlobalError } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -38,6 +38,14 @@ import type { SimpleError } from "@/lib/interfaces/common";
 import type { RootState } from "@/store";
 import { useAppSelector } from "@/store/hooks.ts";
 import { chMfaStatus } from "@/components/modules/auth/lib/slice";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSeparator,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
+import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export default function Settings() {
   const dispatch = useAppDispatch();
@@ -121,13 +129,26 @@ export default function Settings() {
             autoComplete={"off"}
           >
             <GlobalError error={otpErrors} />
-            <Label htmlFor="otp">Megerősítő kód</Label>
-            <Input
-              id="otp"
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
+            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
+              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
+              <InputOTP
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e)}
+                maxLength={6}
+                pattern={REGEXP_ONLY_DIGITS}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSeparator />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </Field>
             <Button
               className="mr-3"
               variant="outline"
@@ -177,13 +198,26 @@ export default function Settings() {
             autoComplete={"off"}
           >
             <GlobalError error={otpErrors} />
-            <Label htmlFor="otp">Megerősítő kód</Label>
-            <Input
-              id="otp"
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-            />
+            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
+              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
+              <InputOTP
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e)}
+                maxLength={6}
+                pattern={REGEXP_ONLY_DIGITS}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSeparator />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </Field>
             <Button
               className="mr-3"
               variant="outline"

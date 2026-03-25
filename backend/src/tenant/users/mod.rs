@@ -17,51 +17,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
-use crate::manager::auth::repository::AuthRepository;
-use crate::manager::users::repository::UsersRepository;
-use std::sync::Arc;
-
 pub(crate) mod model;
 pub(crate) mod repository;
-
-pub trait UsersModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn users_repo(&self) -> Arc<dyn UsersRepository>;
-    fn auth_repo(&self) -> Arc<dyn AuthRepository>;
-}
-
-impl UsersModule for DefaultAppState {
-    fn users_repo(&self) -> Arc<dyn UsersRepository> {
-        self.pool_manager.clone()
-    }
-    fn auth_repo(&self) -> Arc<dyn AuthRepository> {
-        self.pool_manager.clone()
-    }
-}
-
-#[cfg(test)]
-pub mod tests {
-    use super::*;
-    use crate::common::config::AppConfig;
-    use async_trait::async_trait;
-    use lettre::{
-        Message,
-        transport::smtp::{Error, response::Response},
-    };
-    use mockall::mock;
-
-    mock!(
-        pub UsersModule {}
-        impl ConfigProvider for UsersModule {
-            fn config(&self) -> Arc<AppConfig>;
-        }
-        #[async_trait]
-        impl MailTransporter for UsersModule {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl UsersModule for UsersModule {
-            fn users_repo(&self) -> Arc<dyn UsersRepository>;
-            fn auth_repo(&self) -> Arc<dyn AuthRepository>;
-        }
-    );
-}

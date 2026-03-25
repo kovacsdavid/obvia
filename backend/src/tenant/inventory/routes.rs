@@ -17,13 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::InventoryModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::inventory::InventoryModule;
-use crate::tenant::inventory::handler::{
-    create as inventory_create, delete as inventory_delete, get as inventory_get,
-    get_resolved as inventory_get_resolved, list as inventory_list,
-    select_list as inventory_select_list, update as inventory_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -33,13 +29,13 @@ pub fn routes(inventory_module: Arc<dyn InventoryModule>) -> Router {
     Router::new().nest(
         "/inventory",
         Router::new()
-            .route("/get", get(inventory_get))
-            .route("/get_resolved", get(inventory_get_resolved))
-            .route("/list", get(inventory_list))
-            .route("/select_list", get(inventory_select_list))
-            .route("/create", post(inventory_create))
-            .route("/update", put(inventory_update))
-            .route("/delete", delete(inventory_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(inventory_module.config(), require_auth))
             .with_state(inventory_module),
     )

@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::UsersModule;
+use super::service::UsersService;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use crate::manager::users::service::UsersService;
-use crate::tenant::users::UsersModule;
 use axum::{debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 

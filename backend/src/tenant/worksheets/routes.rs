@@ -17,13 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::WorksheetsModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::worksheets::WorksheetsModule;
-use crate::tenant::worksheets::handler::{
-    create as worksheets_create, delete as worksheets_delete, get as worksheets_get,
-    get_resolved as worksheets_get_resolved, list as worksheets_list,
-    select_list as worksheets_select_list, update as worksheets_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -33,13 +29,13 @@ pub fn routes(worksheets_module: Arc<dyn WorksheetsModule>) -> Router {
     Router::new().nest(
         "/worksheets",
         Router::new()
-            .route("/get", get(worksheets_get))
-            .route("/get_resolved", get(worksheets_get_resolved))
-            .route("/list", get(worksheets_list))
-            .route("/select_list", get(worksheets_select_list))
-            .route("/create", post(worksheets_create))
-            .route("/update", put(worksheets_update))
-            .route("/delete", delete(worksheets_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(worksheets_module.config(), require_auth))
             .with_state(worksheets_module),
     )

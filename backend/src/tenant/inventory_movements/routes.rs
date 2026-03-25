@@ -17,29 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::InventoryMovementsModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::inventory_movements::InventoryMovementsModule;
-use crate::tenant::inventory_movements::handler::{
-    create as inventory_movement_create, delete as inventory_movement_delete,
-    get as inventory_movement_get, get_resolved as inventory_movement_get_resolved,
-    list as inventory_movement_list, select_list as inventory_movement_select_list,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post};
 use std::sync::Arc;
 
-pub fn routes(module: Arc<dyn InventoryMovementsModule>) -> Router {
+pub fn routes(inventory_movements_module: Arc<dyn InventoryMovementsModule>) -> Router {
     Router::new().nest(
         "/inventory_movements",
         Router::new()
-            .route("/get", get(inventory_movement_get))
-            .route("/get_resolved", get(inventory_movement_get_resolved))
-            .route("/list", get(inventory_movement_list))
-            .route("/select_list", get(inventory_movement_select_list))
-            .route("/create", post(inventory_movement_create))
-            .route("/delete", delete(inventory_movement_delete))
-            .layer(from_fn_with_state(module.config(), require_auth))
-            .with_state(module),
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/delete", delete(handler::delete))
+            .layer(from_fn_with_state(
+                inventory_movements_module.config(),
+                require_auth,
+            ))
+            .with_state(inventory_movements_module),
     )
 }

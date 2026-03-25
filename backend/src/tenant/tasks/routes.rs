@@ -17,13 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::TasksModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::handler::{
-    create as tasks_create, delete as tasks_delete, get as tasks_get,
-    get_resolved as tasks_get_resolved, list as tasks_list, select_list as tasks_select_list,
-    update as tasks_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -33,13 +29,13 @@ pub fn routes(tasks_module: Arc<dyn TasksModule>) -> Router {
     Router::new().nest(
         "/tasks",
         Router::new()
-            .route("/get", get(tasks_get))
-            .route("/get_resolved", get(tasks_get_resolved))
-            .route("/list", get(tasks_list))
-            .route("/select_list", get(tasks_select_list))
-            .route("/create", post(tasks_create))
-            .route("/update", put(tasks_update))
-            .route("/delete", delete(tasks_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(tasks_module.config(), require_auth))
             .with_state(tasks_module),
     )

@@ -17,29 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::InventoryReservationsModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::inventory_reservations::InventoryReservationsModule;
-use crate::tenant::inventory_reservations::handler::{
-    create as inventory_reservation_create, delete as inventory_reservation_delete,
-    get as inventory_reservation_get, get_resolved as inventory_reservation_get_resolved,
-    list as inventory_reservation_list, select_list as inventory_reservation_select_list,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post};
 use std::sync::Arc;
 
-pub fn routes(module: Arc<dyn InventoryReservationsModule>) -> Router {
+pub fn routes(inventory_reservations_module: Arc<dyn InventoryReservationsModule>) -> Router {
     Router::new().nest(
         "/inventory_reservations",
         Router::new()
-            .route("/get", get(inventory_reservation_get))
-            .route("/get_resolved", get(inventory_reservation_get_resolved))
-            .route("/list", get(inventory_reservation_list))
-            .route("/select_list", get(inventory_reservation_select_list))
-            .route("/create", post(inventory_reservation_create))
-            .route("/delete", delete(inventory_reservation_delete))
-            .layer(from_fn_with_state(module.config(), require_auth))
-            .with_state(module),
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/delete", delete(handler::delete))
+            .layer(from_fn_with_state(
+                inventory_reservations_module.config(),
+                require_auth,
+            ))
+            .with_state(inventory_reservations_module),
     )
 }

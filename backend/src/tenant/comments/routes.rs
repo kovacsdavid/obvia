@@ -19,9 +19,9 @@
 
 use std::sync::Arc;
 
+use super::CommentsModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::comments::CommentsModule;
-use crate::tenant::comments::handler::post as comments_post;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::post};
 
@@ -29,7 +29,7 @@ pub fn routes(comments_module: Arc<dyn CommentsModule>) -> Router {
     Router::new().nest(
         "/comments",
         Router::new()
-            .route("/post", post(comments_post))
+            .route("/post", post(handler::post))
             .layer(from_fn_with_state(comments_module.config(), require_auth))
             .with_state(comments_module),
     )

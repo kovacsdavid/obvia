@@ -17,12 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::WarehousesModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::handler::{
-    create as warehouses_create, delete as warehouses_delete, get as warehouses_get,
-    get_resolved as warehouses_get_resolved, list as warehouses_list, update as warehouses_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -32,12 +29,12 @@ pub fn routes(warehouses_module: Arc<dyn WarehousesModule>) -> Router {
     Router::new().nest(
         "/warehouses",
         Router::new()
-            .route("/get", get(warehouses_get))
-            .route("/get_resolved", get(warehouses_get_resolved))
-            .route("/list", get(warehouses_list))
-            .route("/create", post(warehouses_create))
-            .route("/update", put(warehouses_update))
-            .route("/delete", delete(warehouses_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(warehouses_module.config(), require_auth))
             .with_state(warehouses_module),
     )

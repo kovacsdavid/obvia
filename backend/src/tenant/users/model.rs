@@ -23,35 +23,6 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// A struct representing a user in the system.
-///
-/// This struct is used to store various details about a user, such as their
-/// unique identifier, personal details, contact information, status, and metadata
-/// regarding their account. It includes optional fields for information that may
-/// not always be provided.
-///
-/// # Fields
-/// - `id` (*Uuid*): Unique identifier for the user.
-/// - `email` (*String*): Email address of the user.
-/// - `first_name` (*Option<String>*): First name of the user. Optional.
-/// - `last_name` (*Option<String>*): Last name of the user. Optional.
-/// - `phone` (*Option<String>*): Phone number of the user. Optional.
-/// - `status` (*String*): Current status of the user (e.g., active, inactive).
-/// - `profile_picture_url` (*Option<String>*): URL of the user's profile picture. Optional.
-/// - `locale` (*Option<String>*): Preferred locale or language of the user. Optional.
-/// - `invited_by` (*Option<Uuid>*): UUID of the user who invited this user, if applicable. Optional.
-/// - `email_verified_at` (*Option<DateTime<Local>>*): Timestamp of when the user's email was verified, if verified. Optional.
-/// - `created_at` (*DateTime<Local>*): Timestamp of when the user record was created.
-/// - `updated_at` (*DateTime<Local>*): Timestamp of the last update to the user record.
-/// - `deleted_at` (*Option<DateTime<Local>>*): Timestamp of when the user was deleted, if applicable. Optional.
-///
-/// # Derives
-/// This struct derives the following traits for enhanced functionality:
-/// - `Debug`: Allows debugging information to be printed for instances of `User`.
-/// - `Clone`: Enables instances of `User` to be cloned.
-/// - `Serialize` and `Deserialize`: Provides support for serializing and deserializing instances
-///   of `User` (e.g., converting to/from JSON).
-/// - `FromRow`: Facilitates mapping database rows to instances of `User`.
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct User {
     pub id: Uuid,

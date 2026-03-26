@@ -19,7 +19,7 @@
 
 import React from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { create } from "@/components/modules/databases/lib/slice.ts";
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
@@ -27,6 +27,13 @@ import { useNavigate } from "react-router-dom";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useParams } from "react-router";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -48,7 +55,7 @@ export default function Edit({
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -108,38 +115,46 @@ export default function Edit({
   return (
     <>
       <GlobalError error={errors} />
-      <ConditionalCard
-        showCard={showCard}
-        title={`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="max-w-sm mx-auto space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="name">Adatbázis neve</Label>
-          <Input
-            id="name"
-            type="text"
-            placeholder="Példa Kft."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <FieldError error={errors} field={"name"} />
-          <div className="text-right mt-8">
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                navigate(-1);
-              }}
-            >
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+          <FieldSet>
+            <FieldLegend>
+              {`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField(errors, "name")}>
+                <FieldLabel htmlFor="name">Adatbázis neve</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Példa Kft."
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  aria-invalid={isInvalidField(errors, "name")}
+                />
+                <FieldError error={errors} field={"name"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button
+                className="mr-3"
+                variant="outline"
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  navigate(-1);
+                }}
+              >
+                Mégse
+              </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+            </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

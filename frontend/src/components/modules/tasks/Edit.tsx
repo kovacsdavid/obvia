@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -50,6 +50,13 @@ import type { Service } from "../services/lib/interface";
 import type { Tax } from "../taxes/lib/interface";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -77,7 +84,7 @@ export default function Edit({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewWorksheetDialog, setOpenNewWorksheetDialog] =
@@ -339,198 +346,241 @@ export default function Edit({
           />
         </DialogContent>
       </Dialog>
-      <ConditionalCard
-        showCard={showCard}
-        title={`Feladat ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="worksheet_id">Munkalap</Label>
-            </div>
-            <div className="flex items-center">
+          <FieldSet>
+            <FieldLegend>
+              {`Feladat ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField(errors, "worksheet_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="worksheet_id">Munkalap</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewWorksheetDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select value={worksheetId} onValueChange={setWorksheetId}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "worksheet_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {worksheetList.map((worksheet) => (
+                      <SelectItem key={worksheet.value} value={worksheet.value}>
+                        {worksheet.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"worksheet_id"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "service_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="service_id">Szolgáltatás</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewServiceDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select value={serviceId} onValueChange={setServiceId}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "service_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {serviceList.map((service) => (
+                      <SelectItem key={service.value} value={service.value}>
+                        {service.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"service_id"} />
+              </Field>
+
+              <Field data-invalid={isInvalidField(errors, "description")}>
+                <FieldLabel htmlFor="description">Leírás</FieldLabel>
+                <Input
+                  id="description"
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  aria-invalid={isInvalidField(errors, "description")}
+                />
+                <FieldError error={errors} field={"description"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "currency_code")}>
+                <FieldLabel htmlFor="currency_code">Pénznem</FieldLabel>
+                <Select
+                  value={currencyCode}
+                  onValueChange={(val) => setCurrencyCode(val)}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "currency_code")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyList.map((currency) => {
+                      return (
+                        <SelectItem key={currency.value} value={currency.value}>
+                          {currency.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"currency_code"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "quantity")}>
+                <FieldLabel htmlFor="quantity">Munkaóra</FieldLabel>
+                <Input
+                  id="quantity"
+                  type="text"
+                  placeholder="10"
+                  value={quantity.displayValue}
+                  onChange={(e) =>
+                    quantity.handleInputChangeWithCursor(
+                      e.target.value,
+                      e.target,
+                    )
+                  }
+                  aria-invalid={isInvalidField(errors, "quantity")}
+                />
+                <FieldError error={errors} field={"quantity"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "price")}>
+                <FieldLabel htmlFor="price">Egységár (nettó)</FieldLabel>
+                <Input
+                  id="price"
+                  type="text"
+                  placeholder="1 000"
+                  value={price.displayValue}
+                  onChange={(e) =>
+                    price.handleInputChangeWithCursor(e.target.value, e.target)
+                  }
+                  aria-invalid={isInvalidField(errors, "price")}
+                />
+                <FieldError error={errors} field={"price"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "tax_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="tax_id">Adó</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewTaxDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select value={taxId} onValueChange={setTaxId}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "tax_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {taxList.map((tax) => (
+                      <SelectItem key={tax.value} value={tax.value}>
+                        {tax.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"tax_id"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "status")}>
+                <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "priority")}>
+                <FieldLabel htmlFor="priority">Prioritás</FieldLabel>
+                <Select value={priority ?? ""} onValueChange={setPriority}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "priority")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Alacsony</SelectItem>
+                    <SelectItem value="normal">Normál</SelectItem>
+                    <SelectItem value="high">Magas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"priority"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "due_date")}>
+                <FieldLabel htmlFor="due_date">Határidő</FieldLabel>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={dueDate ?? ""}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  aria-invalid={isInvalidField(errors, "due_date")}
+                />
+                <FieldError error={errors} field={"due_date"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
               <Button
-                type="button"
+                className="mr-3"
                 variant="outline"
-                onClick={() => setOpenNewWorksheetDialog(true)}
+                onClick={(e: React.MouseEvent) => {
+                  e.preventDefault();
+                  navigate(-1);
+                }}
               >
-                <Plus />
+                Mégse
               </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
             </div>
-          </div>
-          <Select value={worksheetId} onValueChange={setWorksheetId}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {worksheetList.map((worksheet) => (
-                <SelectItem key={worksheet.value} value={worksheet.value}>
-                  {worksheet.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"worksheet_id"} />
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="service_id">Szolgáltatás</Label>
-            </div>
-            <div className="flex items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpenNewServiceDialog(true)}
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-          <Select value={serviceId} onValueChange={setServiceId}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {serviceList.map((service) => (
-                <SelectItem key={service.value} value={service.value}>
-                  {service.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"service_id"} />
-
-          <Label htmlFor="description">Leírás</Label>
-          <Input
-            id="description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <FieldError error={errors} field={"description"} />
-
-          <Label htmlFor="currency_code">Pénznem</Label>
-          <Select
-            value={currencyCode}
-            onValueChange={(val) => setCurrencyCode(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencyList.map((currency) => {
-                return (
-                  <SelectItem key={currency.value} value={currency.value}>
-                    {currency.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"currency_code"} />
-
-          <Label htmlFor="quantity">Munkaóra</Label>
-          <Input
-            id="quantity"
-            type="text"
-            placeholder="10"
-            value={quantity.displayValue}
-            onChange={(e) =>
-              quantity.handleInputChangeWithCursor(e.target.value, e.target)
-            }
-          />
-          <FieldError error={errors} field={"quantity"} />
-
-          <Label htmlFor="price">Egységár (nettó)</Label>
-          <Input
-            id="price"
-            type="text"
-            placeholder="1 000"
-            value={price.displayValue}
-            onChange={(e) =>
-              price.handleInputChangeWithCursor(e.target.value, e.target)
-            }
-          />
-          <FieldError error={errors} field={"price"} />
-
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="tax_id">Adó</Label>
-            </div>
-            <div className="flex items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpenNewTaxDialog(true)}
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-          <Select value={taxId} onValueChange={setTaxId}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {taxList.map((tax) => (
-                <SelectItem key={tax.value} value={tax.value}>
-                  {tax.title}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"tax_id"} />
-
-          <Label htmlFor="status">Státusz</Label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-
-          <Label htmlFor="priority">Prioritás</Label>
-          <Select value={priority ?? ""} onValueChange={setPriority}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Alacsony</SelectItem>
-              <SelectItem value="normal">Normál</SelectItem>
-              <SelectItem value="high">Magas</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"priority"} />
-
-          <Label htmlFor="due_date">Határidő</Label>
-          <Input
-            id="due_date"
-            type="date"
-            value={dueDate ?? ""}
-            onChange={(e) => setDueDate(e.target.value)}
-          />
-          <FieldError error={errors} field={"due_date"} />
-          <div className="text-right mt-8">
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                navigate(-1);
-              }}
-            >
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

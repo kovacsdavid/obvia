@@ -23,6 +23,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2Icon, Info } from "lucide-react";
 import type { FormError } from "@/lib/interfaces/common.ts";
+import { FieldError as BaseFieldError } from "@/components/ui/field";
 
 const alertVariants = cva(
   "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
@@ -143,15 +144,9 @@ interface FieldErrorProps {
 function FieldError({ error, field }: FieldErrorProps) {
   return (
     <>
-      {typeof error?.fields === "object" &&
-      error.fields !== null &&
-      field in error.fields &&
-      error.fields[field] !== null ? (
-        <Alert className={"mb-7"} variant="destructive">
-          <AlertCircle />
-          <AlertDescription>{error.fields[field]}</AlertDescription>
-        </Alert>
-      ) : null}
+      {error?.fields?.[field] ?? (
+        <BaseFieldError>{error?.fields?.[field]}</BaseFieldError>
+      )}
     </>
   );
 }

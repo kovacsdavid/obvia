@@ -49,9 +49,13 @@ export function useFormError() {
     [logout, navigate],
   );
 
+  const isInvalidField = (errors: FormError | null, field: string): boolean =>
+    !!errors?.fields?.[field];
+
   return {
     errors,
     setErrors,
     unexpectedError,
+    isInvalidField,
   };
 }

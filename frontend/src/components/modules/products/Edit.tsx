@@ -257,8 +257,12 @@ export default function Edit({
                 />
                 <FieldError error={errors} field={"description"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "unit_of_measure_id")}>
-                <FieldLabel htmlFor="unit_of_measure_id">Mértékegység</FieldLabel>
+              <Field
+                data-invalid={isInvalidField(errors, "unit_of_measure_id")}
+              >
+                <FieldLabel htmlFor="unit_of_measure_id">
+                  Mértékegység
+                </FieldLabel>
                 <Select
                   value={unitOfMeasureId}
                   onValueChange={(val) => setUnitOfMeasureId(val)}

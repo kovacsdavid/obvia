@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -40,6 +40,13 @@ import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import type { Product } from "./lib/interface";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -61,7 +68,7 @@ export default function Edit({
   const [unitsOfMeasureList, setUnitsOfMeasureList] =
     React.useState<SelectOptionList>([]);
   const [status, setStatus] = React.useState("active");
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
@@ -217,85 +224,116 @@ export default function Edit({
   return (
     <>
       <GlobalError error={errors} />
-      <ConditionalCard
-        showCard={showCard}
-        title={`Termék ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="name">Név</Label>
-          <Input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <FieldError error={errors} field={"name"} />
-          <Label htmlFor="description">Leírás</Label>
-          <Input
-            id="description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <FieldError error={errors} field={"description"} />
-          <Label htmlFor="unit_of_measure">Mértékegység</Label>
-          <Select
-            value={unitOfMeasureId}
-            onValueChange={(val) => setUnitOfMeasureId(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {unitsOfMeasureList.map((unit_of_measure) => {
-                return (
-                  <SelectItem
-                    key={unit_of_measure.value}
-                    value={unit_of_measure.value}
+          <FieldSet>
+            <FieldLegend>
+              {`Termék ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField(errors, "name")}>
+                <FieldLabel htmlFor="name">Név</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  aria-invalid={isInvalidField(errors, "name")}
+                />
+                <FieldError error={errors} field={"name"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "description")}>
+                <FieldLabel htmlFor="description">Leírás</FieldLabel>
+                <Input
+                  id="description"
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  aria-invalid={isInvalidField(errors, "description")}
+                />
+                <FieldError error={errors} field={"description"} />
+              </Field>
+              <Field data-invalid={isInvalidField(errors, "unit_of_measure_id")}>
+                <FieldLabel htmlFor="unit_of_measure_id">Mértékegység</FieldLabel>
+                <Select
+                  value={unitOfMeasureId}
+                  onValueChange={(val) => setUnitOfMeasureId(val)}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "unit_of_measure_id")}
                   >
-                    {unit_of_measure.title}
-                  </SelectItem>
-                );
-              })}
-              <SelectItem value="other">Egyéb</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"unit_of_measure"} />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unitsOfMeasureList.map((unit_of_measure) => {
+                      return (
+                        <SelectItem
+                          key={unit_of_measure.value}
+                          value={unit_of_measure.value}
+                        >
+                          {unit_of_measure.title}
+                        </SelectItem>
+                      );
+                    })}
+                    <SelectItem value="other">Egyéb</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"unit_of_measure_id"} />
+              </Field>
 
-          {unitOfMeasureId === "other" ? (
-            <>
-              <Label htmlFor="new_unit_of_measure">Egyéb mértékegység</Label>
-              <Input
-                id="new_unit_of_measure"
-                type="text"
-                value={newUnitOfMeasure}
-                onChange={(e) => setNewUnitOfMeasure(e.target.value)}
-              />
-              <FieldError error={errors} field={"new_unit_of_measure"} />
-            </>
-          ) : null}
-          <Label htmlFor="status">Státusz</Label>
-          <Select value={status} onValueChange={(val) => setStatus(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-          <div className="text-right mt-8">
-            <Button className="mr-3" variant="outline" onClick={handleCancel}>
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+              {unitOfMeasureId === "other" ? (
+                <>
+                  <Field
+                    data-invalid={isInvalidField(errors, "new_unit_of_measure")}
+                  >
+                    <FieldLabel htmlFor="new_unit_of_measure">
+                      Egyéb mértékegység
+                    </FieldLabel>
+                    <Input
+                      id="new_unit_of_measure"
+                      type="text"
+                      value={newUnitOfMeasure}
+                      onChange={(e) => setNewUnitOfMeasure(e.target.value)}
+                      aria-invalid={isInvalidField(
+                        errors,
+                        "new_unit_of_measure",
+                      )}
+                    />
+                    <FieldError error={errors} field={"new_unit_of_measure"} />
+                  </Field>
+                </>
+              ) : null}
+              <Field data-invalid={isInvalidField(errors, "status")}>
+                <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField(errors, "status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button className="mr-3" variant="outline" onClick={handleCancel}>
+                Mégse
+              </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+            </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

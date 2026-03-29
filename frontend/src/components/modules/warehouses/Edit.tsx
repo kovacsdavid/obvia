@@ -51,7 +51,7 @@ interface EditProps {
   onCancel?: () => void;
 }
 
-export default function List({
+export default function Edit({
   showCard = true,
   onSuccess = undefined,
   onCancel = undefined,
@@ -60,7 +60,8 @@ export default function List({
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
   const [status, setStatus] = React.useState("active");
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const params = useParams();
@@ -204,19 +205,22 @@ export default function List({
               {`Raktár ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "name")}>
+              <Field data-invalid={isInvalidField("name")}>
                 <FieldLabel htmlFor="name">Név</FieldLabel>
                 <Input
                   id="name"
                   placeholder="Sopron 4"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "name")}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
                 />
                 <FieldError error={errors} field={"name"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "contact_name")}>
+              <Field data-invalid={isInvalidField("contact_name")}>
                 <FieldLabel htmlFor="contact_name">
                   Kapcsolattartó neve
                 </FieldLabel>
@@ -225,12 +229,15 @@ export default function List({
                   type="text"
                   placeholder="Példa Béla"
                   value={contactName}
-                  onChange={(e) => setContactName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "contact_name")}
+                  onChange={(e) => {
+                    resetError("contact_name");
+                    setContactName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("contact_name")}
                 />
                 <FieldError error={errors} field={"contact_name"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "contact_phone")}>
+              <Field data-invalid={isInvalidField("contact_phone")}>
                 <FieldLabel htmlFor="contact_phone">
                   Kapcsolattartó telefonszáma
                 </FieldLabel>
@@ -239,17 +246,26 @@ export default function List({
                   type="text"
                   placeholder="+36301234567"
                   value={contactPhone}
-                  onChange={(e) => setContactPhone(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "contact_phone")}
+                  onChange={(e) => {
+                    resetError("contact_phone");
+                    setContactPhone(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("contact_phone")}
                 />
                 <FieldError error={errors} field={"contact_phone"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

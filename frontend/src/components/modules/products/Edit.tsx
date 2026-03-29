@@ -68,7 +68,8 @@ export default function Edit({
   const [unitsOfMeasureList, setUnitsOfMeasureList] =
     React.useState<SelectOptionList>([]);
   const [status, setStatus] = React.useState("active");
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
@@ -235,41 +236,48 @@ export default function Edit({
               {`Termék ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "name")}>
+              <Field data-invalid={isInvalidField("name")}>
                 <FieldLabel htmlFor="name">Név</FieldLabel>
                 <Input
                   id="name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "name")}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
                 />
                 <FieldError error={errors} field={"name"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "description")}>
+              <Field data-invalid={isInvalidField("description")}>
                 <FieldLabel htmlFor="description">Leírás</FieldLabel>
                 <Input
                   id="description"
                   type="text"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "description")}
+                  onChange={(e) => {
+                    resetError("description");
+                    setDescription(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("description")}
                 />
                 <FieldError error={errors} field={"description"} />
               </Field>
-              <Field
-                data-invalid={isInvalidField(errors, "unit_of_measure_id")}
-              >
+              <Field data-invalid={isInvalidField("unit_of_measure_id")}>
                 <FieldLabel htmlFor="unit_of_measure_id">
                   Mértékegység
                 </FieldLabel>
                 <Select
                   value={unitOfMeasureId}
-                  onValueChange={(val) => setUnitOfMeasureId(val)}
+                  onValueChange={(val) => {
+                    resetError("unit_of_measure_id");
+                    setUnitOfMeasureId(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "unit_of_measure_id")}
+                    aria-invalid={isInvalidField("unit_of_measure_id")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -292,9 +300,7 @@ export default function Edit({
 
               {unitOfMeasureId === "other" ? (
                 <>
-                  <Field
-                    data-invalid={isInvalidField(errors, "new_unit_of_measure")}
-                  >
+                  <Field data-invalid={isInvalidField("new_unit_of_measure")}>
                     <FieldLabel htmlFor="new_unit_of_measure">
                       Egyéb mértékegység
                     </FieldLabel>
@@ -302,22 +308,28 @@ export default function Edit({
                       id="new_unit_of_measure"
                       type="text"
                       value={newUnitOfMeasure}
-                      onChange={(e) => setNewUnitOfMeasure(e.target.value)}
-                      aria-invalid={isInvalidField(
-                        errors,
-                        "new_unit_of_measure",
-                      )}
+                      onChange={(e) => {
+                        resetError("new_unit_of_measure");
+                        setNewUnitOfMeasure(e.target.value);
+                      }}
+                      aria-invalid={isInvalidField("new_unit_of_measure")}
                     />
                     <FieldError error={errors} field={"new_unit_of_measure"} />
                   </Field>
                 </>
               ) : null}
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

@@ -43,7 +43,8 @@ export default function Register() {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const { isLoggedIn } = useAuth();
 
   const handleRegistrationResponse = async (
@@ -96,55 +97,65 @@ export default function Register() {
             <FieldSet>
               <FieldLegend>Regisztráció</FieldLegend>
               <FieldGroup>
-                <Field data-invalid={isInvalidField(errors, "last_name")}>
+                <Field data-invalid={isInvalidField("last_name")}>
                   <FieldLabel htmlFor="last_name">Vezetéknév</FieldLabel>
                   <Input
                     id="last_name"
                     type="text"
                     value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "last_name")}
+                    onChange={(e) => {
+                      resetError("last_name");
+                      setLastName(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("last_name")}
                   />
                   <FieldError error={errors} field={"last_name"} />
                 </Field>
-                <Field data-invalid={isInvalidField(errors, "first_name")}>
+                <Field data-invalid={isInvalidField("first_name")}>
                   <FieldLabel htmlFor="first_name">Keresztnév</FieldLabel>
                   <Input
                     id="first_name"
                     type="text"
                     value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "first_name")}
+                    onChange={(e) => {
+                      resetError("first_name");
+                      setFirstName(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("first_name")}
                   />
                   <FieldError error={errors} field={"first_name"} />
                 </Field>
-                <Field data-invalid={isInvalidField(errors, "email")}>
+                <Field data-invalid={isInvalidField("email")}>
                   <FieldLabel htmlFor="email">Email</FieldLabel>
                   <Input
                     id="email"
                     type="text"
                     autoComplete="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "email")}
+                    onChange={(e) => {
+                      resetError("email");
+                      setEmail(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("email")}
                   />
                   <FieldError error={errors} field={"email"} />
                 </Field>
-                <Field data-invalid={isInvalidField(errors, "password")}>
+                <Field data-invalid={isInvalidField("password")}>
                   <FieldLabel htmlFor="password">Jelszó</FieldLabel>
                   <Input
                     id="password"
                     type="password"
                     autoComplete="new-password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "password")}
+                    onChange={(e) => {
+                      resetError("password");
+                      setPassword(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("password")}
                   />
                   <FieldError error={errors} field={"password"} />
                 </Field>
-                <Field
-                  data-invalid={isInvalidField(errors, "password_confirm")}
-                >
+                <Field data-invalid={isInvalidField("password_confirm")}>
                   <FieldLabel htmlFor="password_confirm">
                     Jelszó megerősítése
                   </FieldLabel>
@@ -153,8 +164,11 @@ export default function Register() {
                     type="password"
                     autoComplete="new-password"
                     value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "password_confirm")}
+                    onChange={(e) => {
+                      resetError("password_confirm");
+                      setPasswordConfirm(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("password_confirm")}
                   />
                   <FieldError error={errors} field={"password_confirm"} />
                 </Field>

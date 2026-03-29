@@ -78,7 +78,8 @@ export default function Edit({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
@@ -346,7 +347,7 @@ export default function Edit({
               {`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "product_id")}>
+              <Field data-invalid={isInvalidField("product_id")}>
                 <div className="flex items-center w-full">
                   <div className="flex flex-1 items-center">
                     <FieldLabel htmlFor="product_id">Termék</FieldLabel>
@@ -355,7 +356,9 @@ export default function Edit({
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={() => setOpenNewProductDialog(true)}
+                      onClick={() => {
+                        setOpenNewProductDialog(true);
+                      }}
                     >
                       <Plus />
                     </Button>
@@ -363,11 +366,14 @@ export default function Edit({
                 </div>
                 <Select
                   value={productId}
-                  onValueChange={(val) => setProductId(val)}
+                  onValueChange={(val) => {
+                    resetError("product_id");
+                    setProductId(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "product_id")}
+                    aria-invalid={isInvalidField("product_id")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -383,7 +389,7 @@ export default function Edit({
                 </Select>
                 <FieldError error={errors} field={"product_id"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "warehouse_id")}>
+              <Field data-invalid={isInvalidField("warehouse_id")}>
                 <div className="flex items-center w-full">
                   <div className="flex flex-1 items-center">
                     <FieldLabel htmlFor="warehouse_id">Raktár</FieldLabel>
@@ -400,11 +406,14 @@ export default function Edit({
                 </div>
                 <Select
                   value={warehouseId}
-                  onValueChange={(val) => setWarehouseId(val)}
+                  onValueChange={(val) => {
+                    resetError("warehouse_id");
+                    setWarehouseId(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "warehouse_id")}
+                    aria-invalid={isInvalidField("warehouse_id")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -423,49 +432,54 @@ export default function Edit({
                 </Select>
                 <FieldError error={errors} field={"warehouse_id"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "minimum_stock")}>
+              <Field data-invalid={isInvalidField("minimum_stock")}>
                 <FieldLabel htmlFor="minimum_stock">Minimum készlet</FieldLabel>
                 <Input
                   id="minimum_stock"
                   type="text"
                   placeholder="10"
                   value={minimumStockInput.displayValue}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    resetError("minimum_stock");
                     minimumStockInput.handleInputChangeWithCursor(
                       e.target.value,
                       e.target,
-                    )
-                  }
-                  aria-invalid={isInvalidField(errors, "minimum_stock")}
+                    );
+                  }}
+                  aria-invalid={isInvalidField("minimum_stock")}
                 />
                 <FieldError error={errors} field={"minimum_stock"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "maximum_stock")}>
+              <Field data-invalid={isInvalidField("maximum_stock")}>
                 <FieldLabel htmlFor="maximum_stock">Maximum készlet</FieldLabel>
                 <Input
                   id="maximum_stock"
                   type="text"
                   placeholder="100"
                   value={maximumStockInput.displayValue}
-                  onChange={(e) =>
+                  onChange={(e) => {
+                    resetError("maximum_stock");
                     maximumStockInput.handleInputChangeWithCursor(
                       e.target.value,
                       e.target,
-                    )
-                  }
-                  aria-invalid={isInvalidField(errors, "maximum_stock")}
+                    );
+                  }}
+                  aria-invalid={isInvalidField("maximum_stock")}
                 />
                 <FieldError error={errors} field={"maximum_stock"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "currency_code")}>
+              <Field data-invalid={isInvalidField("currency_code")}>
                 <FieldLabel htmlFor="currency_code">Pénznem</FieldLabel>
                 <Select
                   value={currencyCode}
-                  onValueChange={(val) => setCurrencyCode(val)}
+                  onValueChange={(val) => {
+                    resetError("currency_code");
+                    setCurrencyCode(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "currency_code")}
+                    aria-invalid={isInvalidField("currency_code")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -482,12 +496,18 @@ export default function Edit({
                 <FieldError error={errors} field={"currency_code"} />
               </Field>
 
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Állapot</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

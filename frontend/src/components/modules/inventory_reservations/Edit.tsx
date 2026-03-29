@@ -64,7 +64,8 @@ export default function Edit() {
   const navigate = useNavigate();
   const params = useParams();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const routeInventoryId = React.useMemo(
     () => params["inventoryId"] ?? "",
     [params],
@@ -246,9 +247,7 @@ export default function Edit() {
               <FieldGroup>
                 {!routeInventoryId && (
                   <>
-                    <Field
-                      data-invalid={isInvalidField(errors, "inventory_id")}
-                    >
+                    <Field data-invalid={isInvalidField("inventory_id")}>
                       <div className="flex items-center w-full">
                         <div className="flex flex-1 items-center">
                           <FieldLabel htmlFor="inventory_id">
@@ -268,11 +267,14 @@ export default function Edit() {
                       <Select
                         disabled={inventoryIdList.length === 0}
                         value={inventoryId ?? ""}
-                        onValueChange={(val) => setInventoryId(val)}
+                        onValueChange={(val) => {
+                          resetError("inventory_id");
+                          setInventoryId(val);
+                        }}
                       >
                         <SelectTrigger
                           className={"w-full"}
-                          aria-invalid={isInvalidField(errors, "inventory_id")}
+                          aria-invalid={isInvalidField("inventory_id")}
                         >
                           <SelectValue />
                         </SelectTrigger>
@@ -292,35 +294,39 @@ export default function Edit() {
                   </>
                 )}
 
-                <Field data-invalid={isInvalidField(errors, "quantity")}>
+                <Field data-invalid={isInvalidField("quantity")}>
                   <FieldLabel htmlFor="quantity">Mennyiség</FieldLabel>
                   <Input
                     id="quantity"
                     type="text"
                     placeholder="10"
                     value={quantity.displayValue}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      resetError("quantity");
                       quantity.handleInputChangeWithCursor(
                         e.target.value,
                         e.target,
-                      )
-                    }
-                    aria-invalid={isInvalidField(errors, "quantity")}
+                      );
+                    }}
+                    aria-invalid={isInvalidField("quantity")}
                   />
                   <FieldError error={errors} field={"quantity"} />
                 </Field>
 
-                <Field data-invalid={isInvalidField(errors, "reference_type")}>
+                <Field data-invalid={isInvalidField("reference_type")}>
                   <FieldLabel htmlFor="reference_type">
                     Hivatkozás típusa
                   </FieldLabel>
                   <Select
                     value={referenceType ?? ""}
-                    onValueChange={(val) => handleReferenceTypeChange(val)}
+                    onValueChange={(val) => {
+                      resetError("reference_type");
+                      handleReferenceTypeChange(val);
+                    }}
                   >
                     <SelectTrigger
                       className={"w-full"}
-                      aria-invalid={isInvalidField(errors, "reference_type")}
+                      aria-invalid={isInvalidField("reference_type")}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -331,18 +337,21 @@ export default function Edit() {
                   <FieldError error={errors} field={"reference_type"} />
                 </Field>
 
-                <Field data-invalid={isInvalidField(errors, "reference_id")}>
+                <Field data-invalid={isInvalidField("reference_id")}>
                   <FieldLabel htmlFor="reference_id">
                     Hivatkozás azonosító
                   </FieldLabel>
                   <Select
                     disabled={referenceIdList.length === 0}
                     value={referenceId ?? ""}
-                    onValueChange={(val) => setReferenceId(val)}
+                    onValueChange={(val) => {
+                      resetError("reference_id");
+                      setReferenceId(val);
+                    }}
                   >
                     <SelectTrigger
                       className={"w-full"}
-                      aria-invalid={isInvalidField(errors, "reference_id")}
+                      aria-invalid={isInvalidField("reference_id")}
                     >
                       <SelectValue />
                     </SelectTrigger>
@@ -360,7 +369,7 @@ export default function Edit() {
                   <FieldError error={errors} field={"reference_id"} />
                 </Field>
 
-                <Field data-invalid={isInvalidField(errors, "reserved_until")}>
+                <Field data-invalid={isInvalidField("reserved_until")}>
                   <FieldLabel htmlFor="reserved_until">
                     Foglalás lejárata
                   </FieldLabel>
@@ -368,21 +377,27 @@ export default function Edit() {
                     id="reserved_until"
                     type="date"
                     value={reservedUntil ?? ""}
-                    onChange={(e) => setReservedUntil(e.target.value)}
-                    aria-invalid={isInvalidField(errors, "reserved_until")}
+                    onChange={(e) => {
+                      resetError("reserved_until");
+                      setReservedUntil(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("reserved_until")}
                   />
                   <FieldError error={errors} field={"reserved_until"} />
                 </Field>
 
-                <Field data-invalid={isInvalidField(errors, "status")}>
+                <Field data-invalid={isInvalidField("status")}>
                   <FieldLabel htmlFor="status">Státusz</FieldLabel>
                   <Select
                     value={status}
-                    onValueChange={(val) => setStatus(val)}
+                    onValueChange={(val) => {
+                      resetError("status");
+                      setStatus(val);
+                    }}
                   >
                     <SelectTrigger
                       className={"w-full"}
-                      aria-invalid={isInvalidField(errors, "status")}
+                      aria-invalid={isInvalidField("status")}
                     >
                       <SelectValue />
                     </SelectTrigger>

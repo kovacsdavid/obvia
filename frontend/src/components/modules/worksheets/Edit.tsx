@@ -70,7 +70,8 @@ export default function Edit({
   const [customersList, setCustomersList] = React.useState<SelectOptionList>(
     [],
   );
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const [openNewCustomerDialog, setOpenNewCustomerDialog] =
     React.useState(false);
   const dispatch = useAppDispatch();
@@ -261,29 +262,35 @@ export default function Edit({
               {`Munkalap ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "name")}>
+              <Field data-invalid={isInvalidField("name")}>
                 <FieldLabel htmlFor="name">Név</FieldLabel>
                 <Input
                   id="name"
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "name")}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
                 />
                 <FieldError error={errors} field={"name"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "description")}>
+              <Field data-invalid={isInvalidField("description")}>
                 <FieldLabel htmlFor="description">Leírás</FieldLabel>
                 <Input
                   id="description"
                   type="text"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "description")}
+                  onChange={(e) => {
+                    resetError("description");
+                    setDescription(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("description")}
                 />
                 <FieldError error={errors} field={"description"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "customer_id")}>
+              <Field data-invalid={isInvalidField("customer_id")}>
                 <div className="flex items-center w-full">
                   <div className="flex flex-1 items-center">
                     <FieldLabel htmlFor="customer_id">Vevő</FieldLabel>
@@ -300,11 +307,14 @@ export default function Edit({
                 </div>
                 <Select
                   value={customerId}
-                  onValueChange={(val) => setCustomerId(val)}
+                  onValueChange={(val) => {
+                    resetError("customer_id");
+                    setCustomerId(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "customer_id")}
+                    aria-invalid={isInvalidField("customer_id")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -320,12 +330,18 @@ export default function Edit({
                 </Select>
                 <FieldError error={errors} field={"customer_id"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

@@ -20,20 +20,13 @@
 import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
-import { Button, GlobalError, Input, Label } from "@/components/ui";
+import { Button, GlobalError, Input } from "@/components/ui";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use_auth";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+import { Card, CardContent } from "@/components/ui/card.tsx";
 import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
-import { Field, FieldLabel } from "@/components/ui/field";
 import {
   InputOTP,
   InputOTPGroup,
@@ -41,14 +34,23 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldSeparator,
+} from "@/components/ui/field";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
-  const [openOtpDialog, setOpenOtpDialog] = React.useState(false);
+  const [otpRequired, setOtpRequired] = React.useState(false);
   const status = useAppSelector((state: RootState) => state.auth.login.status);
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const navigate = useNavigate();
   const { login, isLoggedIn } = useAuth();
   const dispatch = useAppDispatch();
@@ -60,11 +62,14 @@ export default function Login() {
     }
   }, [isLoggedIn, navigate]);
 
-  const handleSubmit = (e: React.SubmitEvent | null) => {
+  const handleSubmit = (
+    e: React.SubmitEvent | null,
+    nextOtp: string | null,
+  ) => {
     if (e !== null) {
       e.preventDefault();
     }
-    login(email, password, otp).then(async (response) => {
+    login(email, password, nextOtp).then(async (response) => {
       if (loginUserRequest.fulfilled.match(response)) {
         if (
           response.payload.statusCode === 200 &&
@@ -80,19 +85,19 @@ export default function Login() {
         } else if (typeof response.payload.jsonData?.error !== "undefined") {
           if (response.payload.jsonData.error.message === "totp-required") {
             setOtp("");
-            setOpenOtpDialog(true);
+            setOtpRequired(true);
           } else {
             setOtp("");
-            setOpenOtpDialog(false);
+            setOtpRequired(false);
             setErrors(response.payload.jsonData.error);
           }
         } else {
-          setOpenOtpDialog(false);
+          setOtpRequired(false);
           setOtp("");
           unexpectedError(response.payload.statusCode);
         }
       } else {
-        setOpenOtpDialog(false);
+        setOtpRequired(false);
         setOtp("");
         unexpectedError();
       }
@@ -101,68 +106,91 @@ export default function Login() {
 
   return (
     <>
-      <Dialog open={openOtpDialog} onOpenChange={setOpenOtpDialog}>
-        <DialogContent className="text-center">
-          <DialogTitle>Kétlépcsős azonosítás</DialogTitle>
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-4"
-            autoComplete={"off"}
-          >
-            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
-              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
-              <InputOTP
-                id="otp"
-                value={otp}
-                onChange={(e) => setOtp(e)}
-                maxLength={6}
-                pattern={REGEXP_ONLY_DIGITS}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSeparator />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </Field>
-            <Button type="submit">Bejelentkezés</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
       <GlobalError error={errors} />
       <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Bejelentkezés</CardTitle>
-        </CardHeader>
         <CardContent>
           <form
-            onSubmit={handleSubmit}
+            onSubmit={(e) => handleSubmit(e, null)}
             className="space-y-4"
             autoComplete={"off"}
           >
-            <Label htmlFor="email">Email</Label>
-            <Input
-              type="text"
-              autoComplete="email"
-              value={email}
-              onFocus={() => setErrors(null)}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Label htmlFor="password">Jelszó</Label>
-            <Input
-              type="password"
-              autoComplete="current-password"
-              onFocus={() => setErrors(null)}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button type="submit" disabled={loading}>
-              {loading ? "Bejelentkezés..." : "Bejelentkezés"}
-            </Button>
+            <FieldSet>
+              <FieldLegend>Bejelentkezés</FieldLegend>
+              <FieldGroup>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="text"
+                  autoComplete="email"
+                  value={email}
+                  onFocus={() => setErrors(null)}
+                  onChange={(e) => {
+                    resetError("email");
+                    setEmail(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("email")}
+                />
+                <FieldLabel htmlFor="password">Jelszó</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  onFocus={() => setErrors(null)}
+                  value={password}
+                  onChange={(e) => {
+                    resetError("password");
+                    setPassword(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("password")}
+                />
+                {otpRequired && (
+                  <>
+                    <FieldSeparator />
+                    <Field className="">
+                      <FieldLabel htmlFor="otp">
+                        Kétlépcsős azonosító kód
+                      </FieldLabel>
+                      <InputOTP
+                        id="otp"
+                        value={otp}
+                        onChange={(e) => {
+                          resetError("otp");
+                          setOtp(e);
+                          if (e.length === 6) {
+                            handleSubmit(null, e);
+                          }
+                        }}
+                        aria-invalid={isInvalidField("otp")}
+                        maxLength={6}
+                        pattern={REGEXP_ONLY_DIGITS}
+                        autoFocus
+                      >
+                        <InputOTPGroup>
+                          <InputOTPSlot index={0} />
+                          <InputOTPSlot index={1} />
+                          <InputOTPSlot index={2} />
+                          <InputOTPSeparator />
+                          <InputOTPSlot index={3} />
+                          <InputOTPSlot index={4} />
+                          <InputOTPSlot index={5} />
+                        </InputOTPGroup>
+                      </InputOTP>
+                    </Field>
+                  </>
+                )}
+              </FieldGroup>
+            </FieldSet>
+            <Field orientation="horizontal">
+              <div className="text-right mt-8 w-full">
+                <Button type="submit" disabled={loading}>
+                  {otpRequired
+                    ? "Megerősítés"
+                    : loading
+                      ? "Bejelentkezés..."
+                      : "Bejelentkezés"}
+                </Button>
+              </div>
+            </Field>
           </form>
         </CardContent>
       </Card>

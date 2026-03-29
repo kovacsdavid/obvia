@@ -66,7 +66,8 @@ export default function Edit({
   const [status, setStatus] = React.useState<string | undefined>("active");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -218,15 +219,18 @@ export default function Edit({
               {`Vevő ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "customer_type")}>
+              <Field data-invalid={isInvalidField("customer_type")}>
                 <FieldLabel htmlFor="customer_type">Típus</FieldLabel>
                 <Select
                   value={customerType}
-                  onValueChange={(val) => setCustomerType(val)}
+                  onValueChange={(val) => {
+                    resetError("customer_type");
+                    setCustomerType(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "customer_type")}
+                    aria-invalid={isInvalidField("customer_type")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -237,7 +241,7 @@ export default function Edit({
                 </Select>
                 <FieldError error={errors} field={"customer_type"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "name")}>
+              <Field data-invalid={isInvalidField("name")}>
                 <FieldLabel htmlFor="name">
                   {customerType === "legal" ? "Jogi személy neve" : "Név"}
                 </FieldLabel>
@@ -248,14 +252,17 @@ export default function Edit({
                     customerType === "legal" ? "Példa Kft." : "Példa Béla"
                   }
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "name")}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
                 />
                 <FieldError error={errors} field={"name"} />
               </Field>
               {customerType === "legal" ? (
                 <>
-                  <Field data-invalid={isInvalidField(errors, "contact_name")}>
+                  <Field data-invalid={isInvalidField("contact_name")}>
                     <FieldLabel htmlFor="contact_name">
                       Kapcsolattartó neve
                     </FieldLabel>
@@ -264,14 +271,17 @@ export default function Edit({
                       type="text"
                       placeholder="Példa Béla"
                       value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      aria-invalid={isInvalidField(errors, "contact_name")}
+                      onChange={(e) => {
+                        resetError("contact_name");
+                        setContactName(e.target.value);
+                      }}
+                      aria-invalid={isInvalidField("contact_name")}
                     />
                     <FieldError error={errors} field={"contact_name"} />
                   </Field>
                 </>
               ) : null}
-              <Field data-invalid={isInvalidField(errors, "email")}>
+              <Field data-invalid={isInvalidField("email")}>
                 <FieldLabel htmlFor="email">
                   {customerType === "legal"
                     ? "Kapcsolattartó e-mail címe"
@@ -282,12 +292,15 @@ export default function Edit({
                   type="text"
                   placeholder="pelda@kovacsdavid.dev"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "email")}
+                  onChange={(e) => {
+                    resetError("email");
+                    setEmail(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("email")}
                 />
                 <FieldError error={errors} field={"email"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "phone_number")}>
+              <Field data-invalid={isInvalidField("phone_number")}>
                 <FieldLabel htmlFor="phone_number">
                   {customerType === "legal"
                     ? "Kapcsolattartó telefonszáma"
@@ -298,17 +311,26 @@ export default function Edit({
                   type="text"
                   placeholder="+36301234567"
                   value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "phone_number")}
+                  onChange={(e) => {
+                    resetError("phone_number");
+                    setPhoneNumber(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("phone_number")}
                 />
                 <FieldError error={errors} field={"phone_number"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

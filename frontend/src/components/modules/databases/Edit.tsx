@@ -55,7 +55,8 @@ export default function Edit({
   const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -126,15 +127,18 @@ export default function Edit({
               {`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field data-invalid={isInvalidField(errors, "name")}>
+              <Field data-invalid={isInvalidField("name")}>
                 <FieldLabel htmlFor="name">Adatbázis neve</FieldLabel>
                 <Input
                   id="name"
                   type="text"
                   placeholder="Példa Kft."
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "name")}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
                 />
                 <FieldError error={errors} field={"name"} />
               </Field>

@@ -49,13 +49,32 @@ export function useFormError() {
     [logout, navigate],
   );
 
-  const isInvalidField = (errors: FormError | null, field: string): boolean =>
-    !!errors?.fields?.[field];
+  const isInvalidField = useCallback(
+    (field: string): boolean => !!errors?.fields?.[field],
+    [errors],
+  );
+
+  const resetError = useCallback(
+    (field: string): void => {
+      if (typeof errors?.fields === "object") {
+        const new_errors = {
+          message: errors.message,
+          fields: {
+            ...errors.fields,
+            [field]: null,
+          },
+        };
+        setErrors(new_errors);
+      }
+    },
+    [errors, setErrors],
+  );
 
   return {
     errors,
     setErrors,
     unexpectedError,
     isInvalidField,
+    resetError,
   };
 }

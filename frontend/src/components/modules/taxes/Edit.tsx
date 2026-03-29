@@ -72,7 +72,8 @@ export default function Edit({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError, isInvalidField } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -268,19 +269,20 @@ export default function Edit({
               {`Adók ${id ? "módosítás" : "létrehozás"}`}
             </FieldLegend>
             <FieldGroup>
-              <Field
-                data-invalid={isInvalidField(errors, "is_rate_applicable")}
-              >
+              <Field data-invalid={isInvalidField("is_rate_applicable")}>
                 <FieldLabel htmlFor="is_rate_applicable">
                   Adókulcs alkalmazandó
                 </FieldLabel>
                 <Select
                   value={isRateApplicable}
-                  onValueChange={(val) => setIsRateApplicable(val)}
+                  onValueChange={(val) => {
+                    resetError("is_rate_applicable");
+                    setIsRateApplicable(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "is_rate_applicable")}
+                    aria-invalid={isInvalidField("is_rate_applicable")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -293,40 +295,49 @@ export default function Edit({
               </Field>
               {isRateApplicable === "true" ? (
                 <>
-                  <Field data-invalid={isInvalidField(errors, "rate")}>
+                  <Field data-invalid={isInvalidField("rate")}>
                     <FieldLabel htmlFor="rate">Adókulcs (%)</FieldLabel>
                     <Input
                       id="rate"
                       type="text"
                       value={rate}
-                      onChange={(e) => setRate(e.target.value)}
-                      aria-invalid={isInvalidField(errors, "rate")}
+                      onChange={(e) => {
+                        resetError("rate");
+                        setRate(e.target.value);
+                      }}
+                      aria-invalid={isInvalidField("rate")}
                     />
                     <FieldError error={errors} field={"rate"} />
                   </Field>
                 </>
               ) : null}
-              <Field data-invalid={isInvalidField(errors, "description")}>
+              <Field data-invalid={isInvalidField("description")}>
                 <FieldLabel htmlFor="description">Megnevezés</FieldLabel>
                 <Input
                   id="description"
                   type="text"
                   placeholder="ÁFA"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "description")}
+                  onChange={(e) => {
+                    resetError("description");
+                    setDescription(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("description")}
                 />
                 <FieldError error={errors} field={"description"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "country_code")}>
+              <Field data-invalid={isInvalidField("country_code")}>
                 <FieldLabel htmlFor="country_code">Ország</FieldLabel>
                 <Select
                   value={countryCode}
-                  onValueChange={(val) => setCountryCode(val)}
+                  onValueChange={(val) => {
+                    resetError("country_code");
+                    setCountryCode(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "country_code")}
+                    aria-invalid={isInvalidField("country_code")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -342,15 +353,18 @@ export default function Edit({
                 </Select>
                 <FieldError error={errors} field={"country_code"} />
               </Field>
-              <Field data-invalid={isInvalidField(errors, "tax_category")}>
+              <Field data-invalid={isInvalidField("tax_category")}>
                 <FieldLabel htmlFor="tax_category">Adó kategória</FieldLabel>
                 <Select
                   value={taxCategory}
-                  onValueChange={(val) => setTaxCategory(val)}
+                  onValueChange={(val) => {
+                    resetError("tax_category");
+                    setTaxCategory(val);
+                  }}
                 >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "tax_category")}
+                    aria-invalid={isInvalidField("tax_category")}
                   >
                     <SelectValue />
                   </SelectTrigger>
@@ -363,37 +377,49 @@ export default function Edit({
                 <FieldError error={errors} field={"tax_category"} />
               </Field>
 
-              <Field data-invalid={isInvalidField(errors, "legal_text")}>
+              <Field data-invalid={isInvalidField("legal_text")}>
                 <FieldLabel htmlFor="legal_text">Jogi szöveg</FieldLabel>
                 <Input
                   id="legal_text"
                   type="text"
                   placeholder="Pl.: Alanyi adómenetes"
                   value={legalText}
-                  onChange={(e) => setLegalText(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "legal_text")}
+                  onChange={(e) => {
+                    resetError("legal_text");
+                    setLegalText(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("legal_text")}
                 />
                 <FieldError error={errors} field={"legal_text"} />
               </Field>
 
-              <Field data-invalid={isInvalidField(errors, "reporting_code")}>
+              <Field data-invalid={isInvalidField("reporting_code")}>
                 <FieldLabel htmlFor="reporting_code">Jelentési kód</FieldLabel>
                 <Input
                   id="reporting_code"
                   type="text"
                   value={reportingCode}
-                  onChange={(e) => setReportingCode(e.target.value)}
-                  aria-invalid={isInvalidField(errors, "reporting_code")}
+                  onChange={(e) => {
+                    resetError("reporting_code");
+                    setReportingCode(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("reporting_code")}
                 />
                 <FieldError error={errors} field={"reporting_code"} />
               </Field>
 
-              <Field data-invalid={isInvalidField(errors, "status")}>
+              <Field data-invalid={isInvalidField("status")}>
                 <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select value={status} onValueChange={(val) => setStatus(val)}>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
                   <SelectTrigger
                     className={"w-full"}
-                    aria-invalid={isInvalidField(errors, "status")}
+                    aria-invalid={isInvalidField("status")}
                   >
                     <SelectValue />
                   </SelectTrigger>

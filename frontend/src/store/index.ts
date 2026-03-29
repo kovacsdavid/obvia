@@ -24,8 +24,6 @@ import tenantsReducer from "@/components/modules/databases/lib/slice.ts";
 import customersReducer from "@/components/modules/customers/lib/slice.ts";
 import inventoryReducer from "@/components/modules/inventory/lib/slice.ts";
 import productsReducer from "@/components/modules/products/lib/slice.ts";
-import projectsReducer from "@/components/modules/projects/lib/slice.ts";
-import tagsReducer from "@/components/modules/tags/lib/slice.ts";
 import tasksReducer from "@/components/modules/tasks/lib/slice.ts";
 import usersReducer from "@/components/modules/users/lib/slice.ts";
 import warehousesReducer from "@/components/modules/warehouses/lib/slice.ts";
@@ -41,8 +39,6 @@ const rootReducer = combineReducers({
   inventory: inventoryReducer,
   inventory_movements: inventoryMovementsReducer,
   products: productsReducer,
-  projects: projectsReducer,
-  tags: tagsReducer,
   tasks: tasksReducer,
   users: usersReducer,
   warehouses: warehousesReducer,

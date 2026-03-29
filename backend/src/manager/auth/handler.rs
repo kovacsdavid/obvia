@@ -292,10 +292,10 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
+    use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::types::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
-    use crate::manager::app::config::AppConfigBuilder;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::auth::model::AccountEventLogEntry;
@@ -541,10 +541,10 @@ mod tests {
             .withf(move |payload_param, hashed_password| {
                 *payload_param
                     == RegisterRequest {
-                        email: ValueObject::new(Email("testuser@example.com".to_string())).unwrap(),
-                        first_name: ValueObject::new(FirstName("Test".to_string())).unwrap(),
-                        last_name: ValueObject::new(LastName("User".to_string())).unwrap(),
-                        password: ValueObject::new(Password("Password1!".to_string())).unwrap(),
+                        email: ValueObject::new_required(Email("testuser@example.com".to_string())).unwrap(),
+                        first_name: ValueObject::new_required(FirstName("Test".to_string())).unwrap(),
+                        last_name: ValueObject::new_required(LastName("User".to_string())).unwrap(),
+                        password: ValueObject::new_required(Password("Password1!".to_string())).unwrap(),
                     }
                     && Argon2::default()
                         .verify_password(
@@ -595,14 +595,14 @@ mod tests {
             .expect_auth_repo()
             .returning(move || repo.clone());
         auth_module.expect_send().times(1).returning(|_| {
-            Ok(Response::new(
+            Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            ))
+            )))
         });
 
         let request = Request::builder()

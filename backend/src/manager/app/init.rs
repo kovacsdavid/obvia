@@ -17,27 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::config::AppConfig;
 use crate::common::{ConfigProvider, DefaultAppState};
-use crate::manager::app::config::AppConfig;
 use crate::manager::app::database::DatabaseMigrator;
 use anyhow::Result;
 use axum::Router;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
-use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
-pub fn init_subscriber() {
+pub fn init_subscriber(config: &AppConfig) {
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
-            .with_max_level(Level::TRACE) //TODO: make configurable
+            .with_max_level(config.server().log_level())
             .finish(),
     )
     .expect("setting default subscriber failed");
 }
 
-pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
-    let app_state = Arc::new(DefaultAppState::new().await?);
+pub async fn init_default_app(config: AppConfig) -> Result<(Arc<AppConfig>, Router)> {
+    let app_state = Arc::new(DefaultAppState::new(Arc::new(config)).await?);
     app_state.migrate_main_db().await?;
     app_state.init_tenant_pools().await?;
     app_state.migrate_all_tenant_dbs().await?;
@@ -62,9 +61,7 @@ pub async fn init_default_app() -> Result<(Arc<AppConfig>, Router)> {
                     app_state.clone(),
                 ))
                 .merge(crate::tenant::products::routes::routes(app_state.clone()))
-                //.merge(crate::tenant::projects::routes::routes(app_state.clone()))
                 .merge(crate::tenant::services::routes::routes(app_state.clone()))
-                .merge(crate::tenant::tags::routes::routes(app_state.clone()))
                 .merge(crate::tenant::tasks::routes::routes(app_state.clone()))
                 .merge(crate::tenant::taxes::routes::routes(app_state.clone()))
                 .merge(crate::tenant::warehouses::routes::routes(app_state.clone()))

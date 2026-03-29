@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -37,6 +37,13 @@ import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import type { Warehouse } from "./lib/interface";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -44,7 +51,7 @@ interface EditProps {
   onCancel?: () => void;
 }
 
-export default function List({
+export default function Edit({
   showCard = true,
   onSuccess = undefined,
   onCancel = undefined,
@@ -53,7 +60,8 @@ export default function List({
   const [contactName, setContactName] = React.useState("");
   const [contactPhone, setContactPhone] = React.useState("");
   const [status, setStatus] = React.useState("active");
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const params = useParams();
@@ -186,62 +194,102 @@ export default function List({
   return (
     <>
       <GlobalError error={errors} />
-      <ConditionalCard
-        showCard={showCard}
-        title={`Raktár ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="name">Név</Label>
-          <Input
-            id="name"
-            placeholder="Sopron 4"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <FieldError error={errors} field={"name"} />
-          <Label htmlFor="contact_name">Kapcsolattartó neve</Label>
-          <Input
-            id="contact_name"
-            type="text"
-            placeholder="Példa Béla"
-            value={contactName}
-            onChange={(e) => setContactName(e.target.value)}
-          />
-          <FieldError error={errors} field={"contact_name"} />
-          <Label htmlFor="contact_phone">Kapcsolattartó telefonszáma</Label>
-          <Input
-            id="contact_phone"
-            type="text"
-            placeholder="+36301234567"
-            value={contactPhone}
-            onChange={(e) => setContactPhone(e.target.value)}
-          />
-          <FieldError error={errors} field={"contact_phone"} />
-          <Label htmlFor="status">Státusz</Label>
-          <Select value={status} onValueChange={(val) => setStatus(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-              <SelectItem value="maintenance">Karbantartás alatt</SelectItem>
-              <SelectItem value="closed">Véglegesen bezárt</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-          <div className="text-right mt-8">
-            <Button className="mr-3" variant="outline" onClick={handleCancel}>
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+          <FieldSet>
+            <FieldLegend>
+              {`Raktár ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField("name")}>
+                <FieldLabel htmlFor="name">Név</FieldLabel>
+                <Input
+                  id="name"
+                  placeholder="Sopron 4"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
+                />
+                <FieldError error={errors} field={"name"} />
+              </Field>
+              <Field data-invalid={isInvalidField("contact_name")}>
+                <FieldLabel htmlFor="contact_name">
+                  Kapcsolattartó neve
+                </FieldLabel>
+                <Input
+                  id="contact_name"
+                  type="text"
+                  placeholder="Példa Béla"
+                  value={contactName}
+                  onChange={(e) => {
+                    resetError("contact_name");
+                    setContactName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("contact_name")}
+                />
+                <FieldError error={errors} field={"contact_name"} />
+              </Field>
+              <Field data-invalid={isInvalidField("contact_phone")}>
+                <FieldLabel htmlFor="contact_phone">
+                  Kapcsolattartó telefonszáma
+                </FieldLabel>
+                <Input
+                  id="contact_phone"
+                  type="text"
+                  placeholder="+36301234567"
+                  value={contactPhone}
+                  onChange={(e) => {
+                    resetError("contact_phone");
+                    setContactPhone(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("contact_phone")}
+                />
+                <FieldError error={errors} field={"contact_phone"} />
+              </Field>
+              <Field data-invalid={isInvalidField("status")}>
+                <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                    <SelectItem value="maintenance">
+                      Karbantartás alatt
+                    </SelectItem>
+                    <SelectItem value="closed">Véglegesen bezárt</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button className="mr-3" variant="outline" onClick={handleCancel}>
+                Mégse
+              </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+            </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

@@ -23,7 +23,7 @@ use std::fmt::Display;
 use std::str::FromStr;
 use thiserror::Error;
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 
 #[derive(Error, Debug, PartialEq)]
 pub enum GetQueryError {
@@ -74,7 +74,7 @@ impl Display for Order {
 #[derive(PartialEq, Debug, Default)]
 pub struct Ordering<O>
 where
-    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     order_by: Option<ValueObject<O>>,
     order: Option<Order>,
@@ -82,7 +82,7 @@ where
 
 impl<O> Ordering<O>
 where
-    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     pub fn order_by(&self) -> Option<String> {
         Some(self.order_by.as_ref()?.to_string())
@@ -94,7 +94,7 @@ where
 
 impl<T> FromStr for Ordering<T>
 where
-    T: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    T: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Ordering<T>, Self::Err> {
@@ -105,7 +105,7 @@ where
             .collect();
         if collection.len() == 2 {
             Ok(Ordering {
-                order_by: Some(ValueObject::new(T::from_str(&collection[0])?)?),
+                order_by: Some(ValueObject::new_required(T::from_str(&collection[0])?)?),
                 order: Some(Order::from_str(&collection[1])?),
             })
         } else {
@@ -166,7 +166,7 @@ impl FromStr for Paging {
 #[derive(PartialEq, Debug)]
 pub struct Filtering<F>
 where
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     filter_by: Option<ValueObject<F>>,
     value: Option<String>,
@@ -174,7 +174,7 @@ where
 
 impl<F> Filtering<F>
 where
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     // Secruity: ValueObject
     pub fn filter_by(&self) -> Option<&str> {
@@ -188,7 +188,7 @@ where
 
 impl<F> FromStr for Filtering<F>
 where
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     type Err = GetQueryError;
     fn from_str(s: &str) -> Result<Filtering<F>, Self::Err> {
@@ -200,7 +200,7 @@ where
         if collection.len() == 2 {
             let value = collection[1].replace("|", "");
             Ok(Filtering {
-                filter_by: Some(ValueObject::new(F::from_str(&collection[0])?)?),
+                filter_by: Some(ValueObject::new_required(F::from_str(&collection[0])?)?),
                 value: Some(value),
             })
         } else {
@@ -238,8 +238,8 @@ fn extract_field<'a>(s: &'a str, field: &str) -> &'a str {
 #[derive(PartialEq, Debug)]
 pub struct GetQuery<O, F>
 where
-    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     ordering: Ordering<O>,
     paging: Paging,
@@ -248,8 +248,8 @@ where
 
 impl<O, F> GetQuery<O, F>
 where
-    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     pub fn ordering(&self) -> &Ordering<O> {
         &self.ordering
@@ -264,8 +264,8 @@ where
 
 impl<O, F> FromStr for GetQuery<O, F>
 where
-    O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
-    F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+    O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
+    F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
 {
     type Err = GetQueryError;
     fn from_str(s: &str) -> Result<GetQuery<O, F>, Self::Err> {
@@ -294,14 +294,14 @@ impl CommonRawQuery {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::ValueObjectable;
+    use crate::common::types::ValueObjectData;
     use crate::common::types::value_object::ValueObjectError;
     use serde::Serialize;
 
     #[derive(Debug, PartialEq, Clone, Serialize)]
     pub struct TestOrderBy(pub String);
 
-    impl ValueObjectable for TestOrderBy {
+    impl ValueObjectData for TestOrderBy {
         type DataType = String;
 
         fn validate(&self) -> Result<(), ValueObjectError> {
@@ -332,7 +332,7 @@ mod tests {
     #[derive(Debug, PartialEq, Clone, Serialize)]
     pub struct TestFilterBy(pub String);
 
-    impl ValueObjectable for TestFilterBy {
+    impl ValueObjectData for TestFilterBy {
         type DataType = String;
 
         fn validate(&self) -> Result<(), ValueObjectError> {
@@ -362,8 +362,8 @@ mod tests {
 
     impl<O, F> GetQuery<O, F>
     where
-        O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
-        F: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+        O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
+        F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
     {
         pub fn new(ordering: Ordering<O>, paging: Paging, filtering: Filtering<F>) -> Self {
             Self {
@@ -376,7 +376,7 @@ mod tests {
 
     impl<O> Ordering<O>
     where
-        O: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+        O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
     {
         pub fn new(field: Option<ValueObject<O>>, value: Option<Order>) -> Self {
             Self {
@@ -394,7 +394,7 @@ mod tests {
 
     impl<T> Filtering<T>
     where
-        T: ValueObjectable<DataType = String> + FromStr<Err = ValueObjectError>,
+        T: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
     {
         pub fn new(
             field: Option<ValueObject<T>>, // Secruity: ValueObject
@@ -413,12 +413,12 @@ mod tests {
         let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
         let query_constructed = GetQuery::new(
             Ordering::new(
-                Some(ValueObject::new(TestOrderBy("test".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestOrderBy("test".to_string())).unwrap()),
                 Some(Order::Ascending),
             ),
             Paging::new(Some(1), Some(25)),
             Filtering::new(
-                Some(ValueObject::new(TestFilterBy("test".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestFilterBy("test".to_string())).unwrap()),
                 Some("warehouse 1".to_string()),
             ),
         );
@@ -431,12 +431,12 @@ mod tests {
         let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
         let query_constructed = GetQuery::new(
             Ordering::new(
-                Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
             ),
             Paging::new(Some(3), Some(30)),
             Filtering::new(
-                Some(ValueObject::new(TestFilterBy("type".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestFilterBy("type".to_string())).unwrap()),
                 Some("some type".to_string()),
             ),
         );
@@ -449,12 +449,12 @@ mod tests {
         let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
         let query_constructed = GetQuery::new(
             Ordering::new(
-                Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
             ),
             Paging::new(Some(3), Some(30)),
             Filtering::new(
-                Some(ValueObject::new(TestFilterBy("type".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestFilterBy("type".to_string())).unwrap()),
                 Some("some type".to_string()),
             ),
         );
@@ -467,12 +467,12 @@ mod tests {
         let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
         let query_constructed = GetQuery::new(
             Ordering::new(
-                Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
             ),
             Paging::new(Some(3), Some(30)),
             Filtering::new(
-                Some(ValueObject::new(TestFilterBy("type".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestFilterBy("type".to_string())).unwrap()),
                 Some("some type".to_string()),
             ),
         );
@@ -499,7 +499,7 @@ mod tests {
 
         let query_constructed = GetQuery::new(
             Ordering::new(
-                Some(ValueObject::new(TestOrderBy("name".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestOrderBy("name".to_string())).unwrap()),
                 Some(Order::Descending),
             ),
             Paging::new(None, None),
@@ -530,7 +530,7 @@ mod tests {
             Ordering::new(None, None),
             Paging::new(None, None),
             Filtering::new(
-                Some(ValueObject::new(TestFilterBy("type".to_string())).unwrap()),
+                Some(ValueObject::new_required(TestFilterBy("type".to_string())).unwrap()),
                 Some("some type".to_string()),
             ),
         );

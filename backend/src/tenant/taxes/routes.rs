@@ -17,13 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::TaxesModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::taxes::TaxesModule;
-use crate::tenant::taxes::handler::{
-    create as taxes_create, delete as taxes_delete, get as taxes_get,
-    get_resolved as taxes_get_resolved, list as taxes_list, select_list as taxes_select_list,
-    update as taxes_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -33,13 +29,13 @@ pub fn routes(taxes_module: Arc<dyn TaxesModule>) -> Router {
     Router::new().nest(
         "/taxes",
         Router::new()
-            .route("/get", get(taxes_get))
-            .route("/get_resolved", get(taxes_get_resolved))
-            .route("/list", get(taxes_list))
-            .route("/select_list", get(taxes_select_list))
-            .route("/create", post(taxes_create))
-            .route("/update", put(taxes_update))
-            .route("/delete", delete(taxes_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(taxes_module.config(), require_auth))
             .with_state(taxes_module),
     )

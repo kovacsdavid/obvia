@@ -42,7 +42,7 @@ impl ActivityFeedModule for DefaultAppState {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::manager::app::config::AppConfig;
+    use crate::common::config::AppConfig;
     use async_trait::async_trait;
     use lettre::{
         Message,
@@ -57,7 +57,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for ActivityFeedModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl ActivityFeedModule for ActivityFeedModule {
             fn activity_feed_repo(&self) -> Arc<dyn ActivityFeedRepository>;

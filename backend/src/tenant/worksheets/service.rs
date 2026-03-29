@@ -79,7 +79,6 @@ impl IntoFriendlyError<GeneralError> for WorksheetsServiceError {
 type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
 
 pub enum WorksheetsSelectLists {
-    Projects,
     Customers,
 }
 
@@ -88,7 +87,6 @@ impl FromStr for WorksheetsSelectLists {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "projects" => Ok(Self::Projects),
             "customers" => Ok(Self::Customers),
             _ => Err(Self::Err::InvalidSelectList),
         }
@@ -123,12 +121,6 @@ impl WorksheetsService {
             .active_tenant()
             .ok_or(WorksheetsServiceError::Unauthorized)?;
         Ok(match WorksheetsSelectLists::from_str(select_list)? {
-            WorksheetsSelectLists::Projects => {
-                worksheets_module
-                    .projects_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
             WorksheetsSelectLists::Customers => {
                 worksheets_module
                     .customers_repo()

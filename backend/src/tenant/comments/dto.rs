@@ -21,10 +21,12 @@ use std::fmt::Display;
 
 use axum::response::IntoResponse;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::{
-    common::{error::FormErrorResponse, types::ValueObject},
+    common::{
+        error::FormErrorResponse,
+        types::{UuidVO, ValueObject},
+    },
     tenant::comments::types::{Comment, CommentableType},
 };
 
@@ -72,9 +74,9 @@ impl IntoResponse for CommentUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CommentUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub commentable_type: ValueObject<CommentableType>,
-    pub commentable_id: Uuid,
+    pub commentable_id: ValueObject<UuidVO>,
     pub comment: ValueObject<Comment>,
 }
 
@@ -83,31 +85,31 @@ impl TryFrom<CommentUserInputHelper> for CommentUserInput {
     fn try_from(value: CommentUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = CommentUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let commentable_type = ValueObject::new(CommentableType(value.commentable_type))
+        let commentable_type = ValueObject::new_required(CommentableType(value.commentable_type))
             .inspect_err(|e| {
                 error.commentable_type = Some(e.to_string());
             });
 
-        let commentable_id = Uuid::parse_str(&value.commentable_id).inspect_err(|e| {
-            error.commentable_id = Some("Hibás erőforrás azonosító".to_string());
-        });
+        let commentable_id =
+            ValueObject::new_required(UuidVO(value.commentable_id)).inspect_err(|e| {
+                error.commentable_id = Some(e.to_string());
+            });
 
-        let comment = ValueObject::new(Comment(value.comment)).inspect_err(|e| {
+        let comment = ValueObject::new_required(Comment(value.comment)).inspect_err(|e| {
             error.comment = Some(e.to_string());
         });
 
         if error.is_empty() {
             Ok(CommentUserInput {
-                id,
+                id: id.map_err(|_| CommentUserInputError::default())?,
                 commentable_type: commentable_type.map_err(|_| CommentUserInputError::default())?,
                 commentable_id: commentable_id.map_err(|_| CommentUserInputError::default())?,
                 comment: comment.map_err(|_| CommentUserInputError::default())?,

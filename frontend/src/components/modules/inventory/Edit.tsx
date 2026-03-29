@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -47,6 +47,13 @@ import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
 import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -71,7 +78,8 @@ export default function Edit({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
   const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
@@ -328,143 +336,199 @@ export default function Edit({
           />
         </DialogContent>
       </Dialog>
-      <ConditionalCard
-        showCard={showCard}
-        title={`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="product_id">Termék</Label>
-            </div>
-            <div className="flex items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpenNewProductDialog(true)}
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-          <Select value={productId} onValueChange={(val) => setProductId(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {productList.map((product) => {
-                return (
-                  <SelectItem key={product.value} value={product.value}>
-                    {product.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"product_id"} />
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="warehouse_id">Raktár</Label>
-            </div>
-            <div className="flex items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpenNewWarehouseDialog(true)}
-              >
-                <Plus />
-              </Button>
-            </div>
-          </div>
-          <Select
-            value={warehouseId}
-            onValueChange={(val) => setWarehouseId(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {warehouseList.map((warehouse) => {
-                return (
-                  <SelectItem key={warehouse.value} value={warehouse.value}>
-                    {warehouse.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"warehouse_id"} />
-          <Label htmlFor="minimum_stock">Minimum készlet</Label>
-          <Input
-            id="minimum_stock"
-            type="text"
-            placeholder="10"
-            value={minimumStockInput.displayValue}
-            onChange={(e) =>
-              minimumStockInput.handleInputChangeWithCursor(
-                e.target.value,
-                e.target,
-              )
-            }
-          />
-          <FieldError error={errors} field={"minimum_stock"} />
-          <Label htmlFor="maximum_stock">Maximum készlet</Label>
-          <Input
-            id="maximum_stock"
-            type="text"
-            placeholder="100"
-            value={maximumStockInput.displayValue}
-            onChange={(e) =>
-              maximumStockInput.handleInputChangeWithCursor(
-                e.target.value,
-                e.target,
-              )
-            }
-          />
-          <FieldError error={errors} field={"maximum_stock"} />
-          <Label htmlFor="currency_code">Pénznem</Label>
-          <Select
-            value={currencyCode}
-            onValueChange={(val) => setCurrencyCode(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {currencyList.map((currency) => {
-                return (
-                  <SelectItem key={currency.value} value={currency.value}>
-                    {currency.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"currency_code"} />
+          <FieldSet>
+            <FieldLegend>
+              {`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField("product_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="product_id">Termék</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setOpenNewProductDialog(true);
+                      }}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select
+                  value={productId}
+                  onValueChange={(val) => {
+                    resetError("product_id");
+                    setProductId(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("product_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {productList.map((product) => {
+                      return (
+                        <SelectItem key={product.value} value={product.value}>
+                          {product.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"product_id"} />
+              </Field>
+              <Field data-invalid={isInvalidField("warehouse_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="warehouse_id">Raktár</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewWarehouseDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select
+                  value={warehouseId}
+                  onValueChange={(val) => {
+                    resetError("warehouse_id");
+                    setWarehouseId(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("warehouse_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {warehouseList.map((warehouse) => {
+                      return (
+                        <SelectItem
+                          key={warehouse.value}
+                          value={warehouse.value}
+                        >
+                          {warehouse.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"warehouse_id"} />
+              </Field>
+              <Field data-invalid={isInvalidField("minimum_stock")}>
+                <FieldLabel htmlFor="minimum_stock">Minimum készlet</FieldLabel>
+                <Input
+                  id="minimum_stock"
+                  type="text"
+                  placeholder="10"
+                  value={minimumStockInput.displayValue}
+                  onChange={(e) => {
+                    resetError("minimum_stock");
+                    minimumStockInput.handleInputChangeWithCursor(
+                      e.target.value,
+                      e.target,
+                    );
+                  }}
+                  aria-invalid={isInvalidField("minimum_stock")}
+                />
+                <FieldError error={errors} field={"minimum_stock"} />
+              </Field>
+              <Field data-invalid={isInvalidField("maximum_stock")}>
+                <FieldLabel htmlFor="maximum_stock">Maximum készlet</FieldLabel>
+                <Input
+                  id="maximum_stock"
+                  type="text"
+                  placeholder="100"
+                  value={maximumStockInput.displayValue}
+                  onChange={(e) => {
+                    resetError("maximum_stock");
+                    maximumStockInput.handleInputChangeWithCursor(
+                      e.target.value,
+                      e.target,
+                    );
+                  }}
+                  aria-invalid={isInvalidField("maximum_stock")}
+                />
+                <FieldError error={errors} field={"maximum_stock"} />
+              </Field>
+              <Field data-invalid={isInvalidField("currency_code")}>
+                <FieldLabel htmlFor="currency_code">Pénznem</FieldLabel>
+                <Select
+                  value={currencyCode}
+                  onValueChange={(val) => {
+                    resetError("currency_code");
+                    setCurrencyCode(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("currency_code")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyList.map((currency) => {
+                      return (
+                        <SelectItem key={currency.value} value={currency.value}>
+                          {currency.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"currency_code"} />
+              </Field>
 
-          <Label htmlFor="status">Állapot</Label>
-          <Select value={status} onValueChange={(val) => setStatus(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-              <SelectItem value="discontinued">Kivezetett</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-          <div className="text-right mt-8">
-            <Button className="mr-3" variant="outline" onClick={handleCancel}>
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+              <Field data-invalid={isInvalidField("status")}>
+                <FieldLabel htmlFor="status">Állapot</FieldLabel>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                    <SelectItem value="discontinued">Kivezetett</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button className="mr-3" variant="outline" onClick={handleCancel}>
+                Mégse
+              </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+            </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

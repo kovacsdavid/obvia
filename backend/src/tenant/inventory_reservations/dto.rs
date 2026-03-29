@@ -18,12 +18,11 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::inventory_reservations::types::{
     InventoryReferenceType, InventoryReservationsReservedUntil, InventoryReservationsStatus,
 };
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -32,7 +31,7 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 pub struct InventoryReservationUserInputHelper {
     pub id: Option<String>,
-    pub inventory_id: Uuid,
+    pub inventory_id: String,
     pub quantity: String,
     pub reference_type: String,
     pub reference_id: String,
@@ -82,12 +81,12 @@ impl IntoResponse for InventoryReservationUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InventoryReservationUserInput {
-    pub id: Option<Uuid>,
-    pub inventory_id: Uuid,
+    pub id: Option<ValueObject<UuidVO>>,
+    pub inventory_id: ValueObject<UuidVO>,
     pub quantity: ValueObject<Quantity>,
     pub reference_type: Option<ValueObject<InventoryReferenceType>>,
-    pub reference_id: Option<Uuid>,
-    pub reserved_until: Option<ValueObject<InventoryReservationsReservedUntil>>,
+    pub reference_id: Option<ValueObject<UuidVO>>,
+    pub reserved_until: ValueObject<InventoryReservationsReservedUntil>,
     pub status: ValueObject<InventoryReservationsStatus>,
 }
 
@@ -96,46 +95,55 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
     fn try_from(value: InventoryReservationUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = InventoryReservationUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|_| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let quantity = ValueObject::new(Quantity(value.quantity))
+        let inventory_id = ValueObject::new_required(UuidVO(value.inventory_id)).inspect_err(|e| {
+            error.inventory_id = Some(e.to_string());
+        });
+
+        let quantity = ValueObject::new_required(Quantity(value.quantity))
             .inspect_err(|e| error.quantity = Some(e.to_string()));
 
-        let reference_id = Uuid::parse_str(&value.reference_id)
-            .inspect_err(|_| {
-                error.reference_id = Some("Hibás hivatkozás azonosító".to_string());
-            })
-            .ok();
-
-        let reference_type = validate_optional_string!(
-            InventoryReferenceType(value.reference_type),
-            error.reference_type
-        );
-
-        let reserved_until = validate_optional_string!(
-            InventoryReservationsReservedUntil(value.reserved_until),
-            error.reserved_until
-        );
-
-        let status = ValueObject::new(InventoryReservationsStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
+        let reference_id = ValueObject::new_optional(UuidVO(value.reference_id)).inspect_err(|e| {
+            error.reference_id = Some(e.to_string());
         });
+
+        let reference_type = ValueObject::new_optional(InventoryReferenceType(
+            value.reference_type,
+        ))
+        .inspect_err(|e| {
+            error.reference_type = Some(e.to_string());
+        });
+
+        let reserved_until =
+            ValueObject::new_required(InventoryReservationsReservedUntil(value.reserved_until))
+                .inspect_err(|e| {
+                    error.reserved_until = Some(e.to_string());
+                });
+
+        let status = ValueObject::new_required(InventoryReservationsStatus(value.status))
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(InventoryReservationUserInput {
-                id,
-                inventory_id: value.inventory_id,
+                id: id.map_err(|_| InventoryReservationUserInputError::default())?,
+                inventory_id: inventory_id
+                    .map_err(|_| InventoryReservationUserInputError::default())?,
                 quantity: quantity.map_err(|_| InventoryReservationUserInputError::default())?,
-                reference_type,
-                reference_id,
-                reserved_until,
+                reference_type: reference_type
+                    .map_err(|_| InventoryReservationUserInputError::default())?,
+                reference_id: reference_id
+                    .map_err(|_| InventoryReservationUserInputError::default())?,
+                reserved_until: reserved_until
+                    .map_err(|_| InventoryReservationUserInputError::default())?,
                 status: status.map_err(|_| InventoryReservationUserInputError::default())?,
             })
         } else {

@@ -1220,7 +1220,7 @@ impl AuthService {
         email_verification: EmailVerification,
     ) -> AuthServiceResult<()> {
         let handlebars = Handlebars::new();
-        let hostname = auth_module.config().server().hostname().to_owned();
+        let hostname = auth_module.config().server().public_base_url().to_owned();
         let verification_uuid = email_verification.id;
         let verification_link = format!("https://{hostname}/email_megerosites/{verification_uuid}");
         let email =
@@ -1537,7 +1537,7 @@ impl AuthService {
         forgotten_password: ForgottenPassword,
     ) -> AuthServiceResult<()> {
         let handlebars = Handlebars::new();
-        let hostname = auth_module.config().server().hostname().to_owned();
+        let hostname = auth_module.config().server().public_base_url().to_owned();
         let forgotten_password_uuid = forgotten_password.id;
         let forgotten_password_link =
             format!("https://{hostname}/elfelejtett_jelszo/{forgotten_password_uuid}");

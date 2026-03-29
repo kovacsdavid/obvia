@@ -17,13 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::ServicesModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::services::ServicesModule;
-use crate::tenant::services::handler::{
-    create as services_create, delete as services_delete, get as services_get,
-    get_resolved as services_get_resolved, list as services_list,
-    select_list as services_select_list, update as services_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -33,13 +29,13 @@ pub fn routes(services_module: Arc<dyn ServicesModule>) -> Router {
     Router::new().nest(
         "/services",
         Router::new()
-            .route("/get", get(services_get))
-            .route("/get_resolved", get(services_get_resolved))
-            .route("/list", get(services_list))
-            .route("/select_list", get(services_select_list))
-            .route("/create", post(services_create))
-            .route("/update", put(services_update))
-            .route("/delete", delete(services_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/select_list", get(handler::select_list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(services_module.config(), require_auth))
             .with_state(services_module),
     )

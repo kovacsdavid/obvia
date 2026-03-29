@@ -272,7 +272,7 @@ impl WarehousesRepository for PgPoolManager {
         .bind(warehouse.contact_name.as_ref().map(|d| d.as_str()))
         .bind(warehouse.contact_phone.as_ref().map(|d| d.as_str()))
         .bind(warehouse.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

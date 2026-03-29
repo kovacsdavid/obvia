@@ -17,29 +17,44 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
-use chrono::NaiveDate;
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use chrono::{Local, NaiveDate};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct ReservedUntil(pub String);
 
-impl ValueObjectable for ReservedUntil {
+impl ValueObjectData for ReservedUntil {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
+        let today = Local::now().date_naive();
+        let input_date: NaiveDate = self
+            .0
+            .trim()
+            .parse()
+            .map_err(|_| ValueObjectError::InvalidInput("Hibás dátum formátum!"))?;
+        if input_date > today {
             Ok(())
         } else {
-            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d")
-                .map_err(|_| ValueObjectError::InvalidInput("Hibás dátum formátum!"))?;
-            Ok(())
+            Err(ValueObjectError::InvalidInput(
+                "Foglalás csak a mai napnál későbbi dátumra lehetséges",
+            ))
         }
     }
 
     fn get_value(&self) -> &Self::DataType {
         &self.0
+    }
+}
+
+impl ValueObject<ReservedUntil> {
+    pub fn date_naive(&self) -> Result<NaiveDate, ValueObjectError> {
+        self.as_str()
+            .trim()
+            .parse()
+            .map_err(|_| ValueObjectError::InvalidInput("Hibás dátum formátum!"))
     }
 }
 
@@ -55,36 +70,40 @@ impl<'de> Deserialize<'de> for ValueObject<ReservedUntil> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(ReservedUntil(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(ReservedUntil(s)).map_err(serde::de::Error::custom)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use chrono::Days;
+
     use super::*;
 
     #[test]
-    fn test_valid_due_dates() {
-        let cases = vec![
-            "2024-01-01",
-            "2025-12-31",
-            "2000-02-29", // Leap year
-        ];
-
-        for date in cases {
-            let due_date: ValueObject<ReservedUntil> =
-                serde_json::from_str(&format!(r#""{}""#, date)).unwrap();
-            assert_eq!(due_date.as_str(), date);
-        }
+    fn test_tomorrow() {
+        let valid_date = Local::now()
+            .checked_add_days(Days::new(1))
+            .unwrap()
+            .date_naive()
+            .to_string();
+        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_ok());
     }
 
     #[test]
-    fn test_empty_due_date() {
-        let due_date: ValueObject<ReservedUntil> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(due_date.as_str(), "");
+    fn test_today() {
+        let valid_date = Local::now().date_naive().to_string();
+        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_err());
+    }
 
-        let due_date: ValueObject<ReservedUntil> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(due_date.as_str(), "  ");
+    #[test]
+    fn test_yesterday() {
+        let valid_date = Local::now()
+            .checked_sub_days(Days::new(1))
+            .unwrap()
+            .date_naive()
+            .to_string();
+        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_err());
     }
 
     #[test]
@@ -98,6 +117,8 @@ mod tests {
             r#""2024-00-01""#,
             r#""2024-01-00""#,
             r#""abc""#,
+            r#""""#,
+            r#""    ""#,
         ];
 
         for case in cases {
@@ -116,19 +137,5 @@ mod tests {
     fn test_get_value() {
         let due_date = ReservedUntil("2024-01-01".to_string());
         assert_eq!(due_date.get_value(), "2024-01-01");
-    }
-
-    #[test]
-    fn test_validation() {
-        assert!(ReservedUntil("2024-01-01".to_string()).validate().is_ok());
-        assert!(ReservedUntil("".to_string()).validate().is_ok());
-        assert!(ReservedUntil("  ".to_string()).validate().is_ok());
-
-        assert!(ReservedUntil("2024/01/01".to_string()).validate().is_err());
-        assert!(ReservedUntil("2024.01.01".to_string()).validate().is_err());
-        assert!(ReservedUntil("01-01-2024".to_string()).validate().is_err());
-        assert!(ReservedUntil("2024-13-01".to_string()).validate().is_err());
-        assert!(ReservedUntil("2024-01-32".to_string()).validate().is_err());
-        assert!(ReservedUntil("abc".to_string()).validate().is_err());
     }
 }

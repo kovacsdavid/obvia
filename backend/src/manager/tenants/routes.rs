@@ -17,12 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::TenantsModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::manager::tenants::TenantsModule;
-use crate::manager::tenants::handler::{
-    activate as tenants_activate, create as tenants_create, get as tenants_get,
-    list as tenants_list,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
@@ -32,10 +29,10 @@ pub fn routes(tenants_module: Arc<dyn TenantsModule>) -> Router {
     Router::new().nest(
         "/tenants",
         Router::new()
-            .route("/create", post(tenants_create))
-            .route("/get", get(tenants_get))
-            .route("/list", get(tenants_list))
-            .route("/activate", post(tenants_activate))
+            .route("/create", post(handler::create))
+            .route("/get", get(handler::get))
+            .route("/list", get(handler::list))
+            .route("/activate", post(handler::activate))
             .layer(from_fn_with_state(tenants_module.config(), require_auth))
             .with_state(tenants_module),
     )

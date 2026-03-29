@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::UsersModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::manager::users::handler::{get_claims, otp_disable, otp_enable, otp_verify};
-use crate::tenant::users::UsersModule;
 use axum::middleware::from_fn_with_state;
 use axum::{
     Router,
@@ -31,10 +31,10 @@ pub fn routes(users_module: Arc<dyn UsersModule>) -> Router {
     Router::new().nest(
         "/users",
         Router::new()
-            .route("/get_claims", get(get_claims))
-            .route("/otp/enable", get(otp_enable))
-            .route("/otp/verify", post(otp_verify))
-            .route("/otp/disable", post(otp_disable))
+            .route("/get_claims", get(handler::get_claims))
+            .route("/otp/enable", get(handler::otp_enable))
+            .route("/otp/verify", post(handler::otp_verify))
+            .route("/otp/disable", post(handler::otp_disable))
             .layer(from_fn_with_state(users_module.config(), require_auth))
             .with_state(users_module),
     )

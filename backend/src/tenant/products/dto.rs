@@ -16,15 +16,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct ProductUserInputHelper {
@@ -75,10 +74,10 @@ impl IntoResponse for ProductUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub name: ValueObject<ProductName>,
     pub description: Option<ValueObject<ProductDescription>>,
-    pub unit_of_measure_id: Option<Uuid>,
+    pub unit_of_measure_id: Option<ValueObject<UuidVO>>,
     pub new_unit_of_measure: Option<ValueObject<UnitsOfMeasure>>,
     pub status: ValueObject<ProductStatus>,
 }
@@ -88,168 +87,59 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
     fn try_from(value: ProductUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = ProductUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let name = ValueObject::new(ProductName(value.name)).inspect_err(|e| {
+        let name = ValueObject::new_required(ProductName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
 
-        let status = ValueObject::new(ProductStatus(value.status)).inspect_err(|e| {
+        let status = ValueObject::new_required(ProductStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
-        let description =
-            validate_optional_string!(ProductDescription(value.description), error.description);
+        let description = ValueObject::new_optional(ProductDescription(value.description))
+            .inspect_err(|e| {
+                error.description = Some(e.to_string());
+            });
 
-        let unit_of_measure_id = match value.unit_of_measure_id.as_str() {
-            "other" => None,
-            _ => match Uuid::parse_str(value.unit_of_measure_id.as_str()) {
-                Ok(v) => Some(v),
-                Err(_) => {
+        let unit_of_measure_id = if value.unit_of_measure_id.as_str() != "other" {
+            ValueObject::new_required(UuidVO(value.unit_of_measure_id))
+                .inspect_err(|_| {
                     error.unit_of_measure_id = Some("Hibás mértékegység".to_string());
-                    None
-                }
-            },
+                })
+                .map(Some)
+        } else {
+            Ok(None)
         };
 
-        let new_unit_of_measure = if unit_of_measure_id.is_some() {
+        let new_unit_of_measure = if let Ok(result) = &unit_of_measure_id
+            && result.is_some()
+        {
             None
         } else {
-            ValueObject::new(UnitsOfMeasure(value.new_unit_of_measure))
+            ValueObject::new_required(UnitsOfMeasure(value.new_unit_of_measure))
                 .inspect_err(|e| error.new_unit_of_measure = Some(e.to_string()))
                 .ok()
         };
 
         if error.is_empty() {
             Ok(ProductUserInput {
-                id,
+                id: id.map_err(|_| ProductUserInputError::default())?,
                 name: name.map_err(|_| ProductUserInputError::default())?,
-                description,
-                unit_of_measure_id,
+                description: description.map_err(|_| ProductUserInputError::default())?,
+                unit_of_measure_id: unit_of_measure_id
+                    .map_err(|_| ProductUserInputError::default())?,
                 new_unit_of_measure,
                 status: status.map_err(|_| ProductUserInputError::default())?,
             })
         } else {
             Err(error)
         }
-    }
-}
-
-pub struct UpdateProductHelper {
-    // TODO: fields
-}
-
-pub struct UpdateProductError {
-    // TODO: fields
-}
-
-impl UpdateProductError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateProductError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProduct {
-    pub name: ValueObject<ProductName>,
-    pub description: Option<String>,
-    pub unit_of_measure: Uuid,
-    pub is_active: bool,
-    pub created_by_id: Uuid,
-}
-
-impl TryFrom<UpdateProductHelper> for UpdateProduct {
-    type Error = UpdateProductError;
-    fn try_from(value: UpdateProductHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateProductCategoryConnect {
-    pub product_id: Uuid,
-    pub product_category_id: Uuid,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateProductCategoryConnect {
-    pub product_id: Option<Uuid>,
-    pub product_category_id: Option<Uuid>,
-}
-
-pub struct CreateUnitOfMeasureHelper {
-    // TODO: fields
-}
-
-pub struct CreateUnitOfMeasureError {
-    // TODO: fields
-}
-
-impl CreateUnitOfMeasureError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for CreateUnitOfMeasureError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateUnitOfMeasure {
-    pub unit_of_measure: ValueObject<UnitsOfMeasure>,
-}
-
-impl TryFrom<CreateUnitOfMeasureHelper> for CreateUnitOfMeasure {
-    type Error = CreateUnitOfMeasureError;
-    fn try_from(value: CreateUnitOfMeasureHelper) -> Result<Self, Self::Error> {
-        todo!()
-    }
-}
-
-pub struct UpdateUnitOfMeasureHelper {
-    // TODO: fields
-}
-
-pub struct UpdateUnitOfMeasureError {
-    // TODO: fields
-}
-
-impl UpdateUnitOfMeasureError {
-    pub fn is_empty(&self) -> bool {
-        todo!()
-    }
-}
-
-impl IntoResponse for UpdateUnitOfMeasureError {
-    fn into_response(self) -> Response {
-        todo!()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UpdateUnitOfMeasure {
-    pub unit_of_measure: ValueObject<UnitsOfMeasure>,
-}
-
-impl TryFrom<UpdateUnitOfMeasureHelper> for UpdateUnitOfMeasure {
-    type Error = UpdateUnitOfMeasureError;
-    fn try_from(value: UpdateUnitOfMeasureHelper) -> Result<Self, Self::Error> {
-        todo!()
     }
 }

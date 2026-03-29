@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -44,6 +44,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import CustomersEdit from "@/components/modules/customers/Edit.tsx";
 import type { Worksheet } from "./lib/interface";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -63,7 +70,8 @@ export default function Edit({
   const [customersList, setCustomersList] = React.useState<SelectOptionList>(
     [],
   );
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const [openNewCustomerDialog, setOpenNewCustomerDialog] =
     React.useState(false);
   const dispatch = useAppDispatch();
@@ -243,83 +251,117 @@ export default function Edit({
           />
         </DialogContent>
       </Dialog>
-      <ConditionalCard
-        showCard={showCard}
-        title={`Munkalap ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="name">Név</Label>
-          <Input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <FieldError error={errors} field={"name"} />
-          <Label htmlFor="description">Leírás</Label>
-          <Input
-            id="description"
-            type="text"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <FieldError error={errors} field={"description"} />
-
-          <div className="flex items-center w-full">
-            <div className="flex flex-1 items-center">
-              <Label htmlFor="customer_id">Vevő</Label>
-            </div>
-            <div className="flex items-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpenNewCustomerDialog(true)}
-              >
-                <Plus />
+          <FieldSet>
+            <FieldLegend>
+              {`Munkalap ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField("name")}>
+                <FieldLabel htmlFor="name">Név</FieldLabel>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    resetError("name");
+                    setName(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("name")}
+                />
+                <FieldError error={errors} field={"name"} />
+              </Field>
+              <Field data-invalid={isInvalidField("description")}>
+                <FieldLabel htmlFor="description">Leírás</FieldLabel>
+                <Input
+                  id="description"
+                  type="text"
+                  value={description}
+                  onChange={(e) => {
+                    resetError("description");
+                    setDescription(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("description")}
+                />
+                <FieldError error={errors} field={"description"} />
+              </Field>
+              <Field data-invalid={isInvalidField("customer_id")}>
+                <div className="flex items-center w-full">
+                  <div className="flex flex-1 items-center">
+                    <FieldLabel htmlFor="customer_id">Vevő</FieldLabel>
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpenNewCustomerDialog(true)}
+                    >
+                      <Plus />
+                    </Button>
+                  </div>
+                </div>
+                <Select
+                  value={customerId}
+                  onValueChange={(val) => {
+                    resetError("customer_id");
+                    setCustomerId(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("customer_id")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customersList.map((customer) => {
+                      return (
+                        <SelectItem key={customer.value} value={customer.value}>
+                          {customer.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"customer_id"} />
+              </Field>
+              <Field data-invalid={isInvalidField("status")}>
+                <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button className="mr-3" variant="outline" onClick={handleCancel}>
+                Mégse
               </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
             </div>
-          </div>
-          <Select
-            value={customerId}
-            onValueChange={(val) => setCustomerId(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {customersList.map((customer) => {
-                return (
-                  <SelectItem key={customer.value} value={customer.value}>
-                    {customer.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"customer_id"} />
-
-          <Label htmlFor="status">Státusz</Label>
-          <Select value={status} onValueChange={(val) => setStatus(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-          <div className="text-right mt-8">
-            <Button className="mr-3" variant="outline" onClick={handleCancel}>
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

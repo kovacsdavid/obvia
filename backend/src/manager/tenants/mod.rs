@@ -61,8 +61,8 @@ impl TenantsModule for DefaultAppState {
 pub mod tests {
     use super::*;
     use crate::{
+        common::config::{AppConfig, database_config::BasicDatabaseConfig},
         common::error::RepositoryError,
-        manager::app::config::{AppConfig, BasicDatabaseConfig},
     };
     use async_trait::async_trait;
     use lettre::{
@@ -80,7 +80,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for TenantsModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         #[async_trait]
         impl PoolManager for TenantsModule {

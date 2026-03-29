@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct TaxCategory(pub String);
 
-impl ValueObjectable for TaxCategory {
+impl ValueObjectData for TaxCategory {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -55,7 +55,7 @@ impl<'de> Deserialize<'de> for ValueObject<TaxCategory> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(TaxCategory(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(TaxCategory(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -180,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_serialization() {
-        let category = ValueObject::new(TaxCategory("standard".to_string())).unwrap();
+        let category = ValueObject::new_required(TaxCategory("standard".to_string())).unwrap();
         let serialized = serde_json::to_string(&category).unwrap();
         assert_eq!(serialized, r#""standard""#);
     }

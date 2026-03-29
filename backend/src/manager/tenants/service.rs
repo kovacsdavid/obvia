@@ -18,11 +18,13 @@
  */
 
 use crate::common::MailTransporter;
+use crate::common::config::{
+    AppConfig, database_config::BasicDatabaseConfig, database_config::TenantDatabaseConfig,
+};
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::GetQuery;
 use crate::common::services::generate_string_csprng;
-use crate::manager::app::config::{AppConfig, BasicDatabaseConfig, TenantDatabaseConfig};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{

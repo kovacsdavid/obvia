@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::UsersModule;
 use crate::common::MailTransporter;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
@@ -24,7 +25,6 @@ use crate::common::extractors::ClientContext;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
-use crate::tenant::users::UsersModule;
 use async_trait::async_trait;
 use axum::http::StatusCode;
 use serde_json::json;

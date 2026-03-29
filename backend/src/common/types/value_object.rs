@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use thiserror::Error;
@@ -28,7 +29,7 @@ pub enum ValueObjectError {
     ParseError,
 }
 
-pub trait ValueObjectable: Display {
+pub trait ValueObjectData: Display {
     type DataType;
     fn validate(&self) -> Result<(), ValueObjectError>;
     #[allow(dead_code)]
@@ -40,17 +41,25 @@ pub struct ValueObject<T>(T);
 
 impl<T> ValueObject<T>
 where
-    T: ValueObjectable,
+    T: ValueObjectData<DataType = String>,
 {
-    pub fn new(data: T) -> Result<ValueObject<T>, ValueObjectError> {
+    pub fn new_required(data: T) -> Result<ValueObject<T>, ValueObjectError> {
         data.validate()?;
         Ok(ValueObject(data))
+    }
+    pub fn new_optional(data: T) -> Result<Option<ValueObject<T>>, ValueObjectError> {
+        if !data.get_value().trim().is_empty() {
+            data.validate()?;
+            Ok(Some(ValueObject(data)))
+        } else {
+            Ok(None)
+        }
     }
 }
 
 impl<T> ValueObject<T>
 where
-    T: ValueObjectable<DataType = String>,
+    T: ValueObjectData<DataType = String>,
 {
     #[allow(dead_code)]
     pub fn extract(&self) -> &T {
@@ -94,7 +103,7 @@ where
 #[derive(Debug, Clone)]
 pub struct SampleObject(pub String);
 
-impl ValueObjectable for SampleObject {
+impl ValueObjectData for SampleObject {
     type DataType = String;
     fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0 == "sample_object" {
@@ -121,7 +130,7 @@ impl<'de> Deserialize<'de> for ValueObject<SampleObject> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(SampleObject(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(SampleObject(s)).map_err(serde::de::Error::custom)
     }
 }
 

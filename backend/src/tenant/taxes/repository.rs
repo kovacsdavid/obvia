@@ -323,7 +323,7 @@ impl TaxesRepository for PgPoolManager {
         .bind(tax.reporting_code.as_ref().map(|d| d.as_str()))
         .bind(tax.is_default)
         .bind(tax.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

@@ -16,19 +16,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::address::types::country::CountryCode;
 use crate::tenant::taxes::types::legal_text::LegalText;
 use crate::tenant::taxes::types::reporting_code::ReportingCode;
 use crate::tenant::taxes::types::{
     TaxCategory, TaxDescription, TaxLegalText, TaxRate, TaxReportingCode, TaxStatus,
 };
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct TaxUserInputHelper {
@@ -92,7 +91,7 @@ impl IntoResponse for TaxUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaxUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub rate: Option<ValueObject<TaxRate>>,
     pub description: ValueObject<TaxDescription>,
     pub country_code: ValueObject<CountryCode>,
@@ -109,60 +108,66 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
     fn try_from(value: TaxUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = TaxUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
         if value.is_rate_applicable.is_none() {
             error.is_rate_applicable = Some("A mező kitöltése kötelező!".to_string());
         }
 
-        let rate = ValueObject::new(TaxRate(value.rate))
-            .inspect_err(|e| {
-                if let Some(is_rate_applicable) = value.is_rate_applicable
-                    && is_rate_applicable
-                {
-                    error.rate = Some(e.to_string())
-                }
-            })
-            .ok();
+        let rate = if let Some(is_rate_applicable) = value.is_rate_applicable
+            && is_rate_applicable
+        {
+            ValueObject::new_required(TaxRate(value.rate))
+                .inspect_err(|e| error.rate = Some(e.to_string()))
+                .map(Some)
+        } else {
+            Ok(None)
+        };
 
-        let description = ValueObject::new(TaxDescription(value.description)).inspect_err(|e| {
-            error.description = Some(e.to_string());
-        });
+        let description =
+            ValueObject::new_required(TaxDescription(value.description)).inspect_err(|e| {
+                error.description = Some(e.to_string());
+            });
 
-        let country_code = ValueObject::new(CountryCode(value.country_code))
+        let country_code = ValueObject::new_required(CountryCode(value.country_code))
             .inspect_err(|e| error.country_code = Some(e.to_string()));
 
-        let tax_category = ValueObject::new(TaxCategory(value.tax_category)).inspect_err(|e| {
-            error.tax_category = Some(e.to_string());
+        let tax_category =
+            ValueObject::new_required(TaxCategory(value.tax_category)).inspect_err(|e| {
+                error.tax_category = Some(e.to_string());
+            });
+
+        let legal_text = ValueObject::new_optional(LegalText(value.legal_text)).inspect_err(|e| {
+            error.legal_text = Some(e.to_string());
         });
 
-        let legal_text = validate_optional_string!(LegalText(value.legal_text), error.legal_text);
-        let reporting_code =
-            validate_optional_string!(ReportingCode(value.reporting_code), error.reporting_code);
+        let reporting_code = ValueObject::new_optional(ReportingCode(value.reporting_code))
+            .inspect_err(|e| {
+                error.reporting_code = Some(e.to_string());
+            });
 
-        let status = ValueObject::new(TaxStatus(value.status)).inspect_err(|e| {
+        let status = ValueObject::new_required(TaxStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
         if error.is_empty() {
             Ok(TaxUserInput {
-                id,
-                rate,
+                id: id.map_err(|_| TaxUserInputError::default())?,
+                rate: rate.map_err(|_| TaxUserInputError::default())?,
                 description: description.map_err(|_| TaxUserInputError::default())?,
                 country_code: country_code.map_err(|_| TaxUserInputError::default())?,
                 tax_category: tax_category.map_err(|_| TaxUserInputError::default())?,
                 is_rate_applicable: value
                     .is_rate_applicable
                     .ok_or(TaxUserInputError::default())?,
-                legal_text,
-                reporting_code,
+                legal_text: legal_text.map_err(|_| TaxUserInputError::default())?,
+                reporting_code: reporting_code.map_err(|_| TaxUserInputError::default())?,
                 is_default: value.is_default,
                 status: status.map_err(|_| TaxUserInputError::default())?,
             })

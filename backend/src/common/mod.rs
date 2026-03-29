@@ -20,18 +20,19 @@
 use std::sync::Arc;
 
 use crate::{
-    common::error::RepositoryResult,
+    common::{
+        config::{AppConfig, BasicDatabaseConfig},
+        error::RepositoryResult,
+    },
     manager::{
-        app::{
-            config::{AppConfig, BasicDatabaseConfig},
-            database::{
-                ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
-            },
+        app::database::{
+            ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
         },
         tenants::repository::TenantsRepository,
     },
 };
 use async_trait::async_trait;
+use lettre::message::header::{Subject, To};
 use lettre::{
     AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
     transport::smtp::{Error, authentication::Credentials, response::Response},
@@ -40,6 +41,7 @@ use sqlx::PgPool;
 use tracing::{error, info};
 use uuid::Uuid;
 
+pub(crate) mod config;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;
@@ -55,7 +57,7 @@ pub trait ConfigProvider: Send + Sync {
 
 #[async_trait]
 pub trait MailTransporter: ConfigProvider + Send + Sync {
-    async fn send(&self, message: Message) -> Result<Response, Error>;
+    async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
 }
 
 pub struct AppState<P, T>
@@ -74,9 +76,6 @@ pub type DefaultSmtpTransport = AsyncSmtpTransport<Tokio1Executor>;
 pub type DefaultAppState = AppState<PgPoolManager, DefaultSmtpTransport>;
 
 impl DefaultAppState {
-    fn init_config() -> anyhow::Result<AppConfig> {
-        Ok(AppConfig::from_env()?)
-    }
     async fn init_pool_manager(config: Arc<AppConfig>) -> anyhow::Result<PgPoolManager> {
         Ok(PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?)
     }
@@ -90,8 +89,7 @@ impl DefaultAppState {
                 .build(),
         )
     }
-    pub async fn new() -> anyhow::Result<DefaultAppState> {
-        let config = Arc::new(Self::init_config()?);
+    pub async fn new(config: Arc<AppConfig>) -> anyhow::Result<DefaultAppState> {
         let pool_manager = Arc::new(Self::init_pool_manager(config.clone()).await?);
         Ok(Self {
             config: config.clone(),
@@ -139,8 +137,30 @@ impl<P> MailTransporter for AppState<P, DefaultSmtpTransport>
 where
     P: Send + Sync,
 {
-    async fn send(&self, message: Message) -> Result<Response, Error> {
-        self.default_smtp_transport.send(message).await
+    async fn send(&self, message: Message) -> Result<Option<Response>, Error> {
+        let subject = message.headers().get::<Subject>();
+        let to = message.headers().get::<To>();
+        if self.config().mail().mail_enabled() {
+            match self.default_smtp_transport.send(message).await {
+                Ok(r) => {
+                    info!("Mail sent: subject={:?} to={:?}", subject, to);
+                    Ok(Some(r))
+                }
+                Err(e) => {
+                    error!(
+                        "Mail transport error: subject={:?} to={:?} error={:?}",
+                        subject, to, e
+                    );
+                    Err(e)
+                }
+            }
+        } else {
+            info!(
+                "Mail sent (dry run; cfg:mail_enabled=false): subject={:?} to={:?}",
+                subject, to
+            );
+            Ok(None)
+        }
     }
 }
 

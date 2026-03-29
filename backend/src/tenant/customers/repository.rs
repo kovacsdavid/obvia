@@ -296,7 +296,7 @@ impl CustomersRepository for PgPoolManager {
         .bind(customer.phone_number.as_ref().map(|d| d.as_str()))
         .bind(customer.status.as_str())
         .bind(customer.customer_type.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

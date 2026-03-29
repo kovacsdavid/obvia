@@ -17,14 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectable, value_object::ValueObjectError};
+use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct Code(pub String);
 
-impl ValueObjectable for Code {
+impl ValueObjectData for Code {
     type DataType = String;
 
     fn validate(&self) -> Result<(), ValueObjectError> {
@@ -52,7 +52,7 @@ impl<'de> Deserialize<'de> for ValueObject<Code> {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        ValueObject::new(Code(s)).map_err(serde::de::Error::custom)
+        ValueObject::new_required(Code(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -99,10 +99,10 @@ mod tests {
 
     #[test]
     fn test_value_object_creation() {
-        let result = ValueObject::new(Code("HU".to_string()));
+        let result = ValueObject::new_required(Code("HU".to_string()));
         assert!(result.is_ok());
 
-        let result = ValueObject::new(Code("INVALID".to_string()));
+        let result = ValueObject::new_required(Code("INVALID".to_string()));
         assert!(result.is_err());
     }
 

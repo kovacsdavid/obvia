@@ -63,13 +63,3 @@ pub struct TaskResolved {
     pub deleted_at: Option<DateTime<Local>>,
     pub description: Option<String>,
 }
-
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
-pub struct TaskAssignment {
-    pub id: Uuid,
-    pub user_id: Uuid,
-    pub task_id: Uuid,
-    pub created_by_id: Uuid,
-    pub created_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
-}

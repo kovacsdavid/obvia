@@ -18,17 +18,15 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{
     ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus,
 };
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct ServiceUserInputHelper {
@@ -83,11 +81,11 @@ impl IntoResponse for ServiceUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServiceUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub name: ValueObject<ServiceName>,
     pub description: Option<ValueObject<ServiceDescription>>,
     pub default_price: Option<ValueObject<DefaultPrice>>,
-    pub default_tax_id: Option<Uuid>,
+    pub default_tax_id: Option<ValueObject<UuidVO>>,
     pub currency_code: Option<ValueObject<CurrencyCode>>,
     pub status: ValueObject<ServiceStatus>,
 }
@@ -97,57 +95,50 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
     fn try_from(value: ServiceUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = ServiceUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => {
-                if id.trim().is_empty() {
-                    None
-                } else {
-                    Uuid::parse_str(&id)
-                        .inspect_err(|_| {
-                            error.id = Some("Hibás azonosító".to_string());
-                        })
-                        .ok()
-                }
-            }
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let name = ValueObject::new(ServiceName(value.name)).inspect_err(|e| {
+        let name = ValueObject::new_required(ServiceName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
 
-        let description =
-            validate_optional_string!(ServiceDescription(value.description), error.description);
-        let default_price =
-            validate_optional_string!(ServiceDefaultPrice(value.default_price), error.description);
+        let description = ValueObject::new_optional(ServiceDescription(value.description))
+            .inspect_err(|e| {
+                error.description = Some(e.to_string());
+            });
 
-        let default_tax_id = if value.default_tax_id.trim().is_empty() {
-            None
-        } else {
-            match Uuid::parse_str(&value.default_tax_id) {
-                Ok(uuid) => Some(uuid),
-                Err(_) => {
-                    error.default_tax_id = Some("Érvénytelen adó azonosító".to_string());
-                    None
-                }
-            }
-        };
+        let default_price = ValueObject::new_optional(ServiceDefaultPrice(value.default_price))
+            .inspect_err(|e| {
+                error.default_price = Some(e.to_string());
+            });
 
-        let currency_code =
-            validate_optional_string!(CurrencyCode(value.currency_code), error.currency_code);
+        let default_tax_id =
+            ValueObject::new_optional(UuidVO(value.default_tax_id)).inspect_err(|_| {
+                error.default_tax_id = Some("Érvénytelen adó azonosító".to_string());
+            });
 
-        let status = ValueObject::new(ServiceStatus(value.status)).inspect_err(|e| {
+        let currency_code = ValueObject::new_optional(CurrencyCode(value.currency_code))
+            .inspect_err(|_| {
+                error.currency_code = Some("Érvénytelen adó azonosító".to_string());
+            });
+
+        let status = ValueObject::new_required(ServiceStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
 
         if error.is_empty() {
             Ok(ServiceUserInput {
-                id,
+                id: id.map_err(|_| ServiceUserInputError::default())?,
                 name: name.map_err(|_| ServiceUserInputError::default())?,
-                description,
-                default_price,
-                default_tax_id,
-                currency_code,
+                description: description.map_err(|_| ServiceUserInputError::default())?,
+                default_price: default_price.map_err(|_| ServiceUserInputError::default())?,
+                default_tax_id: default_tax_id.map_err(|_| ServiceUserInputError::default())?,
+                currency_code: currency_code.map_err(|_| ServiceUserInputError::default())?,
                 status: status.map_err(|_| ServiceUserInputError::default())?,
             })
         } else {

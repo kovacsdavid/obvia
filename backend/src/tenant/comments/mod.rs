@@ -44,7 +44,7 @@ impl CommentsModule for DefaultAppState {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::manager::app::config::AppConfig;
+    use crate::common::config::AppConfig;
     use async_trait::async_trait;
     use lettre::{
         Message,
@@ -59,7 +59,7 @@ pub mod tests {
         }
         #[async_trait]
         impl MailTransporter for CommentsModule {
-            async fn send(&self, message: Message) -> Result<Response, Error>;
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
         impl CommentsModule for CommentsModule {
             fn comments_repo(&self) -> Arc<dyn CommentsRepository>;

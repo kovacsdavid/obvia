@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::{RepositoryError, RepositoryResult};
+use crate::common::error::RepositoryResult;
 use crate::common::query_parser::GetQuery;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
@@ -29,7 +29,6 @@ use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
 use async_trait::async_trait;
-use chrono::NaiveDate;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -246,12 +245,9 @@ impl InventoryReservationsRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryReservation> {
-        let reserved_until = match input.reserved_until {
+        let reference_id = match &input.reference_id {
+            Some(v) => Some(v.as_uuid()?),
             None => None,
-            Some(v) => Some(
-                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
-                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
-            ),
         };
         Ok(sqlx::query_as::<_, InventoryReservation>(
             r#"
@@ -262,11 +258,11 @@ impl InventoryReservationsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(input.inventory_id)
+        .bind(input.inventory_id.as_uuid()?)
         .bind(input.quantity.as_i32()?)
         .bind(input.reference_type.as_ref().map(|d| d.as_str()))
-        .bind(input.reference_id)
-        .bind(reserved_until)
+        .bind(reference_id)
+        .bind(input.reserved_until.date_naive()?)
         .bind(input.status.as_str())
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)

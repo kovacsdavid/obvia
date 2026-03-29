@@ -247,7 +247,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           },
           {
             title: "Beállítások",
-            click: handleLogout,
             url: "/felhasznalo/beallitasok",
             icon: <UserRoundCog />,
             private: true,

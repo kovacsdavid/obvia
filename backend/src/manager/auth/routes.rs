@@ -17,11 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::handler::{
-    forgotten_password, login, logout, new_password, refresh, register, resend_email_verification,
-    verify_email,
-};
-use crate::manager::auth::AuthModule;
+use super::AuthModule;
+use super::handler;
 use axum::{
     Router,
     routing::{get, post},
@@ -32,14 +29,17 @@ pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()
-            .route("/register", post(register))
-            .route("/login", post(login))
-            .route("/verify_email", get(verify_email))
-            .route("/resend_email_verification", get(resend_email_verification))
-            .route("/forgotten_password", post(forgotten_password))
-            .route("/new_password", post(new_password))
-            .route("/t/refresh", post(refresh)) // "[t]oken" nest is for cookie path restriction
-            .route("/t/logout", post(logout)) // "[t]oken" nest is for cookie path restriction
+            .route("/register", post(handler::register))
+            .route("/login", post(handler::login))
+            .route("/verify_email", get(handler::verify_email))
+            .route(
+                "/resend_email_verification",
+                get(handler::resend_email_verification),
+            )
+            .route("/forgotten_password", post(handler::forgotten_password))
+            .route("/new_password", post(handler::new_password))
+            .route("/t/refresh", post(handler::refresh)) // "[t]oken" nest is for cookie path restriction
+            .route("/t/logout", post(handler::logout)) // "[t]oken" nest is for cookie path restriction
             .with_state(auth_module),
     )
 }

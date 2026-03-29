@@ -19,9 +19,9 @@
 
 use std::sync::Arc;
 
+use super::ActivityFeedModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::activity_feed::ActivityFeedModule;
-use crate::tenant::activity_feed::handler::list as activity_feed_list;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::get};
 
@@ -29,7 +29,7 @@ pub fn routes(activity_feed_module: Arc<dyn ActivityFeedModule>) -> Router {
     Router::new().nest(
         "/activity_feed",
         Router::new()
-            .route("/list", get(activity_feed_list))
+            .route("/list", get(handler::list))
             .layer(from_fn_with_state(
                 activity_feed_module.config(),
                 require_auth,

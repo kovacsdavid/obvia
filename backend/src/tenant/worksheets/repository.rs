@@ -333,6 +333,11 @@ impl WorksheetsRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
+        let project_id = match &worksheet.project_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
+
         Ok(sqlx::query_as::<_, Worksheet>(
             "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
@@ -344,8 +349,8 @@ impl WorksheetsRepository for PgPoolManager {
                 .as_ref()
                 .map(|d| d.as_str()),
         )
-        .bind(worksheet.customer_id)
-        .bind(worksheet.project_id)
+        .bind(worksheet.customer_id.as_uuid()?)
+        .bind(project_id)
         .bind(sub)
         .bind(worksheet.status.as_str())
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
@@ -360,6 +365,10 @@ impl WorksheetsRepository for PgPoolManager {
         let id = worksheet
             .id
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let project_id = match &worksheet.project_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Worksheet>(
             r#"
             UPDATE worksheets
@@ -375,10 +384,10 @@ impl WorksheetsRepository for PgPoolManager {
         )
         .bind(worksheet.name.as_str())
         .bind(worksheet.description.as_ref().map(|d| d.as_str()))
-        .bind(worksheet.customer_id)
-        .bind(worksheet.project_id)
+        .bind(worksheet.customer_id.as_uuid()?)
+        .bind(project_id)
         .bind(worksheet.status.as_str())
-        .bind(id)
+        .bind(id.as_uuid()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

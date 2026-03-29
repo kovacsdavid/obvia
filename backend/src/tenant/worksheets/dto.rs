@@ -17,15 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
+use crate::common::types::{UuidVO, ValueObject};
 use crate::tenant::worksheets::types::worksheet::{
     WorksheetDescription, WorksheetName, WorksheetStatus,
 };
-use crate::validate_optional_string;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize)]
 pub struct WorksheetUserInputHelper {
@@ -77,11 +75,11 @@ impl IntoResponse for WorksheetUserInputError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WorksheetUserInput {
-    pub id: Option<Uuid>,
+    pub id: Option<ValueObject<UuidVO>>,
     pub name: ValueObject<WorksheetName>,
     pub description: Option<ValueObject<WorksheetDescription>>,
-    pub customer_id: Uuid,
-    pub project_id: Option<Uuid>,
+    pub customer_id: ValueObject<UuidVO>,
+    pub project_id: Option<ValueObject<UuidVO>>,
     pub status: ValueObject<WorksheetStatus>,
 }
 
@@ -90,35 +88,42 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
     fn try_from(value: WorksheetUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = WorksheetUserInputError::default();
 
-        let id = match value.id {
-            None => None,
-            Some(id) => Uuid::parse_str(&id)
-                .inspect_err(|e| {
-                    error.id = Some("Hibás azonosító".to_string());
-                })
-                .ok(),
+        let id = if let Some(id) = value.id {
+            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+                error.id = Some(e.to_string());
+            })
+        } else {
+            Ok(None)
         };
 
-        let name = ValueObject::new(WorksheetName(value.name)).inspect_err(|e| {
+        let name = ValueObject::new_required(WorksheetName(value.name)).inspect_err(|e| {
             error.name = Some(e.to_string());
         });
-        let status = ValueObject::new(WorksheetStatus(value.status)).inspect_err(|e| {
+
+        let status = ValueObject::new_required(WorksheetStatus(value.status)).inspect_err(|e| {
             error.status = Some(e.to_string());
         });
-        let customer_id = Uuid::parse_str(&value.customer_id).inspect_err(|e| {
+
+        let customer_id = ValueObject::new_required(UuidVO(value.customer_id)).inspect_err(|_| {
             error.customer_id = Some("A mező kitöltése kötelező!".to_string());
         });
-        let project_id = Uuid::parse_str(&value.project_id).ok();
-        let description =
-            validate_optional_string!(WorksheetDescription(value.description), error.description);
+
+        let project_id = ValueObject::new_optional(UuidVO(value.project_id)).inspect_err(|_| {
+            error.project_id = Some("A mező kitöltése kötelező!".to_string());
+        });
+
+        let description = ValueObject::new_optional(WorksheetDescription(value.description))
+            .inspect_err(|e| {
+                error.description = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(WorksheetUserInput {
-                id,
+                id: id.map_err(|_| WorksheetUserInputError::default())?,
                 name: name.map_err(|_| WorksheetUserInputError::default())?,
-                description,
+                description: description.map_err(|_| WorksheetUserInputError::default())?,
                 customer_id: customer_id.map_err(|_| WorksheetUserInputError::default())?,
-                project_id,
+                project_id: project_id.map_err(|_| WorksheetUserInputError::default())?,
                 status: status.map_err(|_| WorksheetUserInputError::default())?,
             })
         } else {

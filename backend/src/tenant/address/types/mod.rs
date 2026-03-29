@@ -17,8 +17,4 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod address;
-pub(crate) mod city;
 pub(crate) mod country;
-pub(crate) mod postal_code;
-pub(crate) mod state;

@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -40,6 +40,13 @@ import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import type { SelectOptionList } from "@/lib/interfaces/common.ts";
 import type { Tax } from "./lib/interface";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 interface EditProps {
   showCard?: boolean;
@@ -65,7 +72,8 @@ export default function Edit({
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const params = useParams();
   const id = React.useMemo(() => params["id"] ?? null, [params]);
 
@@ -250,126 +258,189 @@ export default function Edit({
   return (
     <>
       <GlobalError error={errors} />
-      <ConditionalCard
-        showCard={showCard}
-        title={`Adók ${id ? "módosítás" : "létrehozás"}`}
-        className={"max-w-lg mx-auto"}
-      >
+      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
         <form
           onSubmit={handleSubmit}
           className="space-y-4"
           autoComplete={"off"}
         >
-          <Label htmlFor="is_rate_applicable">Adókulcs alkalmazandó</Label>
-          <Select
-            value={isRateApplicable}
-            onValueChange={(val) => setIsRateApplicable(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={"true"}>igen</SelectItem>
-              <SelectItem value={"false"}>nem</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"is_rate_applicable"} />
-          {isRateApplicable === "true" ? (
-            <>
-              <Label htmlFor="rate">Adókulcs (%)</Label>
-              <Input
-                id="rate"
-                type="text"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-              />
-              <FieldError error={errors} field={"rate"} />
-            </>
-          ) : null}
+          <FieldSet>
+            <FieldLegend>
+              {`Adók ${id ? "módosítás" : "létrehozás"}`}
+            </FieldLegend>
+            <FieldGroup>
+              <Field data-invalid={isInvalidField("is_rate_applicable")}>
+                <FieldLabel htmlFor="is_rate_applicable">
+                  Adókulcs alkalmazandó
+                </FieldLabel>
+                <Select
+                  value={isRateApplicable}
+                  onValueChange={(val) => {
+                    resetError("is_rate_applicable");
+                    setIsRateApplicable(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("is_rate_applicable")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={"true"}>igen</SelectItem>
+                    <SelectItem value={"false"}>nem</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"is_rate_applicable"} />
+              </Field>
+              {isRateApplicable === "true" ? (
+                <>
+                  <Field data-invalid={isInvalidField("rate")}>
+                    <FieldLabel htmlFor="rate">Adókulcs (%)</FieldLabel>
+                    <Input
+                      id="rate"
+                      type="text"
+                      value={rate}
+                      onChange={(e) => {
+                        resetError("rate");
+                        setRate(e.target.value);
+                      }}
+                      aria-invalid={isInvalidField("rate")}
+                    />
+                    <FieldError error={errors} field={"rate"} />
+                  </Field>
+                </>
+              ) : null}
+              <Field data-invalid={isInvalidField("description")}>
+                <FieldLabel htmlFor="description">Megnevezés</FieldLabel>
+                <Input
+                  id="description"
+                  type="text"
+                  placeholder="ÁFA"
+                  value={description}
+                  onChange={(e) => {
+                    resetError("description");
+                    setDescription(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("description")}
+                />
+                <FieldError error={errors} field={"description"} />
+              </Field>
+              <Field data-invalid={isInvalidField("country_code")}>
+                <FieldLabel htmlFor="country_code">Ország</FieldLabel>
+                <Select
+                  value={countryCode}
+                  onValueChange={(val) => {
+                    resetError("country_code");
+                    setCountryCode(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("country_code")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {countryList.map((country) => {
+                      return (
+                        <SelectItem key={country.value} value={country.value}>
+                          {country.title}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"country_code"} />
+              </Field>
+              <Field data-invalid={isInvalidField("tax_category")}>
+                <FieldLabel htmlFor="tax_category">Adó kategória</FieldLabel>
+                <Select
+                  value={taxCategory}
+                  onValueChange={(val) => {
+                    resetError("tax_category");
+                    setTaxCategory(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("tax_category")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">Általános</SelectItem>
+                    <SelectItem value="reduced">Kedvezményes</SelectItem>
+                    <SelectItem value="zero">Nulla kulcsos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"tax_category"} />
+              </Field>
 
-          <Label htmlFor="description">Megnevezés</Label>
-          <Input
-            id="description"
-            type="text"
-            placeholder="ÁFA"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <FieldError error={errors} field={"description"} />
+              <Field data-invalid={isInvalidField("legal_text")}>
+                <FieldLabel htmlFor="legal_text">Jogi szöveg</FieldLabel>
+                <Input
+                  id="legal_text"
+                  type="text"
+                  placeholder="Pl.: Alanyi adómenetes"
+                  value={legalText}
+                  onChange={(e) => {
+                    resetError("legal_text");
+                    setLegalText(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("legal_text")}
+                />
+                <FieldError error={errors} field={"legal_text"} />
+              </Field>
 
-          <Label htmlFor="country_code">Ország</Label>
-          <Select
-            value={countryCode}
-            onValueChange={(val) => setCountryCode(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {countryList.map((country) => {
-                return (
-                  <SelectItem key={country.value} value={country.value}>
-                    {country.title}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"country_code"} />
+              <Field data-invalid={isInvalidField("reporting_code")}>
+                <FieldLabel htmlFor="reporting_code">Jelentési kód</FieldLabel>
+                <Input
+                  id="reporting_code"
+                  type="text"
+                  value={reportingCode}
+                  onChange={(e) => {
+                    resetError("reporting_code");
+                    setReportingCode(e.target.value);
+                  }}
+                  aria-invalid={isInvalidField("reporting_code")}
+                />
+                <FieldError error={errors} field={"reporting_code"} />
+              </Field>
 
-          <Label htmlFor="tax_category">Adó kategória</Label>
-          <Select
-            value={taxCategory}
-            onValueChange={(val) => setTaxCategory(val)}
-          >
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="standard">Általános</SelectItem>
-              <SelectItem value="reduced">Kedvezményes</SelectItem>
-              <SelectItem value="zero">Nulla kulcsos</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"tax_category"} />
-
-          <Label htmlFor="legal_text">Jogi szöveg</Label>
-          <Input
-            id="legal_text"
-            type="text"
-            placeholder="Pl.: Alanyi adómenetes"
-            value={legalText}
-            onChange={(e) => setLegalText(e.target.value)}
-          />
-          <FieldError error={errors} field={"legal_text"} />
-
-          <Label htmlFor="reporting_code">Jelentési kód</Label>
-          <Input
-            id="reporting_code"
-            type="text"
-            value={reportingCode}
-            onChange={(e) => setReportingCode(e.target.value)}
-          />
-          <FieldError error={errors} field={"reporting_code"} />
-
-          <Label htmlFor="status">Státusz</Label>
-          <Select value={status} onValueChange={(val) => setStatus(val)}>
-            <SelectTrigger className={"w-full"}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Aktív</SelectItem>
-              <SelectItem value="inactive">Inaktív</SelectItem>
-              <SelectItem value="draft">Vázlat</SelectItem>
-            </SelectContent>
-          </Select>
-          <FieldError error={errors} field={"status"} />
-          <div className="text-right mt-8">
-            <Button className="mr-3" variant="outline" onClick={handleCancel}>
-              Mégse
-            </Button>
-            <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-          </div>
+              <Field data-invalid={isInvalidField("status")}>
+                <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                <Select
+                  value={status}
+                  onValueChange={(val) => {
+                    resetError("status");
+                    setStatus(val);
+                  }}
+                >
+                  <SelectTrigger
+                    className={"w-full"}
+                    aria-invalid={isInvalidField("status")}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Aktív</SelectItem>
+                    <SelectItem value="inactive">Inaktív</SelectItem>
+                    <SelectItem value="draft">Vázlat</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldError error={errors} field={"status"} />
+              </Field>
+            </FieldGroup>
+          </FieldSet>
+          <Field orientation="horizontal">
+            <div className="text-right mt-8 w-full">
+              <Button className="mr-3" variant="outline" onClick={handleCancel}>
+                Mégse
+              </Button>
+              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+            </div>
+          </Field>
         </form>
       </ConditionalCard>
     </>

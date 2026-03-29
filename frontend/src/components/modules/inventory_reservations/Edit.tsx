@@ -18,13 +18,8 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input, Label } from "@/components/ui";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card.tsx";
+import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   create,
@@ -47,12 +42,19 @@ import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import type { Inventory } from "../inventory/lib/interface";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+} from "@/components/ui/field";
 
 export default function Edit() {
   const [inventoryId, setInventoryId] = React.useState("");
   const [referenceType, setReferenceType] = React.useState<string | null>("");
   const [referenceId, setReferenceId] = React.useState<string | null>("");
-  const [reservedUntil, setReservedUntil] = React.useState<string | null>(null);
+  const [reservedUntil, setReservedUntil] = React.useState<string | null>("");
   const [status, setStatus] = React.useState("");
   const [inventoryIdList, setInventoryIdList] =
     React.useState<SelectOptionList>([]);
@@ -62,7 +64,8 @@ export default function Edit() {
   const navigate = useNavigate();
   const params = useParams();
   const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError } = useFormError();
+  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+    useFormError();
   const routeInventoryId = React.useMemo(
     () => params["inventoryId"] ?? "",
     [params],
@@ -233,137 +236,197 @@ export default function Edit() {
         </DialogContent>
       </Dialog>
       <Card className={"max-w-lg mx-auto"}>
-        <CardHeader>
-          <CardTitle>Készlet foglalás</CardTitle>
-        </CardHeader>
         <CardContent>
           <form
             onSubmit={handleSubmit}
             className="space-y-4"
             autoComplete={"off"}
           >
-            {!routeInventoryId && (
-              <>
-                <div className="flex items-center w-full">
-                  <div className="flex flex-1 items-center">
-                    <Label htmlFor="inventoryId">Raktárkészlet</Label>
-                  </div>
-                  <div className="flex items-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setOpenNewInventoryDialog(true)}
-                    >
-                      <Plus />
-                    </Button>
-                  </div>
-                </div>
-                <Select
-                  disabled={inventoryIdList.length === 0}
-                  value={inventoryId ?? ""}
-                  onValueChange={(val) => setInventoryId(val)}
-                >
-                  <SelectTrigger className={"w-full"}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {inventoryIdList.map((inventoryIdListItem) => (
-                      <SelectItem
-                        key={inventoryIdListItem.value}
-                        value={inventoryIdListItem.value}
+            <FieldSet>
+              <FieldLegend>Készlet foglalás</FieldLegend>
+              <FieldGroup>
+                {!routeInventoryId && (
+                  <>
+                    <Field data-invalid={isInvalidField("inventory_id")}>
+                      <div className="flex items-center w-full">
+                        <div className="flex flex-1 items-center">
+                          <FieldLabel htmlFor="inventory_id">
+                            Raktárkészlet
+                          </FieldLabel>
+                        </div>
+                        <div className="flex items-center">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setOpenNewInventoryDialog(true)}
+                          >
+                            <Plus />
+                          </Button>
+                        </div>
+                      </div>
+                      <Select
+                        disabled={inventoryIdList.length === 0}
+                        value={inventoryId ?? ""}
+                        onValueChange={(val) => {
+                          resetError("inventory_id");
+                          setInventoryId(val);
+                        }}
                       >
-                        {inventoryIdListItem.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"inventory_id"} />
-              </>
-            )}
+                        <SelectTrigger
+                          className={"w-full"}
+                          aria-invalid={isInvalidField("inventory_id")}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {inventoryIdList.map((inventoryIdListItem) => (
+                            <SelectItem
+                              key={inventoryIdListItem.value}
+                              value={inventoryIdListItem.value}
+                            >
+                              {inventoryIdListItem.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FieldError error={errors} field={"inventory_id"} />
+                    </Field>
+                  </>
+                )}
 
-            <Label htmlFor="quantity">Mennyiség</Label>
-            <Input
-              id="quantity"
-              type="text"
-              placeholder="10"
-              value={quantity.displayValue}
-              onChange={(e) =>
-                quantity.handleInputChangeWithCursor(e.target.value, e.target)
-              }
-            />
-            <FieldError error={errors} field={"quantity"} />
+                <Field data-invalid={isInvalidField("quantity")}>
+                  <FieldLabel htmlFor="quantity">Mennyiség</FieldLabel>
+                  <Input
+                    id="quantity"
+                    type="text"
+                    placeholder="10"
+                    value={quantity.displayValue}
+                    onChange={(e) => {
+                      resetError("quantity");
+                      quantity.handleInputChangeWithCursor(
+                        e.target.value,
+                        e.target,
+                      );
+                    }}
+                    aria-invalid={isInvalidField("quantity")}
+                  />
+                  <FieldError error={errors} field={"quantity"} />
+                </Field>
 
-            <Label htmlFor="referenceType">Hivatkozás típusa</Label>
-            <Select
-              value={referenceType ?? ""}
-              onValueChange={(val) => handleReferenceTypeChange(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="worksheets">Munkalap</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"reference_type"} />
-
-            <Label htmlFor="referenceId">Hivatkozás azonosító</Label>
-            <Select
-              disabled={referenceIdList.length === 0}
-              value={referenceId ?? ""}
-              onValueChange={(val) => setReferenceId(val)}
-            >
-              <SelectTrigger className={"w-full"}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {referenceIdList.map((referenceIdListItem) => (
-                  <SelectItem
-                    key={referenceIdListItem.value}
-                    value={referenceIdListItem.value}
+                <Field data-invalid={isInvalidField("reference_type")}>
+                  <FieldLabel htmlFor="reference_type">
+                    Hivatkozás típusa
+                  </FieldLabel>
+                  <Select
+                    value={referenceType ?? ""}
+                    onValueChange={(val) => {
+                      resetError("reference_type");
+                      handleReferenceTypeChange(val);
+                    }}
                   >
-                    {referenceIdListItem.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"reference_id"} />
+                    <SelectTrigger
+                      className={"w-full"}
+                      aria-invalid={isInvalidField("reference_type")}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="worksheets">Munkalap</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldError error={errors} field={"reference_type"} />
+                </Field>
 
-            <Label htmlFor="reservedUntil">Foglalás lejárata</Label>
-            <Input
-              id="reservedUntil"
-              type="date"
-              value={reservedUntil ?? ""}
-              onChange={(e) => setReservedUntil(e.target.value)}
-            />
-            <FieldError error={errors} field={"reserved_until"} />
+                <Field data-invalid={isInvalidField("reference_id")}>
+                  <FieldLabel htmlFor="reference_id">
+                    Hivatkozás azonosító
+                  </FieldLabel>
+                  <Select
+                    disabled={referenceIdList.length === 0}
+                    value={referenceId ?? ""}
+                    onValueChange={(val) => {
+                      resetError("reference_id");
+                      setReferenceId(val);
+                    }}
+                  >
+                    <SelectTrigger
+                      className={"w-full"}
+                      aria-invalid={isInvalidField("reference_id")}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {referenceIdList.map((referenceIdListItem) => (
+                        <SelectItem
+                          key={referenceIdListItem.value}
+                          value={referenceIdListItem.value}
+                        >
+                          {referenceIdListItem.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FieldError error={errors} field={"reference_id"} />
+                </Field>
 
-            <Label htmlFor="status">Státusz</Label>
-            <Select value={status} onValueChange={(val) => setStatus(val)}>
-              <SelectTrigger className={"w-full"}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Aktív</SelectItem>
-                <SelectItem value="fulfilled">Teljesített</SelectItem>
-                <SelectItem value="cancelled">Lemondott</SelectItem>
-                <SelectItem value="expired">Lejárt</SelectItem>
-              </SelectContent>
-            </Select>
-            <FieldError error={errors} field={"status"} />
-            <div className="text-right mt-8">
-              <Button
-                className="mr-3"
-                variant="outline"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  navigate(-1);
-                }}
-              >
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
+                <Field data-invalid={isInvalidField("reserved_until")}>
+                  <FieldLabel htmlFor="reserved_until">
+                    Foglalás lejárata
+                  </FieldLabel>
+                  <Input
+                    id="reserved_until"
+                    type="date"
+                    value={reservedUntil ?? ""}
+                    onChange={(e) => {
+                      resetError("reserved_until");
+                      setReservedUntil(e.target.value);
+                    }}
+                    aria-invalid={isInvalidField("reserved_until")}
+                  />
+                  <FieldError error={errors} field={"reserved_until"} />
+                </Field>
+
+                <Field data-invalid={isInvalidField("status")}>
+                  <FieldLabel htmlFor="status">Státusz</FieldLabel>
+                  <Select
+                    value={status}
+                    onValueChange={(val) => {
+                      resetError("status");
+                      setStatus(val);
+                    }}
+                  >
+                    <SelectTrigger
+                      className={"w-full"}
+                      aria-invalid={isInvalidField("status")}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Aktív</SelectItem>
+                      <SelectItem value="fulfilled">Teljesített</SelectItem>
+                      <SelectItem value="cancelled">Lemondott</SelectItem>
+                      <SelectItem value="expired">Lejárt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FieldError error={errors} field={"status"} />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+            <Field orientation="horizontal">
+              <div className="text-right mt-8 w-full">
+                <Button
+                  className="mr-3"
+                  variant="outline"
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault();
+                    navigate(-1);
+                  }}
+                >
+                  Mégse
+                </Button>
+                <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
+              </div>
+            </Field>
           </form>
         </CardContent>
       </Card>

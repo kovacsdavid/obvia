@@ -17,12 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use super::CustomersModule;
+use super::handler;
 use crate::manager::auth::middleware::require_auth;
-use crate::tenant::customers::CustomersModule;
-use crate::tenant::customers::handler::{
-    create as customers_create, delete as customers_delete, get as customers_get,
-    get_resolved as customers_get_resolved, list as customers_list, update as customers_update,
-};
 use axum::Router;
 use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
@@ -32,12 +29,12 @@ pub fn routes(customers_module: Arc<dyn CustomersModule>) -> Router {
     Router::new().nest(
         "/customers",
         Router::new()
-            .route("/get", get(customers_get))
-            .route("/get_resolved", get(customers_get_resolved))
-            .route("/list", get(customers_list))
-            .route("/create", post(customers_create))
-            .route("/update", put(customers_update))
-            .route("/delete", delete(customers_delete))
+            .route("/get", get(handler::get))
+            .route("/get_resolved", get(handler::get_resolved))
+            .route("/list", get(handler::list))
+            .route("/create", post(handler::create))
+            .route("/update", put(handler::update))
+            .route("/delete", delete(handler::delete))
             .layer(from_fn_with_state(customers_module.config(), require_auth))
             .with_state(customers_module),
     )

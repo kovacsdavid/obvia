@@ -86,7 +86,7 @@ pub struct InventoryReservationUserInput {
     pub quantity: ValueObject<Quantity>,
     pub reference_type: Option<ValueObject<InventoryReferenceType>>,
     pub reference_id: Option<ValueObject<UuidVO>>,
-    pub reserved_until: Option<ValueObject<InventoryReservationsReservedUntil>>,
+    pub reserved_until: ValueObject<InventoryReservationsReservedUntil>,
     pub status: ValueObject<InventoryReservationsStatus>,
 }
 
@@ -122,7 +122,7 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
         });
 
         let reserved_until =
-            ValueObject::new_optional(InventoryReservationsReservedUntil(value.reserved_until))
+            ValueObject::new_required(InventoryReservationsReservedUntil(value.reserved_until))
                 .inspect_err(|e| {
                     error.reserved_until = Some(e.to_string());
                 });

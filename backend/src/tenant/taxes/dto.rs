@@ -123,8 +123,9 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
         let rate = if let Some(is_rate_applicable) = value.is_rate_applicable
             && is_rate_applicable
         {
-            ValueObject::new_optional(TaxRate(value.rate))
+            ValueObject::new_required(TaxRate(value.rate))
                 .inspect_err(|e| error.rate = Some(e.to_string()))
+                .map(Some)
         } else {
             Ok(None)
         };

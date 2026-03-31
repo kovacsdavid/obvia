@@ -37,6 +37,7 @@ pub(crate) mod empty_order_by;
 pub(crate) mod quantity;
 pub(crate) mod uuid;
 pub(crate) mod value_object;
+pub(crate) mod value_object_new;
 
 pub(crate) use currency_code::CurrencyCode;
 pub(crate) use ddl_parameter::DdlParameter;
@@ -55,5 +56,4 @@ pub(crate) use db_user::DbUser;
 pub(crate) use empty_filter_by::EmptyFilterBy;
 pub(crate) use empty_order_by::EmptyOrderBy;
 pub(crate) use uuid::UuidVO;
-pub(crate) use value_object::ValueObject;
-pub(crate) use value_object::ValueObjectData;
+pub(crate) use value_object::*;

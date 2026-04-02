@@ -19,6 +19,7 @@
 #![allow(dead_code)]
 
 use serde::Serialize;
+use std::str::FromStr;
 use std::{fmt::Display, marker::PhantomData};
 use thiserror::Error;
 use uuid::Uuid;
@@ -39,27 +40,30 @@ pub enum ValueObjectError {
     InvalidState,
 }
 
-pub trait ValueObjectData: Display {
+pub trait ValueObjectData: Display + Sized {
     type DataType;
+    fn new(data: &str) -> ValueObjectResult<Option<Self>>;
     fn validate(&self) -> ValueObjectResult<()>;
     fn get_data(&self) -> &Self::DataType;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Required;
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Optional;
+
+trait ValueObjectMode<T>: Sized {
+    fn new(data: ValueObjectResult<Option<T>>) -> ValueObjectResult<ValueObject<T, Self>>;
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ValueObject<T, M>(Option<T>, PhantomData<M>);
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectMode<T> for Required
 where
     T: ValueObjectData,
 {
-    pub fn new(
-        data: Result<Option<T>, ValueObjectError>,
-    ) -> ValueObjectResult<ValueObject<T, Required>> {
+    fn new(data: ValueObjectResult<Option<T>>) -> ValueObjectResult<ValueObject<T, Self>> {
         let data = data?;
         match data {
             Some(d) => {
@@ -71,13 +75,11 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectMode<T> for Optional
 where
     T: ValueObjectData,
 {
-    pub fn new(
-        data: Result<Option<T>, ValueObjectError>,
-    ) -> ValueObjectResult<ValueObject<T, Optional>> {
+    fn new(data: ValueObjectResult<Option<T>>) -> ValueObjectResult<ValueObject<T, Optional>> {
         let data = data?;
         match data {
             Some(d) => {
@@ -89,7 +91,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = Uuid>,
 {
@@ -102,7 +104,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = String>,
 {
@@ -115,7 +117,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = f64>,
 {
@@ -128,7 +130,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = i32>,
 {
@@ -211,15 +213,27 @@ where
     }
 }
 
+impl<T, M> FromStr for ValueObject<T, M>
+where
+    T: ValueObjectData,
+    M: ValueObjectMode<T>,
+{
+    type Err = ValueObjectError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        M::new(T::new(s))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::str::FromStr;
 
     #[derive(Debug, Clone)]
     pub struct SampleObjectString(String);
 
-    impl SampleObjectString {
+    impl ValueObjectData for SampleObjectString {
+        type DataType = String;
         fn new(data: &str) -> ValueObjectResult<Option<Self>> {
             if !data.trim().is_empty() {
                 Ok(Some(Self(data.to_owned())))
@@ -227,10 +241,6 @@ mod tests {
                 Ok(None)
             }
         }
-    }
-
-    impl ValueObjectData for SampleObjectString {
-        type DataType = String;
         fn validate(&self) -> ValueObjectResult<()> {
             if self.0 == "sample_object" {
                 Ok(())
@@ -249,24 +259,12 @@ mod tests {
         }
     }
 
-    impl FromStr for ValueObject<SampleObjectString, Required> {
-        type Err = ValueObjectError;
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Self::new(SampleObjectString::new(s))
-        }
-    }
-
-    impl FromStr for ValueObject<SampleObjectString, Optional> {
-        type Err = ValueObjectError;
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Self::new(SampleObjectString::new(s))
-        }
-    }
-
     #[derive(Debug, Clone)]
     pub struct SampleObjectUuid(Uuid);
 
-    impl SampleObjectUuid {
+    impl ValueObjectData for SampleObjectUuid {
+        type DataType = Uuid;
+
         fn new(data: &str) -> ValueObjectResult<Option<Self>> {
             if !data.trim().is_empty() {
                 Ok(Some(Self(data.parse::<Uuid>().map_err(|_| {
@@ -276,10 +274,6 @@ mod tests {
                 Ok(None)
             }
         }
-    }
-
-    impl ValueObjectData for SampleObjectUuid {
-        type DataType = Uuid;
         fn validate(&self) -> ValueObjectResult<()> {
             Ok(())
         }
@@ -291,20 +285,6 @@ mod tests {
     impl Display for SampleObjectUuid {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "{}", self.0)
-        }
-    }
-
-    impl FromStr for ValueObject<SampleObjectUuid, Required> {
-        type Err = ValueObjectError;
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Self::new(SampleObjectUuid::new(s))
-        }
-    }
-
-    impl FromStr for ValueObject<SampleObjectUuid, Optional> {
-        type Err = ValueObjectError;
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Self::new(SampleObjectUuid::new(s))
         }
     }
 
@@ -388,7 +368,7 @@ mod tests {
     #[test]
     fn value_object_optional_uuid_invalid() {
         let sample_object = "invalid_object"
-            .parse::<ValueObject<SampleObjectUuid, Optional>>()
+            .parse::<ValueObjectOptional<SampleObjectUuid>>()
             .unwrap_err();
         assert_eq!(sample_object.to_string(), "Hibás UUID!");
     }

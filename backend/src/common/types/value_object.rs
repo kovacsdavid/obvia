@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#![deprecated(since="0.26.0", note="use value_object_v2 instead")]
 
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;

@@ -17,15 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct LastName(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct LastName(String);
 
 impl ValueObjectData for LastName {
     type DataType = String;
+
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         let trimmed = self.0.trim();
         match !trimmed.is_empty()
@@ -37,7 +44,7 @@ impl ValueObjectData for LastName {
             false => Err(ValueObjectError::InvalidInput("Hibás vezetéknév formátum")),
         }
     }
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -48,47 +55,37 @@ impl Display for LastName {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<LastName> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(LastName(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_last_name() {
-        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith""#).unwrap();
-        assert_eq!(name.as_str(), "Smith");
+        let name = "Smith".parse::<ValueObjectRequired<LastName>>().unwrap();
+        assert_eq!(name.as_str().unwrap(), "Smith");
     }
 
     #[test]
     fn test_valid_last_name_with_hyphen() {
-        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith-Jones""#).unwrap();
-        assert_eq!(name.as_str(), "Smith-Jones");
+        let name = "Smith-Jones".parse::<ValueObjectRequired<LastName>>().unwrap();
+        assert_eq!(name.as_str().unwrap(), "Smith-Jones");
     }
 
     #[test]
     fn test_valid_last_name_with_space() {
-        let name: ValueObject<LastName> = serde_json::from_str(r#""Smith Smith""#).unwrap();
-        assert_eq!(name.as_str(), "Smith Smith");
+        let name = "Smith Smith".parse::<ValueObjectRequired<LastName>>().unwrap();
+        assert_eq!(name.as_str().unwrap(), "Smith Smith");
     }
 
     #[test]
     fn test_invalid_last_name_empty() {
-        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""""#);
+        let name = "".parse::<ValueObjectRequired<LastName>>();
         assert!(name.is_err());
     }
 
     #[test]
     fn test_invalid_last_name_special_chars() {
-        let name: Result<ValueObject<LastName>, _> = serde_json::from_str(r#""Smith123""#);
+        let name = "Smith123".parse::<ValueObjectRequired<LastName>>();
         assert!(name.is_err());
     }
 }

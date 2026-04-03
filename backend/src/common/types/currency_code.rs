@@ -17,16 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct CurrencyCode(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct CurrencyCode(String);
 
 impl ValueObjectData for CurrencyCode {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_uppercase().to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0.trim().len() == 3 {
             Ok(())
@@ -37,7 +44,7 @@ impl ValueObjectData for CurrencyCode {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -48,82 +55,43 @@ impl Display for CurrencyCode {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<CurrencyCode> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(CurrencyCode(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_currency() {
-        let currency: ValueObject<CurrencyCode> = serde_json::from_str(r#""USD""#).unwrap();
-        assert_eq!(currency.as_str(), "USD");
+        let currency = "USD".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
     }
 
     #[test]
     fn test_invalid_currency_too_short() {
-        let currency: Result<ValueObject<CurrencyCode>, _> = serde_json::from_str(r#""US""#);
+        let currency = "US".parse::<ValueObjectRequired<CurrencyCode>>();
         assert!(currency.is_err());
     }
 
     #[test]
     fn test_invalid_currency_too_long() {
-        let currency: Result<ValueObject<CurrencyCode>, _> = serde_json::from_str(r#""USDT""#);
+        let currency = "USDT".parse::<ValueObjectRequired<CurrencyCode>>();
         assert!(currency.is_err());
     }
 
     #[test]
     fn test_invalid_currency_empty() {
-        let currency: Result<ValueObject<CurrencyCode>, _> = serde_json::from_str(r#""""#);
+        let currency = "".parse::<ValueObjectRequired<CurrencyCode>>();
         assert!(currency.is_err());
     }
 
     #[test]
-    fn test_display_format() {
-        let currency = CurrencyCode("EUR".to_string());
-        assert_eq!(format!("{}", currency), "EUR");
-    }
-
-    #[test]
     fn test_validation_with_spaces() {
-        let currency = CurrencyCode(" USD ".to_string());
-        assert!(currency.validate().is_ok());
+        let currency = " USD ".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
     }
 
     #[test]
-    fn test_get_value() {
-        let currency = CurrencyCode("GBP".to_string());
-        assert_eq!(currency.get_value(), "GBP");
-    }
-
-    #[test]
-    fn test_clone() {
-        let currency = CurrencyCode("JPY".to_string());
-        let cloned = currency.clone();
-        assert_eq!(currency, cloned);
-    }
-
-    #[test]
-    fn test_debug_format() {
-        let currency = CurrencyCode("CNY".to_string());
-        assert_eq!(format!("{:?}", currency), r#"CurrencyCode("CNY")"#);
-    }
-
-    #[test]
-    fn test_deserialization_errors() {
-        let invalid_types = vec!["null", "123", "true", "[]", "{}"];
-
-        for invalid in invalid_types {
-            let result: Result<ValueObject<CurrencyCode>, _> = serde_json::from_str(invalid);
-            assert!(result.is_err());
-        }
+    fn test_validation_with_lowercase() {
+        let currency = "usd".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
     }
 }

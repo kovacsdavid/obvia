@@ -17,16 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::Deserialize;
 use std::fmt::Display;
 use std::net::IpAddr;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
-pub struct DbHost(pub String);
+pub struct DbHost(String);
 
 impl Display for DbHost {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -37,6 +35,13 @@ impl Display for DbHost {
 impl ValueObjectData for DbHost {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         let res = match IpAddr::from_str(&self.0) {
             Ok(ip) => is_global(&ip),
@@ -57,18 +62,8 @@ impl ValueObjectData for DbHost {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<DbHost> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(DbHost(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -199,9 +194,8 @@ mod tests {
             r#"2606:4700:4700::1111"#,
         ];
         for host in valid_hosts {
-            let db_host: ValueObject<DbHost> =
-                serde_json::from_str(format!("\"{}\"", &host).as_str()).unwrap();
-            assert_eq!(db_host.as_str(), host);
+            let db_host = host.parse::<ValueObjectRequired<DbHost>>().unwrap();
+            assert_eq!(db_host.as_str().unwrap(), host);
         }
     }
 
@@ -250,23 +244,8 @@ mod tests {
             r#"domain with spaces.com"#,
         ];
         for host in invalid_hosts {
-            let db_host: Result<ValueObject<DbHost>, _> =
-                serde_json::from_str(format!("\"{}\"", &host).as_str());
+            let db_host = host.parse::<ValueObjectRequired<DbHost>>();
             assert!(db_host.is_err(), "Host '{}' should be invalid", host);
         }
-    }
-
-    #[test]
-    fn test_valid_display() {
-        let host = "example.com";
-        let db_host = DbHost(host.to_string());
-        assert_eq!(format!("{}", db_host), host);
-    }
-
-    #[test]
-    fn test_get_value() {
-        let host = "example.com";
-        let db_host = DbHost(host.to_string());
-        assert_eq!(db_host.get_value(), host);
     }
 }

@@ -17,27 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::convert::Infallible;
 use std::fmt::Display;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Order(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Order(String);
 
 impl ValueObjectData for Order {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.trim() {
+        match self.0.as_str() {
             "asc" | "desc" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -47,16 +53,6 @@ impl FromStr for Order {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Order(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<Order> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Order(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -72,31 +68,25 @@ mod tests {
 
     #[test]
     fn test_valid_asc_order() {
-        let order: ValueObject<Order> = serde_json::from_str(r#""asc""#).unwrap();
-        assert_eq!(order.as_str(), "asc");
+        let order = "asc".parse::<ValueObjectRequired<Order>>().unwrap();
+        assert_eq!(order.as_str().unwrap(), "asc");
     }
 
     #[test]
     fn test_valid_desc_order() {
-        let order: ValueObject<Order> = serde_json::from_str(r#""desc""#).unwrap();
-        assert_eq!(order.as_str(), "desc");
+        let order = "desc".parse::<ValueObjectRequired<Order>>().unwrap();
+        assert_eq!(order.as_str().unwrap(), "desc");
     }
 
     #[test]
     fn test_invalid_order() {
-        let order: Result<ValueObject<Order>, _> = serde_json::from_str(r#""invalid""#);
+        let order = "invalid".parse::<ValueObjectRequired<Order>>();
         assert!(order.is_err());
     }
 
     #[test]
     fn test_empty_order() {
-        let order: Result<ValueObject<Order>, _> = serde_json::from_str(r#""""#);
+        let order = "".parse::<ValueObjectRequired<Order>>();
         assert!(order.is_err());
-    }
-
-    #[test]
-    fn test_to_string() {
-        let order = Order("asc".to_string());
-        assert_eq!(order.to_string(), "asc");
     }
 }

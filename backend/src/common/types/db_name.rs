@@ -17,18 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use uuid::Uuid;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct DbName(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct DbName(String);
 
 impl ValueObjectData for DbName {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(r##"^tenant_[A-Za-z0-9]{1,50}$"##) {
             Ok(re) => match re.is_match(&self.0) {
@@ -39,7 +44,7 @@ impl ValueObjectData for DbName {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -47,23 +52,6 @@ impl ValueObjectData for DbName {
 impl Display for DbName {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<DbName> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(DbName(s)).map_err(serde::de::Error::custom)
-    }
-}
-
-impl TryFrom<Uuid> for ValueObject<DbName> {
-    type Error = ValueObjectError;
-    fn try_from(value: Uuid) -> Result<Self, Self::Error> {
-        ValueObject::new_required(DbName(value.to_string()))
     }
 }
 
@@ -82,9 +70,8 @@ mod tests {
         ];
 
         for name in valid_names {
-            let db_name: ValueObject<DbName> =
-                serde_json::from_str(format!("\"{}\"", &name).as_str()).unwrap();
-            assert_eq!(db_name.as_str(), name);
+            let db_name = name.parse::<ValueObjectRequired<DbName>>().unwrap();
+            assert_eq!(db_name.as_str().unwrap(), name);
         }
     }
 
@@ -131,23 +118,8 @@ mod tests {
         ];
 
         for name in invalid_names {
-            let db_name: Result<ValueObject<DbName>, _> =
-                serde_json::from_str(format!("\"{}\"", &name).as_str());
+            let db_name = name.parse::<ValueObjectRequired<DbName>>();
             assert!(db_name.is_err());
         }
-    }
-
-    #[test]
-    fn test_db_name_display() {
-        let name = "tenant_testdb";
-        let db_name = DbName(name.to_string());
-        assert_eq!(format!("{}", db_name), name);
-    }
-
-    #[test]
-    fn test_db_name_from_uuid() {
-        let uuid = Uuid::new_v4();
-        let result = ValueObject::<DbName>::try_from(uuid);
-        assert!(result.is_err()); // UUID format won't match tenant_xxx pattern
     }
 }

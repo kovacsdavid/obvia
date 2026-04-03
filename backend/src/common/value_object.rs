@@ -16,9 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![allow(dead_code)]
 
-use serde::Serialize;
 use std::str::FromStr;
 use std::{fmt::Display, marker::PhantomData};
 use thiserror::Error;
@@ -56,7 +54,7 @@ trait ValueObjectMode<T>: Sized {
     fn new(data: ValueObjectResult<Option<T>>) -> ValueObjectResult<ValueObject<T, Self>>;
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ValueObject<T, M>(Option<T>, PhantomData<M>);
 
 impl<T> ValueObjectMode<T> for Required

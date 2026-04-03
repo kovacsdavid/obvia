@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -21,23 +21,23 @@ use crate::common::value_object::*;
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct DbPort(u16);
+pub struct Empty(String);
 
-impl ValueObjectData for DbPort {
-    type DataType = u16;
+impl ValueObjectData for Empty {
+    type DataType = String;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
-        if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse().map_err(|_| ValueObjectError::InvalidInput("Hibás adatbázis port"))?)))
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
         } else {
             Ok(None)
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0 > 1024 {
-            Ok(())
-        } else {
-            Err(ValueObjectError::InvalidInput("Hibás adatbázis port"))
+        match self.0.as_str() {
+            "" => Ok(()),
+            _ => Err(ValueObjectError::InvalidInput("A mező nem tartalmazhat értéket")),
         }
     }
 
@@ -46,7 +46,7 @@ impl ValueObjectData for DbPort {
     }
 }
 
-impl Display for DbPort {
+impl Display for Empty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -57,20 +57,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_db_port_i64() {
-        let port = "5432".parse::<ValueObjectRequired<DbPort>>().unwrap();
-        assert_eq!(port.as_u16().unwrap(), 5432);
+    fn test_valid_filter_by() {
+        let filter_by = "".parse::<ValueObjectRequired<Empty>>().unwrap();
+        assert_eq!(filter_by.as_str().unwrap(), "");
     }
 
     #[test]
-    fn test_invalid_db_port_too_low() {
-        let port = "1024".parse::<ValueObjectRequired<DbPort>>();
-        assert!(port.is_err());
-    }
-
-    #[test]
-    fn test_invalid_db_port_too_high() {
-        let port = "65536".parse::<ValueObjectRequired<DbPort>>();
-        assert!(port.is_err());
+    fn test_invalid_filter_by() {
+        let filter_by = "any".parse::<ValueObjectRequired<Empty>>();
+        assert!(filter_by.is_err());
     }
 }

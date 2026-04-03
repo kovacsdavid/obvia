@@ -17,17 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Email(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Email(String);
 
 impl ValueObjectData for Email {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(
             r##"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"##,
@@ -44,18 +50,8 @@ impl ValueObjectData for Email {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<Email> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Email(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -68,41 +64,34 @@ impl Display for Email {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::ValueObject;
 
     #[test]
     fn test_valid_email() {
-        let email: ValueObject<Email> = serde_json::from_str(r#""test@example.com""#).unwrap();
-        assert_eq!(email.as_str(), "test@example.com");
+        let email = r#"test@example.com"#.parse::<ValueObjectRequired<Email>>().unwrap();
+        assert_eq!(email.as_str().unwrap(), "test@example.com");
     }
 
     #[test]
     fn test_invalid_email_missing_at() {
-        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""testexample.com""#);
+        let email = r#"testexample.com"#.parse::<ValueObjectRequired<Email>>();
         assert!(email.is_err());
     }
 
     #[test]
     fn test_invalid_email_missing_domain() {
-        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""test@""#);
+        let email = r#"test@"#.parse::<ValueObjectRequired<Email>>();
         assert!(email.is_err());
     }
 
     #[test]
     fn test_invalid_email_special_chars() {
-        let email: Result<ValueObject<Email>, _> = serde_json::from_str(r#""test!$%@example.com""#);
+        let email = r#"test!$%@example.com"#.parse::<ValueObjectRequired<Email>>();
         assert!(email.is_ok());
     }
 
     #[test]
     fn test_valid_email_with_subdomain() {
-        let email: ValueObject<Email> = serde_json::from_str(r#""test@sub.example.com""#).unwrap();
-        assert_eq!(email.as_str(), "test@sub.example.com");
-    }
-
-    #[test]
-    fn test_display_implementation() {
-        let email = Email("test@example.com".to_string());
-        assert_eq!(format!("{}", email), "test@example.com");
+        let email = r#""test@sub.example.com""#.parse::<ValueObjectRequired<Email>>().unwrap();
+        assert_eq!(email.as_str().unwrap(), "test@sub.example.com");
     }
 }

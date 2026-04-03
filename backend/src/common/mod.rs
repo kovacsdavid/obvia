@@ -50,6 +50,7 @@ pub(crate) mod model;
 pub(crate) mod query_parser;
 pub(crate) mod services;
 pub(crate) mod types;
+pub(crate) mod value_object;
 
 pub trait ConfigProvider: Send + Sync {
     fn config(&self) -> Arc<AppConfig>;

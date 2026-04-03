@@ -17,40 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
-use std::{fmt::Display, str::FromStr};
+use crate::common::value_object::*;
+use std::fmt::Display;
 use uuid::Uuid;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct UuidVO(pub String);
-
-impl ValueObject<UuidVO> {
-    pub fn as_uuid(&self) -> Result<Uuid, ValueObjectError> {
-        Uuid::parse_str(self.as_str()).map_err(|_| ValueObjectError::InvalidInput("Hibás uuid!"))
-    }
-}
+#[derive(Debug, PartialEq, Clone)]
+pub struct UuidVO(Uuid);
 
 impl ValueObjectData for UuidVO {
-    type DataType = String;
+    type DataType = Uuid;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.parse::<Uuid>().map_err(|_| ValueObjectError::InvalidInput("Hibás uuid!"))?)))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        Uuid::parse_str(&self.0).map_err(|_| ValueObjectError::InvalidInput("Hibás uuid!"))?;
         Ok(())
     }
-
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<UuidVO> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(UuidVO(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -60,17 +48,11 @@ impl Display for UuidVO {
     }
 }
 
-impl FromStr for UuidVO {
-    type Err = ValueObjectError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_owned()))
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
-    use crate::common::types::ValueObject;
 
     #[test]
     fn test_valid_uuid() {
@@ -83,10 +65,8 @@ mod tests {
         ];
         for value in valid_uuids {
             assert_eq!(
-                ValueObject::new_required(UuidVO::from_str(value).unwrap())
-                    .unwrap()
-                    .as_str(),
-                value
+                value.parse::<ValueObjectRequired<UuidVO>>().unwrap().as_uuid().unwrap(),
+                Uuid::from_str(value).unwrap()
             );
         }
     }
@@ -95,7 +75,7 @@ mod tests {
     fn test_invalid_uuid() {
         let valid_uuids = vec!["", "invalid string"];
         for value in valid_uuids {
-            assert!(ValueObject::new_required(UuidVO::from_str(value).unwrap()).is_err());
+            assert!(value.parse::<ValueObjectRequired<UuidVO>>().is_err());
         }
     }
 }

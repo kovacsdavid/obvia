@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use chrono::NaiveDate;
 use std::str::FromStr;
 use std::{fmt::Display, marker::PhantomData};
 use thiserror::Error;
@@ -119,6 +120,19 @@ where
 
 impl<T> ValueObjectRequired<T>
 where
+    T: ValueObjectData<DataType = NaiveDate>,
+{
+    pub fn as_date_naive(&self) -> ValueObjectResult<&NaiveDate> {
+        Ok(self
+            .0
+            .as_ref()
+            .ok_or(ValueObjectError::InvalidState)?
+            .get_data())
+    }
+}
+
+impl<T> ValueObjectRequired<T>
+where
     T: ValueObjectData<DataType = f64>,
 {
     pub fn as_f64(&self) -> ValueObjectResult<f64> {
@@ -143,7 +157,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Required>
+impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = u16>,
 {
@@ -168,7 +182,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = Uuid>,
 {
@@ -177,7 +191,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = String>,
 {
@@ -186,7 +200,16 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectOptional<T>
+where
+    T: ValueObjectData<DataType = NaiveDate>,
+{
+    pub fn as_date_naive(&self) -> Option<&NaiveDate> {
+        self.0.as_ref().map(|v| v.get_data())
+    }
+}
+
+impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = f64>,
 {
@@ -195,7 +218,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = i32>,
 {
@@ -204,7 +227,7 @@ where
     }
 }
 
-impl<T> ValueObject<T, Optional>
+impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = u16>,
 {

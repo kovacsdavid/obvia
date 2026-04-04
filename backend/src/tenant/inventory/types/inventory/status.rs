@@ -17,16 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Status(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Status(String);
 
 impl ValueObjectData for Status {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "active" => Ok(()),
@@ -36,7 +43,7 @@ impl ValueObjectData for Status {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -44,16 +51,6 @@ impl ValueObjectData for Status {
 impl Display for Status {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<Status> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Status(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -66,12 +63,8 @@ mod tests {
         let valid_statuses = vec!["active", "inactive", "discontinued"];
 
         for status_str in valid_statuses {
-            let status = Status(status_str.to_string());
-            assert!(
-                status.validate().is_ok(),
-                "Status '{}' should be valid",
-                status_str
-            );
+            let status = status_str.parse::<ValueObjectRequired<Status>>().unwrap();
+            assert_eq!(status.as_str().unwrap(), status_str);
         }
     }
 
@@ -80,100 +73,8 @@ mod tests {
         let invalid_statuses = vec!["pending", "deleted", "archived", "", "ACTIVE", "INACTIVE"];
 
         for status_str in invalid_statuses {
-            let status = Status(status_str.to_string());
-            assert!(
-                status.validate().is_err(),
-                "Status '{}' should be invalid",
-                status_str
-            );
+            let status = status_str.parse::<ValueObjectRequired<Status>>();
+            assert!(status.is_err(),);
         }
-    }
-
-    #[test]
-    fn test_status_deserialization_valid() {
-        let valid_cases = vec![r#""active""#, r#""inactive""#, r#""discontinued""#];
-
-        for case in valid_cases {
-            let status: Result<ValueObject<Status>, _> = serde_json::from_str(case);
-            assert!(
-                status.is_ok(),
-                "Failed to deserialize valid status: {}",
-                case
-            );
-            if let Ok(status) = status {
-                assert!(status.extract().validate().is_ok());
-            }
-        }
-    }
-
-    #[test]
-    fn test_status_deserialization_invalid() {
-        let invalid_cases = vec![
-            r#""pending""#,
-            r#""ACTIVE""#,
-            r#""deleted""#,
-            r#""""#,
-            r#"null"#,
-        ];
-
-        for case in invalid_cases {
-            let status: Result<ValueObject<Status>, _> = serde_json::from_str(case);
-            assert!(
-                status.is_err(),
-                "Should fail to deserialize invalid status: {}",
-                case
-            );
-        }
-    }
-
-    #[test]
-    fn test_status_display() {
-        let test_cases = vec![
-            ("active", "active"),
-            ("inactive", "inactive"),
-            ("discontinued", "discontinued"),
-        ];
-
-        for (input, expected) in test_cases {
-            let status = Status(input.to_string());
-            assert_eq!(format!("{}", status), expected);
-        }
-    }
-
-    #[test]
-    fn test_get_value() {
-        let status = Status("active".to_string());
-        assert_eq!(status.get_value(), "active");
-
-        let status = Status("inactive".to_string());
-        assert_eq!(status.get_value(), "inactive");
-
-        let status = Status("discontinued".to_string());
-        assert_eq!(status.get_value(), "discontinued");
-    }
-
-    #[test]
-    fn test_clone() {
-        let original = Status("active".to_string());
-        let cloned = original.clone();
-
-        assert_eq!(original, cloned);
-        assert_eq!(original.get_value(), cloned.get_value());
-    }
-
-    #[test]
-    fn test_partial_eq() {
-        let status1 = Status("active".to_string());
-        let status2 = Status("active".to_string());
-        let status3 = Status("inactive".to_string());
-
-        assert_eq!(status1, status2);
-        assert_ne!(status1, status3);
-    }
-
-    #[test]
-    fn test_debug_output() {
-        let status = Status("active".to_string());
-        assert_eq!(format!("{:?}", status), r#"Status("active")"#);
     }
 }

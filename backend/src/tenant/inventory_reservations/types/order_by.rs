@@ -17,50 +17,55 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct OrderBy(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct OrderBy(String);
 
 impl ValueObjectData for OrderBy {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.trim() {
+        match self.0.as_str() {
             "quantity" | "reference_type" | "reserved_until" | "status" | "created_at"
             | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for OrderBy {
-    type Err = ValueObjectError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OrderBy(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(OrderBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
 impl Display for OrderBy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid() {
+        let order_by = "quantity".parse::<ValueObjectRequired<OrderBy>>().unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "quantity");
+    }
+
+    #[test]
+    fn test_invalid() {
+        let order_by = "invalid".parse::<ValueObjectRequired<OrderBy>>();
+        assert!(order_by.is_err());
     }
 }

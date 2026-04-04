@@ -17,32 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Otp(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Otp(String);
 
 impl ValueObjectData for Otp {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        let trimmed = self.0.trim();
-        if trimmed.len() != 6 {
-            return Err(ValueObjectError::InvalidInput("Hibás OTP!"));
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
         }
-        match Regex::new(r##"^[0-9]{6}$"##) {
-            Ok(re) => match re.is_match(trimmed) {
-                true => Ok(()),
-                false => Err(ValueObjectError::InvalidInput("Hibás OTP!")),
-            },
-            Err(_) => Err(ValueObjectError::InvalidInput("Hibás OTP!")),
+    }
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        if self.0.len() == 6 && Regex::new(r##"^[0-9]{6}$"##)?.is_match(&self.0) {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput("Hibás OTP!"))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -53,42 +54,31 @@ impl Display for Otp {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Otp> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Otp(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json;
 
     #[test]
     fn test_valid_otp() {
-        let otp: ValueObject<Otp> = serde_json::from_str(r#""123456""#).unwrap();
-        assert_eq!(otp.as_str(), r#"123456"#);
+        let otp = "123456".parse::<ValueObjectRequired<Otp>>().unwrap();
+        assert_eq!(otp.as_str().unwrap(), r#"123456"#);
     }
 
     #[test]
     fn test_invalid_otp_too_many_characters() {
-        let otp: Result<ValueObject<Otp>, _> = serde_json::from_str(r#"1234567"#);
+        let otp = "1234567".parse::<ValueObjectRequired<Otp>>();
         assert!(otp.is_err());
     }
 
     #[test]
     fn test_invalid_otp_too_few_characters() {
-        let otp: Result<ValueObject<Otp>, _> = serde_json::from_str(r#"12345"#);
+        let otp = "12345".parse::<ValueObjectRequired<Otp>>();
         assert!(otp.is_err());
     }
 
     #[test]
     fn test_invalid_otp_invalid_character() {
-        let otp: Result<ValueObject<Otp>, _> = serde_json::from_str(r#"a23456"#);
+        let otp = "a23456".parse::<ValueObjectRequired<Otp>>();
         assert!(otp.is_err());
     }
 }

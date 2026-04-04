@@ -63,7 +63,9 @@ mod tests {
 
     #[test]
     fn test_valid_password() {
-        let pwd = "password123".parse::<ValueObjectRequired<Password>>().unwrap();
+        let pwd = "password123"
+            .parse::<ValueObjectRequired<Password>>()
+            .unwrap();
         assert_eq!(pwd.as_str().unwrap(), "password123");
     }
 
@@ -87,7 +89,9 @@ mod tests {
 
     #[test]
     fn test_password_display() {
-        let pwd = "secret123".parse::<ValueObjectRequired<Password>>().unwrap();
+        let pwd = "secret123"
+            .parse::<ValueObjectRequired<Password>>()
+            .unwrap();
         assert_eq!(format!("{}", pwd), "********");
     }
 }

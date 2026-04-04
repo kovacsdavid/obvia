@@ -65,10 +65,14 @@ mod tests {
 
     #[test]
     fn test_valid_db_user() {
-        let user = "tenant_test123".parse::<ValueObjectRequired<DbUser>>().unwrap();
+        let user = "tenant_test123"
+            .parse::<ValueObjectRequired<DbUser>>()
+            .unwrap();
         assert_eq!(user.as_str().unwrap(), "tenant_test123");
 
-        let user = "tenant_valid_user".parse::<ValueObjectRequired<DbUser>>().unwrap();
+        let user = "tenant_valid_user"
+            .parse::<ValueObjectRequired<DbUser>>()
+            .unwrap();
         assert_eq!(user.as_str().unwrap(), "tenant_valid_user");
     }
 

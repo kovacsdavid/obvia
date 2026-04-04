@@ -67,13 +67,17 @@ mod tests {
 
     #[test]
     fn test_valid_last_name_with_hyphen() {
-        let name = "Smith-Jones".parse::<ValueObjectRequired<LastName>>().unwrap();
+        let name = "Smith-Jones"
+            .parse::<ValueObjectRequired<LastName>>()
+            .unwrap();
         assert_eq!(name.as_str().unwrap(), "Smith-Jones");
     }
 
     #[test]
     fn test_valid_last_name_with_space() {
-        let name = "Smith Smith".parse::<ValueObjectRequired<LastName>>().unwrap();
+        let name = "Smith Smith"
+            .parse::<ValueObjectRequired<LastName>>()
+            .unwrap();
         assert_eq!(name.as_str().unwrap(), "Smith Smith");
     }
 

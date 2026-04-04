@@ -37,7 +37,9 @@ impl ValueObjectData for Empty {
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("A mező nem tartalmazhat értéket")),
+            _ => Err(ValueObjectError::InvalidInput(
+                "A mező nem tartalmazhat értéket",
+            )),
         }
     }
 

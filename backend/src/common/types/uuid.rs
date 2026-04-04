@@ -29,7 +29,9 @@ impl ValueObjectData for UuidVO {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse::<Uuid>().map_err(|_| ValueObjectError::InvalidInput("Hibás uuid!"))?)))
+            Ok(Some(Self(data.parse::<Uuid>().map_err(|_| {
+                ValueObjectError::InvalidInput("Hibás uuid!")
+            })?)))
         } else {
             Ok(None)
         }
@@ -65,7 +67,11 @@ mod tests {
         ];
         for value in valid_uuids {
             assert_eq!(
-                value.parse::<ValueObjectRequired<UuidVO>>().unwrap().as_uuid().unwrap(),
+                value
+                    .parse::<ValueObjectRequired<UuidVO>>()
+                    .unwrap()
+                    .as_uuid()
+                    .unwrap(),
                 Uuid::from_str(value).unwrap()
             );
         }

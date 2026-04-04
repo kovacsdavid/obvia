@@ -85,7 +85,9 @@ mod tests {
 
     #[test]
     fn test_validation_with_spaces() {
-        let currency = " USD ".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        let currency = " USD "
+            .parse::<ValueObjectRequired<CurrencyCode>>()
+            .unwrap();
         assert_eq!(currency.as_str().unwrap(), "USD");
     }
 

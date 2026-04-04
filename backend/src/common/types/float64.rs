@@ -28,7 +28,9 @@ impl ValueObjectData for Float64 {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse::<f64>().map_err(|_| ValueObjectError::InvalidInput("Hibás formátum!"))?)))
+            Ok(Some(Self(data.parse::<f64>().map_err(|_| {
+                ValueObjectError::InvalidInput("Hibás formátum!")
+            })?)))
         } else {
             Ok(None)
         }

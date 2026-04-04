@@ -28,7 +28,9 @@ impl ValueObjectData for DbPort {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse().map_err(|_| ValueObjectError::InvalidInput("Hibás adatbázis port"))?)))
+            Ok(Some(Self(data.parse().map_err(|_| {
+                ValueObjectError::InvalidInput("Hibás adatbázis port")
+            })?)))
         } else {
             Ok(None)
         }

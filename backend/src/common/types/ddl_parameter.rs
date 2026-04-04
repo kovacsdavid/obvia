@@ -61,7 +61,9 @@ mod tests {
 
     #[test]
     fn test_valid_ddl_parameter() {
-        let param = "abc123".parse::<ValueObjectRequired<DdlParameter>>().unwrap();
+        let param = "abc123"
+            .parse::<ValueObjectRequired<DdlParameter>>()
+            .unwrap();
         assert_eq!(param.as_str().unwrap(), "abc123");
     }
 

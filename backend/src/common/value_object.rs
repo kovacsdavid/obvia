@@ -36,6 +36,8 @@ pub enum ValueObjectError {
     ParseError(&'static str),
     #[error("InvalidState")]
     InvalidState,
+    #[error("Regex error: {0}")]
+    Regex(#[from] regex::Error),
 }
 
 pub trait ValueObjectData: Display + Sized {
@@ -220,6 +222,17 @@ where
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         M::new(T::new(s))
+    }
+}
+
+impl<T, M> TryFrom<String> for ValueObject<T, M>
+where
+    T: ValueObjectData,
+    M: ValueObjectMode<T>,
+{
+    type Error = ValueObjectError;
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        M::new(T::new(&value))
     }
 }
 

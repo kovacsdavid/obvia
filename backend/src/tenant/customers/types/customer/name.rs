@@ -17,25 +17,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Name(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Name(String);
 
 impl ValueObjectData for Name {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        if !self.0.trim().is_empty() {
-            Ok(())
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
         } else {
-            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező"))
+            Ok(None)
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        if self.0.len() <= 255 {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(
+                "A név nem lehet 255 karakternél hosszabb",
+            ))
+        }
+    }
+
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -46,82 +55,39 @@ impl Display for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Name(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_name() {
-        let name: ValueObject<Name> = serde_json::from_str(r#""Test Name""#).unwrap();
-        assert_eq!(name.as_str(), "Test Name");
+        let name = "Test Name".parse::<ValueObjectRequired<Name>>().unwrap();
+        assert_eq!(name.as_str().unwrap(), "Test Name");
     }
 
     #[test]
     fn test_empty_name() {
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
+        let name = "".parse::<ValueObjectRequired<Name>>();
         assert!(name.is_err());
     }
 
     #[test]
     fn test_whitespace_only_name() {
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
+        let name = "   ".parse::<ValueObjectRequired<Name>>();
         assert!(name.is_err());
     }
 
     #[test]
-    fn test_display_implementation() {
-        let name = Name("Test Name".to_string());
-        assert_eq!(format!("{}", name), "Test Name");
+    fn test_too_long_name() {
+        let long = "a".repeat(256);
+        let name = long.parse::<ValueObjectRequired<Name>>();
+        assert!(name.is_err());
     }
 
     #[test]
-    fn test_clone() {
-        let name = Name("Test Name".to_string());
-        let cloned = name.clone();
-        assert_eq!(name, cloned);
-    }
-
-    #[test]
-    fn test_debug_output() {
-        let name = Name("Test Name".to_string());
-        assert_eq!(format!("{:?}", name), r#"Name("Test Name")"#);
-    }
-
-    #[test]
-    fn test_validation() {
-        let name = Name("Valid Name".to_string());
-        assert!(name.validate().is_ok());
-
-        let empty_name = Name("".to_string());
-        assert!(empty_name.validate().is_err());
-
-        let whitespace_name = Name("   ".to_string());
-        assert!(whitespace_name.validate().is_err());
-    }
-
-    #[test]
-    fn test_get_value() {
-        let value = "Test Name".to_string();
-        let name = Name(value.clone());
-        assert_eq!(name.get_value(), &value);
-    }
-
-    #[test]
-    fn test_deserialization_error_messages() {
-        let empty: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
-        assert!(empty.unwrap_err().to_string().contains("kötelező"));
-
-        let whitespace: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
-        assert!(whitespace.unwrap_err().to_string().contains("kötelező"));
+    fn test_long_name() {
+        let long = "a".repeat(255);
+        let name = long.parse::<ValueObjectRequired<Name>>();
+        assert!(name.is_ok());
     }
 }

@@ -28,14 +28,16 @@ impl ValueObjectData for Integer32 {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse::<i32>().map_err(|_| ValueObjectError::InvalidInput("Hibás formátum!"))?)))
+            Ok(Some(Self(data.parse::<i32>().map_err(|_| {
+                ValueObjectError::InvalidInput("Hibás formátum!")
+            })?)))
         } else {
             Ok(None)
         }
     }
 
     fn validate(&self) -> Result<(), ValueObjectError> {
-            Ok(())
+        Ok(())
     }
 
     fn get_data(&self) -> &Self::DataType {

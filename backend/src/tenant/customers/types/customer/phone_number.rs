@@ -17,17 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct PhoneNumber(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct PhoneNumber(String);
 
 impl ValueObjectData for PhoneNumber {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(r##"^\+[1-9]\d{4,15}$"##) {
             Ok(re) => match re.is_match(&self.0) {
@@ -38,7 +44,7 @@ impl ValueObjectData for PhoneNumber {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -49,96 +55,45 @@ impl Display for PhoneNumber {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<PhoneNumber> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(PhoneNumber(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_phone_number() {
-        let phone: ValueObject<PhoneNumber> = serde_json::from_str(r#""+36301234567""#).unwrap();
-        assert_eq!(phone.as_str(), "+36301234567");
+        let phone = "+36301234567"
+            .parse::<ValueObjectRequired<PhoneNumber>>()
+            .unwrap();
+        assert_eq!(phone.as_str().unwrap(), "+36301234567");
     }
 
     #[test]
     fn test_invalid_phone_number_no_plus() {
-        let phone: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""36301234567""#);
+        let phone = "36301234567".parse::<ValueObjectRequired<PhoneNumber>>();
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_number_too_short() {
-        let phone: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""+3612""#);
+        let phone = "+3612".parse::<ValueObjectRequired<PhoneNumber>>();
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_number_too_long() {
-        let phone: Result<ValueObject<PhoneNumber>, _> =
-            serde_json::from_str(r#""+361234567890123456""#);
+        let phone = "+361234567890123456".parse::<ValueObjectRequired<PhoneNumber>>();
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_number_special_chars() {
-        let phone: Result<ValueObject<PhoneNumber>, _> =
-            serde_json::from_str(r#""+36-30-123-4567""#);
+        let phone = "+36-30-123-4567".parse::<ValueObjectRequired<PhoneNumber>>();
         assert!(phone.is_err());
     }
 
     #[test]
     fn test_invalid_phone_number_letters() {
-        let phone: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""+36abcd1234""#);
+        let phone = "+36abcd1234".parse::<ValueObjectRequired<PhoneNumber>>();
         assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_display_implementation() {
-        let phone = PhoneNumber("+36301234567".to_string());
-        assert_eq!(format!("{}", phone), "+36301234567");
-    }
-
-    #[test]
-    fn test_clone() {
-        let phone = PhoneNumber("+36301234567".to_string());
-        let cloned = phone.clone();
-        assert_eq!(phone, cloned);
-    }
-
-    #[test]
-    fn test_debug_output() {
-        let phone = PhoneNumber("+36301234567".to_string());
-        assert_eq!(format!("{:?}", phone), r#"PhoneNumber("+36301234567")"#);
-    }
-
-    #[test]
-    fn test_validation() {
-        let valid_phone = PhoneNumber("+36301234567".to_string());
-        assert!(valid_phone.validate().is_ok());
-
-        let invalid_phone = PhoneNumber("36301234567".to_string());
-        assert!(invalid_phone.validate().is_err());
-    }
-
-    #[test]
-    fn test_get_value() {
-        let value = "+36301234567".to_string();
-        let phone = PhoneNumber(value.clone());
-        assert_eq!(phone.get_value(), &value);
-    }
-
-    #[test]
-    fn test_deserialization_error_messages() {
-        let invalid: Result<ValueObject<PhoneNumber>, _> = serde_json::from_str(r#""invalid""#);
-        assert!(invalid.unwrap_err().to_string().contains("formátum"));
     }
 }

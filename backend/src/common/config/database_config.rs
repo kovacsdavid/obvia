@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{DbHost, DbName, DbPassword, DbPort, DbUser, ValueObject};
+use crate::common::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
+use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::manager::tenants::model::Tenant;
 use serde::Deserialize;
 use sqlx::postgres::PgSslMode;
@@ -27,11 +28,11 @@ use std::str::FromStr;
 pub type BasicDatabaseConfig = DatabaseConfig<String, u16, String, String, String, u32>;
 
 pub type TenantDatabaseConfig = DatabaseConfig<
-    ValueObject<DbHost>,
-    ValueObject<DbPort>,
-    ValueObject<DbUser>,
-    ValueObject<DbPassword>,
-    ValueObject<DbName>,
+    ValueObjectRequired<DbHost>,
+    ValueObjectRequired<DbPort>,
+    ValueObjectRequired<DbUser>,
+    ValueObjectRequired<DbPassword>,
+    ValueObjectRequired<DbName>,
     u32,
 >;
 
@@ -78,7 +79,7 @@ impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
 impl From<TenantDatabaseConfig> for BasicDatabaseConfig {
     fn from(value: TenantDatabaseConfig) -> Self {
         Self {
-            host: value.host.to_string(),
+            host: value.host.as_str().unwrap().to_owned(), // TODO: not critical, but remove this unwrap
             port: value.port.as_u16().unwrap(), // TODO: not critical, but remove this unwrap
             username: value.username.to_string(),
             password: value.password.to_string(),
@@ -94,16 +95,26 @@ impl TryFrom<&Tenant> for TenantDatabaseConfig {
     fn try_from(value: &Tenant) -> Result<Self, Self::Error> {
         PgSslMode::from_str(&value.db_ssl_mode).map_err(|_| "invalid ssl_mode")?;
         Ok(Self {
-            host: ValueObject::new_required(DbHost(value.db_host.clone()))
-                .map_err(|e| e.to_string())?,
-            port: ValueObject::new_required(DbPort(value.db_port.to_string()))
-                .map_err(|e| e.to_string())?,
-            username: ValueObject::new_required(DbUser(value.db_user.clone()))
-                .map_err(|e| e.to_string())?,
-            password: ValueObject::new_required(DbPassword(value.db_password.clone()))
-                .map_err(|e| e.to_string())?,
-            database: ValueObject::new_required(DbName(value.db_name.clone()))
-                .map_err(|e| e.to_string())?,
+            host: value
+                .db_host
+                .parse()
+                .map_err(|e: ValueObjectError| e.to_string())?,
+            port: value
+                .db_port
+                .try_into()
+                .map_err(|e: ValueObjectError| e.to_string())?,
+            username: value
+                .db_user
+                .parse()
+                .map_err(|e: ValueObjectError| e.to_string())?,
+            password: value
+                .db_password
+                .parse()
+                .map_err(|e: ValueObjectError| e.to_string())?,
+            database: value
+                .db_name
+                .parse()
+                .map_err(|e: ValueObjectError| e.to_string())?,
             max_pool_size: Some(
                 u32::try_from(value.db_max_pool_size)
                     .map_err(|_| "Invalid pool size".to_string())?,

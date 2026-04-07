@@ -21,7 +21,8 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::GetQuery;
-use crate::common::types::{EmptyFilterBy, EmptyOrderBy, ValueObject};
+use crate::common::types::Empty;
+use crate::common::value_object::ValueObjectRequired;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::repository::ActivityFeedRepository;
@@ -77,10 +78,10 @@ type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
 impl ActivityFeedService {
     pub async fn get_all_paged(
-        get_query: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
+        get_query: &GetQuery<Empty, Empty>,
         claims: &Claims,
         resource_id: Uuid,
-        resource_type: &ValueObject<ResourceType>,
+        resource_type: &ValueObjectRequired<ResourceType>,
         repo: Arc<dyn ActivityFeedRepository>,
     ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         Ok(repo

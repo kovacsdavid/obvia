@@ -259,6 +259,17 @@ where
     }
 }
 
+impl<T, M> TryFrom<i32> for ValueObject<T, M>
+where
+    T: ValueObjectData,
+    M: ValueObjectMode<T>,
+{
+    type Error = ValueObjectError;
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        M::new(T::new(&value.to_string()))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

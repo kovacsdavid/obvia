@@ -17,13 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::str::FromStr;
-
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
-    common::types::{ValueObject, value_object::ValueObjectError},
+    common::value_object::{ValueObjectError, ValueObjectRequired},
     tenant::activity_feed::types::ResourceType,
 };
 
@@ -38,8 +36,9 @@ impl ActivityFeedRawQuery {
     pub fn resource_id(&self) -> Uuid {
         self.resource_id
     }
-    pub fn resource_type(&self) -> Result<ValueObject<ResourceType>, ValueObjectError> {
-        ValueObject::new_required(ResourceType::from_str(&self.resource_type)?)
+    pub fn resource_type(&self) -> Result<ValueObjectRequired<ResourceType>, ValueObjectError> {
+        self.resource_type
+            .parse::<ValueObjectRequired<ResourceType>>()
     }
     pub fn q(&self) -> &str {
         match &self.q {

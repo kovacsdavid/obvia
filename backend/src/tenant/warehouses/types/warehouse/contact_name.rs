@@ -17,21 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct ContactName(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct ContactName(String);
 
 impl ValueObjectData for ContactName {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        Ok(())
+        if self.0.len() < 256 {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(
+                "A kapcsolattartó neve nem lehet 255 karakternél hosszabb",
+            ))
+        }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -42,81 +54,22 @@ impl Display for ContactName {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<ContactName> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(ContactName(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_contact_name() {
-        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""John Doe""#).unwrap();
-        assert_eq!(contact_name.as_str(), "John Doe");
+    fn test_valid() {
+        let contact_name = "John Doe"
+            .parse::<ValueObjectRequired<ContactName>>()
+            .unwrap();
+        assert_eq!(contact_name.as_str().unwrap(), "John Doe");
     }
 
     #[test]
-    fn test_empty_contact_name() {
-        let contact_name: ValueObject<ContactName> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(contact_name.as_str(), "");
-    }
-
-    #[test]
-    fn test_contact_name_with_special_chars() {
-        let contact_name: ValueObject<ContactName> =
-            serde_json::from_str(r#""John @ Doe!""#).unwrap();
-        assert_eq!(contact_name.as_str(), "John @ Doe!");
-    }
-
-    #[test]
-    fn test_contact_name_with_numbers() {
-        let contact_name: ValueObject<ContactName> =
-            serde_json::from_str(r#""John Doe 123""#).unwrap();
-        assert_eq!(contact_name.as_str(), "John Doe 123");
-    }
-
-    #[test]
-    fn test_contact_name_unicode() {
-        let contact_name: ValueObject<ContactName> =
-            serde_json::from_str(r#""János Kovács""#).unwrap();
-        assert_eq!(contact_name.as_str(), "János Kovács");
-    }
-
-    #[test]
-    fn test_contact_name_display() {
-        let contact_name = ContactName("John Doe".to_string());
-        assert_eq!(format!("{}", contact_name), "John Doe");
-    }
-
-    #[test]
-    fn test_contact_name_validate() {
-        let contact_name = ContactName("John Doe".to_string());
-        assert!(contact_name.validate().is_ok());
-    }
-
-    #[test]
-    fn test_contact_name_clone() {
-        let contact_name = ContactName("John Doe".to_string());
-        let cloned = contact_name.clone();
-        assert_eq!(contact_name, cloned);
-    }
-
-    #[test]
-    fn test_contact_name_debug() {
-        let contact_name = ContactName("John Doe".to_string());
-        assert_eq!(format!("{:?}", contact_name), r#"ContactName("John Doe")"#);
-    }
-
-    #[test]
-    fn test_invalid_json() {
-        let result: Result<ValueObject<ContactName>, _> = serde_json::from_str("invalid");
-        assert!(result.is_err());
+    fn test_invalid() {
+        let invalid = "a".repeat(256);
+        let contact_name = invalid.parse::<ValueObjectRequired<ContactName>>();
+        assert!(contact_name.is_err());
     }
 }

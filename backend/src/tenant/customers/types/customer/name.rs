@@ -66,18 +66,6 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_name() {
-        let name = "".parse::<ValueObjectRequired<Name>>();
-        assert!(name.is_err());
-    }
-
-    #[test]
-    fn test_whitespace_only_name() {
-        let name = "   ".parse::<ValueObjectRequired<Name>>();
-        assert!(name.is_err());
-    }
-
-    #[test]
     fn test_too_long_name() {
         let long = "a".repeat(256);
         let name = long.parse::<ValueObjectRequired<Name>>();

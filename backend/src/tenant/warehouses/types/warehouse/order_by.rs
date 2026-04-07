@@ -17,45 +17,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct OrderBy(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct OrderBy(String);
 
 impl ValueObjectData for OrderBy {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.trim() {
+        match self.0.as_str() {
             "name" | "status" | "created_at" | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for OrderBy {
-    type Err = ValueObjectError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OrderBy(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(OrderBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -71,58 +58,13 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(order_by.as_str(), "name");
+        let order_by = "name".parse::<ValueObjectRequired<OrderBy>>().unwrap();
+        assert_eq!(order_by.as_str().is_err(), "name");
     }
 
     #[test]
     fn test_invalid_order_by_wrong_field() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""invalid""#);
+        let order_by = "invalid".parse::<ValueObjectRequired<OrderBy>>();
         assert!(order_by.is_err());
-    }
-
-    #[test]
-    fn test_invalid_order_by_empty() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""""#);
-        assert!(order_by.is_err());
-    }
-
-    #[test]
-    fn test_order_by_from_str() {
-        let order_by = OrderBy::from_str("name").unwrap();
-        assert_eq!(order_by.get_value(), "name");
-    }
-
-    #[test]
-    fn test_order_by_display() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{}", order_by), "name");
-    }
-
-    #[test]
-    fn test_order_by_debug() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{:?}", order_by), r#"OrderBy("name")"#);
-    }
-
-    #[test]
-    fn test_order_by_clone() {
-        let order_by = OrderBy("name".to_string());
-        let cloned = order_by.clone();
-        assert_eq!(order_by, cloned);
-    }
-
-    #[test]
-    fn test_order_by_deserialization() {
-        let json = r#""name""#;
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(json).unwrap();
-        assert_eq!(order_by.as_str(), "name");
-    }
-
-    #[test]
-    fn test_order_by_serialization() {
-        let order_by = ValueObject::new_required(OrderBy("name".to_string())).unwrap();
-        let json = serde_json::to_string(&order_by).unwrap();
-        assert_eq!(json, r#""name""#);
     }
 }

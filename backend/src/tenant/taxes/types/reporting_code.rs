@@ -17,21 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct ReportingCode(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct ReportingCode(String);
 
 impl ValueObjectData for ReportingCode {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        Ok(())
+        if self.0.len() < 100 {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(
+                "A mező nem tartalmazhat 99-nél több karaktert!",
+            ))
+        }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -42,15 +54,20 @@ impl Display for ReportingCode {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<ReportingCode> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(ReportingCode(s)).map_err(serde::de::Error::custom)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_value() {
+        let reporting_code = "abc".parse::<ValueObjectRequired<ReportingCode>>().unwrap();
+        assert_eq!(reporting_code.as_str().unwrap(), "abc")
+    }
+
+    #[test]
+    fn test_invalid_value() {
+        let invalid_value = "a".repeat(100);
+        let reporting_code = invalid_value.parse::<ValueObjectRequired<ReportingCode>>();
+        assert!(reporting_code.is_err())
     }
 }
-
-#[cfg(test)]
-mod tests {}

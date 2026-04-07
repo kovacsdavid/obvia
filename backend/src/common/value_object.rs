@@ -48,16 +48,16 @@ pub trait ValueObjectData: Display + Sized {
     fn get_data(&self) -> &Self::DataType;
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Required;
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct Optional;
 
 trait ValueObjectMode<T>: Sized {
     fn new(data: ValueObjectResult<Option<T>>) -> ValueObjectResult<ValueObject<T, Self>>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Default, Debug, Clone, PartialEq)]
 pub struct ValueObject<T, M>(Option<T>, PhantomData<M>);
 
 impl<T> ValueObjectMode<T> for Required

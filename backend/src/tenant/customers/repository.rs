@@ -243,26 +243,24 @@ impl CustomersRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer> {
+        let contact_name = match &customer.contact_name {
+            Some(v) => Some(v.as_str()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Customer>(
             "INSERT INTO customers (name, contact_name, email, phone_number, status, customer_type, created_by_id)
                  VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
         )
-        .bind(customer.name.as_str())
-        .bind(
-            customer
-                .contact_name
-                .as_ref()
-                .map(|d| d.as_str()),
-        )
-        .bind(customer.email.as_str())
+        .bind(customer.name.as_str()?)
+        .bind(contact_name)
+        .bind(customer.email.as_str()?)
         .bind(
             customer
                 .phone_number
-                .as_ref()
-                .map(|d| d.as_str()),
+                    .as_str()
         )
-        .bind(customer.status.as_str())
-        .bind(customer.customer_type.as_str())
+        .bind(customer.status.as_str()?)
+        .bind(customer.customer_type.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -273,9 +271,15 @@ impl CustomersRepository for PgPoolManager {
         customer: CustomerUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer> {
+        let contact_name = match &customer.contact_name {
+            Some(v) => Some(v.as_str()?),
+            None => None,
+        };
         let id = customer
             .id
+            .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+
         Ok(sqlx::query_as::<_, Customer>(
             r#"
             UPDATE customers 
@@ -290,13 +294,13 @@ impl CustomersRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(customer.name.as_str())
-        .bind(customer.contact_name.as_ref().map(|d| d.as_str()))
-        .bind(customer.email.as_str())
-        .bind(customer.phone_number.as_ref().map(|d| d.as_str()))
-        .bind(customer.status.as_str())
-        .bind(customer.customer_type.as_str())
-        .bind(id.as_uuid()?)
+        .bind(customer.name.as_str()?)
+        .bind(contact_name)
+        .bind(customer.email.as_str()?)
+        .bind(customer.phone_number.as_str())
+        .bind(customer.status.as_str()?)
+        .bind(customer.customer_type.as_str()?)
+        .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

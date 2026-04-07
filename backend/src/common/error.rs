@@ -23,7 +23,7 @@ use thiserror::Error;
 use crate::common::{
     MailTransporter,
     dto::{ErrorResponse, FormError, GeneralError},
-    types::value_object::ValueObjectError,
+    value_object::ValueObjectError,
 };
 use async_trait::async_trait;
 use axum::{

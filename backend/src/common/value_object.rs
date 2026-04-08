@@ -92,6 +92,12 @@ where
     }
 }
 
+impl<T> ValueObjectOptional<T> {
+    pub fn is_present(&self) -> bool {
+        self.0.is_some()
+    }
+}
+
 impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = Uuid>,

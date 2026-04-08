@@ -245,13 +245,13 @@ mod tests {
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
-            name: String::from("test"),
+            name: "test".to_string(),
             is_self_hosted: false,
-            db_host: None,
-            db_port: None,
-            db_name: None,
-            db_user: None,
-            db_password: None,
+            db_host: "".to_string(),
+            db_port: "".to_string(),
+            db_name: "".to_string(),
+            db_user: "".to_string(),
+            db_password: "".to_string(),
         })
         .unwrap();
 
@@ -385,13 +385,13 @@ mod tests {
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
-            name: String::from("test"),
+            name: "test".to_string(),
             is_self_hosted: false,
-            db_host: None,
-            db_port: None,
-            db_name: None,
-            db_user: None,
-            db_password: None,
+            db_host: "".to_string(),
+            db_port: "".to_string(),
+            db_name: "".to_string(),
+            db_user: "".to_string(),
+            db_password: "".to_string(),
         })
         .unwrap();
 
@@ -540,11 +540,11 @@ mod tests {
         let payload = serde_json::to_string(&CreateTenantHelper {
             name: String::from("test"),
             is_self_hosted: true,
-            db_host: Some(String::from("example.com")),
-            db_port: Some(5432),
-            db_name: Some(String::from("tenant_1234567890")),
-            db_user: Some(String::from("tenant_1234567890")),
-            db_password: Some(String::from("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")),
+            db_host: "example.com".to_string(),
+            db_port: 5432.to_string(),
+            db_name: "tenant_1234567890".to_string(),
+            db_user: "tenant_1234567890".to_string(),
+            db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
         })
         .unwrap();
 

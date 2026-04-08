@@ -19,10 +19,11 @@
 
 use std::fmt::{Display, Formatter};
 
-use crate::common::error::FormErrorResponse;
+use crate::common::value_object::ValueObjectError;
+use crate::common::{error::FormErrorResponse, value_object::ValueObjectRequired};
+use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::types::Otp;
 use crate::manager::users::model::User;
-use crate::{common::types::ValueObject, manager::auth::dto::claims::Claims};
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -105,6 +106,12 @@ impl Display for OtpUserInputError {
     }
 }
 
+impl From<ValueObjectError> for OtpUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
 impl FormErrorResponse for OtpUserInputError {}
 
 impl IntoResponse for OtpUserInputError {
@@ -113,9 +120,9 @@ impl IntoResponse for OtpUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct OtpUserInput {
-    pub otp: ValueObject<Otp>,
+    pub otp: ValueObjectRequired<Otp>,
 }
 
 impl TryFrom<OtpUserInputHelper> for OtpUserInput {
@@ -123,14 +130,15 @@ impl TryFrom<OtpUserInputHelper> for OtpUserInput {
     fn try_from(value: OtpUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = OtpUserInputError::default();
 
-        let otp = ValueObject::new_required(Otp(value.otp)).inspect_err(|e| {
-            error.otp = Some(e.to_string());
-        });
+        let otp = value
+            .otp
+            .parse::<ValueObjectRequired<Otp>>()
+            .inspect_err(|e| {
+                error.otp = Some(e.to_string());
+            });
 
         if error.is_empty() {
-            Ok(OtpUserInput {
-                otp: otp.map_err(|_| OtpUserInputError::default())?,
-            })
+            Ok(OtpUserInput { otp: otp? })
         } else {
             Err(error)
         }

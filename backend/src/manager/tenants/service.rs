@@ -25,10 +25,11 @@ use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::GetQuery;
 use crate::common::services::generate_string_csprng;
+use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, NewTokenResponse, PublicTenant, TenantActivateRequest,
+    CreateTenant, DatabaseConfigError, NewTokenResponse, PublicTenant, TenantActivateRequest,
 };
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
@@ -60,6 +61,9 @@ pub enum TenantsServiceError {
 
     #[error("rng error")]
     RngError,
+
+    #[error("ValueObjectError {0}")]
+    ValueObjectError(#[from] ValueObjectError),
 }
 
 #[async_trait]
@@ -106,7 +110,7 @@ impl TenantsService {
         let config: TenantDatabaseConfig = payload
             .clone()
             .try_into()
-            .map_err(TenantsServiceError::Config)?;
+            .map_err(|e: DatabaseConfigError| TenantsServiceError::Config(e.to_string()))?;
 
         let pool = tenants_module
             .connection_tester()
@@ -120,7 +124,7 @@ impl TenantsService {
 
         let tenant = tenants_module
             .tenants_repo()
-            .setup_self_hosted(payload.name.as_str(), &config.into(), claims)
+            .setup_self_hosted(payload.name.as_str()?, &config.into(), claims)
             .await?;
 
         tenants_module
@@ -174,7 +178,7 @@ impl TenantsService {
             .tenants_repo()
             .setup_managed(
                 uuid,
-                payload.name.as_str(),
+                payload.name.as_str()?,
                 &db_config,
                 claims,
                 tenants_module.config().clone(),

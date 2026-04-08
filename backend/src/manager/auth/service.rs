@@ -21,15 +21,18 @@ use super::{
     AuthModule,
     dto::{claims::Claims, login::UserPublic},
 };
-use crate::manager::{
-    auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
-    users::model::User,
-};
 use crate::{
     common::extractors::ClientContext,
     manager::auth::{
         dto::{login::LoginRequest, register::RegisterRequest},
         model::{AccountEventStatus, AccountEventType},
+    },
+};
+use crate::{
+    common::value_object::ValueObjectError,
+    manager::{
+        auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
+        users::model::User,
     },
 };
 use crate::{
@@ -116,6 +119,9 @@ pub enum AuthServiceError {
 
     #[error("Hibás elfelejtett jelszó hivatkozás!")]
     InvalidForgottenPasswordToken,
+
+    #[error("Unexpected ValueObjectError: {0}")]
+    UnexpectedValueObjectError(#[from] ValueObjectError),
 }
 
 #[async_trait]
@@ -1146,7 +1152,7 @@ impl AuthService {
         auth_module: Arc<dyn AuthModule>,
         payload: RegisterRequest,
     ) -> AuthServiceResult<()> {
-        let password_hash = Self::generate_password_hash(payload.password.as_bytes())?;
+        let password_hash = Self::generate_password_hash(payload.password.as_str()?.as_bytes())?;
 
         let user = auth_module
             .auth_repo()
@@ -1201,7 +1207,7 @@ impl AuthService {
     ) -> AuthServiceResult<()> {
         let user = auth_module
             .auth_repo()
-            .get_user_by_email(payload.email.as_str())
+            .get_user_by_email(payload.email.as_str()?)
             .await?;
         if user.need_email_verification() {
             let email_verification = auth_module
@@ -1293,7 +1299,7 @@ impl AuthService {
         .await?;
         let user = match auth_module
             .auth_repo()
-            .get_user_by_email(payload.email.as_str())
+            .get_user_by_email(payload.email.as_str()?)
             .await
         {
             Ok(v) => v,
@@ -1386,7 +1392,7 @@ impl AuthService {
 
         let forgotten_password = match auth_module
             .auth_repo()
-            .get_forgotten_password(payload.token)
+            .get_forgotten_password(payload.token.as_uuid()?)
             .await
         {
             Ok(v) => v,
@@ -1435,26 +1441,27 @@ impl AuthService {
         };
 
         if user.is_active() {
-            user.password_hash = match Self::generate_password_hash(payload.password.as_bytes()) {
-                Ok(v) => v,
-                Err(e) => {
-                    auth_module
-                        .auth_repo()
-                        .insert_account_event_log(
-                            Some(user.id),
-                            Some(user.email),
-                            AccountEventType::PasswordChange,
-                            AccountEventStatus::Error,
-                            Some(client_context.ip),
-                            client_context.user_agent.clone(),
-                            Some(json!({
-                                "error": e.to_string()
-                            })),
-                        )
-                        .await?;
-                    return Err(e);
-                }
-            };
+            user.password_hash =
+                match Self::generate_password_hash(payload.password.as_str()?.as_bytes()) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        auth_module
+                            .auth_repo()
+                            .insert_account_event_log(
+                                Some(user.id),
+                                Some(user.email),
+                                AccountEventType::PasswordChange,
+                                AccountEventStatus::Error,
+                                Some(client_context.ip),
+                                client_context.user_agent.clone(),
+                                Some(json!({
+                                    "error": e.to_string()
+                                })),
+                            )
+                            .await?;
+                        return Err(e);
+                    }
+                };
 
             match auth_module.auth_repo().update_user(user.clone()).await {
                 Ok(_) => (),

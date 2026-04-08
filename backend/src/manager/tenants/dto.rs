@@ -16,30 +16,32 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::config::database_config::TenantDatabaseConfig;
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
 use crate::common::types::{DbHost, DbName, DbPassword, DbPort, DbUser};
+use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::Name;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use thiserror::Error;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct CreateTenantHelper {
     pub name: String,
     pub is_self_hosted: bool,
-    pub db_host: Option<String>,
-    pub db_port: Option<i32>,
-    pub db_name: Option<String>,
-    pub db_user: Option<String>,
-    pub db_password: Option<String>,
+    pub db_host: String,
+    pub db_port: String,
+    pub db_name: String,
+    pub db_user: String,
+    pub db_password: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Default)]
 pub struct CreateTenantError {
     pub name: Option<String>,
     pub is_self_hosted: Option<String>,
@@ -79,16 +81,31 @@ impl IntoResponse for CreateTenantError {
     }
 }
 
+impl From<ValueObjectError> for CreateTenantError {
+    fn from(value: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Error)]
+pub enum DatabaseConfigError {
+    #[error("{0} is missing")]
+    MissingField(&'static str),
+
+    #[error("ValueObjectError: {0}")]
+    ValueObejctError(#[from] ValueObjectError),
+}
+
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct CreateTenant {
-    pub name: ValueObject<Name>,
+    pub name: ValueObjectRequired<Name>,
     pub is_self_hosted: bool,
-    pub db_host: Option<ValueObject<DbHost>>,
-    pub db_port: Option<ValueObject<DbPort>>,
-    pub db_name: Option<ValueObject<DbName>>,
-    pub db_user: Option<ValueObject<DbUser>>,
-    pub db_password: Option<ValueObject<DbPassword>>,
+    pub db_host: Option<ValueObjectRequired<DbHost>>,
+    pub db_port: Option<ValueObjectRequired<DbPort>>,
+    pub db_name: Option<ValueObjectRequired<DbName>>,
+    pub db_user: Option<ValueObjectRequired<DbUser>>,
+    pub db_password: Option<ValueObjectRequired<DbPassword>>,
 }
 
 impl CreateTenant {
@@ -98,24 +115,24 @@ impl CreateTenant {
 }
 
 impl TryInto<TenantDatabaseConfig> for CreateTenant {
-    type Error = String;
+    type Error = DatabaseConfigError;
     fn try_into(self) -> Result<TenantDatabaseConfig, Self::Error> {
         Ok(TenantDatabaseConfig {
             host: self
                 .db_host
-                .ok_or_else(|| "db_host is missing".to_string())?,
+                .ok_or(DatabaseConfigError::MissingField("db_host"))?,
             port: self
                 .db_port
-                .ok_or_else(|| "db_port is missing".to_string())?,
+                .ok_or(DatabaseConfigError::MissingField("db_port"))?,
             username: self
                 .db_user
-                .ok_or_else(|| "db_user is missing".to_string())?,
+                .ok_or(DatabaseConfigError::MissingField("db_user"))?,
             password: self
                 .db_password
-                .ok_or_else(|| "db_password is missing".to_string())?,
+                .ok_or(DatabaseConfigError::MissingField("db_password"))?,
             database: self
                 .db_name
-                .ok_or_else(|| "db_name is missing".to_string())?,
+                .ok_or(DatabaseConfigError::MissingField("db_name"))?,
             max_pool_size: None,
             ssl_mode: None,
         })
@@ -124,112 +141,68 @@ impl TryInto<TenantDatabaseConfig> for CreateTenant {
 
 impl TryFrom<CreateTenantHelper> for CreateTenant {
     type Error = CreateTenantError;
-    // TODO: new docs
     fn try_from(value: CreateTenantHelper) -> Result<Self, Self::Error> {
-        let mut error = CreateTenantError {
-            name: None,
-            is_self_hosted: None,
-            db_host: None,
-            db_port: None,
-            db_name: None,
-            db_user: None,
-            db_password: None,
-        };
+        let mut error = CreateTenantError::default();
 
-        let name = ValueObject::new_required(Name(value.name));
-        let mut db_host: Option<ValueObject<DbHost>> = None;
-        let mut db_port: Option<ValueObject<DbPort>> = None;
-        let mut db_name: Option<ValueObject<DbName>> = None;
-        let mut db_user: Option<ValueObject<DbUser>> = None;
-        let mut db_password: Option<ValueObject<DbPassword>> = None;
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<Name>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        if let Err(e) = &name {
-            error.name = Some(e.to_string());
-        }
+        let mut db_host = Ok(None);
+        let mut db_port = Ok(None);
+        let mut db_name = Ok(None);
+        let mut db_user = Ok(None);
+        let mut db_password = Ok(None);
 
         if value.is_self_hosted {
-            const REQUIRED_IF_SELF_HOSTED_ERROR: &str =
-                "A mező kitöltése kötelező, ha saját adatbázist üzemeltet";
-            match &value.db_host {
-                Some(val) => {
-                    db_host = match ValueObject::new_required(DbHost(val.clone())) {
-                        Ok(db_host) => Some(db_host),
-                        Err(e) => {
-                            error.db_host = Some(e.to_string());
-                            None
-                        }
-                    }
-                }
-                None => {
-                    error.db_host = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
-                }
-            }
-            match value.db_port {
-                Some(val) => {
-                    db_port = match ValueObject::new_required(DbPort(val.to_string())) {
-                        Ok(db_port) => Some(db_port),
-                        Err(e) => {
-                            error.db_port = Some(e.to_string());
-                            None
-                        }
-                    }
-                }
-                None => {
-                    error.db_port = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
-                }
-            }
-            match &value.db_name {
-                Some(val) => {
-                    db_name = match ValueObject::new_required(DbName(val.clone())) {
-                        Ok(db_name) => Some(db_name),
-                        Err(e) => {
-                            error.db_name = Some(e.to_string());
-                            None
-                        }
-                    }
-                }
-                None => {
-                    error.db_name = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
-                }
-            }
-            match &value.db_user {
-                Some(val) => {
-                    db_user = match ValueObject::new_required(DbUser(val.clone())) {
-                        Ok(db_user) => Some(db_user),
-                        Err(e) => {
-                            error.db_user = Some(e.to_string());
-                            None
-                        }
-                    }
-                }
-                None => {
-                    error.db_user = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
-                }
-            }
-            match &value.db_password {
-                Some(val) => {
-                    db_password = match ValueObject::new_required(DbPassword(val.clone())) {
-                        Ok(db_password) => Some(db_password),
-                        Err(e) => {
-                            error.db_password = Some(e.to_string());
-                            None
-                        }
-                    }
-                }
-                None => {
-                    error.db_password = Some(String::from(REQUIRED_IF_SELF_HOSTED_ERROR));
-                }
-            }
+            db_host = value
+                .db_host
+                .parse::<ValueObjectRequired<DbHost>>()
+                .inspect_err(|e| {
+                    error.db_host = Some(e.to_string());
+                })
+                .map(Some);
+            db_port = value
+                .db_port
+                .parse::<ValueObjectRequired<DbPort>>()
+                .inspect_err(|e| {
+                    error.db_port = Some(e.to_string());
+                })
+                .map(Some);
+            db_name = value
+                .db_name
+                .parse::<ValueObjectRequired<DbName>>()
+                .inspect_err(|e| {
+                    error.db_name = Some(e.to_string());
+                })
+                .map(Some);
+            db_user = value
+                .db_user
+                .parse::<ValueObjectRequired<DbUser>>()
+                .inspect_err(|e| {
+                    error.db_user = Some(e.to_string());
+                })
+                .map(Some);
+            db_password = value
+                .db_password
+                .parse::<ValueObjectRequired<DbPassword>>()
+                .inspect_err(|e| {
+                    error.db_password = Some(e.to_string());
+                })
+                .map(Some);
         }
         if error.is_empty() {
             Ok(CreateTenant {
-                name: name.unwrap(),
+                name: name?,
                 is_self_hosted: value.is_self_hosted,
-                db_host,
-                db_port,
-                db_name,
-                db_user,
-                db_password,
+                db_host: db_host?,
+                db_port: db_port?,
+                db_name: db_name?,
+                db_user: db_user?,
+                db_password: db_password?,
             })
         } else {
             Err(error)

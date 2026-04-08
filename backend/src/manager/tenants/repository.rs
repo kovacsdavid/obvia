@@ -24,7 +24,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::GetQuery;
 use crate::common::types::DdlParameter;
-use crate::common::types::ValueObject;
+use crate::common::value_object::ValueObjectRequired;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::{Tenant, UserTenant};
@@ -115,11 +115,17 @@ impl TenantsRepository for PgPoolManager {
         create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config).await?;
         tx.commit().await?;
 
+        let tenant_name = tenant
+            .id
+            .to_string()
+            .replace("-", "")
+            .parse::<ValueObjectRequired<DdlParameter>>()?;
+
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
-            ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+            tenant_name.as_str()?,
+            tenant_name.as_str()?,
         );
 
         let _create_db = sqlx::query(&create_db_sql)
@@ -330,17 +336,25 @@ async fn create_database_user_for_managed(
     tenant: &Tenant,
     app_config: Arc<AppConfig>,
 ) -> RepositoryResult<()> {
+    let tenant_name = tenant
+        .id
+        .to_string()
+        .replace("-", "")
+        .parse::<ValueObjectRequired<DdlParameter>>()?;
+    let tenant_password = tenant
+        .db_password
+        .parse::<ValueObjectRequired<DdlParameter>>()?;
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
-        ValueObject::new_required(DdlParameter(tenant.db_password.to_string()))?
+        tenant_name.as_str()?,
+        tenant_password.as_str()?,
     );
 
     let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        ValueObject::new_required(DdlParameter(tenant.id.to_string().replace("-", "")))?,
+        tenant_name.as_str()?,
         app_config.default_tenant_database().username // safety: not user input
     );
 

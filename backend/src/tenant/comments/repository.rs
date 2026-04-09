@@ -63,9 +63,9 @@ impl CommentsRepository for PgPoolManager {
         "#,
         )
         .bind(Uuid::new_v4())
-        .bind(payload.commentable_type.as_str())
+        .bind(payload.commentable_type.as_str()?)
         .bind(payload.commentable_id.as_uuid()?)
-        .bind(payload.comment.as_str())
+        .bind(payload.comment.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

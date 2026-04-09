@@ -61,10 +61,10 @@ impl UsersRepository for PgPoolManager {
             ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
         )
         .bind(Uuid::new_v4())
-        .bind(payload.email.as_str())
+        .bind(payload.email.as_str()?)
         .bind(password_hash)
-        .bind(payload.first_name.as_str())
-        .bind(payload.last_name.as_str())
+        .bind(payload.first_name.as_str()?)
+        .bind(payload.last_name.as_str()?)
         .fetch_one(&self.get_main_pool())
         .await?)
     }

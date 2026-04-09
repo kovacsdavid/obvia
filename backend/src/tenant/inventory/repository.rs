@@ -285,25 +285,16 @@ impl InventoryRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory> {
-        let minimum_stock = match &inventory.minimum_stock {
-            None => None,
-            Some(v) => Some(v.as_i32()?),
-        };
-        let maximum_stock = match &inventory.maximum_stock {
-            None => None,
-            Some(v) => Some(v.as_i32()?),
-        };
-
         Ok(sqlx::query_as::<_, Inventory>(
             "INSERT INTO inventory (product_id, warehouse_id, minimum_stock, maximum_stock, currency_code, status, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
             .bind(inventory.product_id.as_uuid()?)
             .bind(inventory.warehouse_id.as_uuid()?)
-            .bind(minimum_stock)
-            .bind(maximum_stock)
-            .bind(inventory.currency_code.as_str())
-            .bind(inventory.status.as_str())
+            .bind(inventory.minimum_stock.as_i32())
+            .bind(inventory.maximum_stock.as_i32())
+            .bind(inventory.currency_code.as_str()?)
+            .bind(inventory.status.as_str()?)
             .bind(sub)
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
@@ -315,20 +306,6 @@ impl InventoryRepository for PgPoolManager {
         inventory: InventoryUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Inventory> {
-        let id = inventory
-            .id
-            .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-
-        // Convert optional ValueObjects for minimum_stock and maximum_stock to Option<i32>
-        let minimum_stock = match &inventory.minimum_stock {
-            None => None,
-            Some(v) => Some(v.as_i32()?),
-        };
-        let maximum_stock = match &inventory.maximum_stock {
-            None => None,
-            Some(v) => Some(v.as_i32()?),
-        };
-
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             UPDATE inventory
@@ -345,11 +322,11 @@ impl InventoryRepository for PgPoolManager {
         )
         .bind(inventory.product_id.as_uuid()?)
         .bind(inventory.warehouse_id.as_uuid()?)
-        .bind(minimum_stock)
-        .bind(maximum_stock)
-        .bind(inventory.currency_code.as_str())
-        .bind(inventory.status.as_str())
-        .bind(id.as_uuid()?)
+        .bind(inventory.minimum_stock.as_i32())
+        .bind(inventory.maximum_stock.as_i32())
+        .bind(inventory.currency_code.as_str()?)
+        .bind(inventory.status.as_str()?)
+        .bind(inventory.id.as_uuid())
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

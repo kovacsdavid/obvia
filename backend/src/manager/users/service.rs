@@ -22,6 +22,7 @@ use crate::common::MailTransporter;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::extractors::ClientContext;
+use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
@@ -52,6 +53,9 @@ pub enum UsersServiceError {
 
     #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
     TooManyAttempts(i64),
+
+    #[error("ValueObjectError: {0}")]
+    ValueObjectError(#[from] ValueObjectError),
 }
 
 #[async_trait]
@@ -232,7 +236,7 @@ impl UsersService {
         }
 
         match user
-            .check_mfa_token(payload.otp.as_str())
+            .check_mfa_token(payload.otp.as_str()?)
             .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),
@@ -391,7 +395,7 @@ impl UsersService {
         };
 
         match user
-            .check_mfa_token(payload.otp.as_str())
+            .check_mfa_token(payload.otp.as_str()?)
             .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),

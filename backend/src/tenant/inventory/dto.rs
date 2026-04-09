@@ -19,7 +19,9 @@
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Integer32;
 use crate::common::types::UuidVO;
-use crate::common::types::ValueObject;
+use crate::common::value_object::ValueObjectError;
+use crate::common::value_object::ValueObjectOptional;
+use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::InventoryStatus;
 use axum::response::{IntoResponse, Response};
@@ -77,15 +79,21 @@ impl IntoResponse for InventoryUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for InventoryUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct InventoryUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub product_id: ValueObject<UuidVO>,
-    pub warehouse_id: ValueObject<UuidVO>,
-    pub minimum_stock: Option<ValueObject<Integer32>>,
-    pub maximum_stock: Option<ValueObject<Integer32>>,
-    pub currency_code: ValueObject<CurrencyCode>,
-    pub status: ValueObject<InventoryStatus>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub product_id: ValueObjectRequired<UuidVO>,
+    pub warehouse_id: ValueObjectRequired<UuidVO>,
+    pub minimum_stock: ValueObjectOptional<Integer32>,
+    pub maximum_stock: ValueObjectOptional<Integer32>,
+    pub currency_code: ValueObjectRequired<CurrencyCode>,
+    pub status: ValueObjectRequired<InventoryStatus>,
 }
 
 impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
@@ -93,48 +101,63 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
     fn try_from(value: InventoryUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = InventoryUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let product_id = ValueObject::new_required(UuidVO(value.product_id)).inspect_err(|e| {
-            error.product_id = Some(e.to_string());
-        });
+        let product_id = value
+            .product_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.product_id = Some(e.to_string());
+            });
 
-        let warehouse_id = ValueObject::new_required(UuidVO(value.warehouse_id)).inspect_err(|e| {
-            error.warehouse_id = Some(e.to_string());
-        });
+        let warehouse_id = value
+            .warehouse_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.warehouse_id = Some(e.to_string());
+            });
 
-        let minimum_stock =
-            ValueObject::new_optional(Integer32(value.minimum_stock)).inspect_err(|e| {
+        let minimum_stock = value
+            .minimum_stock
+            .parse::<ValueObjectOptional<Integer32>>()
+            .inspect_err(|e| {
                 error.minimum_stock = Some(e.to_string());
             });
 
-        let maximum_stock =
-            ValueObject::new_optional(Integer32(value.maximum_stock)).inspect_err(|e| {
+        let maximum_stock = value
+            .maximum_stock
+            .parse::<ValueObjectOptional<Integer32>>()
+            .inspect_err(|e| {
                 error.maximum_stock = Some(e.to_string());
             });
 
-        let status = ValueObject::new_required(InventoryStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<InventoryStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
-        let currency_code = ValueObject::new_required(CurrencyCode(value.currency_code))
+        let currency_code = value
+            .currency_code
+            .parse::<ValueObjectRequired<CurrencyCode>>()
             .inspect_err(|e| error.currency_code = Some(e.to_string()));
 
         if error.is_empty() {
             Ok(InventoryUserInput {
-                id: id.map_err(|_| InventoryUserInputError::default())?,
-                product_id: product_id.map_err(|_| InventoryUserInputError::default())?,
-                warehouse_id: warehouse_id.map_err(|_| InventoryUserInputError::default())?,
-                minimum_stock: minimum_stock.map_err(|_| InventoryUserInputError::default())?,
-                maximum_stock: maximum_stock.map_err(|_| InventoryUserInputError::default())?,
-                currency_code: currency_code.map_err(|_| InventoryUserInputError::default())?,
-                status: status.map_err(|_| InventoryUserInputError::default())?,
+                id: id?,
+                product_id: product_id?,
+                warehouse_id: warehouse_id?,
+                minimum_stock: minimum_stock?,
+                maximum_stock: maximum_stock?,
+                currency_code: currency_code?,
+                status: status?,
             })
         } else {
             Err(error)

@@ -59,7 +59,7 @@ mod tests {
     #[test]
     fn test_valid_order_by() {
         let order_by = "name".parse::<ValueObjectRequired<OrderBy>>().unwrap();
-        assert_eq!(order_by.as_str().is_err(), "name");
+        assert_eq!(order_by.as_str().unwrap(), "name");
     }
 
     #[test]

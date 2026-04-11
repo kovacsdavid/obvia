@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::worksheets::types::worksheet::{
     WorksheetDescription, WorksheetName, WorksheetStatus,
 };
@@ -73,14 +74,20 @@ impl IntoResponse for WorksheetUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for WorksheetUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct WorksheetUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub name: ValueObject<WorksheetName>,
-    pub description: Option<ValueObject<WorksheetDescription>>,
-    pub customer_id: ValueObject<UuidVO>,
-    pub project_id: Option<ValueObject<UuidVO>>,
-    pub status: ValueObject<WorksheetStatus>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub name: ValueObjectRequired<WorksheetName>,
+    pub description: ValueObjectOptional<WorksheetDescription>,
+    pub customer_id: ValueObjectRequired<UuidVO>,
+    pub project_id: ValueObjectOptional<UuidVO>,
+    pub status: ValueObjectRequired<WorksheetStatus>,
 }
 
 impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
@@ -88,43 +95,57 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
     fn try_from(value: WorksheetUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = WorksheetUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let name = ValueObject::new_required(WorksheetName(value.name)).inspect_err(|e| {
-            error.name = Some(e.to_string());
-        });
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<WorksheetName>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        let status = ValueObject::new_required(WorksheetStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<WorksheetStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
-        let customer_id = ValueObject::new_required(UuidVO(value.customer_id)).inspect_err(|_| {
-            error.customer_id = Some("A mező kitöltése kötelező!".to_string());
-        });
+        let customer_id = value
+            .customer_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.customer_id = Some(e.to_string());
+            });
 
-        let project_id = ValueObject::new_optional(UuidVO(value.project_id)).inspect_err(|_| {
-            error.project_id = Some("A mező kitöltése kötelező!".to_string());
-        });
+        let project_id = value
+            .project_id
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
+                error.project_id = Some(e.to_string());
+            });
 
-        let description = ValueObject::new_optional(WorksheetDescription(value.description))
+        let description = value
+            .description
+            .parse::<ValueObjectOptional<WorksheetDescription>>()
             .inspect_err(|e| {
                 error.description = Some(e.to_string());
             });
 
         if error.is_empty() {
             Ok(WorksheetUserInput {
-                id: id.map_err(|_| WorksheetUserInputError::default())?,
-                name: name.map_err(|_| WorksheetUserInputError::default())?,
-                description: description.map_err(|_| WorksheetUserInputError::default())?,
-                customer_id: customer_id.map_err(|_| WorksheetUserInputError::default())?,
-                project_id: project_id.map_err(|_| WorksheetUserInputError::default())?,
-                status: status.map_err(|_| WorksheetUserInputError::default())?,
+                id: id?,
+                name: name?,
+                description: description?,
+                customer_id: customer_id?,
+                project_id: project_id?,
+                status: status?,
             })
         } else {
             Err(error)

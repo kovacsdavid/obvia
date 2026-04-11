@@ -29,11 +29,9 @@ pub(crate) mod first_name;
 pub(crate) mod float64;
 pub(crate) mod integer32;
 pub(crate) mod last_name;
-pub(crate) mod order;
 pub(crate) mod password;
 pub(crate) mod quantity;
 pub(crate) mod uuid;
-pub(crate) mod value_object;
 
 pub(crate) use db_host::DbHost;
 pub(crate) use db_name::DbName;
@@ -49,4 +47,3 @@ pub(crate) use integer32::Integer32;
 pub(crate) use last_name::LastName;
 pub(crate) use password::Password;
 pub(crate) use uuid::UuidVO;
-pub(crate) use value_object::*;

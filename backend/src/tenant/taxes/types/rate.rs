@@ -28,9 +28,9 @@ impl ValueObjectData for Rate {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás adókulcs formátum!")
-            })?)))
+            Ok(Some(Self(data.replace(",", ".").parse().map_err(
+                |_| ValueObjectError::InvalidInput("Hibás adókulcs formátum!"),
+            )?)))
         } else {
             Ok(None)
         }
@@ -62,11 +62,11 @@ mod tests {
 
     #[test]
     fn test_valid_rate() {
-        let price = "123.45".parse::<ValueObjectRequired<Rate>>().unwrap();
-        assert_eq!(price.as_f64().unwrap(), 123.45_f64);
+        let price = "23.45".parse::<ValueObjectRequired<Rate>>().unwrap();
+        assert_eq!(price.as_f64().unwrap(), 23.45_f64);
 
-        let price = "123,45".parse::<ValueObjectRequired<Rate>>().unwrap();
-        assert_eq!(price.as_f64().unwrap(), 123.45_f64);
+        let price = "23,45".parse::<ValueObjectRequired<Rate>>().unwrap();
+        assert_eq!(price.as_f64().unwrap(), 23.45_f64);
     }
 
     #[test]

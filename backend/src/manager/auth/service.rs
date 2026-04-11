@@ -1150,13 +1150,13 @@ impl AuthService {
 
     pub async fn try_register(
         auth_module: Arc<dyn AuthModule>,
-        payload: RegisterRequest,
+        payload: &RegisterRequest,
     ) -> AuthServiceResult<()> {
         let password_hash = Self::generate_password_hash(payload.password.as_str()?.as_bytes())?;
 
         let user = auth_module
             .auth_repo()
-            .insert_user(&payload, &password_hash)
+            .insert_user(payload, &password_hash)
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {

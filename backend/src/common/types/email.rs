@@ -91,7 +91,9 @@ mod tests {
 
     #[test]
     fn test_valid_email_with_subdomain() {
-        let email = r#""test@sub.example.com""#.parse::<ValueObjectRequired<Email>>().unwrap();
+        let email = "test@sub.example.com"
+            .parse::<ValueObjectRequired<Email>>()
+            .unwrap();
         assert_eq!(email.as_str().unwrap(), "test@sub.example.com");
     }
 }

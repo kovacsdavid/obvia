@@ -109,7 +109,7 @@ impl ServicesService {
         repo: Arc<dyn ServicesRepository>,
     ) -> ServicesServiceResult<Service> {
         repo.insert(
-            payload.clone(),
+            payload,
             claims.sub(),
             claims
                 .active_tenant()
@@ -159,7 +159,7 @@ impl ServicesService {
     ) -> ServicesServiceResult<Service> {
         Ok(repo
             .update(
-                payload.clone(),
+                payload,
                 claims
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,

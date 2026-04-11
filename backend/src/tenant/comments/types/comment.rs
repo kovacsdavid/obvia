@@ -67,12 +67,6 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_comment() {
-        let comment = "".parse::<ValueObjectRequired<Comment>>().unwrap();
-        assert_eq!(comment.as_str().unwrap(), "");
-    }
-
-    #[test]
     fn test_max_length_comment() {
         let long_string = "a".repeat(10000);
         let comment = long_string.parse::<ValueObjectRequired<Comment>>().unwrap();

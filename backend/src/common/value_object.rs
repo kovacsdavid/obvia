@@ -33,8 +33,6 @@ pub type ValueObjectOptional<T> = ValueObject<T, Optional>;
 pub enum ValueObjectError {
     #[error("{0}")]
     InvalidInput(&'static str),
-    #[error("{0}")]
-    ParseError(&'static str),
     #[error("InvalidState")]
     InvalidState,
     #[error("Regex error: {0}")]
@@ -150,6 +148,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = i32>,
@@ -233,6 +232,7 @@ where
     }
 }
 
+#[allow(dead_code)]
 impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = u16>,
@@ -319,7 +319,7 @@ mod tests {
         fn new(data: &str) -> ValueObjectResult<Option<Self>> {
             if !data.trim().is_empty() {
                 Ok(Some(Self(data.parse::<Uuid>().map_err(|_| {
-                    ValueObjectError::ParseError("Hibás UUID!")
+                    ValueObjectError::InvalidInput("Hibás UUID!")
                 })?)))
             } else {
                 Ok(None)

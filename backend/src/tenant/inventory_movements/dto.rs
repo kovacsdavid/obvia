@@ -39,7 +39,6 @@ pub struct InventoryMovementUserInputHelper {
     pub reference_type: String,
     pub reference_id: String,
     pub unit_price: String,
-    pub total_price: String,
     pub tax_id: String,
 }
 
@@ -65,7 +64,6 @@ impl InventoryMovementUserInputError {
             && self.reference_type.is_none()
             && self.reference_id.is_none()
             && self.unit_price.is_none()
-            && self.total_price.is_none()
             && self.tax_id.is_none()
     }
 }
@@ -95,6 +93,7 @@ impl From<ValueObjectError> for InventoryMovementUserInputError {
 
 #[derive(Debug, Clone)]
 pub struct InventoryMovementUserInput {
+    #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,
     pub inventory_id: ValueObjectRequired<UuidVO>,
     pub movement_type: ValueObjectRequired<InventoryMovementType>,
@@ -102,7 +101,6 @@ pub struct InventoryMovementUserInput {
     pub reference_type: Option<ValueObjectRequired<InventoryReferenceType>>,
     pub reference_id: ValueObjectOptional<UuidVO>,
     pub unit_price: ValueObjectOptional<Float64>,
-    pub total_price: ValueObjectOptional<Float64>,
     pub tax_id: ValueObjectRequired<UuidVO>,
 }
 
@@ -179,13 +177,6 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
                 error.unit_price = Some(e.to_string());
             });
 
-        let total_price = value
-            .total_price
-            .parse::<ValueObjectOptional<Float64>>()
-            .inspect_err(|e| {
-                error.total_price = Some(e.to_string());
-            });
-
         if error.is_empty() {
             Ok(InventoryMovementUserInput {
                 id: id?,
@@ -195,7 +186,6 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
                 reference_type: reference_type?,
                 reference_id: reference_id?,
                 unit_price: unit_price?,
-                total_price: total_price?,
                 tax_id: tax_id?,
             })
         } else {

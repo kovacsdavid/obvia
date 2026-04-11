@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let values = ["name", "created_at", "updated_at", ""];
+        let values = ["name", "created_at", "updated_at"];
         for value in values.iter() {
             let order = value.parse::<ValueObjectRequired<OrderBy>>().unwrap();
             assert_eq!(order.as_str().unwrap(), *value);

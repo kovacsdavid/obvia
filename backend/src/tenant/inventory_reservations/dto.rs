@@ -88,6 +88,7 @@ impl From<ValueObjectError> for InventoryReservationUserInputError {
 
 #[derive(Debug, Clone)]
 pub struct InventoryReservationUserInput {
+    #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,
     pub inventory_id: ValueObjectRequired<UuidVO>,
     pub quantity: ValueObjectRequired<Quantity>,

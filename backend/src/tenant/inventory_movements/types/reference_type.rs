@@ -58,10 +58,10 @@ mod tests {
 
     #[test]
     fn test_valid() {
-        let reference_type = "workheets"
+        let reference_type = "worksheets"
             .parse::<ValueObjectRequired<ReferenceType>>()
             .unwrap();
-        assert_eq!(reference_type.as_str().unwrap(), "workheets");
+        assert_eq!(reference_type.as_str().unwrap(), "worksheets");
     }
 
     #[test]

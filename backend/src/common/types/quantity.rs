@@ -28,9 +28,9 @@ impl ValueObjectData for Quantity {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse::<f64>().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás mennyiség formátum!")
-            })?)))
+            Ok(Some(Self(data.replace(",", ".").parse::<f64>().map_err(
+                |_| ValueObjectError::InvalidInput("Hibás mennyiség formátum!"),
+            )?)))
         } else {
             Ok(None)
         }

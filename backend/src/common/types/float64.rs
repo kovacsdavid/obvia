@@ -28,9 +28,9 @@ impl ValueObjectData for Float64 {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse::<f64>().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás formátum!")
-            })?)))
+            Ok(Some(Self(data.replace(",", ".").parse::<f64>().map_err(
+                |_| ValueObjectError::InvalidInput("Hibás formátum!"),
+            )?)))
         } else {
             Ok(None)
         }
@@ -55,16 +55,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_price() {
+    fn test_valid_float64() {
         let price = "123.45".parse::<ValueObjectRequired<Float64>>().unwrap();
-        assert_eq!(price.as_f64().unwrap(), 123.45);
+        assert_eq!(price.as_f64().unwrap(), 123.45_f64);
 
         let price = "123,45".parse::<ValueObjectRequired<Float64>>().unwrap();
-        assert_eq!(price.as_f64().unwrap(), 123.45);
+        assert_eq!(price.as_f64().unwrap(), 123.45_f64);
     }
 
     #[test]
-    fn test_empty_price() {
+    fn test_empty_float64() {
         let price = "".parse::<ValueObjectOptional<Float64>>().unwrap();
         assert!(price.as_f64().is_none());
 
@@ -73,7 +73,7 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_price_format() {
+    fn test_invalid_float64_format() {
         let cases = vec![
             r#""abc""#,
             r#""12.34.56""#,

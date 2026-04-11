@@ -50,7 +50,7 @@ pub trait ProductsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
     async fn insert(
         &self,
-        product: ProductUserInput,
+        product: &ProductUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Product>;
@@ -245,25 +245,22 @@ impl ProductsRepository for PgPoolManager {
     }
     async fn insert(
         &self,
-        product: ProductUserInput,
+        input: &ProductUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> Result<Product, RepositoryError> {
+        let unit_of_measure_id = match &input.unit_of_measure_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Product>(
             "INSERT INTO products (name, description, unit_of_measure_id, status, created_by_id)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
-        .bind(product.name.as_str())
-        .bind(product.description.as_ref().map(|d| d.as_str()))
-        .bind(
-            product
-                .unit_of_measure_id
-                .ok_or(RepositoryError::InvalidInput(
-                    "unit_of_measure_id".to_string(),
-                ))?
-                .as_uuid()?,
-        )
-        .bind(product.status.as_str())
+        .bind(input.name.as_str()?)
+        .bind(input.description.as_str())
+        .bind(unit_of_measure_id)
+        .bind(input.status.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -271,12 +268,17 @@ impl ProductsRepository for PgPoolManager {
 
     async fn update(
         &self,
-        product: ProductUserInput,
+        input: ProductUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Product> {
-        let id = product
+        let id = input
             .id
+            .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+        let unit_of_measure_id = match &input.unit_of_measure_id {
+            Some(v) => Some(v.as_uuid()?),
+            None => None,
+        };
         Ok(sqlx::query_as::<_, Product>(
             r#"
             UPDATE products
@@ -289,18 +291,11 @@ impl ProductsRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(product.name.as_str())
-        .bind(product.description.as_ref().map(|d| d.as_str()))
-        .bind(
-            product
-                .unit_of_measure_id
-                .ok_or(RepositoryError::InvalidInput(
-                    "unit_of_measure_id".to_string(),
-                ))?
-                .as_uuid()?,
-        )
-        .bind(product.status.as_str())
-        .bind(id.as_uuid()?)
+        .bind(input.name.as_str()?)
+        .bind(input.description.as_str())
+        .bind(unit_of_measure_id)
+        .bind(input.status.as_str()?)
+        .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

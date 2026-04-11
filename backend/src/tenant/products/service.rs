@@ -22,7 +22,8 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::GetQuery;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::ProductUserInput;
@@ -49,6 +50,9 @@ pub enum ProductsServiceError {
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
+
+    #[error("ValueObjectError: {0}")]
+    ValueObjectError(#[from] ValueObjectError),
 }
 
 #[async_trait]
@@ -102,39 +106,30 @@ pub struct ProductsService;
 impl ProductsService {
     pub async fn create(
         claims: &Claims,
-        payload: &ProductUserInput,
+        payload: &mut ProductUserInput,
         products_module: Arc<dyn ProductsModule>,
     ) -> ProductsServiceResult<Product> {
-        let mut product = payload.clone();
-
-        product.unit_of_measure_id = if let Some(units_of_measure_id) = product.unit_of_measure_id {
-            Some(units_of_measure_id)
-        } else {
-            ValueObject::new_optional(UuidVO(
-                products_module
-                    .products_repo()
-                    .insert_unit_of_measure(
-                        product
-                            .new_unit_of_measure
-                            .as_ref()
-                            .ok_or(ProductsServiceError::InvalidState)?
-                            .as_str(),
-                        claims.sub(),
-                        claims
-                            .active_tenant()
-                            .ok_or(ProductsServiceError::Unauthorized)?,
-                    )
-                    .await?
-                    .id
-                    .to_string(),
-            ))
-            .map_err(|_| ProductsServiceError::InvalidState)?
-        };
-
+        if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
+            payload.unit_of_measure_id = products_module
+                .products_repo()
+                .insert_unit_of_measure(
+                    new_unit_of_measure.as_str()?,
+                    claims.sub(),
+                    claims
+                        .active_tenant()
+                        .ok_or(ProductsServiceError::Unauthorized)?,
+                )
+                .await?
+                .id
+                .to_string()
+                .parse::<ValueObjectRequired<UuidVO>>()
+                .map(Some)
+                .map_err(|_| ProductsServiceError::InvalidState)?;
+        }
         Ok(products_module
             .products_repo()
             .insert(
-                product,
+                payload,
                 claims.sub(),
                 claims
                     .active_tenant()

@@ -61,7 +61,8 @@ mod tests {
 
     #[test]
     fn test_validate_valid_status() {
-        for item in vec!["active", "fulfilled", "cancelled", "expired"] {
+        let items = vec!["active", "fulfilled", "cancelled", "expired"];
+        for item in items {
             let status = item.parse::<ValueObjectRequired<Status>>().unwrap();
             assert_eq!(status.as_str().unwrap(), item);
         }

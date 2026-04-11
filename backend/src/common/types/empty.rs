@@ -28,11 +28,7 @@ impl ValueObjectData for Empty {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         let data_trim = data.trim();
-        if !data_trim.is_empty() {
-            Ok(Some(Self(data_trim.to_owned())))
-        } else {
-            Ok(None)
-        }
+        Ok(Some(Self(data_trim.to_owned())))
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
@@ -59,13 +55,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_filter_by() {
-        let filter_by = "".parse::<ValueObjectRequired<Empty>>().unwrap();
-        assert_eq!(filter_by.as_str().unwrap(), "");
+    fn test_valid_empty() {
+        let empty = "".parse::<ValueObjectRequired<Empty>>().unwrap();
+        assert_eq!(empty.as_str().unwrap(), "");
     }
 
     #[test]
-    fn test_invalid_filter_by() {
+    fn test_invalid_empty() {
         let filter_by = "any".parse::<ValueObjectRequired<Empty>>();
         assert!(filter_by.is_err());
     }

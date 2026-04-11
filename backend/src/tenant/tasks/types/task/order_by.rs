@@ -59,8 +59,8 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by = "name".parse::<ValueObjectRequired<OrderBy>>().unwrap();
-        assert_eq!(order_by.as_str().unwrap(), "name");
+        let order_by = "service".parse::<ValueObjectRequired<OrderBy>>().unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "service");
     }
 
     #[test]

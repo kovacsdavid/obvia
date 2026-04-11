@@ -118,7 +118,7 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
 
         if let Ok(password) = &password
             && let Ok(password) = password.as_str()
-            && password == value.password_confirm
+            && password != value.password_confirm
         {
             error.password_confirm =
                 Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
@@ -348,5 +348,46 @@ impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_register_request() {
+        let register_request_helper = RegisterRequestHelper {
+            email: "teszt.elek@kovacsdavid.dev".to_owned(),
+            first_name: "Elek".to_owned(),
+            last_name: "Teszt".to_owned(),
+            password: "Password1!".to_owned(),
+            password_confirm: "Password1!".to_owned(),
+        };
+
+        let register_request =
+            <RegisterRequest as TryFrom<RegisterRequestHelper>>::try_from(register_request_helper);
+
+        assert!(register_request.is_ok());
+    }
+
+    #[test]
+    fn register_request_password_mismatch() {
+        let register_request_helper = RegisterRequestHelper {
+            email: "teszt.elek@kovacsdavid.dev".to_owned(),
+            first_name: "Elek".to_owned(),
+            last_name: "Teszt".to_owned(),
+            password: "Password1!".to_owned(),
+            password_confirm: "Password1".to_owned(),
+        };
+
+        let register_request_error =
+            <RegisterRequest as TryFrom<RegisterRequestHelper>>::try_from(register_request_helper)
+                .unwrap_err();
+
+        assert_eq!(
+            register_request_error.password_confirm.unwrap().as_str(),
+            "A jelszó és a jelszó megerősítés mező nem egyezik"
+        );
     }
 }

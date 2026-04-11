@@ -245,8 +245,8 @@ impl InventoryReservationsRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryReservation> {
-        let reference_id = match &input.reference_id {
-            Some(v) => Some(v.as_uuid()?),
+        let reference_type = match &input.reference_type {
+            Some(v) => Some(v.as_str()?),
             None => None,
         };
         Ok(sqlx::query_as::<_, InventoryReservation>(
@@ -259,11 +259,11 @@ impl InventoryReservationsRepository for PgPoolManager {
             "#,
         )
         .bind(input.inventory_id.as_uuid()?)
-        .bind(input.quantity.as_i32()?)
-        .bind(input.reference_type.as_ref().map(|d| d.as_str()))
-        .bind(reference_id)
-        .bind(input.reserved_until.date_naive()?)
-        .bind(input.status.as_str())
+        .bind(input.quantity.as_f64()?)
+        .bind(reference_type)
+        .bind(input.reference_id.as_uuid())
+        .bind(input.reserved_until.as_date_naive()?)
+        .bind(input.status.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)

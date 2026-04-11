@@ -18,7 +18,8 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{
@@ -79,15 +80,21 @@ impl IntoResponse for ServiceUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for ServiceUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ServiceUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub name: ValueObject<ServiceName>,
-    pub description: Option<ValueObject<ServiceDescription>>,
-    pub default_price: Option<ValueObject<DefaultPrice>>,
-    pub default_tax_id: Option<ValueObject<UuidVO>>,
-    pub currency_code: Option<ValueObject<CurrencyCode>>,
-    pub status: ValueObject<ServiceStatus>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub name: ValueObjectRequired<ServiceName>,
+    pub description: ValueObjectOptional<ServiceDescription>,
+    pub default_price: ValueObjectOptional<DefaultPrice>,
+    pub default_tax_id: ValueObjectOptional<UuidVO>,
+    pub currency_code: ValueObjectOptional<CurrencyCode>,
+    pub status: ValueObjectRequired<ServiceStatus>,
 }
 
 impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
@@ -95,51 +102,65 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
     fn try_from(value: ServiceUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = ServiceUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let name = ValueObject::new_required(ServiceName(value.name)).inspect_err(|e| {
-            error.name = Some(e.to_string());
-        });
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<ServiceName>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        let description = ValueObject::new_optional(ServiceDescription(value.description))
+        let description = value
+            .description
+            .parse::<ValueObjectOptional<ServiceDescription>>()
             .inspect_err(|e| {
                 error.description = Some(e.to_string());
             });
 
-        let default_price = ValueObject::new_optional(ServiceDefaultPrice(value.default_price))
+        let default_price = value
+            .default_price
+            .parse::<ValueObjectOptional<ServiceDefaultPrice>>()
             .inspect_err(|e| {
                 error.default_price = Some(e.to_string());
             });
 
-        let default_tax_id =
-            ValueObject::new_optional(UuidVO(value.default_tax_id)).inspect_err(|_| {
-                error.default_tax_id = Some("Érvénytelen adó azonosító".to_string());
+        let default_tax_id = value
+            .default_tax_id
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
+                error.default_tax_id = Some(e.to_string());
             });
 
-        let currency_code = ValueObject::new_optional(CurrencyCode(value.currency_code))
-            .inspect_err(|_| {
-                error.currency_code = Some("Érvénytelen adó azonosító".to_string());
+        let currency_code = value
+            .currency_code
+            .parse::<ValueObjectOptional<CurrencyCode>>()
+            .inspect_err(|e| {
+                error.currency_code = Some(e.to_string());
             });
 
-        let status = ValueObject::new_required(ServiceStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<ServiceStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(ServiceUserInput {
-                id: id.map_err(|_| ServiceUserInputError::default())?,
-                name: name.map_err(|_| ServiceUserInputError::default())?,
-                description: description.map_err(|_| ServiceUserInputError::default())?,
-                default_price: default_price.map_err(|_| ServiceUserInputError::default())?,
-                default_tax_id: default_tax_id.map_err(|_| ServiceUserInputError::default())?,
-                currency_code: currency_code.map_err(|_| ServiceUserInputError::default())?,
-                status: status.map_err(|_| ServiceUserInputError::default())?,
+                id: id?,
+                name: name?,
+                description: description?,
+                default_price: default_price?,
+                default_tax_id: default_tax_id?,
+                currency_code: currency_code?,
+                status: status?,
             })
         } else {
             Err(error)

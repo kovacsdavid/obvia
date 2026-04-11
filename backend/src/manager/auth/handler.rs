@@ -156,7 +156,7 @@ pub async fn register(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::try_register(auth_module.clone(), user_input).await {
+    match AuthService::try_register(auth_module.clone(), &user_input).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }

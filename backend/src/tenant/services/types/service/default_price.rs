@@ -28,9 +28,9 @@ impl ValueObjectData for DefaultPrice {
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
-            Ok(Some(Self(data.parse().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás alapértelmezett ár formátum!")
-            })?)))
+            Ok(Some(Self(data.replace(",", ".").parse().map_err(
+                |_| ValueObjectError::InvalidInput("Hibás alapértelmezett ár formátum!"),
+            )?)))
         } else {
             Ok(None)
         }

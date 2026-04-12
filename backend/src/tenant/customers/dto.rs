@@ -170,3 +170,97 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_customer_user_input_natural() {
+        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from("Teszt Elek"),
+            contact_name: String::from(""),
+            email: String::from("teszt.elek@example.com"),
+            phone_number: String::from("+36301234567"),
+            status: String::from("active"),
+            customer_type: String::from("natural"),
+        })
+        .unwrap();
+        assert_eq!(cui.id.as_uuid(), None);
+        assert_eq!(cui.name.as_str().unwrap(), "Teszt Elek");
+        assert_eq!(cui.contact_name, None);
+        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
+        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
+        assert_eq!(cui.status.as_str().unwrap(), "active");
+        assert_eq!(cui.customer_type.as_str().unwrap(), "natural");
+    }
+
+    #[test]
+    fn valid_customer_user_input_legal() {
+        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from("Teszt Kft."),
+            contact_name: String::from("Teszt Elek"),
+            email: String::from("teszt.elek@example.com"),
+            phone_number: String::from("+36301234567"),
+            status: String::from("active"),
+            customer_type: String::from("legal"),
+        })
+        .unwrap();
+        assert_eq!(cui.id.as_uuid(), None);
+        assert_eq!(cui.name.as_str().unwrap(), "Teszt Kft.");
+        assert_eq!(cui.contact_name.unwrap().as_str().unwrap(), "Teszt Elek");
+        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
+        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
+        assert_eq!(cui.status.as_str().unwrap(), "active");
+        assert_eq!(cui.customer_type.as_str().unwrap(), "legal");
+    }
+    #[test]
+    fn invalid_customer_user_input_natural() {
+        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: Some(String::from("asd")),
+            name: String::from(""),
+            contact_name: String::from(""),
+            email: String::from("teszt.elekexample.com"),
+            phone_number: String::from("+36@301234567"),
+            status: String::from("activee"),
+            customer_type: String::from("natural"),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.contact_name, None);
+        assert_eq!(cuie.email.unwrap(), Email::VALIDATION_ERROR);
+        assert_eq!(
+            cuie.phone_number.unwrap(),
+            CustomerPhoneNumber::VALIDATION_ERROR
+        );
+        assert_eq!(cuie.status.unwrap(), CustomerStatus::VALIDATION_ERROR);
+        assert_eq!(cuie.customer_type, None);
+    }
+
+    #[test]
+    fn invalid_customer_user_input_legal() {
+        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from(""),
+            contact_name: String::from(""),
+            email: String::from(""),
+            phone_number: String::from("+3630a234567"),
+            status: String::from(""),
+            customer_type: String::from("legal"),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id, None);
+        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.contact_name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.email.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            cuie.phone_number.unwrap(),
+            CustomerPhoneNumber::VALIDATION_ERROR
+        );
+        assert_eq!(cuie.status.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.customer_type, None);
+    }
+}

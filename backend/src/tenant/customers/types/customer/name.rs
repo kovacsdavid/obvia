@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Name(String);
 
+impl Name {
+    pub const VALIDATION_ERROR: &'static str = "A név nem lehet 255 karakternél hosszabb";
+}
+
 impl ValueObjectData for Name {
     type DataType = String;
 
@@ -38,9 +42,7 @@ impl ValueObjectData for Name {
         if self.0.len() <= 255 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A név nem lehet 255 karakternél hosszabb",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

@@ -24,6 +24,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct PhoneNumber(String);
 
+impl PhoneNumber {
+    pub const VALIDATION_ERROR: &'static str = "Hibás telefonszám formátum";
+}
+
 impl ValueObjectData for PhoneNumber {
     type DataType = String;
 
@@ -35,12 +39,9 @@ impl ValueObjectData for PhoneNumber {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match Regex::new(r##"^\+[1-9]\d{4,15}$"##) {
-            Ok(re) => match re.is_match(&self.0) {
-                true => Ok(()),
-                false => Err(ValueObjectError::InvalidInput("Hibás telefonszám formátum")),
-            },
-            Err(_) => Err(ValueObjectError::InvalidInput("Hibás telefonszám formátum")),
+        match Regex::new(r##"^\+[1-9]\d{4,15}$"##)?.is_match(&self.0) {
+            true => Ok(()),
+            false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

@@ -24,6 +24,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Email(String);
 
+impl Email {
+    pub const VALIDATION_ERROR: &'static str = "A megadott e-mail cím formátuma nem megfelelő";
+}
+
 impl ValueObjectData for Email {
     type DataType = String;
 
@@ -37,15 +41,10 @@ impl ValueObjectData for Email {
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(
             r##"(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"##,
-        ) {
-            Ok(re) => match re.is_match(&self.0) {
-                true => Ok(()),
-                false => Err(ValueObjectError::InvalidInput(
-                    "A megadott e-mail cím formátuma nem megfelelő",
-                )),
-            },
-            Err(_) => Err(ValueObjectError::InvalidInput(
-                "A megadott e-mail cím formátuma nem megfelelő",
+        )?.is_match(&self.0) {
+            true => Ok(()),
+            false => Err(ValueObjectError::InvalidInput(
+                Self::VALIDATION_ERROR,
             )),
         }
     }

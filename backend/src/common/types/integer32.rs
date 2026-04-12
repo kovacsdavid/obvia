@@ -23,13 +23,17 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Integer32(i32);
 
+impl Integer32 {
+    pub const PARSE_ERROR: &'static str = "A mező csak egész számot tartalmazhat";
+}
+
 impl ValueObjectData for Integer32 {
     type DataType = i32;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.parse::<i32>().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás formátum!")
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
             })?)))
         } else {
             Ok(None)

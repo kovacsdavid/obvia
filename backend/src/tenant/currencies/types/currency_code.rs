@@ -23,6 +23,11 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct CurrencyCode(String);
 
+impl CurrencyCode {
+    pub const VALIDATION_ERROR: &'static str =
+        "A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF";
+}
+
 impl ValueObjectData for CurrencyCode {
     type DataType = String;
 
@@ -38,9 +43,7 @@ impl ValueObjectData for CurrencyCode {
         if self.0.trim().len() == 3 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

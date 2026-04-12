@@ -164,3 +164,54 @@ impl TryFrom<InventoryUserInputHelper> for InventoryUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_inventory_user_input() {
+        let product_id = Uuid::new_v4();
+        let warehouse_id = Uuid::new_v4();
+        let iui = InventoryUserInput::try_from(InventoryUserInputHelper {
+            id: None,
+            product_id: product_id.to_string(),
+            warehouse_id: warehouse_id.to_string(),
+            minimum_stock: String::from("10"),
+            maximum_stock: String::from("100"),
+            currency_code: String::from("HUF"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(iui.product_id.as_uuid().unwrap(), product_id);
+        assert_eq!(iui.warehouse_id.as_uuid().unwrap(), warehouse_id);
+        assert_eq!(iui.minimum_stock.as_i32().unwrap(), 10_i32);
+        assert_eq!(iui.maximum_stock.as_i32().unwrap(), 100_i32);
+        assert_eq!(iui.currency_code.as_str().unwrap(), "HUF");
+        assert_eq!(iui.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_inventory_user_input() {
+        let iui = InventoryUserInput::try_from(InventoryUserInputHelper {
+            id: None,
+            product_id: String::from(""),
+            warehouse_id: String::from("asd"),
+            minimum_stock: String::from("1a"),
+            maximum_stock: String::from("aaa"),
+            currency_code: String::from("HUFF"),
+            status: String::from("activee"),
+        })
+        .unwrap_err();
+
+        assert_eq!(iui.product_id.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(iui.warehouse_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(iui.minimum_stock.unwrap(), Integer32::PARSE_ERROR);
+        assert_eq!(iui.maximum_stock.unwrap(), Integer32::PARSE_ERROR);
+        assert_eq!(iui.currency_code.unwrap(), CurrencyCode::VALIDATION_ERROR);
+        assert_eq!(iui.status.unwrap(), InventoryStatus::VALIDATION_ERROR);
+    }
+}

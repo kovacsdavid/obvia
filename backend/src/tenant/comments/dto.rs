@@ -134,3 +134,39 @@ impl TryFrom<CommentUserInputHelper> for CommentUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_comment_user_input() {
+        let commentable_id = Uuid::new_v4();
+        let cui = CommentUserInput::try_from(CommentUserInputHelper {
+            id: None,
+            commentable_type: String::from("customers"),
+            commentable_id: commentable_id.to_string(),
+            comment: String::from("comment"),
+        })
+        .unwrap();
+        assert_eq!(cui.commentable_type.as_str().unwrap(), "customers");
+        assert_eq!(cui.commentable_id.as_uuid().unwrap(), commentable_id);
+        assert_eq!(cui.comment.as_str().unwrap(), "comment");
+    }
+    #[test]
+    fn invalid_comment_user_input() {
+        let cuie = CommentUserInput::try_from(CommentUserInputHelper {
+            id: Some(String::from("asd")),
+            commentable_type: String::from(""),
+            commentable_id: String::from("asd"),
+            comment: String::from(""),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.commentable_type.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.commentable_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.comment.unwrap(), ValueObjectError::REQUIRED);
+    }
+}

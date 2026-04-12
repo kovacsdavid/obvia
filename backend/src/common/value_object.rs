@@ -39,6 +39,10 @@ pub enum ValueObjectError {
     Regex(#[from] regex::Error),
 }
 
+impl ValueObjectError {
+    pub const REQUIRED: &'static str = "A mező kitöltése kötelező";
+}
+
 pub trait ValueObjectData: Display + Sized {
     type DataType;
     fn new(data: &str) -> ValueObjectResult<Option<Self>>;
@@ -69,7 +73,7 @@ where
                 d.validate()?;
                 Ok(ValueObject(Some(d), PhantomData))
             }
-            None => Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező")),
+            None => Err(ValueObjectError::InvalidInput(ValueObjectError::REQUIRED)),
         }
     }
 }

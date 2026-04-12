@@ -24,13 +24,17 @@ use uuid::Uuid;
 #[derive(Debug, PartialEq, Clone)]
 pub struct UuidVO(Uuid);
 
+impl UuidVO {
+    pub const PARSE_ERROR: &'static str = "Hibás uuid!";
+}
+
 impl ValueObjectData for UuidVO {
     type DataType = Uuid;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.parse::<Uuid>().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás uuid!")
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
             })?)))
         } else {
             Ok(None)

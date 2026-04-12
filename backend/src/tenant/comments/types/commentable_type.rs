@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct CommentableType(String);
 
+impl CommentableType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás erőforrás típus";
+}
+
 impl ValueObjectData for CommentableType {
     type DataType = String;
 
@@ -47,7 +51,7 @@ impl ValueObjectData for CommentableType {
             | "services"
             | "tasks"
             | "worksheets" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás erőforrás típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

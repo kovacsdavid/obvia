@@ -438,11 +438,11 @@ All source files must include the AGPL license header:
 ```
 
 ### Commit Conventions
-
-All commits **must be signed off** using the Developer Certificate of Origin (DCO):
+- All commits **must use** the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) specification
+- All commits **must be signed off** using the Developer Certificate of Origin (DCO)
 
 ```bash
-git commit -s -m "Your commit message"
+git commit -s -m "docs: Your commit message"
 ```
 
 This adds a `Signed-off-by: Your Name <your.email@example.com>` line to the commit message.

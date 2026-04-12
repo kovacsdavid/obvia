@@ -47,3 +47,21 @@ impl ActivityFeedRawQuery {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_activity_feed_raw_query() {
+        let uuid = Uuid::new_v4();
+        let afrq = ActivityFeedRawQuery {
+            resource_id: uuid,
+            resource_type: String::from("customers"),
+            q: Some(String::from("query")),
+        };
+        assert_eq!(afrq.resource_id(), uuid);
+        assert_eq!(afrq.resource_type().unwrap().as_str().unwrap(), "customers");
+        assert_eq!(afrq.q(), "query");
+    }
+}

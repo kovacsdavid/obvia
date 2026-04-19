@@ -24,6 +24,12 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReservedUntil(NaiveDate);
 
+impl ReservedUntil {
+    pub const PARSE_ERROR: &'static str = "Hibás dátum formátum!";
+    pub const VALIDATION_ERROR: &'static str =
+        "Foglalás csak a mai napnál későbbi dátumra lehetséges";
+}
+
 impl ValueObjectData for ReservedUntil {
     type DataType = NaiveDate;
 
@@ -31,7 +37,7 @@ impl ValueObjectData for ReservedUntil {
         let data_trim = data.trim();
         if !data_trim.is_empty() {
             Ok(Some(Self(data_trim.parse().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás dátum formátum!")
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
             })?)))
         } else {
             Ok(None)
@@ -43,9 +49,7 @@ impl ValueObjectData for ReservedUntil {
         if self.0 > today {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "Foglalás csak a mai napnál későbbi dátumra lehetséges",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

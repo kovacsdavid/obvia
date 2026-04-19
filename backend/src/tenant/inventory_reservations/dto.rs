@@ -189,3 +189,73 @@ impl InventoryReservationsRawQuery {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Days, Local};
+
+    #[test]
+    fn valid_inventory_reservations_user_input() {
+        let inventory_id = Uuid::new_v4();
+        let reference_id = Uuid::new_v4();
+        let valid_date = Local::now()
+            .checked_add_days(Days::new(1))
+            .unwrap()
+            .date_naive();
+
+        let irui = InventoryReservationUserInput::try_from(InventoryReservationUserInputHelper {
+            id: None,
+            inventory_id: inventory_id.to_string(),
+            quantity: String::from("10"),
+            reference_type: String::from("worksheets"),
+            reference_id: reference_id.to_string(),
+            reserved_until: valid_date.to_string(),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(irui.inventory_id.as_uuid().unwrap(), inventory_id);
+        assert_eq!(irui.quantity.as_f64().unwrap(), 10_f64);
+        assert_eq!(irui.reference_type.unwrap().as_str().unwrap(), "worksheets");
+        assert_eq!(irui.reference_id.as_uuid().unwrap(), reference_id);
+        assert_eq!(irui.reserved_until.as_date_naive().unwrap(), &valid_date);
+        assert_eq!(irui.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_inventory_reservations_user_input() {
+        let reference_id = Uuid::new_v4();
+        let invalid_date = Local::now()
+            .checked_sub_days(Days::new(1))
+            .unwrap()
+            .date_naive();
+
+        let irui = InventoryReservationUserInput::try_from(InventoryReservationUserInputHelper {
+            id: None,
+            inventory_id: String::from("invalid"),
+            quantity: String::from(""),
+            reference_type: String::from("invalid"),
+            reference_id: reference_id.to_string(),
+            reserved_until: invalid_date.to_string(),
+            status: String::from("invalid"),
+        })
+        .unwrap_err();
+
+        assert_eq!(irui.inventory_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(irui.quantity.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            irui.reference_type.unwrap(),
+            InventoryReferenceType::VALIDATION_ERROR
+        );
+        assert_eq!(irui.reference_id, None);
+        assert_eq!(
+            irui.reserved_until.unwrap(),
+            InventoryReservationsReservedUntil::VALIDATION_ERROR
+        );
+        assert_eq!(
+            irui.status.unwrap(),
+            InventoryReservationsStatus::VALIDATION_ERROR
+        );
+    }
+}

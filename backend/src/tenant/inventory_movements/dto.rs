@@ -211,3 +211,61 @@ impl InventoryMovementsRawQuery {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_inventory_movements_user_input() {
+        let inventory_id = Uuid::new_v4();
+        let reference_id = Uuid::new_v4();
+        let tax_id = Uuid::new_v4();
+        let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
+            id: None,
+            inventory_id: inventory_id.to_string(),
+            movement_type: String::from("out"),
+            quantity: String::from("10"),
+            reference_type: String::from("worksheets"),
+            reference_id: reference_id.to_string(),
+            unit_price: String::from("1000"),
+            tax_id: tax_id.to_string(),
+        })
+        .unwrap();
+
+        assert_eq!(imui.inventory_id.as_uuid().unwrap(), inventory_id);
+        assert_eq!(imui.movement_type.as_str().unwrap(), "out");
+        assert_eq!(imui.quantity.as_f64().unwrap(), 10_f64);
+        assert_eq!(imui.reference_type.unwrap().as_str().unwrap(), "worksheets");
+        assert_eq!(imui.reference_id.as_uuid().unwrap(), reference_id);
+        assert_eq!(imui.unit_price.as_f64().unwrap(), 1000_f64);
+        assert_eq!(imui.tax_id.as_uuid().unwrap(), tax_id);
+    }
+
+    #[test]
+    fn invalid_inventory_movements_user_input() {
+        let reference_id = Uuid::new_v4();
+        let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
+            id: None,
+            inventory_id: String::from("invalid"),
+            movement_type: String::from("invalid"),
+            quantity: String::from(""),
+            reference_type: String::from(""),
+            reference_id: reference_id.to_string(),
+            unit_price: String::from("asd"),
+            tax_id: String::from("asd"),
+        })
+        .unwrap_err();
+
+        assert_eq!(imui.inventory_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(
+            imui.movement_type.unwrap(),
+            InventoryMovementType::VALIDATION_ERROR
+        );
+        assert_eq!(imui.quantity.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(imui.reference_type.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(imui.reference_id, None);
+        assert_eq!(imui.unit_price.unwrap(), Float64::PARSE_ERROR);
+        assert_eq!(imui.tax_id.unwrap(), UuidVO::PARSE_ERROR);
+    }
+}

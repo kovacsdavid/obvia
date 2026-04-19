@@ -23,13 +23,17 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Float64(f64);
 
+impl Float64 {
+    pub const PARSE_ERROR: &'static str = "Hibás formátum!";
+}
+
 impl ValueObjectData for Float64 {
     type DataType = f64;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.replace(",", ".").parse::<f64>().map_err(
-                |_| ValueObjectError::InvalidInput("Hibás formátum!"),
+                |_| ValueObjectError::InvalidInput(Self::PARSE_ERROR),
             )?)))
         } else {
             Ok(None)

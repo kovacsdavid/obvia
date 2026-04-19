@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReferenceType(String);
 
+impl ReferenceType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás referencia típus";
+}
+
 impl ValueObjectData for ReferenceType {
     type DataType = String;
 
@@ -37,7 +41,7 @@ impl ValueObjectData for ReferenceType {
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "worksheets" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás referencia típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

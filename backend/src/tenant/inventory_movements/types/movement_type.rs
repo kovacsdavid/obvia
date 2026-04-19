@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct MovementType(String);
 
+impl MovementType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás mozgás típus";
+}
+
 impl ValueObjectData for MovementType {
     type DataType = String;
 
@@ -37,7 +41,7 @@ impl ValueObjectData for MovementType {
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "in" | "out" | "adjustment" | "transfer" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás mozgás típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

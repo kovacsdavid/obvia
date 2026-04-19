@@ -23,13 +23,19 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Quantity(f64);
 
+impl Quantity {
+    pub const PARSE_ERROR: &'static str = "Hibás mennyiség formátum!";
+    pub const VALIDATION_ERROR: &'static str =
+        "A megadott érték csak 0 vagy annál nagyobb szám lehet!";
+}
+
 impl ValueObjectData for Quantity {
     type DataType = f64;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.replace(",", ".").parse::<f64>().map_err(
-                |_| ValueObjectError::InvalidInput("Hibás mennyiség formátum!"),
+                |_| ValueObjectError::InvalidInput(Self::PARSE_ERROR),
             )?)))
         } else {
             Ok(None)
@@ -39,9 +45,7 @@ impl ValueObjectData for Quantity {
         if self.0 >= 0_f64 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A megadott érték csak 0 vagy annál nagyobb szám lehet!",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

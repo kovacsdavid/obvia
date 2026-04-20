@@ -23,13 +23,17 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct DefaultPrice(f64);
 
+impl DefaultPrice {
+    pub const PARSE_ERROR: &'static str = "Hibás alapértelmezett ár formátum!";
+}
+
 impl ValueObjectData for DefaultPrice {
     type DataType = f64;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.replace(",", ".").parse().map_err(
-                |_| ValueObjectError::InvalidInput("Hibás alapértelmezett ár formátum!"),
+                |_| ValueObjectError::InvalidInput(Self::PARSE_ERROR),
             )?)))
         } else {
             Ok(None)

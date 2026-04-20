@@ -167,3 +167,62 @@ impl TryFrom<ServiceUserInputHelper> for ServiceUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let default_tax_id = Uuid::new_v4();
+        let user_input = ServiceUserInput::try_from(ServiceUserInputHelper {
+            id: None,
+            name: String::from("Service Name"),
+            description: String::from("description"),
+            default_price: String::from("1000"),
+            default_tax_id: default_tax_id.to_string(),
+            currency_code: String::from("HUF"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.id.as_uuid(), None);
+        assert_eq!(user_input.name.as_str().unwrap(), "Service Name");
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.default_price.as_f64().unwrap(), 1000_f64);
+        assert_eq!(user_input.default_tax_id.as_uuid().unwrap(), default_tax_id);
+        assert_eq!(user_input.currency_code.as_str().unwrap(), "HUF");
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_description = "a".repeat(3001);
+        let user_input = ServiceUserInput::try_from(ServiceUserInputHelper {
+            id: None,
+            name: String::from(""),
+            description: invalid_description,
+            default_price: String::from("asd"),
+            default_tax_id: String::from("invalid"),
+            currency_code: String::from("HUFF"),
+            status: String::from("invalid"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.description.unwrap(),
+            ServiceDescription::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.default_price.unwrap(), DefaultPrice::PARSE_ERROR);
+        assert_eq!(user_input.default_tax_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(
+            user_input.currency_code.unwrap(),
+            CurrencyCode::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.status.unwrap(), ServiceStatus::VALIDATION_ERROR);
+    }
+}

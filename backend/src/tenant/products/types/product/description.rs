@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Description(String);
 
+impl Description {
+    pub const VALIDATION_ERROR: &'static str = "A leírás nem lehet 3 000 karakternél hosszabb!";
+}
+
 impl ValueObjectData for Description {
     type DataType = String;
 
@@ -37,9 +41,7 @@ impl ValueObjectData for Description {
         if self.0.len() <= 3000 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A leírás nem lehet 3 000 karakternél hosszabb!",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitsOfMeasure(String);
 
+impl UnitsOfMeasure {
+    pub const VALIDATION_ERROR: &'static str = "A mező maximum 50 karakter hosszú lehet";
+}
+
 impl ValueObjectData for UnitsOfMeasure {
     type DataType = String;
 
@@ -37,9 +41,7 @@ impl ValueObjectData for UnitsOfMeasure {
         if self.0.len() <= 50 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A mező maximum 50 karakter hosszú lehet",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

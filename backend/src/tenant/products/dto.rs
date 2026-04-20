@@ -161,3 +161,61 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_products_user_input() {
+        let user_input = ProductUserInput::try_from(ProductUserInputHelper {
+            id: None,
+            name: String::from("John Doe"),
+            description: String::from("description"),
+            unit_of_measure_id: String::from("other"),
+            new_unit_of_measure: String::from("cm"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.id.as_uuid(), None);
+        assert_eq!(user_input.name.as_str().unwrap(), "John Doe");
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.unit_of_measure_id, None);
+        assert_eq!(
+            user_input.new_unit_of_measure.unwrap().as_str().unwrap(),
+            "cm"
+        );
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_products_user_input() {
+        let invalid_description = "a".repeat(3001);
+        let user_input = ProductUserInput::try_from(ProductUserInputHelper {
+            id: None,
+            name: String::from(""),
+            description: invalid_description,
+            unit_of_measure_id: String::from(""),
+            new_unit_of_measure: String::from(""),
+            status: String::from("activeee"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.description.unwrap(),
+            ProductDescription::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.unit_of_measure_id.unwrap(),
+            ValueObjectError::REQUIRED
+        );
+        assert_eq!(
+            user_input.new_unit_of_measure.unwrap(),
+            ValueObjectError::REQUIRED
+        );
+        assert_eq!(user_input.status.unwrap(), ProductStatus::VALIDATION_ERROR);
+    }
+}

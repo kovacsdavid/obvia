@@ -216,3 +216,85 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Days, Local};
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let worksheet_id = Uuid::new_v4();
+        let service_id = Uuid::new_v4();
+        let tax_id = Uuid::new_v4();
+        let due_date = Local::now()
+            .checked_add_days(Days::new(1))
+            .unwrap()
+            .date_naive();
+        let user_input = TaskUserInput::try_from(TaskUserInputHelper {
+            id: None,
+            worksheet_id: worksheet_id.to_string(),
+            service_id: service_id.to_string(),
+            currency_code: String::from("HUF"),
+            quantity: String::from("10"),
+            price: String::from("1000"),
+            tax_id: tax_id.to_string(),
+            status: String::from("active"),
+            priority: String::from("normal"),
+            due_date: due_date.to_string(),
+            description: String::from("description"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.id.as_uuid(), None);
+        assert_eq!(user_input.worksheet_id.as_uuid().unwrap(), worksheet_id);
+        assert_eq!(user_input.service_id.as_uuid().unwrap(), service_id);
+        assert_eq!(user_input.currency_code.as_str().unwrap(), "HUF");
+        assert_eq!(user_input.quantity.as_f64().unwrap(), 10_f64);
+        assert_eq!(user_input.price.as_f64().unwrap(), 1000_f64);
+        assert_eq!(user_input.tax_id.as_uuid().unwrap(), tax_id);
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+        assert_eq!(user_input.priority.as_str().unwrap(), "normal");
+        assert_eq!(user_input.due_date.as_date_naive().unwrap(), &due_date);
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_description = "a".repeat(3001);
+        let user_input = TaskUserInput::try_from(TaskUserInputHelper {
+            id: None,
+            worksheet_id: String::from("invalid"),
+            service_id: String::from(""),
+            currency_code: String::from("HUFF"),
+            quantity: String::from("invalid"),
+            price: String::from("invalid"),
+            tax_id: String::from("invalid"),
+            status: String::from("invalid"),
+            priority: String::from("invalid"),
+            due_date: String::from("invalid"),
+            description: invalid_description,
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.worksheet_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(user_input.service_id.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.currency_code.unwrap(),
+            CurrencyCode::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.quantity.unwrap(), Quantity::PARSE_ERROR);
+        assert_eq!(user_input.price.unwrap(), TaskPrice::PARSE_ERROR);
+        assert_eq!(user_input.tax_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(user_input.status.unwrap(), TaskStatus::VALIDATION_ERROR);
+        assert_eq!(user_input.priority.unwrap(), TaskPriority::VALIDATION_ERROR);
+        assert_eq!(user_input.due_date.unwrap(), TaskDueDate::PARSE_ERROR);
+        assert_eq!(
+            user_input.description.unwrap(),
+            TaskDescription::VALIDATION_ERROR
+        );
+    }
+}

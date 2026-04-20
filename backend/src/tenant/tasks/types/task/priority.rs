@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Priority(String);
 
+impl Priority {
+    pub const VALIDATION_ERROR: &'static str = "Hibás prioritás!";
+}
+
 impl ValueObjectData for Priority {
     type DataType = String;
 
@@ -39,7 +43,7 @@ impl ValueObjectData for Priority {
             "low" => Ok(()),
             "normal" => Ok(()),
             "high" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás prioritás!")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

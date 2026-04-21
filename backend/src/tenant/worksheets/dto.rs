@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use crate::common::error::FormErrorResponse;
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
@@ -150,5 +151,59 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let customer_id = Uuid::new_v4();
+        let user_input = WorksheetUserInput::try_from(WorksheetUserInputHelper {
+            id: None,
+            name: String::from("Worksheet 1"),
+            description: String::from("description"),
+            customer_id: customer_id.to_string(),
+            project_id: String::from(""),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert!(!user_input.id.is_present());
+        assert_eq!(user_input.name.as_str().unwrap(), "Worksheet 1");
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.customer_id.as_uuid().unwrap(), customer_id);
+        assert!(!user_input.project_id.is_present());
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+    #[test]
+    fn invalid_user_input() {
+        let invalid_description = "a".repeat(3001);
+        let user_input = WorksheetUserInput::try_from(WorksheetUserInputHelper {
+            id: None,
+            name: String::from(""),
+            description: invalid_description,
+            customer_id: String::from("invalid"),
+            project_id: String::from(""),
+            status: String::from("invalid"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.description.unwrap(),
+            WorksheetDescription::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.customer_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(user_input.project_id, None);
+        assert_eq!(
+            user_input.status.unwrap(),
+            WorksheetStatus::VALIDATION_ERROR
+        );
     }
 }

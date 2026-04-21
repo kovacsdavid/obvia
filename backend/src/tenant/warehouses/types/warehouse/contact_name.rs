@@ -23,6 +23,11 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct ContactName(String);
 
+impl ContactName {
+    pub const VALIDATION_ERROR: &'static str =
+        "A kapcsolattartó neve nem lehet 255 karakternél hosszabb";
+}
+
 impl ValueObjectData for ContactName {
     type DataType = String;
 
@@ -37,9 +42,7 @@ impl ValueObjectData for ContactName {
         if self.0.len() < 256 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A kapcsolattartó neve nem lehet 255 karakternél hosszabb",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

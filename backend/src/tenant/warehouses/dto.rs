@@ -141,3 +141,55 @@ impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let user_input = WarehouseUserInput::try_from(WarehouseUserInputHelper {
+            id: None,
+            name: String::from("Warehouse 1"),
+            contact_name: String::from("John Doe"),
+            contact_phone: String::from("+36301234567"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert!(!user_input.id.is_present());
+        assert_eq!(user_input.name.as_str().unwrap(), "Warehouse 1");
+        assert_eq!(user_input.contact_name.as_str().unwrap(), "John Doe");
+        assert_eq!(user_input.contact_phone.as_str().unwrap(), "+36301234567");
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_name = "a".repeat(256);
+        let invalid_contact_name = "a".repeat(256);
+        let user_input = WarehouseUserInput::try_from(WarehouseUserInputHelper {
+            id: None,
+            name: invalid_name,
+            contact_name: invalid_contact_name,
+            contact_phone: String::from("invalid"),
+            status: String::from("invalid"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), WarehouseName::VALIDATION_ERROR);
+        assert_eq!(
+            user_input.contact_name.unwrap(),
+            WarehouseContactName::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.contact_phone.unwrap(),
+            WarehouseContactPhone::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.status.unwrap(),
+            WarehouseStatus::VALIDATION_ERROR
+        );
+    }
+}

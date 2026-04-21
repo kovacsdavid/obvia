@@ -23,6 +23,11 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct LegalText(String);
 
+impl LegalText {
+    pub const VALIDATION_ERROR: &'static str =
+        "A jogi szöveg nem lehet 10 000 karakternél hosszabb!";
+}
+
 impl ValueObjectData for LegalText {
     type DataType = String;
 
@@ -37,9 +42,7 @@ impl ValueObjectData for LegalText {
         if self.0.len() <= 10000 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A jogi szöveg nem lehet 10 000 karakternél hosszabb!",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

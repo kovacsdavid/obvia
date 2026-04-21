@@ -23,13 +23,18 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rate(f64);
 
+impl Rate {
+    pub const PARSE_ERROR: &'static str = "Hibás adókulcs formátum!";
+    pub const VALIDATION_ERROR: &'static str = "A adókulcs csak 0 és 100 közötti érték lehet.";
+}
+
 impl ValueObjectData for Rate {
     type DataType = f64;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.replace(",", ".").parse().map_err(
-                |_| ValueObjectError::InvalidInput("Hibás adókulcs formátum!"),
+                |_| ValueObjectError::InvalidInput(Self::PARSE_ERROR),
             )?)))
         } else {
             Ok(None)
@@ -39,9 +44,7 @@ impl ValueObjectData for Rate {
         if self.0 >= 0_f64 && self.0 <= 100_f64 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A adókulcs csak 0 és 100 közötti érték lehet.",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

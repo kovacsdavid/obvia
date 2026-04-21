@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Code(String);
 
+impl Code {
+    pub const VALIDATION_ERROR: &'static str = "Hibás ország azonosító";
+}
+
 impl ValueObjectData for Code {
     type DataType = String;
 
@@ -38,7 +42,7 @@ impl ValueObjectData for Code {
         if self.0.len() == 2 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput("Hibás ország azonosító"))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

@@ -126,7 +126,7 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
         let is_rate_applicable = if let Some(v) = value.is_rate_applicable {
             v
         } else {
-            error.is_rate_applicable = Some("A mező kitöltése kötelező!".to_string());
+            error.is_rate_applicable = Some(ValueObjectError::REQUIRED.to_string());
             false
         };
 
@@ -198,5 +198,81 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let user_input = TaxUserInput::try_from(TaxUserInputHelper {
+            id: None,
+            rate: String::from("27"),
+            description: String::from("description"),
+            country_code: String::from("HU"),
+            tax_category: String::from("standard"),
+            is_rate_applicable: Some(true),
+            legal_text: String::from("legal text"),
+            reporting_code: String::from("reporting code"),
+            is_default: false,
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.rate.unwrap().as_f64().unwrap(), 27_f64);
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.country_code.as_str().unwrap(), "HU");
+        assert_eq!(user_input.tax_category.as_str().unwrap(), "standard");
+        assert!(user_input.is_rate_applicable);
+        assert_eq!(user_input.legal_text.as_str().unwrap(), "legal text");
+        assert_eq!(
+            user_input.reporting_code.as_str().unwrap(),
+            "reporting code"
+        );
+        assert!(!user_input.is_default);
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_legal_text = "a".repeat(10001);
+        let invalid_reporting_code = "a".repeat(100);
+        let user_input = TaxUserInput::try_from(TaxUserInputHelper {
+            id: None,
+            rate: String::from(""),
+            description: String::from(""),
+            country_code: String::from("invalid"),
+            tax_category: String::from("invalid"),
+            is_rate_applicable: Some(true),
+            legal_text: invalid_legal_text,
+            reporting_code: invalid_reporting_code,
+            is_default: false,
+            status: String::from("activee"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.rate.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(user_input.description.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.country_code.unwrap(),
+            CountryCode::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.tax_category.unwrap(),
+            TaxCategory::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.is_rate_applicable, None);
+        assert_eq!(
+            user_input.legal_text.unwrap(),
+            TaxLegalText::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.reporting_code.unwrap(),
+            TaxReportingCode::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.is_default, None);
+        assert_eq!(user_input.status.unwrap(), TaxStatus::VALIDATION_ERROR);
     }
 }

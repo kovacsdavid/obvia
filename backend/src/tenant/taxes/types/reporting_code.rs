@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct ReportingCode(String);
 
+impl ReportingCode {
+    pub const VALIDATION_ERROR: &'static str = "A mező nem tartalmazhat 99-nél több karaktert!";
+}
+
 impl ValueObjectData for ReportingCode {
     type DataType = String;
 
@@ -37,9 +41,7 @@ impl ValueObjectData for ReportingCode {
         if self.0.len() < 100 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A mező nem tartalmazhat 99-nél több karaktert!",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 

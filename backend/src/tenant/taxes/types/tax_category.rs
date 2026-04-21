@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct TaxCategory(String);
 
+impl TaxCategory {
+    pub const VALIDATION_ERROR: &'static str = "Hibás adó kategória";
+}
+
 impl ValueObjectData for TaxCategory {
     type DataType = String;
 
@@ -41,7 +45,7 @@ impl ValueObjectData for TaxCategory {
             "exempt" => Ok(()),
             "reverse_charge" => Ok(()),
             "small_business_exempt" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás adó kategória")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

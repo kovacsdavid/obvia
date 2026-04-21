@@ -23,6 +23,10 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Status(String);
 
+impl Status {
+    pub const VALIDATION_ERROR: &'static str = "Hibás adó státusz";
+}
+
 impl ValueObjectData for Status {
     type DataType = String;
 
@@ -38,7 +42,7 @@ impl ValueObjectData for Status {
         match self.0.as_str() {
             "active" => Ok(()),
             "inactive" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás adó státusz")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 

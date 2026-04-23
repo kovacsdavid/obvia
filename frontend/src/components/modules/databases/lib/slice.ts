@@ -71,6 +71,16 @@ export const get = createAsyncThunk(
   },
 );
 
+export const deleteDatabase = createAsyncThunk(
+  "database/deleteDatabase",
+  async (uuid: string, { getState, dispatch }) => {
+    await dispatch(refreshAccessToken());
+    const rootState = getState() as RootState;
+    const token = rootState.auth.login.token;
+    return await databasesApi.deleteDatabase(uuid, token);
+  },
+);
+
 const databasesSlice = createSlice({
   name: "databases",
   initialState,

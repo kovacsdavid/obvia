@@ -85,13 +85,16 @@ pub mod tests {
         #[async_trait]
         impl PoolManager for TenantsModule {
             fn get_main_pool(&self) -> PgPool;
-            fn get_default_tenant_pool(&self) -> PgPool;
             fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError>;
             async fn add_tenant_pool(
                 &self,
                 tenant_id: Uuid,
                 config: &BasicDatabaseConfig,
             ) -> Result<Uuid, RepositoryError>;
+            async fn delete_tenant_pool(
+                &self,
+                tenant_id: Uuid,
+            ) -> Result<(), RepositoryError>;
         }
         impl TenantsModule for TenantsModule {
             fn tenants_repo(&self) -> Arc<dyn TenantsRepository>;

@@ -45,14 +45,6 @@ export default function Edit({
   onSuccess = undefined,
 }: EditProps) {
   const [name, setName] = React.useState("");
-  const [dbIsSelfHosted, setDbIsSelfHosted] = React.useState<
-    boolean | "indeterminate"
-  >(false);
-  const [dbHost, setDbHost] = React.useState("");
-  const [dbPort, setDbPort] = React.useState("");
-  const [dbName, setDbName] = React.useState("");
-  const [dbUser, setDbUser] = React.useState("");
-  const [dbPassword, setDbPassword] = React.useState("");
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
@@ -62,26 +54,11 @@ export default function Edit({
 
   const activateDatabase = useActivateDatabase();
 
-  React.useEffect(() => {
-    setDbHost("");
-    setDbPort("");
-    setDbName("");
-    setDbUser("");
-    setDbPassword("");
-  }, [setDbIsSelfHosted]);
-
   const handleSubmit = async (e: React.SubmitEvent) => {
     e.preventDefault();
-    const dbPortNumber = parseInt(dbPort, 10);
     dispatch(
       create({
         name,
-        dbIsSelfHosted: dbIsSelfHosted === true,
-        dbHost,
-        dbPort: dbPortNumber,
-        dbName,
-        dbUser,
-        dbPassword,
       }),
     ).then(async (response) => {
       if (create.fulfilled.match(response)) {

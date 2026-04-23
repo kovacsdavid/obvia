@@ -33,6 +33,7 @@ pub fn routes(tenants_module: Arc<dyn TenantsModule>) -> Router {
             .route("/get", get(handler::get))
             .route("/list", get(handler::list))
             .route("/activate", post(handler::activate))
+            .route("/delete", post(handler::delete))
             .layer(from_fn_with_state(tenants_module.config(), require_auth))
             .with_state(tenants_module),
     )

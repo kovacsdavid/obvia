@@ -39,39 +39,31 @@ use uuid::Uuid;
 #[async_trait]
 pub trait PoolManager: Send + Sync {
     fn get_main_pool(&self) -> PgPool;
-    fn get_default_tenant_pool(&self) -> PgPool;
     fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError>;
     async fn add_tenant_pool(
         &self,
         tenant_id: Uuid,
         config: &BasicDatabaseConfig,
     ) -> Result<Uuid, RepositoryError>;
+    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> Result<(), RepositoryError>;
 }
 
 pub struct PgPoolManager {
     main_pool: PgPool,
-    default_tenant_pool: PgPool,
     tenant_pools: Arc<RwLock<HashMap<String, PgPool>>>,
 }
 
 impl PgPoolManager {
     pub async fn new(
         main_database_config: &BasicDatabaseConfig,
-        default_tenant_database_config: &BasicDatabaseConfig,
     ) -> Result<PgPoolManager, RepositoryError> {
         let main_pool = PgPoolOptions::new()
             .max_connections(main_database_config.max_pool_size())
             .acquire_timeout(Duration::from_secs(3))
             .connect(&main_database_config.url())
             .await?;
-        let default_tenant_pool = PgPoolOptions::new()
-            .max_connections(default_tenant_database_config.max_pool_size())
-            .acquire_timeout(Duration::from_secs(3))
-            .connect(&default_tenant_database_config.url())
-            .await?;
         Ok(Self {
             main_pool,
-            default_tenant_pool,
             tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }
@@ -81,9 +73,6 @@ impl PgPoolManager {
 impl PoolManager for PgPoolManager {
     fn get_main_pool(&self) -> PgPool {
         self.main_pool.clone()
-    }
-    fn get_default_tenant_pool(&self) -> PgPool {
-        self.default_tenant_pool.clone()
     }
     fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError> {
         let _tenant_id_string = tenant_id.to_string();
@@ -115,6 +104,14 @@ impl PoolManager for PgPoolManager {
             pools.insert(tenant_id.to_string(), pool);
         }
         Ok(tenant_id)
+    }
+    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> Result<(), RepositoryError> {
+        let mut pools = self
+            .tenant_pools
+            .write()
+            .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
+        pools.remove(&tenant_id.to_string());
+        Ok(())
     }
 }
 

@@ -194,18 +194,6 @@ database = "obvia_main" # Main database name
 pool_size = 10          # Connection pool size
 ```
 
-#### Default Tenant Database
-
-```toml
-[default_tenant_database]
-host = "localhost"          # PostgreSQL host
-port = 5432                 # PostgreSQL port
-username = "db_user"        # Database username
-password = "db_pass"        # Database password
-database = "obvia_tenant"   # Tenant database name
-pool_size = 10              # Connection pool size
-```
-
 #### Authentication
 
 ```toml

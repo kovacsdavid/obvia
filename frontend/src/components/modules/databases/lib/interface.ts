@@ -32,12 +32,6 @@ import { isClaims } from "@/components/modules/auth/lib/guards.ts";
 
 export interface CreateDatabase {
   name: string;
-  dbIsSelfHosted: boolean;
-  dbHost: string;
-  dbPort: number;
-  dbName: string;
-  dbUser: string;
-  dbPassword: string;
 }
 
 export type CreateDatabaseResponse = CommonResponse<Database, FormError>;

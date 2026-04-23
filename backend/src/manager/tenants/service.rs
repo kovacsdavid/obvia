@@ -18,9 +18,7 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::config::{
-    AppConfig, database_config::BasicDatabaseConfig, database_config::TenantDatabaseConfig,
-};
+use crate::common::config::{AppConfig, database_config::BasicDatabaseConfig};
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::GetQuery;
@@ -28,15 +26,12 @@ use crate::common::services::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
-use crate::manager::tenants::dto::{
-    CreateTenant, DatabaseConfigError, NewTokenResponse, PublicTenant, TenantActivateRequest,
-};
+use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 use axum::http::StatusCode;
-use sqlx::postgres::PgSslMode;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -100,60 +95,6 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
 pub struct TenantsService;
 
 impl TenantsService {
-    #[expect(unreachable_code)]
-    pub async fn create_self_hosted(
-        claims: &Claims,
-        payload: &CreateTenant,
-        tenants_module: Arc<dyn TenantsModule>,
-    ) -> Result<Tenant, TenantsServiceError> {
-        return Err(TenantsServiceError::CurrentlyNotAvailable);
-        let config: TenantDatabaseConfig = payload
-            .clone()
-            .try_into()
-            .map_err(|e: DatabaseConfigError| TenantsServiceError::Config(e.to_string()))?;
-
-        let pool = tenants_module
-            .connection_tester()
-            .test_connect(&config.clone().into(), PgSslMode::VerifyFull)
-            .await?;
-
-        tenants_module
-            .connection_tester()
-            .is_empty_database(&pool)
-            .await?;
-
-        let tenant = tenants_module
-            .tenants_repo()
-            .setup_self_hosted(payload.name.as_str()?, &config.into(), claims)
-            .await?;
-
-        tenants_module
-            .add_tenant_pool(
-                tenant.id,
-                &TenantDatabaseConfig::try_from(&tenant)
-                    .map_err(TenantsServiceError::Config)?
-                    .into(),
-            )
-            .await?;
-
-        tenants_module
-            .migrator()
-            .migrate_tenant_db(tenant.id)
-            .await?;
-
-        let manager_user = tenants_module
-            .manager_user_repo()
-            .get_by_uuid(claims.sub())
-            .await?;
-
-        tenants_module
-            .tenant_user_repo()
-            .insert_from_manager(manager_user.into(), tenant.id)
-            .await?;
-
-        Ok(tenant)
-    }
-
     pub async fn create_managed(
         claims: &Claims,
         payload: &CreateTenant,
@@ -161,12 +102,8 @@ impl TenantsService {
     ) -> Result<Tenant, TenantsServiceError> {
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
-            host: tenants_module
-                .config()
-                .default_tenant_database()
-                .host
-                .clone(),
-            port: tenants_module.config().default_tenant_database().port,
+            host: tenants_module.config().main_database().host.clone(),
+            port: tenants_module.config().main_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
             password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
@@ -224,19 +161,41 @@ impl TenantsService {
     }
 
     pub async fn activate(
-        payload: &TenantActivateRequest,
+        payload: &TenantIdRequest,
         claims: &Claims,
         repo: Arc<dyn TenantsRepository>,
         config: Arc<AppConfig>,
     ) -> Result<NewTokenResponse, TenantsServiceError> {
         let user_tenant = repo
-            .get_user_active_tenant_by_id(claims.sub(), payload.new_tenant_id)
+            .get_user_active_tenant_by_id(claims.sub(), payload.uuid)
             .await?
             .ok_or(TenantsServiceError::AccessDenied)?;
         let claims = claims
             .clone()
             .set_active_tenant(Some(user_tenant.tenant_id));
 
+        Ok(NewTokenResponse {
+            token: claims
+                .to_token(config.auth().jwt_secret().as_bytes())
+                .map_err(TenantsServiceError::Token)?,
+            claims,
+        })
+    }
+
+    pub async fn delete(
+        uuid: Uuid,
+        claims: Claims,
+        repo: Arc<dyn TenantsRepository>,
+        config: Arc<AppConfig>,
+    ) -> Result<NewTokenResponse, TenantsServiceError> {
+        repo.delete(uuid, claims.sub()).await?;
+        let claims = if let Some(active_tenant) = claims.active_tenant()
+            && active_tenant == uuid
+        {
+            claims.set_active_tenant(None)
+        } else {
+            claims
+        };
         Ok(NewTokenResponse {
             token: claims
                 .to_token(config.auth().jwt_secret().as_bytes())

@@ -43,13 +43,6 @@ pub trait TenantsRepository: Send + Sync {
     #[allow(dead_code)]
     async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant>;
 
-    async fn setup_self_hosted(
-        &self,
-        name: &str,
-        db_config: &BasicDatabaseConfig,
-        claims: &Claims,
-    ) -> RepositoryResult<Tenant>;
-
     async fn setup_managed(
         &self,
         uuid: Uuid,
@@ -71,6 +64,7 @@ pub trait TenantsRepository: Send + Sync {
         user_id: Uuid,
         tenant_id: Uuid,
     ) -> RepositoryResult<Option<UserTenant>>;
+    async fn delete(&self, id: Uuid, sub: Uuid) -> RepositoryResult<Tenant>;
 }
 
 #[async_trait]
@@ -83,22 +77,6 @@ impl TenantsRepository for PgPoolManager {
         .fetch_one(&self.get_main_pool())
         .await?)
     }
-    async fn setup_self_hosted(
-        &self,
-        name: &str,
-        db_config: &BasicDatabaseConfig,
-        claims: &Claims,
-    ) -> RepositoryResult<Tenant> {
-        let uuid = Uuid::new_v4();
-        let mut tx = self.get_main_pool().begin().await?;
-
-        let tenant =
-            insert_and_connect_with_user(&mut tx, uuid, name, true, db_config, claims).await?;
-
-        tx.commit().await?;
-
-        Ok(tenant)
-    }
     async fn setup_managed(
         &self,
         uuid: Uuid,
@@ -108,11 +86,10 @@ impl TenantsRepository for PgPoolManager {
         app_config: Arc<AppConfig>,
     ) -> RepositoryResult<Tenant> {
         let mut tx = self.get_main_pool().begin().await?;
-        let tenant =
-            insert_and_connect_with_user(&mut tx, uuid, name, false, db_config, claims).await?;
+        let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims).await?;
 
-        let mut default_tenant_pool = self.get_default_tenant_pool().acquire().await?;
-        create_database_user_for_managed(&mut default_tenant_pool, &tenant, app_config).await?;
+        let mut main_pool = self.get_main_pool().acquire().await?;
+        create_database_user_for_managed(&mut main_pool, &tenant, app_config).await?;
         tx.commit().await?;
 
         let tenant_name = tenant
@@ -129,9 +106,7 @@ impl TenantsRepository for PgPoolManager {
         );
 
         let _create_db = sqlx::query(&create_db_sql)
-            .bind(tenant.id)
-            .bind(tenant.id.to_string())
-            .execute(&self.get_default_tenant_pool())
+            .execute(&self.get_main_pool())
             .await?;
         Ok(tenant)
     }
@@ -147,12 +122,14 @@ impl TenantsRepository for PgPoolManager {
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
                 sqlx::query_as(&format!(
-                    r#"SELECT COUNT(*) FROM tenants
-                LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
-                WHERE user_tenants.user_id = $1
-                    AND tenants.deleted_at IS NULL
-                    AND user_tenants.deleted_at IS NULL
-                    AND ($2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
+                    r#"
+                    SELECT COUNT(*) FROM tenants
+                    LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
+                    WHERE user_tenants.user_id = $1
+                        AND tenants.deleted_at IS NULL
+                        AND user_tenants.deleted_at IS NULL
+                        AND ($2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE '%' || $2 || '%')
+                    "#,
                 ))
                 .bind(user_uuid)
                 .bind(value_unchecked)
@@ -285,13 +262,47 @@ impl TenantsRepository for PgPoolManager {
 
         user_tenant_result
     }
+
+    async fn delete(&self, id: Uuid, sub: Uuid) -> RepositoryResult<Tenant> {
+        let tenant = sqlx::query_as::<_, Tenant>(
+            r#"
+            UPDATE tenants
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND created_by = $2
+                AND deleted_at IS NULL
+            RETURNING *
+            "#,
+        )
+        .bind(id)
+        .bind(sub)
+        .fetch_one(&self.get_main_pool())
+        .await?;
+
+        self.delete_tenant_pool(tenant.id).await?;
+
+        let _ = sqlx::query(&format!(
+            r#"
+                DROP DATABASE tenant_{} WITH (FORCE)
+            "#,
+            tenant
+                .id
+                .to_string()
+                .replace("-", "")
+                .parse::<ValueObjectRequired<DdlParameter>>()?
+                .as_str()?
+        ))
+        .execute(&self.get_main_pool())
+        .await?;
+
+        Ok(tenant)
+    }
 }
 
 async fn insert_and_connect_with_user(
     conn: &mut PgConnection,
     uuid: Uuid,
     name: &str,
-    is_self_hosted: bool,
     db_config: &BasicDatabaseConfig,
     claims: &Claims,
 ) -> RepositoryResult<Tenant> {
@@ -302,7 +313,7 @@ async fn insert_and_connect_with_user(
     )
     .bind(uuid)
     .bind(name)
-    .bind(is_self_hosted)
+    .bind(false)
     .bind(&db_config.host)
     .bind(i32::from(db_config.port))
     .bind(&db_config.database)
@@ -355,7 +366,7 @@ async fn create_database_user_for_managed(
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
         tenant_name.as_str()?,
-        app_config.default_tenant_database().username // safety: not user input
+        app_config.main_database().username // safety: not user input
     );
 
     let _grant = sqlx::query(&grant_sql).execute(&mut *conn).await?;

@@ -33,32 +33,32 @@ import storage from "redux-persist/es/storage";
 import { persistReducer, persistStore } from "redux-persist";
 
 const rootReducer = combineReducers({
-  auth: authReducer,
-  tenants: tenantsReducer,
-  customers: customersReducer,
-  inventory: inventoryReducer,
-  inventory_movements: inventoryMovementsReducer,
-  products: productsReducer,
-  tasks: tasksReducer,
-  users: usersReducer,
-  warehouses: warehousesReducer,
-  worksheets: worksheetsReducer,
+    auth: authReducer,
+    tenants: tenantsReducer,
+    customers: customersReducer,
+    inventory: inventoryReducer,
+    inventory_movements: inventoryMovementsReducer,
+    products: productsReducer,
+    tasks: tasksReducer,
+    users: usersReducer,
+    warehouses: warehousesReducer,
+    worksheets: worksheetsReducer,
 });
 
 const persistConfig = {
-  key: "root",
-  storage,
-  whitelist: ["auth"],
+    key: "root",
+    storage,
+    whitelist: ["auth"],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
 
 export const store = configureStore({
-  reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: false,
-    }),
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: false,
+        }),
 });
 
 export const persistor = persistStore(store);

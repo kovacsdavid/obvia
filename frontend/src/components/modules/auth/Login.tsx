@@ -28,177 +28,188 @@ import { Card, CardContent } from "@/components/ui/card.tsx";
 import { loginUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSeparator,
+    InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-  FieldSeparator,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
+    FieldSeparator,
 } from "@/components/ui/field";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpRequired, setOtpRequired] = React.useState(false);
-  const status = useAppSelector((state: RootState) => state.auth.login.status);
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const navigate = useNavigate();
-  const { login, isLoggedIn } = useAuth();
-  const dispatch = useAppDispatch();
-  const loading = status === "loading";
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [otp, setOtp] = useState("");
+    const [otpRequired, setOtpRequired] = React.useState(false);
+    const status = useAppSelector(
+        (state: RootState) => state.auth.login.status,
+    );
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const navigate = useNavigate();
+    const { login, isLoggedIn } = useAuth();
+    const dispatch = useAppDispatch();
+    const loading = status === "loading";
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      navigate("/vezerlopult");
-    }
-  }, [isLoggedIn, navigate]);
-
-  const handleSubmit = (
-    e: React.SubmitEvent | null,
-    nextOtp: string | null,
-  ) => {
-    if (e !== null) {
-      e.preventDefault();
-    }
-    login(email, password, nextOtp).then(async (response) => {
-      if (loginUserRequest.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined"
-        ) {
-          dispatch(
-            loginUser({
-              token: response.payload.jsonData.data.token,
-              user: response.payload.jsonData.data.user,
-              claims: response.payload.jsonData.data.claims,
-            }),
-          );
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          if (response.payload.jsonData.error.message === "totp-required") {
-            setOtp("");
-            setOtpRequired(true);
-          } else {
-            setOtp("");
-            setOtpRequired(false);
-            setErrors(response.payload.jsonData.error);
-          }
-        } else {
-          setOtpRequired(false);
-          setOtp("");
-          unexpectedError(response.payload.statusCode);
+    useEffect(() => {
+        if (isLoggedIn) {
+            navigate("/vezerlopult");
         }
-      } else {
-        setOtpRequired(false);
-        setOtp("");
-        unexpectedError();
-      }
-    });
-  };
+    }, [isLoggedIn, navigate]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <Card className={"max-w-lg mx-auto"}>
-        <CardContent>
-          <form
-            onSubmit={(e) => handleSubmit(e, null)}
-            className="space-y-4"
-            autoComplete={"off"}
-          >
-            <FieldSet>
-              <FieldLegend>Bejelentkezés</FieldLegend>
-              <FieldGroup>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="text"
-                  autoComplete="email"
-                  value={email}
-                  onFocus={() => setErrors(null)}
-                  onChange={(e) => {
-                    resetError("email");
-                    setEmail(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("email")}
-                />
-                <FieldLabel htmlFor="password">Jelszó</FieldLabel>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  onFocus={() => setErrors(null)}
-                  value={password}
-                  onChange={(e) => {
-                    resetError("password");
-                    setPassword(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("password")}
-                />
-                {otpRequired && (
-                  <>
-                    <FieldSeparator />
-                    <Field className="">
-                      <FieldLabel htmlFor="otp">
-                        Kétlépcsős azonosító kód
-                      </FieldLabel>
-                      <InputOTP
-                        id="otp"
-                        value={otp}
-                        onChange={(e) => {
-                          resetError("otp");
-                          setOtp(e);
-                          if (e.length === 6) {
-                            handleSubmit(null, e);
-                          }
-                        }}
-                        aria-invalid={isInvalidField("otp")}
-                        maxLength={6}
-                        pattern={REGEXP_ONLY_DIGITS}
-                        autoFocus
-                      >
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0} />
-                          <InputOTPSlot index={1} />
-                          <InputOTPSlot index={2} />
-                          <InputOTPSeparator />
-                          <InputOTPSlot index={3} />
-                          <InputOTPSlot index={4} />
-                          <InputOTPSlot index={5} />
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </Field>
-                  </>
-                )}
-              </FieldGroup>
-            </FieldSet>
-            <Field orientation="horizontal">
-              <div className="text-right mt-8 w-full">
-                <Button type="submit" disabled={loading}>
-                  {otpRequired
-                    ? "Megerősítés"
-                    : loading
-                      ? "Bejelentkezés..."
-                      : "Bejelentkezés"}
-                </Button>
-              </div>
-            </Field>
-          </form>
-        </CardContent>
-      </Card>
-      <div className="text-center mt-3">
-        <Link to="/elfelejtett_jelszo">
-          <span className="text-xs">Elfelejtetted a jelszavad?</span>
-        </Link>
-      </div>
-    </>
-  );
+    const handleSubmit = (
+        e: React.SubmitEvent | null,
+        nextOtp: string | null,
+    ) => {
+        if (e !== null) {
+            e.preventDefault();
+        }
+        login(email, password, nextOtp).then(async (response) => {
+            if (loginUserRequest.fulfilled.match(response)) {
+                if (
+                    response.payload.statusCode === 200 &&
+                    typeof response.payload.jsonData?.data !== "undefined"
+                ) {
+                    dispatch(
+                        loginUser({
+                            token: response.payload.jsonData.data.token,
+                            user: response.payload.jsonData.data.user,
+                            claims: response.payload.jsonData.data.claims,
+                        }),
+                    );
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    if (
+                        response.payload.jsonData.error.message ===
+                        "totp-required"
+                    ) {
+                        setOtp("");
+                        setOtpRequired(true);
+                    } else {
+                        setOtp("");
+                        setOtpRequired(false);
+                        setErrors(response.payload.jsonData.error);
+                    }
+                } else {
+                    setOtpRequired(false);
+                    setOtp("");
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                setOtpRequired(false);
+                setOtp("");
+                unexpectedError();
+            }
+        });
+    };
+
+    return (
+        <>
+            <GlobalError error={errors} />
+            <Card className={"max-w-lg mx-auto"}>
+                <CardContent>
+                    <form
+                        onSubmit={(e) => handleSubmit(e, null)}
+                        className="space-y-4"
+                        autoComplete={"off"}
+                    >
+                        <FieldSet>
+                            <FieldLegend>Bejelentkezés</FieldLegend>
+                            <FieldGroup>
+                                <FieldLabel htmlFor="email">Email</FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="text"
+                                    autoComplete="email"
+                                    value={email}
+                                    onFocus={() => setErrors(null)}
+                                    onChange={(e) => {
+                                        resetError("email");
+                                        setEmail(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("email")}
+                                />
+                                <FieldLabel htmlFor="password">
+                                    Jelszó
+                                </FieldLabel>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    onFocus={() => setErrors(null)}
+                                    value={password}
+                                    onChange={(e) => {
+                                        resetError("password");
+                                        setPassword(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("password")}
+                                />
+                                {otpRequired && (
+                                    <>
+                                        <FieldSeparator />
+                                        <Field className="">
+                                            <FieldLabel htmlFor="otp">
+                                                Kétlépcsős azonosító kód
+                                            </FieldLabel>
+                                            <InputOTP
+                                                id="otp"
+                                                value={otp}
+                                                onChange={(e) => {
+                                                    resetError("otp");
+                                                    setOtp(e);
+                                                    if (e.length === 6) {
+                                                        handleSubmit(null, e);
+                                                    }
+                                                }}
+                                                aria-invalid={isInvalidField(
+                                                    "otp",
+                                                )}
+                                                maxLength={6}
+                                                pattern={REGEXP_ONLY_DIGITS}
+                                                autoFocus
+                                            >
+                                                <InputOTPGroup>
+                                                    <InputOTPSlot index={0} />
+                                                    <InputOTPSlot index={1} />
+                                                    <InputOTPSlot index={2} />
+                                                    <InputOTPSeparator />
+                                                    <InputOTPSlot index={3} />
+                                                    <InputOTPSlot index={4} />
+                                                    <InputOTPSlot index={5} />
+                                                </InputOTPGroup>
+                                            </InputOTP>
+                                        </Field>
+                                    </>
+                                )}
+                            </FieldGroup>
+                        </FieldSet>
+                        <Field orientation="horizontal">
+                            <div className="text-right mt-8 w-full">
+                                <Button type="submit" disabled={loading}>
+                                    {otpRequired
+                                        ? "Megerősítés"
+                                        : loading
+                                          ? "Bejelentkezés..."
+                                          : "Bejelentkezés"}
+                                </Button>
+                            </div>
+                        </Field>
+                    </form>
+                </CardContent>
+            </Card>
+            <div className="text-center mt-3">
+                <Link to="/elfelejtett_jelszo">
+                    <span className="text-xs">Elfelejtetted a jelszavad?</span>
+                </Link>
+            </div>
+        </>
+    );
 }

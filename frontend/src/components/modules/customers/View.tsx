@@ -23,16 +23,16 @@ import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/customers/lib/slice.ts";
 import { type CustomerResolved } from "@/components/modules/customers/lib/interface.ts";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
@@ -41,101 +41,123 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
-  const [data, setData] = React.useState<CustomerResolved | null>(null);
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const dispatch = useAppDispatch();
-  const params = useParams();
-  const navigate = useNavigate();
+    const [data, setData] = React.useState<CustomerResolved | null>(null);
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const dispatch = useAppDispatch();
+    const params = useParams();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if (typeof params["id"] === "string") {
-      dispatch(get_resolved(params["id"])).then(async (response) => {
-        if (get_resolved.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              setData(response.payload.jsonData.data);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
+    useEffect(() => {
+        if (typeof params["id"] === "string") {
+            dispatch(get_resolved(params["id"])).then(async (response) => {
+                if (get_resolved.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            setData(response.payload.jsonData.data);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            });
         }
-      });
-    }
-  }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params, setErrors, unexpectedError]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      {data !== null ? (
+    return (
         <>
-          <Card className={"max-w-3xl mx-auto"}>
-            <CardHeader>
-              <CardTitle>Vevő</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Azonosító</TableCell>
-                    <TableCell>{data.id}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Név</TableCell>
-                    <TableCell>{data.name}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Kapcsolattartó neve</TableCell>
-                    <TableCell>
-                      {data.contact_name ? data.contact_name : "N/A"}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>E-mail cím</TableCell>
-                    <TableCell>{data.email}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Telefonszám</TableCell>
-                    <TableCell>
-                      {data.phone_number ? data.phone_number : "N/A"}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Státusz</TableCell>
-                    <TableCell>{data.status}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozta</TableCell>
-                    <TableCell>{data.created_by}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozva</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Frissítve</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-              <div className="mt-8">
-                <Button
-                  className="mr-3"
-                  type="submit"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Vissza
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <ActivityFeed resourceId={data.id} resourceType="customers" />
+            <GlobalError error={errors} />
+            {data !== null ? (
+                <>
+                    <Card className={"max-w-3xl mx-auto"}>
+                        <CardHeader>
+                            <CardTitle>Vevő</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Azonosító</TableCell>
+                                        <TableCell>{data.id}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Név</TableCell>
+                                        <TableCell>{data.name}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Kapcsolattartó neve
+                                        </TableCell>
+                                        <TableCell>
+                                            {data.contact_name
+                                                ? data.contact_name
+                                                : "N/A"}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>E-mail cím</TableCell>
+                                        <TableCell>{data.email}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Telefonszám</TableCell>
+                                        <TableCell>
+                                            {data.phone_number
+                                                ? data.phone_number
+                                                : "N/A"}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Státusz</TableCell>
+                                        <TableCell>{data.status}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozta</TableCell>
+                                        <TableCell>{data.created_by}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozva</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.created_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Frissítve</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.updated_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <div className="mt-8">
+                                <Button
+                                    className="mr-3"
+                                    type="submit"
+                                    variant="outline"
+                                    onClick={() => navigate(-1)}
+                                >
+                                    Vissza
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <ActivityFeed
+                        resourceId={data.id}
+                        resourceType="customers"
+                    />
+                </>
+            ) : null}
         </>
-      ) : null}
-    </>
-  );
+    );
 }

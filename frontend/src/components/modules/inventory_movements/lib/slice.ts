@@ -24,83 +24,83 @@ import type { InventoryMovementUserInput } from "@/components/modules/inventory_
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface InventoryMovementsState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: InventoryMovementsState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const get_resolved = createAsyncThunk(
-  "inventory_movements/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.get_resolved(uuid, token);
-  },
+    "inventory_movements/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.get_resolved(uuid, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "inventory_movements/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.get(uuid, token);
-  },
+    "inventory_movements/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.get(uuid, token);
+    },
 );
 
 export const create = createAsyncThunk(
-  "inventory_movements/create",
-  async (requestData: InventoryMovementUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.create(requestData, token);
-  },
+    "inventory_movements/create",
+    async (requestData: InventoryMovementUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.create(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "inventory_movements/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.deleteItem(uuid, token);
-  },
+    "inventory_movements/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.deleteItem(uuid, token);
+    },
 );
 
 export const select_list = createAsyncThunk(
-  "inventory_movements/select_list",
-  async (list: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.select_list(list, token);
-  },
+    "inventory_movements/select_list",
+    async (list: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.select_list(list, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "inventory_movements/list",
-  async (
-    params: {
-      inventoryId: string;
-      query: string | null;
+    "inventory_movements/list",
+    async (
+        params: {
+            inventoryId: string;
+            query: string | null;
+        },
+        { getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.list(params, token);
     },
-    { getState, dispatch },
-  ) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await inventoryMovementsApi.list(params, token);
-  },
 );
 
 const inventoryMovementsSlice = createSlice({
-  name: "inventory_movements",
-  initialState,
-  reducers: {},
+    name: "inventory_movements",
+    initialState,
+    reducers: {},
 });
 
 export default inventoryMovementsSlice.reducer;

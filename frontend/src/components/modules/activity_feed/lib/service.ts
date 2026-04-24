@@ -18,66 +18,68 @@
  */
 
 import {
-  type ProcessedResponse,
-  ProcessResponse,
+    type ProcessedResponse,
+    ProcessResponse,
 } from "@/lib/interfaces/common.ts";
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import type {
-  PaginatedActivityFeedResponse,
-  PostCommentResponse,
+    PaginatedActivityFeedResponse,
+    PostCommentResponse,
 } from "@/components/modules/activity_feed/lib/interface";
 import {
-  isPaginatedActivityFeedResponse,
-  isPostCommentResponse,
+    isPaginatedActivityFeedResponse,
+    isPostCommentResponse,
 } from "./guards";
 
 export async function list(
-  resourceId: string,
-  resourceType: string,
-  token: string | null,
+    resourceId: string,
+    resourceType: string,
+    token: string | null,
 ): Promise<ProcessedResponse<PaginatedActivityFeedResponse>> {
-  const uri = `/api/activity_feed/list?resource_id=${resourceId}&resource_type=${resourceType}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isPaginatedActivityFeedResponse)) ??
-      unexpectedError
-    );
-  });
+    const uri = `/api/activity_feed/list?resource_id=${resourceId}&resource_type=${resourceType}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isPaginatedActivityFeedResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function post_comment(
-  resourceId: string,
-  resourceType: string,
-  comment: string,
-  token: string | null,
+    resourceId: string,
+    resourceType: string,
+    comment: string,
+    token: string | null,
 ): Promise<ProcessedResponse<PostCommentResponse>> {
-  return await fetch(`/api/comments/post`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      commentable_id: resourceId,
-      commentable_type: resourceType,
-      comment,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isPostCommentResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/comments/post`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            commentable_id: resourceId,
+            commentable_type: resourceType,
+            comment,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isPostCommentResponse)) ??
+            unexpectedFormError
+        );
+    });
 }

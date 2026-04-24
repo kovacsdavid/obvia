@@ -22,165 +22,168 @@ import { twMerge } from "tailwind-merge";
 import { encode_get_query, parse_get_query, type GetQuery } from "./get_query";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+    return twMerge(clsx(inputs));
 }
 
 export function query_parser(encodedStr: unknown): GetQuery {
-  const result: GetQuery = {
-    ordering: {
-      order_by: null,
-      order: null,
-    },
-    paging: {
-      page: null,
-      limit: null,
-    },
-    filtering: {
-      filter_by: null,
-      value: null,
-    },
-  };
-  if (typeof encodedStr === "string") {
-    return parse_get_query(decodeURIComponent(encodedStr));
-  }
-  return result;
+    const result: GetQuery = {
+        ordering: {
+            order_by: null,
+            order: null,
+        },
+        paging: {
+            page: null,
+            limit: null,
+        },
+        filtering: {
+            filter_by: null,
+            value: null,
+        },
+    };
+    if (typeof encodedStr === "string") {
+        return parse_get_query(decodeURIComponent(encodedStr));
+    }
+    return result;
 }
 
 export function query_encoder(params: GetQuery): string {
-  return encodeURIComponent(encode_get_query(params));
+    return encodeURIComponent(encode_get_query(params));
 }
 
 export function formatDateToYMDHMS(dateString: string): string {
-  try {
-    const date = new Date(dateString);
+    try {
+        const date = new Date(dateString);
 
-    if (isNaN(date.getTime())) {
-      return "";
+        if (isNaN(date.getTime())) {
+            return "";
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        const seconds = String(date.getSeconds()).padStart(2, "0");
+
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    } catch (error) {
+        console.log(error);
+        return "";
     }
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-    const seconds = String(date.getSeconds()).padStart(2, "0");
-
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-  } catch (error) {
-    console.log(error);
-    return "";
-  }
 }
 
 export function formatDateToYMD(dateString: string): string {
-  try {
-    const date = new Date(dateString);
+    try {
+        const date = new Date(dateString);
 
-    if (isNaN(date.getTime())) {
-      return "";
+        if (isNaN(date.getTime())) {
+            return "";
+        }
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    } catch (error) {
+        console.log(error);
+        return "";
     }
-
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.log(error);
-    return "";
-  }
 }
 
 export function formatNumber(
-  value: string | number,
-  options: {
-    showThousandSeparator?: boolean;
-    decimalPlaces?: number;
-    allowEmpty?: boolean;
-    preserveIncomplete?: boolean; // New option to preserve incomplete inputs
-  } = {},
+    value: string | number,
+    options: {
+        showThousandSeparator?: boolean;
+        decimalPlaces?: number;
+        allowEmpty?: boolean;
+        preserveIncomplete?: boolean; // New option to preserve incomplete inputs
+    } = {},
 ): string {
-  const {
-    showThousandSeparator = true,
-    decimalPlaces,
-    allowEmpty = true,
-    preserveIncomplete = false,
-  } = options;
+    const {
+        showThousandSeparator = true,
+        decimalPlaces,
+        allowEmpty = true,
+        preserveIncomplete = false,
+    } = options;
 
-  // Handle empty values
-  if (value === "" || value == null) {
-    return allowEmpty ? "" : "0";
-  }
+    // Handle empty values
+    if (value === "" || value == null) {
+        return allowEmpty ? "" : "0";
+    }
 
-  // Convert to string and clean up
-  const stringValue = value.toString().trim();
+    // Convert to string and clean up
+    const stringValue = value.toString().trim();
 
-  if (stringValue === "") {
-    return allowEmpty ? "" : "0";
-  }
+    if (stringValue === "") {
+        return allowEmpty ? "" : "0";
+    }
 
-  // If preserveIncomplete is true and value ends with decimal separator, don't format
-  if (
-    preserveIncomplete &&
-    (stringValue.endsWith(",") || stringValue.endsWith("."))
-  ) {
-    return stringValue.replace(/\./g, ",");
-  }
+    // If preserveIncomplete is true and value ends with decimal separator, don't format
+    if (
+        preserveIncomplete &&
+        (stringValue.endsWith(",") || stringValue.endsWith("."))
+    ) {
+        return stringValue.replace(/\./g, ",");
+    }
 
-  // Remove existing separators and normalize decimal separator
-  const cleanValue = stringValue
-    .replace(/\s/g, "") // Remove spaces (thousand separators)
-    .replace(/,/g, "."); // Convert comma to dot for parsing
+    // Remove existing separators and normalize decimal separator
+    const cleanValue = stringValue
+        .replace(/\s/g, "") // Remove spaces (thousand separators)
+        .replace(/,/g, "."); // Convert comma to dot for parsing
 
-  // Parse as number
-  const numericValue = parseFloat(cleanValue);
+    // Parse as number
+    const numericValue = parseFloat(cleanValue);
 
-  if (isNaN(numericValue)) {
-    return stringValue; // Return original if not a valid number
-  }
+    if (isNaN(numericValue)) {
+        return stringValue; // Return original if not a valid number
+    }
 
-  // Format the number
-  let formatted =
-    decimalPlaces !== undefined
-      ? numericValue.toFixed(decimalPlaces)
-      : numericValue.toString();
+    // Format the number
+    let formatted =
+        decimalPlaces !== undefined
+            ? numericValue.toFixed(decimalPlaces)
+            : numericValue.toString();
 
-  if (showThousandSeparator) {
-    // Split integer and decimal parts
-    const [integerPart, decimalPart] = formatted.split(".");
+    if (showThousandSeparator) {
+        // Split integer and decimal parts
+        const [integerPart, decimalPart] = formatted.split(".");
 
-    // Add thousand separators (spaces) to integer part
-    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        // Add thousand separators (spaces) to integer part
+        const formattedInteger = integerPart.replace(
+            /\B(?=(\d{3})+(?!\d))/g,
+            " ",
+        );
 
-    // Combine with decimal part using comma as decimal separator
-    formatted = decimalPart
-      ? `${formattedInteger},${decimalPart}`
-      : formattedInteger;
-  } else {
-    // Just replace dot with comma for decimal separator
-    formatted = formatted.replace(".", ",");
-  }
+        // Combine with decimal part using comma as decimal separator
+        formatted = decimalPart
+            ? `${formattedInteger},${decimalPart}`
+            : formattedInteger;
+    } else {
+        // Just replace dot with comma for decimal separator
+        formatted = formatted.replace(".", ",");
+    }
 
-  return formatted;
+    return formatted;
 }
 
 export function parseNumber(value: string): number {
-  if (!value || value.trim() === "") {
-    return NaN;
-  }
+    if (!value || value.trim() === "") {
+        return NaN;
+    }
 
-  // Remove spaces (thousand separators) and convert comma to dot
-  const normalized = value.replace(/\s/g, "").replace(/,/g, ".");
+    // Remove spaces (thousand separators) and convert comma to dot
+    const normalized = value.replace(/\s/g, "").replace(/,/g, ".");
 
-  return parseFloat(normalized);
+    return parseFloat(normalized);
 }
 
 export function isValidNumber(value: string): boolean {
-  if (!value || value.trim() === "") {
-    return true; // Allow empty values
-  }
+    if (!value || value.trim() === "") {
+        return true; // Allow empty values
+    }
 
-  // Number pattern: optional minus, digits with spaces as thousand separators, optional comma and decimals
-  const numberPattern = /^-?(\d{1,3}(\s\d{3})*|\d+)(,\d+)?$/;
-  return numberPattern.test(value.trim());
+    // Number pattern: optional minus, digits with spaces as thousand separators, optional comma and decimals
+    const numberPattern = /^-?(\d{1,3}(\s\d{3})*|\d+)(,\d+)?$/;
+    return numberPattern.test(value.trim());
 }

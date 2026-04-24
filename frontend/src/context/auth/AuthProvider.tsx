@@ -22,32 +22,32 @@ import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
 import { useAppDispatch } from "@/store/hooks";
 import {
-  loginUserRequest,
-  logoutAndRevokeRefreshToken,
+    loginUserRequest,
+    logoutAndRevokeRefreshToken,
 } from "@/components/modules/auth/lib/slice.ts";
 import { AuthContext } from "@/context/auth/AuthContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const dispach = useAppDispatch();
-  const isLoggedIn = useSelector(
-    (state: RootState) => state.auth.login.isLoggedIn,
-  );
-  const hasActiveDatabase = useSelector(
-    (state: RootState) => state.auth.login.hasActiveDatabase,
-  );
+    const dispach = useAppDispatch();
+    const isLoggedIn = useSelector(
+        (state: RootState) => state.auth.login.isLoggedIn,
+    );
+    const hasActiveDatabase = useSelector(
+        (state: RootState) => state.auth.login.hasActiveDatabase,
+    );
 
-  const login = (email: string, password: string, otp: string | null) => {
-    return dispach(loginUserRequest({ email, password, otp }));
-  };
-  const logout = () => {
-    dispach(logoutAndRevokeRefreshToken());
-  };
+    const login = (email: string, password: string, otp: string | null) => {
+        return dispach(loginUserRequest({ email, password, otp }));
+    };
+    const logout = () => {
+        dispach(logoutAndRevokeRefreshToken());
+    };
 
-  return (
-    <AuthContext.Provider
-      value={{ isLoggedIn, hasActiveDatabase, login, logout }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+    return (
+        <AuthContext.Provider
+            value={{ isLoggedIn, hasActiveDatabase, login, logout }}
+        >
+            {children}
+        </AuthContext.Provider>
+    );
 }

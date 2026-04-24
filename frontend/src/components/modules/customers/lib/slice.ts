@@ -24,77 +24,77 @@ import type { CustomerUserInput } from "@/components/modules/customers/lib/inter
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface CustomersState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: CustomersState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const create = createAsyncThunk(
-  "customers/create",
-  async (requestData: CustomerUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.create(requestData, token);
-  },
+    "customers/create",
+    async (requestData: CustomerUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.create(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "customers/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.deleteItem(uuid, token);
-  },
+    "customers/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.deleteItem(uuid, token);
+    },
 );
 
 export const update = createAsyncThunk(
-  "customers/update",
-  async (requestData: CustomerUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.update(requestData, token);
-  },
+    "customers/update",
+    async (requestData: CustomerUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.update(requestData, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "customers/list",
-  async (query: string | null, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.list(query, token);
-  },
+    "customers/list",
+    async (query: string | null, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.list(query, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "customers/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.get(uuid, token);
-  },
+    "customers/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.get(uuid, token);
+    },
 );
 
 export const get_resolved = createAsyncThunk(
-  "customers/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await customersApi.get_resolved(uuid, token);
-  },
+    "customers/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.get_resolved(uuid, token);
+    },
 );
 
 const customersSlice = createSlice({
-  name: "customers",
-  initialState,
-  reducers: {},
+    name: "customers",
+    initialState,
+    reducers: {},
 });
 
 export default customersSlice.reducer;

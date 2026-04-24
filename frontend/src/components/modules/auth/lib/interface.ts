@@ -18,90 +18,90 @@
  */
 
 import {
-  type CommonResponse,
-  type FormError,
-  type SimpleError,
-  type SimpleMessageData,
+    type CommonResponse,
+    type FormError,
+    type SimpleError,
+    type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface User {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  status: string;
-  profile_picture_url: string | null;
-  is_mfa_enabled: boolean;
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    status: string;
+    profile_picture_url: string | null;
+    is_mfa_enabled: boolean;
 }
 
 export interface RegisterRequest {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  passwordConfirm: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    passwordConfirm: string;
 }
 
 export interface LoginRequest {
-  email: string;
-  password: string;
-  otp: string | null;
+    email: string;
+    password: string;
+    otp: string | null;
 }
 
 export interface LoginData {
-  claims: Claims;
-  user: User;
-  token: string;
+    claims: Claims;
+    user: User;
+    token: string;
 }
 
 export interface ForgottenPasswordRequest {
-  email: string;
+    email: string;
 }
 
 export interface NewPasswordRequest {
-  token: string;
-  password: string;
-  password_confirm: string;
+    token: string;
+    password: string;
+    password_confirm: string;
 }
 
 export interface Claims {
-  /** The subject of the token, which represents the user's unique identifier */
-  sub: string;
+    /** The subject of the token, which represents the user's unique identifier */
+    sub: string;
 
-  /** The expiration timestamp of the token in UNIX time */
-  exp: number;
+    /** The expiration timestamp of the token in UNIX time */
+    exp: number;
 
-  /** The issued-at timestamp of the token in UNIX time */
-  iat: number;
+    /** The issued-at timestamp of the token in UNIX time */
+    iat: number;
 
-  /** The "not valid before" timestamp in UNIX time */
-  nbf: number;
+    /** The "not valid before" timestamp in UNIX time */
+    nbf: number;
 
-  /** The issuer of the token, typically representing the domain or service name */
-  iss: string;
+    /** The issuer of the token, typically representing the domain or service name */
+    iss: string;
 
-  /** The audience for the token, identifying the intended recipient(s) */
-  aud: string;
+    /** The audience for the token, identifying the intended recipient(s) */
+    aud: string;
 
-  /** A unique identifier for the token, typically a UUID */
-  jti: string;
+    /** A unique identifier for the token, typically a UUID */
+    jti: string;
 
-  family_id: string | null;
+    family_id: string | null;
 
-  /** The UUID of the active tenant associated with the current context */
-  active_tenant: string | null;
+    /** The UUID of the active tenant associated with the current context */
+    active_tenant: string | null;
 }
 
 export type RegisterResponse = CommonResponse<SimpleMessageData, FormError>;
 export type LoginResponse = CommonResponse<LoginData, FormError>;
 export type ClaimsResponse = CommonResponse<Claims, SimpleError>;
 export type VerifyEmailResponse = CommonResponse<
-  SimpleMessageData,
-  SimpleError
+    SimpleMessageData,
+    SimpleError
 >;
 export type ForgottenPasswordResponse = CommonResponse<
-  SimpleMessageData,
-  FormError
+    SimpleMessageData,
+    FormError
 >;
 export type NewPasswordResponse = CommonResponse<SimpleMessageData, FormError>;
 export type EnableOtpResponse = CommonResponse<string, SimpleError>;

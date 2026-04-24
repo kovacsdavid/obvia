@@ -18,201 +18,201 @@
  */
 
 export interface SimpleError {
-  message: string | null | undefined;
+    message: string | null | undefined;
 }
 
 export interface FormError extends SimpleError {
-  fields?: FormErrorFields;
+    fields?: FormErrorFields;
 }
 
 export type FormErrorFields = Record<string, string | null>;
 
 export function isFormErrorFields(data: unknown): data is FormErrorFields {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    Object.entries(data).every(
-      ([key, value]) =>
-        typeof key === "string" &&
-        (value === null || typeof value === "string"),
-    )
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        Object.entries(data).every(
+            ([key, value]) =>
+                typeof key === "string" &&
+                (value === null || typeof value === "string"),
+        )
+    );
 }
 
 export function isFormError(data: unknown): data is FormError {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "message" in data &&
-    (data.message === null ||
-      data.message === undefined ||
-      typeof data.message === "string") &&
-    (!("fields" in data) ||
-      data.fields === undefined ||
-      isFormErrorFields(data.fields))
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        (data.message === null ||
+            data.message === undefined ||
+            typeof data.message === "string") &&
+        (!("fields" in data) ||
+            data.fields === undefined ||
+            isFormErrorFields(data.fields))
+    );
 }
 
 export interface ProcessedResponse<T> {
-  statusCode: number;
-  jsonData?: T;
+    statusCode: number;
+    jsonData?: T;
 }
 
 export async function ProcessResponse<T>(
-  response: Response,
-  guard: (data: unknown) => data is T,
+    response: Response,
+    guard: (data: unknown) => data is T,
 ): Promise<ProcessedResponse<T> | { statusCode: number }> {
-  try {
-    const jsonData = await response.json();
-    if (guard(jsonData)) {
-      return {
-        statusCode: response.status,
-        jsonData,
-      };
+    try {
+        const jsonData = await response.json();
+        if (guard(jsonData)) {
+            return {
+                statusCode: response.status,
+                jsonData,
+            };
+        }
+        return { statusCode: response.status };
+    } catch {
+        return { statusCode: response.status };
     }
-    return { statusCode: response.status };
-  } catch {
-    return { statusCode: response.status };
-  }
 }
 
 export interface SelectOption {
-  value: string;
-  title: string;
+    value: string;
+    title: string;
 }
 
 export type SelectOptionList = SelectOption[];
 
 export function isSelectOption(data: unknown): data is SelectOption {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "value" in data &&
-    typeof data.value === "string" &&
-    "title" in data &&
-    typeof data.title === "string"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "value" in data &&
+        typeof data.value === "string" &&
+        "title" in data &&
+        typeof data.title === "string"
+    );
 }
 
 export function isSelectOptionList(data: unknown): data is SelectOptionList {
-  return Array.isArray(data) && data.every((item) => isSelectOption(item));
+    return Array.isArray(data) && data.every((item) => isSelectOption(item));
 }
 
 export type SelectOptionListResponse = CommonResponse<
-  SelectOptionList,
-  SimpleError
+    SelectOptionList,
+    SimpleError
 >;
 
 export function isSelectOptionListResponse(
-  data: unknown,
+    data: unknown,
 ): data is SelectOptionListResponse {
-  return isCommonResponse(data, isSelectOptionList, isSimpleError);
+    return isCommonResponse(data, isSelectOptionList, isSimpleError);
 }
 
 export interface CommonResponse<T, E> {
-  data?: T;
-  error?: E;
+    data?: T;
+    error?: E;
 }
 
 export interface SimpleMessageData {
-  message: string;
+    message: string;
 }
 
 export function isSimpleMessageData(data: unknown): data is SimpleMessageData {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "message" in data &&
-    typeof data.message === "string"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        typeof data.message === "string"
+    );
 }
 
 export function isSimpleError(data: unknown): data is SimpleError {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "message" in data &&
-    (data.message === null ||
-      data.message === undefined ||
-      typeof data.message === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "message" in data &&
+        (data.message === null ||
+            data.message === undefined ||
+            typeof data.message === "string")
+    );
 }
 
 export function isCommonResponse<T, E>(
-  data: unknown,
-  dataGuard?: (value: unknown) => value is T,
-  errorGuard?: (value: unknown) => value is E,
+    data: unknown,
+    dataGuard?: (value: unknown) => value is T,
+    errorGuard?: (value: unknown) => value is E,
 ): data is CommonResponse<T, E> {
-  if (typeof data !== "object" || data === null) {
-    return false;
-  }
-
-  if ("data" in data && data.data !== undefined) {
-    if (dataGuard && !dataGuard(data.data)) {
-      return false;
+    if (typeof data !== "object" || data === null) {
+        return false;
     }
-  }
 
-  if ("error" in data && data.error !== undefined) {
-    if (errorGuard && !errorGuard(data.error)) {
-      return false;
+    if ("data" in data && data.data !== undefined) {
+        if (dataGuard && !dataGuard(data.data)) {
+            return false;
+        }
     }
-  }
 
-  return true;
+    if ("error" in data && data.error !== undefined) {
+        if (errorGuard && !errorGuard(data.error)) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 export type PagerMeta = {
-  page: number;
-  limit: number;
-  total: number;
+    page: number;
+    limit: number;
+    total: number;
 };
 
 export function isPagerMeta(data: unknown): data is PagerMeta {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "page" in data &&
-    typeof data.page === "number" &&
-    "limit" in data &&
-    typeof data.limit === "number" &&
-    "total" in data &&
-    typeof data.total === "number"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "page" in data &&
+        typeof data.page === "number" &&
+        "limit" in data &&
+        typeof data.limit === "number" &&
+        "total" in data &&
+        typeof data.total === "number"
+    );
 }
 
 export interface PaginatedDataResponse<T, E> {
-  meta?: PagerMeta;
-  data?: T;
-  error?: E;
+    meta?: PagerMeta;
+    data?: T;
+    error?: E;
 }
 
 export function isPaginatedDataResponse<T, E>(
-  data: unknown,
-  dataGuard?: (value: unknown) => value is T,
-  errorGuard?: (value: unknown) => value is E,
+    data: unknown,
+    dataGuard?: (value: unknown) => value is T,
+    errorGuard?: (value: unknown) => value is E,
 ): data is PaginatedDataResponse<T, E> {
-  if (typeof data !== "object" || data === null) {
-    return false;
-  }
-
-  if ("meta" in data && data.meta !== undefined) {
-    if (!isPagerMeta(data.meta)) {
-      return false;
+    if (typeof data !== "object" || data === null) {
+        return false;
     }
-  }
 
-  if ("data" in data && data.data !== undefined) {
-    if (dataGuard && !dataGuard(data.data)) {
-      return false;
+    if ("meta" in data && data.meta !== undefined) {
+        if (!isPagerMeta(data.meta)) {
+            return false;
+        }
     }
-  }
 
-  if ("error" in data && data.error !== undefined) {
-    if (errorGuard && !errorGuard(data.error)) {
-      return false;
+    if ("data" in data && data.data !== undefined) {
+        if (dataGuard && !dataGuard(data.data)) {
+            return false;
+        }
     }
-  }
 
-  return true;
+    if ("error" in data && data.error !== undefined) {
+        if (errorGuard && !errorGuard(data.error)) {
+            return false;
+        }
+    }
+
+    return true;
 }

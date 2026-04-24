@@ -24,97 +24,100 @@ import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface UsersState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: UsersState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const enableOtp = createAsyncThunk(
-  "users/enableOtp",
-  async (_, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await usersApi.enableOtp(token);
-  },
+    "users/enableOtp",
+    async (_, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await usersApi.enableOtp(token);
+    },
 );
 
 export const verifyOtp = createAsyncThunk(
-  "users/verifyOtp",
-  async (otp: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await usersApi.verifyOtp(otp, token);
-  },
+    "users/verifyOtp",
+    async (otp: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await usersApi.verifyOtp(otp, token);
+    },
 );
 
 export const disableOtp = createAsyncThunk(
-  "users/disableOtp",
-  async (otp: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await usersApi.disableOtp(otp, token);
-  },
+    "users/disableOtp",
+    async (otp: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await usersApi.disableOtp(otp, token);
+    },
 );
 
 export const create = createAsyncThunk(
-  "users/create",
-  async (requestData: CreateUser, { rejectWithValue, getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return usersApi.create(requestData, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
-  },
+    "users/create",
+    async (
+        requestData: CreateUser,
+        { rejectWithValue, getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        try {
+            return usersApi.create(requestData, token);
+        } catch (error: unknown) {
+            return rejectWithValue(error);
+        }
+    },
 );
 
 export const list = createAsyncThunk(
-  "users/list",
-  async (query: string | null, { rejectWithValue, getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    try {
-      return usersApi.list(query, token);
-    } catch (error: unknown) {
-      return rejectWithValue(error);
-    }
-  },
+    "users/list",
+    async (query: string | null, { rejectWithValue, getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        try {
+            return usersApi.list(query, token);
+        } catch (error: unknown) {
+            return rejectWithValue(error);
+        }
+    },
 );
 
 const usersSlice = createSlice({
-  name: "users",
-  initialState,
-  reducers: {},
-  extraReducers: (builder) => {
-    builder
-      .addCase(create.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(create.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(create.rejected, (state) => {
-        state.status = "failed";
-      });
-    builder
-      .addCase(list.pending, (state) => {
-        state.status = "loading";
-      })
-      .addCase(list.fulfilled, (state) => {
-        state.status = "succeeded";
-      })
-      .addCase(list.rejected, (state) => {
-        state.status = "failed";
-      });
-  },
+    name: "users",
+    initialState,
+    reducers: {},
+    extraReducers: (builder) => {
+        builder
+            .addCase(create.pending, (state) => {
+                state.status = "loading";
+            })
+            .addCase(create.fulfilled, (state) => {
+                state.status = "succeeded";
+            })
+            .addCase(create.rejected, (state) => {
+                state.status = "failed";
+            });
+        builder
+            .addCase(list.pending, (state) => {
+                state.status = "loading";
+            })
+            .addCase(list.fulfilled, (state) => {
+                state.status = "succeeded";
+            })
+            .addCase(list.rejected, (state) => {
+                state.status = "failed";
+            });
+    },
 });
 
 export default usersSlice.reducer;

@@ -22,18 +22,18 @@ import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  create,
-  get,
-  select_list,
+    create,
+    get,
+    select_list,
 } from "@/components/modules/inventory_movements/lib/slice.ts";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select.tsx";
 import { type SelectOptionList } from "@/lib/interfaces/common.ts";
 import { useSelectList } from "@/hooks/use_select_list.ts";
@@ -45,394 +45,467 @@ import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
 import type { Inventory } from "../inventory/lib/interface";
 import { Plus } from "lucide-react";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from "@/components/ui/field";
 
 interface EditProps {
-  showCard?: boolean;
-  onSuccess?: (inventory_movement: InventoryMovement) => void;
-  referenceType?: string | null;
+    showCard?: boolean;
+    onSuccess?: (inventory_movement: InventoryMovement) => void;
+    referenceType?: string | null;
 }
 
 export default function Edit({
-  showCard = true,
-  onSuccess = undefined,
-  referenceType = null,
+    showCard = true,
+    onSuccess = undefined,
+    referenceType = null,
 }: EditProps) {
-  const params = useParams();
-  const routeInventoryId = React.useMemo(
-    () => params["inventoryId"] ?? "",
-    [params],
-  );
-  const referenceId = React.useMemo(() => params["referenceId"], [params]);
-  const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
-  const [movementType, setMovementType] = React.useState(
-    typeof referenceId === "string" ? "out" : "",
-  );
-  const [taxId, setTaxId] = React.useState("");
-  const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
-  React.useState<SelectOptionList>([]);
-  const [inventoryIdList, setInventoryIdList] =
+    const params = useParams();
+    const routeInventoryId = React.useMemo(
+        () => params["inventoryId"] ?? "",
+        [params],
+    );
+    const referenceId = React.useMemo(() => params["referenceId"], [params]);
+    const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
+    const [movementType, setMovementType] = React.useState(
+        typeof referenceId === "string" ? "out" : "",
+    );
+    const [taxId, setTaxId] = React.useState("");
+    const [taxList, setTaxList] = React.useState<SelectOptionList>([]);
     React.useState<SelectOptionList>([]);
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const id = React.useMemo(() => params["id"] ?? "", [params]);
-  const quantity = useNumberInput({
-    showThousandSeparator: true,
-    decimalPlaces: 2,
-    allowEmpty: true,
-  });
-  const unitPrice = useNumberInput({
-    showThousandSeparator: true,
-    decimalPlaces: 2,
-    allowEmpty: true,
-  });
-  const totalPrice = React.useMemo(() => {
-    const tpQuantity = quantity.getNumericValue();
-    const tpUnitPrice = unitPrice.getNumericValue();
-    if (!isNaN(tpQuantity) && !isNaN(tpUnitPrice)) {
-      return formatNumber(Math.abs(tpQuantity) * tpUnitPrice);
-    }
-    return null;
-  }, [quantity, unitPrice]);
-
-  const [openNewInventoryDialog, setOpenNewInventoryDialog] =
-    React.useState(false);
-
-  const handleEditInventorySuccess = async (inventory: Inventory) => {
-    return loadLists().then(() => {
-      setTimeout(() => {
-        setInventoryId(inventory.id);
-      }, 0);
-      setOpenNewInventoryDialog(false);
+    const [inventoryIdList, setInventoryIdList] =
+        React.useState<SelectOptionList>([]);
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { setListResponse } = useSelectList();
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const id = React.useMemo(() => params["id"] ?? "", [params]);
+    const quantity = useNumberInput({
+        showThousandSeparator: true,
+        decimalPlaces: 2,
+        allowEmpty: true,
     });
-  };
-
-  const loadLists = () => {
-    return Promise.all([
-      !routeInventoryId &&
-        dispatch(select_list("inventory")).then((response) => {
-          if (select_list.fulfilled.match(response)) {
-            if (response.payload.statusCode === 200) {
-              setListResponse(response.payload, setInventoryIdList, setErrors);
-            } else {
-              unexpectedError(response.payload.statusCode);
-            }
-          } else {
-            unexpectedError();
-          }
-        }),
-      dispatch(select_list("taxes")).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            setListResponse(response.payload, setTaxList, setErrors);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
+    const unitPrice = useNumberInput({
+        showThousandSeparator: true,
+        decimalPlaces: 2,
+        allowEmpty: true,
+    });
+    const totalPrice = React.useMemo(() => {
+        const tpQuantity = quantity.getNumericValue();
+        const tpUnitPrice = unitPrice.getNumericValue();
+        if (!isNaN(tpQuantity) && !isNaN(tpUnitPrice)) {
+            return formatNumber(Math.abs(tpQuantity) * tpUnitPrice);
         }
-      }),
-    ]);
-  };
+        return null;
+    }, [quantity, unitPrice]);
 
-  useEffect(() => {
-    loadLists().then(() => {
-      if (typeof id === "string" && id.length === 36) {
-        dispatch(get(id)).then(async (response) => {
-          if (get.fulfilled.match(response)) {
-            if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData?.data !== "undefined") {
-                const data = response.payload.jsonData.data;
-                setInventoryId(data.inventory_id);
-                setMovementType(data.movement_type);
-                quantity.setValue(
-                  data.quantity ? data.quantity.toString() : "",
-                );
-                unitPrice.setValue(data.unit_price ?? "");
-                setTaxId(data.tax_id);
-              }
-            } else if (
-              typeof response.payload.jsonData?.error !== "undefined"
-            ) {
-              setErrors({
-                message: response.payload.jsonData.error.message,
-                fields: {},
-              });
-            } else {
-              unexpectedError(response.payload.statusCode);
-            }
-          } else {
-            unexpectedError();
-          }
+    const [openNewInventoryDialog, setOpenNewInventoryDialog] =
+        React.useState(false);
+
+    const handleEditInventorySuccess = async (inventory: Inventory) => {
+        return loadLists().then(() => {
+            setTimeout(() => {
+                setInventoryId(inventory.id);
+            }, 0);
+            setOpenNewInventoryDialog(false);
         });
-      }
-    });
-    // quantity is intentionally omitted to avoid infinite loops
-    // They are only used to set initial values and don't need to trigger re-runs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, id, loadLists, setErrors, unexpectedError]);
+    };
 
-  const handleSubmit = useCallback(
-    (e: React.SubmitEvent) => {
-      e.preventDefault();
-      dispatch(
-        create({
-          id: null,
-          inventoryId,
-          movementType,
-          quantity: !isNaN(quantity.getNumericValue())
-            ? quantity.getNumericValue().toString()
-            : "",
-          referenceType: typeof referenceType === "string" ? referenceType : "",
-          referenceId: typeof referenceId === "string" ? referenceId : "",
-          unitPrice: !isNaN(unitPrice.getNumericValue())
-            ? unitPrice.getNumericValue().toString()
-            : "",
-          totalPrice:
-            typeof totalPrice === "string"
-              ? parseNumber(totalPrice).toString()
-              : "",
-          taxId,
-        }),
-      ).then(async (response) => {
-        if (create.fulfilled.match(response)) {
-          if (response.payload.statusCode === 201) {
-            if (
-              typeof onSuccess === "function" &&
-              typeof response.payload.jsonData?.data !== "undefined"
-            ) {
-              onSuccess(response.payload.jsonData.data);
-            } else {
-              navigate(-1);
+    const loadLists = () => {
+        return Promise.all([
+            !routeInventoryId &&
+                dispatch(select_list("inventory")).then((response) => {
+                    if (select_list.fulfilled.match(response)) {
+                        if (response.payload.statusCode === 200) {
+                            setListResponse(
+                                response.payload,
+                                setInventoryIdList,
+                                setErrors,
+                            );
+                        } else {
+                            unexpectedError(response.payload.statusCode);
+                        }
+                    } else {
+                        unexpectedError();
+                    }
+                }),
+            dispatch(select_list("taxes")).then((response) => {
+                if (select_list.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setListResponse(
+                            response.payload,
+                            setTaxList,
+                            setErrors,
+                        );
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            }),
+        ]);
+    };
+
+    useEffect(() => {
+        loadLists().then(() => {
+            if (typeof id === "string" && id.length === 36) {
+                dispatch(get(id)).then(async (response) => {
+                    if (get.fulfilled.match(response)) {
+                        if (response.payload.statusCode === 200) {
+                            if (
+                                typeof response.payload.jsonData?.data !==
+                                "undefined"
+                            ) {
+                                const data = response.payload.jsonData.data;
+                                setInventoryId(data.inventory_id);
+                                setMovementType(data.movement_type);
+                                quantity.setValue(
+                                    data.quantity
+                                        ? data.quantity.toString()
+                                        : "",
+                                );
+                                unitPrice.setValue(data.unit_price ?? "");
+                                setTaxId(data.tax_id);
+                            }
+                        } else if (
+                            typeof response.payload.jsonData?.error !==
+                            "undefined"
+                        ) {
+                            setErrors({
+                                message:
+                                    response.payload.jsonData.error.message,
+                                fields: {},
+                            });
+                        } else {
+                            unexpectedError(response.payload.statusCode);
+                        }
+                    } else {
+                        unexpectedError();
+                    }
+                });
             }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
-        }
-      });
-    },
-    [
-      dispatch,
-      inventoryId,
-      movementType,
-      quantity,
-      referenceType,
-      referenceId,
-      unitPrice,
-      totalPrice,
-      taxId,
-      onSuccess,
-      navigate,
-      setErrors,
-      unexpectedError,
-    ],
-  );
+        });
+        // quantity is intentionally omitted to avoid infinite loops
+        // They are only used to set initial values and don't need to trigger re-runs
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dispatch, id, loadLists, setErrors, unexpectedError]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <Dialog
-        open={openNewInventoryDialog}
-        onOpenChange={setOpenNewInventoryDialog}
-      >
-        <DialogContent>
-          <DialogTitle>Raktárkészlet létrehozása</DialogTitle>
-          <InventoryEdit
-            showCard={false}
-            onSuccess={handleEditInventorySuccess}
-            onCancel={() => setOpenNewInventoryDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-          autoComplete={"off"}
-        >
-          <FieldSet>
-            <FieldLegend>
-              {`Készletmozgás ${id ? "módosítás" : "létrehozás"}`}
-            </FieldLegend>
-            <FieldGroup>
-              {!routeInventoryId && (
-                <>
-                  <Field data-invalid={isInvalidField("inventory_id")}>
-                    <div className="flex items-center w-full">
-                      <div className="flex flex-1 items-center">
-                        <FieldLabel htmlFor="inventory_id">
-                          Raktárkészlet
-                        </FieldLabel>
-                      </div>
-                      <div className="flex items-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setOpenNewInventoryDialog(true)}
-                        >
-                          <Plus />
-                        </Button>
-                      </div>
-                    </div>
-                    <Select
-                      disabled={inventoryIdList.length === 0}
-                      value={inventoryId ?? ""}
-                      onValueChange={(val) => {
-                        resetError("inventory_id");
-                        setInventoryId(val);
-                      }}
-                    >
-                      <SelectTrigger
-                        className={"w-full"}
-                        aria-invalid={isInvalidField("inventory_id")}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {inventoryIdList.map((inventoryIdListItem) => (
-                          <SelectItem
-                            key={inventoryIdListItem.value}
-                            value={inventoryIdListItem.value}
-                          >
-                            {inventoryIdListItem.title}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FieldError error={errors} field={"inventory_id"} />
-                  </Field>
-                </>
-              )}
+    const handleSubmit = useCallback(
+        (e: React.SubmitEvent) => {
+            e.preventDefault();
+            dispatch(
+                create({
+                    id: null,
+                    inventoryId,
+                    movementType,
+                    quantity: !isNaN(quantity.getNumericValue())
+                        ? quantity.getNumericValue().toString()
+                        : "",
+                    referenceType:
+                        typeof referenceType === "string" ? referenceType : "",
+                    referenceId:
+                        typeof referenceId === "string" ? referenceId : "",
+                    unitPrice: !isNaN(unitPrice.getNumericValue())
+                        ? unitPrice.getNumericValue().toString()
+                        : "",
+                    totalPrice:
+                        typeof totalPrice === "string"
+                            ? parseNumber(totalPrice).toString()
+                            : "",
+                    taxId,
+                }),
+            ).then(async (response) => {
+                if (create.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 201) {
+                        if (
+                            typeof onSuccess === "function" &&
+                            typeof response.payload.jsonData?.data !==
+                                "undefined"
+                        ) {
+                            onSuccess(response.payload.jsonData.data);
+                        } else {
+                            navigate(-1);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            });
+        },
+        [
+            dispatch,
+            inventoryId,
+            movementType,
+            quantity,
+            referenceType,
+            referenceId,
+            unitPrice,
+            totalPrice,
+            taxId,
+            onSuccess,
+            navigate,
+            setErrors,
+            unexpectedError,
+        ],
+    );
 
-              <Field data-invalid={isInvalidField("quantity")}>
-                <FieldLabel htmlFor="quantity">Mennyiség</FieldLabel>
-                <Input
-                  id="quantity"
-                  type="text"
-                  placeholder="10"
-                  value={quantity.displayValue}
-                  onChange={(e) => {
-                    resetError("quantity");
-                    quantity.handleInputChangeWithCursor(
-                      e.target.value,
-                      e.target,
-                    );
-                  }}
-                  aria-invalid={isInvalidField("quantity")}
-                />
-                <FieldError error={errors} field={"quantity"} />
-              </Field>
-
-              <Field data-invalid={isInvalidField("unit_price")}>
-                <FieldLabel htmlFor="unit_price">Egységár (nettó)</FieldLabel>
-                <Input
-                  id="unit_price"
-                  type="text"
-                  placeholder="1 000,00"
-                  value={unitPrice.displayValue}
-                  onChange={(e) => {
-                    resetError("unit_price");
-                    unitPrice.handleInputChangeWithCursor(
-                      e.target.value,
-                      e.target,
-                    );
-                  }}
-                  aria-invalid={isInvalidField("unit_price")}
-                />
-                <FieldError error={errors} field={"unit_price"} />
-              </Field>
-
-              <Field data-invalid={isInvalidField("total_price")}>
-                <FieldLabel htmlFor="total_price">Összesen (nettó)</FieldLabel>
-                <Input
-                  id="total_price"
-                  type="text"
-                  value={totalPrice ?? ""}
-                  disabled={true}
-                  aria-invalid={isInvalidField("name")}
-                />
-                <FieldError error={errors} field={"total_price"} />
-              </Field>
-
-              <Field data-invalid={isInvalidField("tax_id")}>
-                <FieldLabel htmlFor="tax_id">Adó</FieldLabel>
-                <Select
-                  value={taxId}
-                  onValueChange={(val) => {
-                    resetError("tax_id");
-                    setTaxId(val);
-                  }}
+    return (
+        <>
+            <GlobalError error={errors} />
+            <Dialog
+                open={openNewInventoryDialog}
+                onOpenChange={setOpenNewInventoryDialog}
+            >
+                <DialogContent>
+                    <DialogTitle>Raktárkészlet létrehozása</DialogTitle>
+                    <InventoryEdit
+                        showCard={false}
+                        onSuccess={handleEditInventorySuccess}
+                        onCancel={() => setOpenNewInventoryDialog(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+            <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    autoComplete={"off"}
                 >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("tax_id")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {taxList.map((tax) => (
-                      <SelectItem key={tax.value} value={tax.value}>
-                        {tax.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"tax_id"} />
-              </Field>
-              <Field data-invalid={isInvalidField("movement_type")}>
-                <FieldLabel htmlFor="movement_type">Művelet</FieldLabel>
-                <Select
-                  value={movementType}
-                  onValueChange={(val) => {
-                    resetError("movement_type");
-                    setMovementType(val);
-                  }}
-                  disabled={typeof referenceId === "string"}
-                >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("movement_type")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in">Bevétel</SelectItem>
-                    <SelectItem value="out">Kiadás</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"movement_type"} />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Field orientation="horizontal">
-            <div className="text-right mt-8 w-full">
-              <Button
-                className="mr-3"
-                variant="outline"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  navigate(-1);
-                }}
-              >
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
-          </Field>
-        </form>
-      </ConditionalCard>
-    </>
-  );
+                    <FieldSet>
+                        <FieldLegend>
+                            {`Készletmozgás ${id ? "módosítás" : "létrehozás"}`}
+                        </FieldLegend>
+                        <FieldGroup>
+                            {!routeInventoryId && (
+                                <>
+                                    <Field
+                                        data-invalid={isInvalidField(
+                                            "inventory_id",
+                                        )}
+                                    >
+                                        <div className="flex items-center w-full">
+                                            <div className="flex flex-1 items-center">
+                                                <FieldLabel htmlFor="inventory_id">
+                                                    Raktárkészlet
+                                                </FieldLabel>
+                                            </div>
+                                            <div className="flex items-center">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        setOpenNewInventoryDialog(
+                                                            true,
+                                                        )
+                                                    }
+                                                >
+                                                    <Plus />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <Select
+                                            disabled={
+                                                inventoryIdList.length === 0
+                                            }
+                                            value={inventoryId ?? ""}
+                                            onValueChange={(val) => {
+                                                resetError("inventory_id");
+                                                setInventoryId(val);
+                                            }}
+                                        >
+                                            <SelectTrigger
+                                                className={"w-full"}
+                                                aria-invalid={isInvalidField(
+                                                    "inventory_id",
+                                                )}
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {inventoryIdList.map(
+                                                    (inventoryIdListItem) => (
+                                                        <SelectItem
+                                                            key={
+                                                                inventoryIdListItem.value
+                                                            }
+                                                            value={
+                                                                inventoryIdListItem.value
+                                                            }
+                                                        >
+                                                            {
+                                                                inventoryIdListItem.title
+                                                            }
+                                                        </SelectItem>
+                                                    ),
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                        <FieldError
+                                            error={errors}
+                                            field={"inventory_id"}
+                                        />
+                                    </Field>
+                                </>
+                            )}
+
+                            <Field data-invalid={isInvalidField("quantity")}>
+                                <FieldLabel htmlFor="quantity">
+                                    Mennyiség
+                                </FieldLabel>
+                                <Input
+                                    id="quantity"
+                                    type="text"
+                                    placeholder="10"
+                                    value={quantity.displayValue}
+                                    onChange={(e) => {
+                                        resetError("quantity");
+                                        quantity.handleInputChangeWithCursor(
+                                            e.target.value,
+                                            e.target,
+                                        );
+                                    }}
+                                    aria-invalid={isInvalidField("quantity")}
+                                />
+                                <FieldError error={errors} field={"quantity"} />
+                            </Field>
+
+                            <Field data-invalid={isInvalidField("unit_price")}>
+                                <FieldLabel htmlFor="unit_price">
+                                    Egységár (nettó)
+                                </FieldLabel>
+                                <Input
+                                    id="unit_price"
+                                    type="text"
+                                    placeholder="1 000,00"
+                                    value={unitPrice.displayValue}
+                                    onChange={(e) => {
+                                        resetError("unit_price");
+                                        unitPrice.handleInputChangeWithCursor(
+                                            e.target.value,
+                                            e.target,
+                                        );
+                                    }}
+                                    aria-invalid={isInvalidField("unit_price")}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"unit_price"}
+                                />
+                            </Field>
+
+                            <Field data-invalid={isInvalidField("total_price")}>
+                                <FieldLabel htmlFor="total_price">
+                                    Összesen (nettó)
+                                </FieldLabel>
+                                <Input
+                                    id="total_price"
+                                    type="text"
+                                    value={totalPrice ?? ""}
+                                    disabled={true}
+                                    aria-invalid={isInvalidField("name")}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"total_price"}
+                                />
+                            </Field>
+
+                            <Field data-invalid={isInvalidField("tax_id")}>
+                                <FieldLabel htmlFor="tax_id">Adó</FieldLabel>
+                                <Select
+                                    value={taxId}
+                                    onValueChange={(val) => {
+                                        resetError("tax_id");
+                                        setTaxId(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField("tax_id")}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {taxList.map((tax) => (
+                                            <SelectItem
+                                                key={tax.value}
+                                                value={tax.value}
+                                            >
+                                                {tax.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <FieldError error={errors} field={"tax_id"} />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("movement_type")}
+                            >
+                                <FieldLabel htmlFor="movement_type">
+                                    Művelet
+                                </FieldLabel>
+                                <Select
+                                    value={movementType}
+                                    onValueChange={(val) => {
+                                        resetError("movement_type");
+                                        setMovementType(val);
+                                    }}
+                                    disabled={typeof referenceId === "string"}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "movement_type",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="in">
+                                            Bevétel
+                                        </SelectItem>
+                                        <SelectItem value="out">
+                                            Kiadás
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"movement_type"}
+                                />
+                            </Field>
+                        </FieldGroup>
+                    </FieldSet>
+                    <Field orientation="horizontal">
+                        <div className="text-right mt-8 w-full">
+                            <Button
+                                className="mr-3"
+                                variant="outline"
+                                onClick={(e: React.MouseEvent) => {
+                                    e.preventDefault();
+                                    navigate(-1);
+                                }}
+                            >
+                                Mégse
+                            </Button>
+                            <Button type="submit">
+                                {id ? "Módosítás" : "Létrehozás"}
+                            </Button>
+                        </div>
+                    </Field>
+                </form>
+            </ConditionalCard>
+        </>
+    );
 }

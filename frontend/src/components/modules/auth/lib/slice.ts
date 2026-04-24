@@ -18,186 +18,188 @@
  */
 
 import {
-  createAsyncThunk,
-  createSlice,
-  type PayloadAction,
+    createAsyncThunk,
+    createSlice,
+    type PayloadAction,
 } from "@reduxjs/toolkit";
 import * as authApi from "@/components/modules/auth/lib/service.ts";
 import type {
-  Claims,
-  ForgottenPasswordRequest,
-  User,
-  LoginData,
-  LoginRequest,
-  NewPasswordRequest,
-  RegisterRequest,
+    Claims,
+    ForgottenPasswordRequest,
+    User,
+    LoginData,
+    LoginRequest,
+    NewPasswordRequest,
+    RegisterRequest,
 } from "@/components/modules/auth/lib/interface.ts";
 import type { RootState } from "@/store";
 import type { NewTokenResponse } from "@/components/modules/databases/lib/interface.ts";
 
 interface AuthState {
-  login: {
-    user: User | null;
-    claims: Claims | null;
-    token: string | null;
-    status: "idle" | "loading" | "succeeded" | "failed";
-    isLoggedIn: boolean;
-    hasActiveDatabase: boolean;
-  };
-  register: {
-    status: "idle" | "loading" | "succeeded" | "failed";
-  };
+    login: {
+        user: User | null;
+        claims: Claims | null;
+        token: string | null;
+        status: "idle" | "loading" | "succeeded" | "failed";
+        isLoggedIn: boolean;
+        hasActiveDatabase: boolean;
+    };
+    register: {
+        status: "idle" | "loading" | "succeeded" | "failed";
+    };
 }
 
 const initialState: AuthState = {
-  login: {
-    claims: null,
-    user: null,
-    token: null,
-    status: "idle",
-    isLoggedIn: false,
-    hasActiveDatabase: false,
-  },
-  register: {
-    status: "idle",
-  },
+    login: {
+        claims: null,
+        user: null,
+        token: null,
+        status: "idle",
+        isLoggedIn: false,
+        hasActiveDatabase: false,
+    },
+    register: {
+        status: "idle",
+    },
 };
 
 export const registerUserRequest = createAsyncThunk(
-  "auth/registerUserRequest",
-  async (userData: RegisterRequest) => {
-    return await authApi.register(userData);
-  },
+    "auth/registerUserRequest",
+    async (userData: RegisterRequest) => {
+        return await authApi.register(userData);
+    },
 );
 
 export const loginUserRequest = createAsyncThunk(
-  "auth/loginUserRequest",
-  async (credentials: LoginRequest) => {
-    return await authApi.login(credentials);
-  },
+    "auth/loginUserRequest",
+    async (credentials: LoginRequest) => {
+        return await authApi.login(credentials);
+    },
 );
 
 let logoutAndRevokeInFlight: Promise<void> | null = null;
 
 export const logoutAndRevokeRefreshToken = createAsyncThunk(
-  "auth/logoutAndRevokeRefreshToken",
-  async (_: void, { dispatch }) => {
-    if (!logoutAndRevokeInFlight) {
-      logoutAndRevokeInFlight = (async () => {
-        try {
-          await authApi.logout();
-          dispatch(logoutUser());
-        } finally {
-          logoutAndRevokeInFlight = null;
-          dispatch(logoutUser());
+    "auth/logoutAndRevokeRefreshToken",
+    async (_: void, { dispatch }) => {
+        if (!logoutAndRevokeInFlight) {
+            logoutAndRevokeInFlight = (async () => {
+                try {
+                    await authApi.logout();
+                    dispatch(logoutUser());
+                } finally {
+                    logoutAndRevokeInFlight = null;
+                    dispatch(logoutUser());
+                }
+            })();
         }
-      })();
-    }
-    await logoutAndRevokeInFlight;
-  },
+        await logoutAndRevokeInFlight;
+    },
 );
 
 let refreshInFlight: Promise<void> | null = null;
 
 export const refreshAccessToken = createAsyncThunk(
-  "auth/refreshAccessToken",
-  async (_: void, { getState, dispatch }) => {
-    const rootState = getState() as RootState;
+    "auth/refreshAccessToken",
+    async (_: void, { getState, dispatch }) => {
+        const rootState = getState() as RootState;
 
-    const token = rootState.auth.login.token;
-    const expiresAt = rootState.auth.login.claims?.exp;
+        const token = rootState.auth.login.token;
+        const expiresAt = rootState.auth.login.claims?.exp;
 
-    const expiredOrNearExpiry =
-      !token || !expiresAt || expiresAt - Math.floor(Date.now() / 1000) < 30;
+        const expiredOrNearExpiry =
+            !token ||
+            !expiresAt ||
+            expiresAt - Math.floor(Date.now() / 1000) < 30;
 
-    if (!expiredOrNearExpiry) return;
+        if (!expiredOrNearExpiry) return;
 
-    if (!refreshInFlight) {
-      refreshInFlight = (async () => {
-        try {
-          const response = await authApi.refresh();
-          if (
-            response.statusCode === 200 &&
-            typeof response.jsonData?.data !== "undefined"
-          ) {
-            dispatch(loginUser(response.jsonData?.data));
-          } else {
-            dispatch(logoutUser());
-          }
-        } finally {
-          refreshInFlight = null;
+        if (!refreshInFlight) {
+            refreshInFlight = (async () => {
+                try {
+                    const response = await authApi.refresh();
+                    if (
+                        response.statusCode === 200 &&
+                        typeof response.jsonData?.data !== "undefined"
+                    ) {
+                        dispatch(loginUser(response.jsonData?.data));
+                    } else {
+                        dispatch(logoutUser());
+                    }
+                } finally {
+                    refreshInFlight = null;
+                }
+            })();
         }
-      })();
-    }
-    await refreshInFlight;
-  },
+        await refreshInFlight;
+    },
 );
 
 export const get_claims = createAsyncThunk(
-  "auth/get_claims",
-  async (_, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await authApi.get_claims(token);
-  },
+    "auth/get_claims",
+    async (_, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await authApi.get_claims(token);
+    },
 );
 
 export const verfiy_email = createAsyncThunk(
-  "auth/verfiy_email",
-  async (id: string) => {
-    return await authApi.verfiy_email(id);
-  },
+    "auth/verfiy_email",
+    async (id: string) => {
+        return await authApi.verfiy_email(id);
+    },
 );
 
 export const forgottenPassword = createAsyncThunk(
-  "auth/forgottenPassword",
-  async (forgottenPasswordRequest: ForgottenPasswordRequest) => {
-    return await authApi.forgottenPassword(forgottenPasswordRequest);
-  },
+    "auth/forgottenPassword",
+    async (forgottenPasswordRequest: ForgottenPasswordRequest) => {
+        return await authApi.forgottenPassword(forgottenPasswordRequest);
+    },
 );
 
 export const newPassword = createAsyncThunk(
-  "auth/newPassword",
-  async (newPasswordRequest: NewPasswordRequest) => {
-    return await authApi.newPassword(newPasswordRequest);
-  },
+    "auth/newPassword",
+    async (newPasswordRequest: NewPasswordRequest) => {
+        return await authApi.newPassword(newPasswordRequest);
+    },
 );
 
 const authSlice = createSlice({
-  name: "auth",
-  initialState,
-  reducers: {
-    loginUser(state, action: PayloadAction<LoginData>) {
-      state.login.claims = action.payload.claims;
-      state.login.user = action.payload.user;
-      state.login.token = action.payload.token;
-      state.login.isLoggedIn = true;
-      state.login.hasActiveDatabase =
-        action.payload.claims.active_tenant !== null;
+    name: "auth",
+    initialState,
+    reducers: {
+        loginUser(state, action: PayloadAction<LoginData>) {
+            state.login.claims = action.payload.claims;
+            state.login.user = action.payload.user;
+            state.login.token = action.payload.token;
+            state.login.isLoggedIn = true;
+            state.login.hasActiveDatabase =
+                action.payload.claims.active_tenant !== null;
+        },
+        logoutUser(state) {
+            state.login.claims = null;
+            state.login.user = null;
+            state.login.token = null;
+            state.login.status = "idle";
+            state.login.isLoggedIn = false;
+            state.login.hasActiveDatabase = false;
+        },
+        updateToken(state, action: PayloadAction<NewTokenResponse>) {
+            state.login.token = action.payload.token;
+            state.login.claims = action.payload.claims;
+            state.login.hasActiveDatabase =
+                action.payload.claims.active_tenant !== null;
+        },
+        chMfaStatus(state, action: PayloadAction<boolean>) {
+            if (state.login.user !== null) {
+                state.login.user.is_mfa_enabled = action.payload;
+            }
+        },
     },
-    logoutUser(state) {
-      state.login.claims = null;
-      state.login.user = null;
-      state.login.token = null;
-      state.login.status = "idle";
-      state.login.isLoggedIn = false;
-      state.login.hasActiveDatabase = false;
-    },
-    updateToken(state, action: PayloadAction<NewTokenResponse>) {
-      state.login.token = action.payload.token;
-      state.login.claims = action.payload.claims;
-      state.login.hasActiveDatabase =
-        action.payload.claims.active_tenant !== null;
-    },
-    chMfaStatus(state, action: PayloadAction<boolean>) {
-      if (state.login.user !== null) {
-        state.login.user.is_mfa_enabled = action.payload;
-      }
-    },
-  },
 });
 
 export const { logoutUser, updateToken, loginUser, chMfaStatus } =
-  authSlice.actions;
+    authSlice.actions;
 export default authSlice.reducer;

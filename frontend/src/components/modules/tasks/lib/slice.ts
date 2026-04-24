@@ -24,87 +24,87 @@ import type { TaskUserInput } from "@/components/modules/tasks/lib/interface.ts"
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface TasksState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: TasksState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const create = createAsyncThunk(
-  "tasks/create",
-  async (requestData: TaskUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return tasksApi.create(requestData, token);
-  },
+    "tasks/create",
+    async (requestData: TaskUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return tasksApi.create(requestData, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "tasks/list",
-  async (query: string | null, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return tasksApi.list(query, token);
-  },
+    "tasks/list",
+    async (query: string | null, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return tasksApi.list(query, token);
+    },
 );
 
 export const select_list = createAsyncThunk(
-  "tasks/select_list",
-  async (list: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await tasksApi.select_list(list, token);
-  },
+    "tasks/select_list",
+    async (list: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.select_list(list, token);
+    },
 );
 
 export const get_resolved = createAsyncThunk(
-  "tasks/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await tasksApi.get_resolved(uuid, token);
-  },
+    "tasks/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.get_resolved(uuid, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "tasks/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await tasksApi.get(uuid, token);
-  },
+    "tasks/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.get(uuid, token);
+    },
 );
 
 export const update = createAsyncThunk(
-  "tasks/update",
-  async (requestData: TaskUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await tasksApi.update(requestData, token);
-  },
+    "tasks/update",
+    async (requestData: TaskUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.update(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "tasks/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await tasksApi.deleteItem(uuid, token);
-  },
+    "tasks/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.deleteItem(uuid, token);
+    },
 );
 
 const tasksSlice = createSlice({
-  name: "tasks",
-  initialState,
-  reducers: {},
+    name: "tasks",
+    initialState,
+    reducers: {},
 });
 
 export default tasksSlice.reducer;

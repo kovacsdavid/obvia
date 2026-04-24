@@ -21,16 +21,16 @@ import { createContext } from "react";
 import type { PayloadAction } from "@reduxjs/toolkit";
 
 type AuthContextType = {
-  isLoggedIn: boolean;
-  hasActiveDatabase: boolean;
-  login: (
-    email: string,
-    password: string,
-    otp: string | null,
-  ) => Promise<PayloadAction<any, any, any>>;
-  logout: () => void;
+    isLoggedIn: boolean;
+    hasActiveDatabase: boolean;
+    login: (
+        email: string,
+        password: string,
+        otp: string | null,
+    ) => Promise<PayloadAction<any, any, any>>;
+    logout: () => void;
 };
 
 export const AuthContext = createContext<AuthContextType | undefined>(
-  undefined,
+    undefined,
 );

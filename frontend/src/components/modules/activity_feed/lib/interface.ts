@@ -18,31 +18,31 @@
  */
 
 import type {
-  CommonResponse,
-  FormError,
-  PaginatedDataResponse,
-  SimpleError,
+    CommonResponse,
+    FormError,
+    PaginatedDataResponse,
+    SimpleError,
 } from "@/lib/interfaces/common";
 
 export interface ActivityFeedResolvedEntry {
-  id: string;
-  resource_id: string;
-  resource_type: string;
-  activity_type: string;
-  content: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    resource_id: string;
+    resource_type: string;
+    activity_type: string;
+    content: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export type PostCommentResponse = CommonResponse<
-  ActivityFeedResolvedEntry,
-  FormError
+    ActivityFeedResolvedEntry,
+    FormError
 >;
 
 export type PaginatedActivityFeedResponse = PaginatedDataResponse<
-  ActivityFeedResolvedEntry[],
-  SimpleError
+    ActivityFeedResolvedEntry[],
+    SimpleError
 >;

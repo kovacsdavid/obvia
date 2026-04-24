@@ -18,9 +18,9 @@
  */
 
 export interface CreateUser {
-  email: string;
-  lastName: string;
-  firstName: string;
-  phone: string;
-  status: string;
+    email: string;
+    lastName: string;
+    firstName: string;
+    phone: string;
+    status: string;
 }

@@ -18,60 +18,60 @@
  */
 
 import {
-  type CommonResponse,
-  type FormError,
-  type PaginatedDataResponse,
-  type SimpleError,
-  type SimpleMessageData,
+    type CommonResponse,
+    type FormError,
+    type PaginatedDataResponse,
+    type SimpleError,
+    type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface TaxUserInput {
-  id: string | null;
-  rate: string | null;
-  description: string;
-  countryCode: string;
-  taxCategory: string;
-  isRateApplicable: boolean | null;
-  legalText: string | null;
-  reportingCode: string | null;
-  isDefault: boolean;
-  status: string;
+    id: string | null;
+    rate: string | null;
+    description: string;
+    countryCode: string;
+    taxCategory: string;
+    isRateApplicable: boolean | null;
+    legalText: string | null;
+    reportingCode: string | null;
+    isDefault: boolean;
+    status: string;
 }
 
 export interface Tax {
-  id: string;
-  rate: string | null;
-  description: string;
-  country_code: string;
-  tax_category: string;
-  is_rate_applicable: boolean;
-  legal_text: string | null;
-  reporting_code: string | null;
-  is_default: boolean;
-  status: string;
-  created_by_id: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    rate: string | null;
+    description: string;
+    country_code: string;
+    tax_category: string;
+    is_rate_applicable: boolean;
+    legal_text: string | null;
+    reporting_code: string | null;
+    is_default: boolean;
+    status: string;
+    created_by_id: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export interface TaxResolved {
-  id: string;
-  rate: string | null;
-  description: string;
-  country_code: string;
-  country: string;
-  tax_category: string;
-  is_rate_applicable: boolean;
-  legal_text: string | null;
-  reporting_code: string | null;
-  is_default: boolean;
-  status: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    rate: string | null;
+    description: string;
+    country_code: string;
+    country: string;
+    tax_category: string;
+    is_rate_applicable: boolean;
+    legal_text: string | null;
+    reporting_code: string | null;
+    is_default: boolean;
+    status: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export type CreateTaxResponse = CommonResponse<Tax, FormError>;
@@ -81,6 +81,6 @@ export type TaxResolvedList = TaxResolved[];
 export type TaxResponse = CommonResponse<Tax, SimpleError>;
 export type TaxResolvedResponse = CommonResponse<TaxResolved, SimpleError>;
 export type PaginatedTaxResolvedListResponse = PaginatedDataResponse<
-  TaxResolvedList,
-  SimpleError
+    TaxResolvedList,
+    SimpleError
 >;

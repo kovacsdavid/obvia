@@ -18,65 +18,65 @@
  */
 
 import {
-  type CommonResponse,
-  type FormError,
-  type PaginatedDataResponse,
-  type SimpleError,
-  type SimpleMessageData,
+    type CommonResponse,
+    type FormError,
+    type PaginatedDataResponse,
+    type SimpleError,
+    type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface CustomerUserInput {
-  id: string | null;
-  name: string;
-  contactName: string;
-  email: string;
-  phoneNumber: string;
-  status: string | undefined;
-  customerType: string | undefined;
+    id: string | null;
+    name: string;
+    contactName: string;
+    email: string;
+    phoneNumber: string;
+    status: string | undefined;
+    customerType: string | undefined;
 }
 
 export interface Customer {
-  id: string;
-  name: string;
-  contact_name: string | null;
-  email: string;
-  phone_number: string | null;
-  status: string;
-  customer_type: string;
-  created_by_id: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    name: string;
+    contact_name: string | null;
+    email: string;
+    phone_number: string | null;
+    status: string;
+    customer_type: string;
+    created_by_id: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export interface CustomerResolved {
-  id: string;
-  name: string;
-  contact_name: string | null;
-  email: string;
-  phone_number: string | null;
-  status: string;
-  customer_type: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    name: string;
+    contact_name: string | null;
+    email: string;
+    phone_number: string | null;
+    status: string;
+    customer_type: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export type CreateCustomerResponse = CommonResponse<Customer, FormError>;
 export type UpdateCustomerResponse = CommonResponse<Customer, FormError>;
 export type DeleteCustomerResponse = CommonResponse<
-  SimpleMessageData,
-  SimpleError
+    SimpleMessageData,
+    SimpleError
 >;
 export type CustomerResolvedList = CustomerResolved[];
 export type CustomerResponse = CommonResponse<Customer, SimpleError>;
 export type CustomerResolvedResponse = CommonResponse<
-  CustomerResolved,
-  SimpleError
+    CustomerResolved,
+    SimpleError
 >;
 export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<
-  CustomerResolvedList,
-  SimpleError
+    CustomerResolvedList,
+    SimpleError
 >;

@@ -24,76 +24,79 @@ import { create } from "@/components/modules/users/lib/slice.ts";
 import { type FormError } from "@/lib/interfaces/common.ts";
 
 export default function Create() {
-  const [email, setEmail] = React.useState("");
-  const [lastName, setLastName] = React.useState("");
-  const [firstName, setFirstName] = React.useState("");
-  const [phone, setPhone] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [errors, setErrors] = useState<FormError | null>(null);
-  const dispatch = useAppDispatch();
+    const [email, setEmail] = React.useState("");
+    const [lastName, setLastName] = React.useState("");
+    const [firstName, setFirstName] = React.useState("");
+    const [phone, setPhone] = React.useState("");
+    const [status, setStatus] = React.useState("");
+    const [errors, setErrors] = useState<FormError | null>(null);
+    const dispatch = useAppDispatch();
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    dispatch(
-      create({
-        email,
-        lastName,
-        firstName,
-        phone,
-        status,
-      }),
-    ).then((response) => {
-      setErrors({ message: "Not implemented yet!", fields: {} });
-      console.log(response);
-    });
-  };
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        dispatch(
+            create({
+                email,
+                lastName,
+                firstName,
+                phone,
+                status,
+            }),
+        ).then((response) => {
+            setErrors({ message: "Not implemented yet!", fields: {} });
+            console.log(response);
+        });
+    };
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <form onSubmit={handleSubmit} className="max-w-sm mx-auto space-y-4">
-        <Label htmlFor="email">E-mail cím</Label>
-        <Input
-          id="email"
-          type="text"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <FieldError error={errors} field={"email"} />
-        <Label htmlFor="last_name">Vezetéknév</Label>
-        <Input
-          id="last_name"
-          type="text"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-        />
-        <FieldError error={errors} field={"last_name"} />
-        <Label htmlFor="fist_name">Keresztnév</Label>
-        <Input
-          id="fist_name"
-          type="text"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-        />
-        <FieldError error={errors} field={"fist_name"} />
-        <Label htmlFor="phone">Telefonszám</Label>
-        <Input
-          id="phone"
-          type="text"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-        <FieldError error={errors} field={"phone"} />
-        <Label htmlFor="status">Státusz</Label>
-        <Input
-          id="status"
-          type="text"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        />
-        <FieldError error={errors} field={"status"} />
-        <Button type="submit">Létrehozás</Button>
-      </form>
-    </>
-  );
+    return (
+        <>
+            <GlobalError error={errors} />
+            <form
+                onSubmit={handleSubmit}
+                className="max-w-sm mx-auto space-y-4"
+            >
+                <Label htmlFor="email">E-mail cím</Label>
+                <Input
+                    id="email"
+                    type="text"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                />
+                <FieldError error={errors} field={"email"} />
+                <Label htmlFor="last_name">Vezetéknév</Label>
+                <Input
+                    id="last_name"
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                />
+                <FieldError error={errors} field={"last_name"} />
+                <Label htmlFor="fist_name">Keresztnév</Label>
+                <Input
+                    id="fist_name"
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                />
+                <FieldError error={errors} field={"fist_name"} />
+                <Label htmlFor="phone">Telefonszám</Label>
+                <Input
+                    id="phone"
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                />
+                <FieldError error={errors} field={"phone"} />
+                <Label htmlFor="status">Státusz</Label>
+                <Input
+                    id="status"
+                    type="text"
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                />
+                <FieldError error={errors} field={"status"} />
+                <Button type="submit">Létrehozás</Button>
+            </form>
+        </>
+    );
 }

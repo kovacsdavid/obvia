@@ -18,164 +18,171 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import {
-  type CreateInventoryReservationResponse,
-  type DeleteInventoryReservationResponse,
-  type InventoryReservationResolvedResponse,
-  type InventoryReservationResponse,
-  type InventoryReservationUserInput,
-  type PaginatedInventoryReservationResolvedListResponse,
+    type CreateInventoryReservationResponse,
+    type DeleteInventoryReservationResponse,
+    type InventoryReservationResolvedResponse,
+    type InventoryReservationResponse,
+    type InventoryReservationUserInput,
+    type PaginatedInventoryReservationResolvedListResponse,
 } from "@/components/modules/inventory_reservations/lib/interface.ts";
 import {
-  isSelectOptionListResponse,
-  type ProcessedResponse,
-  ProcessResponse,
-  type SelectOptionListResponse,
+    isSelectOptionListResponse,
+    type ProcessedResponse,
+    ProcessResponse,
+    type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateInventoryReservationResponse,
-  isDeleteInventoryReservationResponse,
-  isInventoryReservationResolvedResponse,
-  isInventoryReservationResponse,
-  isPaginatedInventoryReservationResolvedListResponse,
+    isCreateInventoryReservationResponse,
+    isDeleteInventoryReservationResponse,
+    isInventoryReservationResolvedResponse,
+    isInventoryReservationResponse,
+    isPaginatedInventoryReservationResolvedListResponse,
 } from "@/components/modules/inventory_reservations/lib/guards.ts";
 
 export async function create(
-  input: InventoryReservationUserInput,
-  token: string | null,
+    input: InventoryReservationUserInput,
+    token: string | null,
 ): Promise<ProcessedResponse<CreateInventoryReservationResponse>> {
-  return await fetch(`/api/inventory_reservations/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id: input.id,
-      inventory_id: input.inventoryId,
-      quantity: input.quantity,
-      reference_type: input.referenceType,
-      reference_id: input.referenceId,
-      reserved_until: input.reservedUntil,
-      status: input.status,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isCreateInventoryReservationResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/inventory_reservations/create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            id: input.id,
+            inventory_id: input.inventoryId,
+            quantity: input.quantity,
+            reference_type: input.referenceType,
+            reference_id: input.referenceId,
+            reserved_until: input.reservedUntil,
+            status: input.status,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isCreateInventoryReservationResponse,
+            )) ?? unexpectedFormError
+        );
+    });
 }
 
 export async function list(
-  params: {
-    inventoryId: string;
-    query: string | null;
-  },
-  token: string | null,
-): Promise<
-  ProcessedResponse<PaginatedInventoryReservationResolvedListResponse>
-> {
-  const uri =
-    params.query === null
-      ? `/api/inventory_reservations/list?inventory_id=${params.inventoryId}`
-      : `/api/inventory_reservations/list?inventory_id=${params.inventoryId}&q=${params.query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    params: {
+        inventoryId: string;
+        query: string | null;
     },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(
-        response,
-        isPaginatedInventoryReservationResolvedListResponse,
-      )) ?? unexpectedError
-    );
-  });
+    token: string | null,
+): Promise<
+    ProcessedResponse<PaginatedInventoryReservationResolvedListResponse>
+> {
+    const uri =
+        params.query === null
+            ? `/api/inventory_reservations/list?inventory_id=${params.inventoryId}`
+            : `/api/inventory_reservations/list?inventory_id=${params.inventoryId}&q=${params.query}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isPaginatedInventoryReservationResolvedListResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function get(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<InventoryReservationResponse>> {
-  return await fetch(`/api/inventory_reservations/get?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isInventoryReservationResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/inventory_reservations/get?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isInventoryReservationResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function get_resolved(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<InventoryReservationResolvedResponse>> {
-  return await fetch(`/api/inventory_reservations/get_resolved?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(
-        response,
-        isInventoryReservationResolvedResponse,
-      )) ?? unexpectedError
-    );
-  });
+    return await fetch(
+        `/api/inventory_reservations/get_resolved?uuid=${uuid}`,
+        {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            signal: AbortSignal.timeout(globalRequestTimeout),
+        },
+    ).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isInventoryReservationResolvedResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function deleteItem(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<DeleteInventoryReservationResponse>> {
-  return await fetch(`/api/inventory_reservations/delete?uuid=${uuid}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isDeleteInventoryReservationResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/inventory_reservations/delete?uuid=${uuid}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isDeleteInventoryReservationResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function select_list(
-  list: string,
-  token: string | null,
+    list: string,
+    token: string | null,
 ): Promise<ProcessedResponse<SelectOptionListResponse>> {
-  return await fetch(`/api/inventory_reservations/select_list?list=${list}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isSelectOptionListResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/inventory_reservations/select_list?list=${list}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            unexpectedError
+        );
+    });
 }

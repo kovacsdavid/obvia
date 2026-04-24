@@ -18,120 +18,122 @@
  */
 
 import {
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
+    isCommonResponse,
+    isFormError,
+    isPaginatedDataResponse,
+    isSimpleError,
+    isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateCustomerResponse,
-  Customer,
-  CustomerResolved,
-  CustomerResolvedList,
-  CustomerResolvedResponse,
-  CustomerResponse,
-  DeleteCustomerResponse,
-  PaginatedCustomerResolvedListResponse,
-  UpdateCustomerResponse,
+    CreateCustomerResponse,
+    Customer,
+    CustomerResolved,
+    CustomerResolvedList,
+    CustomerResolvedResponse,
+    CustomerResponse,
+    DeleteCustomerResponse,
+    PaginatedCustomerResolvedListResponse,
+    UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
 
 export function isCreateCustomerResponse(
-  data: unknown,
+    data: unknown,
 ): data is CreateCustomerResponse {
-  return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, isFormError);
 }
 
 export function isUpdateCustomerResponse(
-  data: unknown,
+    data: unknown,
 ): data is UpdateCustomerResponse {
-  return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, isFormError);
 }
 
 export function isDeleteCustomerResponse(
-  data: unknown,
+    data: unknown,
 ): data is DeleteCustomerResponse {
-  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
+    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }
 
 export function isCustomerResolved(data: unknown): data is CustomerResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    (data.contact_name === null || typeof data.contact_name === "string") &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "phone_number" in data &&
-    (data.phone_number === null || typeof data.phone_number === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "customer_type" in data &&
-    typeof data.customer_type === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "name" in data &&
+        typeof data.name === "string" &&
+        "contact_name" in data &&
+        (data.contact_name === null || typeof data.contact_name === "string") &&
+        "email" in data &&
+        typeof data.email === "string" &&
+        "phone_number" in data &&
+        (data.phone_number === null || typeof data.phone_number === "string") &&
+        "status" in data &&
+        typeof data.status === "string" &&
+        "customer_type" in data &&
+        typeof data.customer_type === "string" &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "created_by" in data &&
+        typeof data.created_by === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
 }
 
 export function isCustomerResolvedResponse(
-  data: unknown,
+    data: unknown,
 ): data is CustomerResolvedResponse {
-  return isCommonResponse(data, isCustomerResolved, isSimpleError);
+    return isCommonResponse(data, isCustomerResolved, isSimpleError);
 }
 
 export function isCustomerResolvedList(
-  data: unknown,
+    data: unknown,
 ): data is CustomerResolvedList {
-  return Array.isArray(data) && data.every((item) => isCustomerResolved(item));
+    return (
+        Array.isArray(data) && data.every((item) => isCustomerResolved(item))
+    );
 }
 
 export function isPaginatedCustomerResolvedListResponse(
-  data: unknown,
+    data: unknown,
 ): data is PaginatedCustomerResolvedListResponse {
-  return isPaginatedDataResponse(data, isCustomerResolvedList);
+    return isPaginatedDataResponse(data, isCustomerResolvedList);
 }
 
 export function isCustomer(data: unknown): data is Customer {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "contact_name" in data &&
-    (data.contact_name === null || typeof data.contact_name === "string") &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "phone_number" in data &&
-    (data.phone_number === null || typeof data.phone_number === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "customer_type" in data &&
-    typeof data.customer_type === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "name" in data &&
+        typeof data.name === "string" &&
+        "contact_name" in data &&
+        (data.contact_name === null || typeof data.contact_name === "string") &&
+        "email" in data &&
+        typeof data.email === "string" &&
+        "phone_number" in data &&
+        (data.phone_number === null || typeof data.phone_number === "string") &&
+        "status" in data &&
+        typeof data.status === "string" &&
+        "customer_type" in data &&
+        typeof data.customer_type === "string" &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
 }
 
 export function isCustomerResponse(data: unknown): data is CustomerResponse {
-  return isCommonResponse(data, isCustomer, isSimpleError);
+    return isCommonResponse(data, isCustomer, isSimpleError);
 }

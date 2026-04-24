@@ -23,58 +23,58 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use_auth";
 
 export function useFormError() {
-  const [errors, setErrors] = useState<FormError | null>(null);
-  const navigate = useNavigate();
-  const { logout } = useAuth();
+    const [errors, setErrors] = useState<FormError | null>(null);
+    const navigate = useNavigate();
+    const { logout } = useAuth();
 
-  const unexpectedError = useCallback(
-    (statusCode: number | null = null) => {
-      switch (statusCode) {
-        case 401:
-          logout();
-          navigate("/bejelentkezes");
-          break;
-        case 429:
-          setErrors({
-            message:
-              "Túl sok kérés érkezett rövid időn belül, ezért a szerver ideiglenesen korlátozta a hozzáférést. Próbáld újra néhány másodperc múlva!",
-          });
-          break;
-        default:
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-          });
-      }
-    },
-    [logout, navigate],
-  );
+    const unexpectedError = useCallback(
+        (statusCode: number | null = null) => {
+            switch (statusCode) {
+                case 401:
+                    logout();
+                    navigate("/bejelentkezes");
+                    break;
+                case 429:
+                    setErrors({
+                        message:
+                            "Túl sok kérés érkezett rövid időn belül, ezért a szerver ideiglenesen korlátozta a hozzáférést. Próbáld újra néhány másodperc múlva!",
+                    });
+                    break;
+                default:
+                    setErrors({
+                        message: "Váratlan hiba történt a feldolgozás során!",
+                    });
+            }
+        },
+        [logout, navigate],
+    );
 
-  const isInvalidField = useCallback(
-    (field: string): boolean => !!errors?.fields?.[field],
-    [errors],
-  );
+    const isInvalidField = useCallback(
+        (field: string): boolean => !!errors?.fields?.[field],
+        [errors],
+    );
 
-  const resetError = useCallback(
-    (field: string): void => {
-      if (typeof errors?.fields === "object") {
-        const new_errors = {
-          message: errors.message,
-          fields: {
-            ...errors.fields,
-            [field]: null,
-          },
-        };
-        setErrors(new_errors);
-      }
-    },
-    [errors, setErrors],
-  );
+    const resetError = useCallback(
+        (field: string): void => {
+            if (typeof errors?.fields === "object") {
+                const new_errors = {
+                    message: errors.message,
+                    fields: {
+                        ...errors.fields,
+                        [field]: null,
+                    },
+                };
+                setErrors(new_errors);
+            }
+        },
+        [errors, setErrors],
+    );
 
-  return {
-    errors,
-    setErrors,
-    unexpectedError,
-    isInvalidField,
-    resetError,
-  };
+    return {
+        errors,
+        setErrors,
+        unexpectedError,
+        isInvalidField,
+        resetError,
+    };
 }

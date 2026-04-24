@@ -18,66 +18,66 @@
  */
 
 import type {
-  CommonResponse,
-  FormError,
-  PaginatedDataResponse,
-  SimpleError,
-  SimpleMessageData,
+    CommonResponse,
+    FormError,
+    PaginatedDataResponse,
+    SimpleError,
+    SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface InventoryReservationUserInput {
-  id: string | null;
-  inventoryId: string;
-  quantity: string;
-  referenceType: string | null;
-  referenceId: string | null;
-  reservedUntil: string | null;
-  status: string;
+    id: string | null;
+    inventoryId: string;
+    quantity: string;
+    referenceType: string | null;
+    referenceId: string | null;
+    reservedUntil: string | null;
+    status: string;
 }
 
 export interface InventoryReservation {
-  id: string;
-  inventory_id: string;
-  quantity: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  reserved_until: string | null;
-  status: string;
-  created_by_id: string;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    inventory_id: string;
+    quantity: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    reserved_until: string | null;
+    status: string;
+    created_by_id: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface InventoryReservationResolved {
-  id: string;
-  inventory_id: string;
-  quantity: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  reserved_until: string | null;
-  status: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    inventory_id: string;
+    quantity: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    reserved_until: string | null;
+    status: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export type CreateInventoryReservationResponse = CommonResponse<
-  InventoryReservation,
-  FormError
+    InventoryReservation,
+    FormError
 >;
 export type DeleteInventoryReservationResponse = CommonResponse<
-  SimpleMessageData,
-  SimpleError
+    SimpleMessageData,
+    SimpleError
 >;
 export type InventoryReservationResponse = CommonResponse<
-  InventoryReservation,
-  SimpleError
+    InventoryReservation,
+    SimpleError
 >;
 export type InventoryReservationResolvedResponse = CommonResponse<
-  InventoryReservationResolved,
-  SimpleError
+    InventoryReservationResolved,
+    SimpleError
 >;
 export type InventoryReservationResolvedList = InventoryReservationResolved[];
 export type PaginatedInventoryReservationResolvedListResponse =
-  PaginatedDataResponse<InventoryReservationResolvedList, SimpleError>;
+    PaginatedDataResponse<InventoryReservationResolvedList, SimpleError>;

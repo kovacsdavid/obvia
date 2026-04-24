@@ -22,16 +22,16 @@ import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get } from "@/components/modules/databases/lib/slice.ts";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
@@ -40,88 +40,103 @@ import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function View() {
-  const [data, setData] = React.useState<Database | null>(null);
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const dispatch = useAppDispatch();
-  const params = useParams();
-  const navigate = useNavigate();
+    const [data, setData] = React.useState<Database | null>(null);
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const dispatch = useAppDispatch();
+    const params = useParams();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if (typeof params["id"] === "string") {
-      dispatch(get(params["id"])).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              setData(response.payload.jsonData.data);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
+    useEffect(() => {
+        if (typeof params["id"] === "string") {
+            dispatch(get(params["id"])).then(async (response) => {
+                if (get.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            setData(response.payload.jsonData.data);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            });
         }
-      });
-    }
-  }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params, setErrors, unexpectedError]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      {data !== null ? (
+    return (
         <>
-          <Card className={"max-w-3xl mx-auto"}>
-            <CardHeader>
-              <CardTitle>Adatbázis</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Azonosító</TableCell>
-                    <TableCell>{data.id}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Név</TableCell>
-                    <TableCell>{data.name}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Adatbázis kiszolgáló</TableCell>
-                    <TableCell>{data.db_host}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Adatbázis port</TableCell>
-                    <TableCell>{data.db_port}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Adatbázis név</TableCell>
-                    <TableCell>{data.db_name}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozva</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Frissítve</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-              <div className="mt-8">
-                <Button
-                  className="mr-3"
-                  type="submit"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Vissza
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            <GlobalError error={errors} />
+            {data !== null ? (
+                <>
+                    <Card className={"max-w-3xl mx-auto"}>
+                        <CardHeader>
+                            <CardTitle>Adatbázis</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Azonosító</TableCell>
+                                        <TableCell>{data.id}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Név</TableCell>
+                                        <TableCell>{data.name}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Adatbázis kiszolgáló
+                                        </TableCell>
+                                        <TableCell>{data.db_host}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Adatbázis port</TableCell>
+                                        <TableCell>{data.db_port}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Adatbázis név</TableCell>
+                                        <TableCell>{data.db_name}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozva</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.created_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Frissítve</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.updated_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <div className="mt-8">
+                                <Button
+                                    className="mr-3"
+                                    type="submit"
+                                    variant="outline"
+                                    onClick={() => navigate(-1)}
+                                >
+                                    Vissza
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </>
+            ) : null}
         </>
-      ) : null}
-    </>
-  );
+    );
 }

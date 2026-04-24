@@ -18,19 +18,19 @@
  */
 
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import { Link } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
@@ -40,146 +40,159 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import { list } from "@/components/modules/users/lib/slice.ts";
 import { type SimpleError } from "@/lib/interfaces/common.ts";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import type { GetQuery } from "@/lib/get_query";
 
 export default function List() {
-  const dispatch = useAppDispatch();
-  const [errors, setErrors] = React.useState<SimpleError | null>(null);
-  const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
-    console.log(parsedQuery);
-  }, []);
+    const dispatch = useAppDispatch();
+    const [errors, setErrors] = React.useState<SimpleError | null>(null);
+    const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
+        console.log(parsedQuery);
+    }, []);
 
-  const {
-    searchParams,
-    rawQuery,
-    page,
-    setPage,
-    setLimit,
-    setTotal,
-    //orderBy,
-    setOrderBy,
-    //order,
-    setOrder,
-    paginatorSelect,
-    //orderSelect,
-    //filterSelect,
-    totalPages,
-  } = useDataDisplayCommon(updateSpecialQueryParams);
+    const {
+        searchParams,
+        rawQuery,
+        page,
+        setPage,
+        setLimit,
+        setTotal,
+        //orderBy,
+        setOrderBy,
+        //order,
+        setOrder,
+        paginatorSelect,
+        //orderSelect,
+        //filterSelect,
+        totalPages,
+    } = useDataDisplayCommon(updateSpecialQueryParams);
 
-  useEffect(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      console.log(response);
-      setErrors({ message: "Not implemented yet!" });
-    });
-  }, [
-    searchParams,
-    rawQuery,
-    dispatch,
-    setOrder,
-    setOrderBy,
-    setLimit,
-    setPage,
-    setTotal,
-  ]);
+    useEffect(() => {
+        dispatch(list(rawQuery)).then(async (response) => {
+            console.log(response);
+            setErrors({ message: "Not implemented yet!" });
+        });
+    }, [
+        searchParams,
+        rawQuery,
+        dispatch,
+        setOrder,
+        setOrderBy,
+        setLimit,
+        setPage,
+        setTotal,
+    ]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <div className={"flex justify-between items-center mb-6"}>
-        <div className="flex gap-2">
-          <Link to={"/felhasznalo/letrehozas"}>
-            <Button style={{ color: "green" }} variant="outline">
-              <Plus color="green" /> Új
-            </Button>
-          </Link>
-        </div>
-        <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                className={"justify-self-end"}
-                variant="outline"
-                style={{ marginBottom: "25px" }}
-              >
-                Szűrő <Funnel />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="grid gap-4">
-                <div className="space-y-2">
-                  <h4 className="leading-none font-medium">Szűrő</h4>
-                  <p className="text-muted-foreground text-sm">
-                    Szűkítsd a találatok listáját szűrőfeltételekkel!
-                  </p>
+    return (
+        <>
+            <GlobalError error={errors} />
+            <div className={"flex justify-between items-center mb-6"}>
+                <div className="flex gap-2">
+                    <Link to={"/felhasznalo/letrehozas"}>
+                        <Button style={{ color: "green" }} variant="outline">
+                            <Plus color="green" /> Új
+                        </Button>
+                    </Link>
                 </div>
-                <div className="grid gap-2">
-                  <div className="grid grid-cols-3 items-center gap-4">
-                    <Label htmlFor="name">Szűrő</Label>
-                    <Input
-                      id="name"
-                      defaultValue=""
-                      className="col-span-2 h-8"
-                    />
-                  </div>
+                <div className="flex gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                className={"justify-self-end"}
+                                variant="outline"
+                                style={{ marginBottom: "25px" }}
+                            >
+                                Szűrő <Funnel />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="leading-none font-medium">
+                                        Szűrő
+                                    </h4>
+                                    <p className="text-muted-foreground text-sm">
+                                        Szűkítsd a találatok listáját
+                                        szűrőfeltételekkel!
+                                    </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <div className="grid grid-cols-3 items-center gap-4">
+                                        <Label htmlFor="name">Szűrő</Label>
+                                        <Input
+                                            id="name"
+                                            defaultValue=""
+                                            className="col-span-2 h-8"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+            </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead />
-            <TableHead>Név</TableHead>
-            <TableHead>Létrehozva</TableHead>
-            <TableHead>Frissítve</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-8 w-8 p-0">
-                    <span className="sr-only">Menü megnyitása</span>
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side={"bottom"} align="start">
-                  <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                  <DropdownMenuItem>
-                    <Eye /> Részletek
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Pencil /> Szerkesztés
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Trash /> Törlés
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </TableCell>
-            <TableCell>Placeholder</TableCell>
-            <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
-            <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-      <Paginator
-        page={page}
-        totalPages={totalPages}
-        onPageChange={paginatorSelect}
-      />
-    </>
-  );
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead />
+                        <TableHead>Név</TableHead>
+                        <TableHead>Létrehozva</TableHead>
+                        <TableHead>Frissítve</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow>
+                        <TableCell>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        className="h-8 w-8 p-0"
+                                    >
+                                        <span className="sr-only">
+                                            Menü megnyitása
+                                        </span>
+                                        <MoreHorizontal />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    side={"bottom"}
+                                    align="start"
+                                >
+                                    <DropdownMenuLabel>
+                                        Műveletek
+                                    </DropdownMenuLabel>
+                                    <DropdownMenuItem>
+                                        <Eye /> Részletek
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                        <Pencil /> Szerkesztés
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem>
+                                        <Trash /> Törlés
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </TableCell>
+                        <TableCell>Placeholder</TableCell>
+                        <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
+                        <TableCell>2025-08-31T13:52:49.213086+02:00</TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+            <Paginator
+                page={page}
+                totalPages={totalPages}
+                onPageChange={paginatorSelect}
+            />
+        </>
+    );
 }

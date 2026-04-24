@@ -28,116 +28,127 @@ import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useParams } from "react-router";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from "@/components/ui/field";
 
 interface EditProps {
-  showCard?: boolean;
-  onSuccess?: (database: Database) => void;
+    showCard?: boolean;
+    onSuccess?: (database: Database) => void;
 }
 
 export default function Edit({
-  showCard = true,
-  onSuccess = undefined,
+    showCard = true,
+    onSuccess = undefined,
 }: EditProps) {
-  const [name, setName] = React.useState("");
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const params = useParams();
-  const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const [name, setName] = React.useState("");
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const params = useParams();
+    const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const activateDatabase = useActivateDatabase();
+    const activateDatabase = useActivateDatabase();
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    dispatch(
-      create({
-        name,
-      }),
-    ).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          if (typeof response.payload.jsonData?.data !== "undefined") {
-            activateDatabase(response.payload.jsonData.data.id).then((isOk) => {
-              if (isOk) {
-                if (
-                  typeof onSuccess === "function" &&
-                  typeof response.payload.jsonData?.data !== "undefined"
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        dispatch(
+            create({
+                name,
+            }),
+        ).then(async (response) => {
+            if (create.fulfilled.match(response)) {
+                if (response.payload.statusCode === 201) {
+                    if (
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        activateDatabase(
+                            response.payload.jsonData.data.id,
+                        ).then((isOk) => {
+                            if (isOk) {
+                                if (
+                                    typeof onSuccess === "function" &&
+                                    typeof response.payload.jsonData?.data !==
+                                        "undefined"
+                                ) {
+                                    onSuccess(response.payload.jsonData.data);
+                                } else {
+                                    navigate("/adatbazis/lista");
+                                }
+                            } else {
+                                unexpectedError();
+                            }
+                        });
+                    }
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
                 ) {
-                  onSuccess(response.payload.jsonData.data);
+                    setErrors(response.payload.jsonData.error);
                 } else {
-                  navigate("/adatbazis/lista");
+                    unexpectedError(response.payload.statusCode);
                 }
-              } else {
+            } else {
                 unexpectedError();
-              }
-            });
-          }
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  };
+            }
+        });
+    };
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
-        <form
-          onSubmit={handleSubmit}
-          className="max-w-sm mx-auto space-y-4"
-          autoComplete={"off"}
-        >
-          <FieldSet>
-            <FieldLegend>
-              {`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
-            </FieldLegend>
-            <FieldGroup>
-              <Field data-invalid={isInvalidField("name")}>
-                <FieldLabel htmlFor="name">Adatbázis neve</FieldLabel>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Példa Kft."
-                  value={name}
-                  onChange={(e) => {
-                    resetError("name");
-                    setName(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("name")}
-                />
-                <FieldError error={errors} field={"name"} />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Field orientation="horizontal">
-            <div className="text-right mt-8 w-full">
-              <Button
-                className="mr-3"
-                variant="outline"
-                onClick={(e: React.MouseEvent) => {
-                  e.preventDefault();
-                  navigate(-1);
-                }}
-              >
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
-          </Field>
-        </form>
-      </ConditionalCard>
-    </>
-  );
+    return (
+        <>
+            <GlobalError error={errors} />
+            <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
+                <form
+                    onSubmit={handleSubmit}
+                    className="max-w-sm mx-auto space-y-4"
+                    autoComplete={"off"}
+                >
+                    <FieldSet>
+                        <FieldLegend>
+                            {`Adatbázis ${id ? "módosítás" : "létrehozás"}`}
+                        </FieldLegend>
+                        <FieldGroup>
+                            <Field data-invalid={isInvalidField("name")}>
+                                <FieldLabel htmlFor="name">
+                                    Adatbázis neve
+                                </FieldLabel>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    placeholder="Példa Kft."
+                                    value={name}
+                                    onChange={(e) => {
+                                        resetError("name");
+                                        setName(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("name")}
+                                />
+                                <FieldError error={errors} field={"name"} />
+                            </Field>
+                        </FieldGroup>
+                    </FieldSet>
+                    <Field orientation="horizontal">
+                        <div className="text-right mt-8 w-full">
+                            <Button
+                                className="mr-3"
+                                variant="outline"
+                                onClick={(e: React.MouseEvent) => {
+                                    e.preventDefault();
+                                    navigate(-1);
+                                }}
+                            >
+                                Mégse
+                            </Button>
+                            <Button type="submit">
+                                {id ? "Módosítás" : "Létrehozás"}
+                            </Button>
+                        </div>
+                    </Field>
+                </form>
+            </ConditionalCard>
+        </>
+    );
 }

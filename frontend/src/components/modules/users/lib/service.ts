@@ -18,116 +18,120 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
+    globalRequestTimeout,
+    unexpectedError,
 } from "@/services/utils/consts.ts";
 import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
 import {
-  ProcessResponse,
-  type ProcessedResponse,
+    ProcessResponse,
+    type ProcessedResponse,
 } from "@/lib/interfaces/common";
 import type {
-  DisableOtpResponse,
-  EnableOtpResponse,
-  VerifyOtpResponse,
+    DisableOtpResponse,
+    EnableOtpResponse,
+    VerifyOtpResponse,
 } from "../../auth/lib/interface";
 import {
-  isDisableOtpResponse,
-  isEnableOtpResponse,
-  isVerifyOtpResponse,
+    isDisableOtpResponse,
+    isEnableOtpResponse,
+    isVerifyOtpResponse,
 } from "../../auth/lib/guards";
 
 export async function create(
-  { email, lastName, firstName, phone, status }: CreateUser,
-  token: string | null,
+    { email, lastName, firstName, phone, status }: CreateUser,
+    token: string | null,
 ): Promise<Response> {
-  return await fetch(`/api/users/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      email,
-      last_name: lastName,
-      first_name: firstName,
-      phone,
-      status,
-    }),
-  });
+    return await fetch(`/api/users/create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            email,
+            last_name: lastName,
+            first_name: firstName,
+            phone,
+            status,
+        }),
+    });
 }
 
 export async function list(
-  query: string | null,
-  token: string | null,
+    query: string | null,
+    token: string | null,
 ): Promise<Response> {
-  const uri = query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  });
+    const uri =
+        query === null ? `/api/users/list` : `/api/users/list?q=${query}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    });
 }
 
 export async function enableOtp(
-  token: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<EnableOtpResponse>> {
-  return await fetch(`/api/users/otp/enable`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isEnableOtpResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/users/otp/enable`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isEnableOtpResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function verifyOtp(
-  otp: string,
-  token: string | null,
+    otp: string,
+    token: string | null,
 ): Promise<ProcessedResponse<VerifyOtpResponse>> {
-  return await fetch(`/api/users/otp/verify`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      otp,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isVerifyOtpResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/users/otp/verify`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            otp,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isVerifyOtpResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function disableOtp(
-  otp: string,
-  token: string | null,
+    otp: string,
+    token: string | null,
 ): Promise<ProcessedResponse<DisableOtpResponse>> {
-  return await fetch(`/api/users/otp/disable`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      otp,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isDisableOtpResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/users/otp/disable`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            otp,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isDisableOtpResponse)) ??
+            unexpectedError
+        );
+    });
 }

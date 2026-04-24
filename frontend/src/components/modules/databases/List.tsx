@@ -20,18 +20,18 @@
 import { Link } from "react-router-dom";
 import React, { useCallback, useEffect } from "react";
 import {
-  list,
-  deleteDatabase,
+    list,
+    deleteDatabase,
 } from "@/components/modules/databases/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  SortableTableHead,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    SortableTableHead,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { Funnel, MoreHorizontal, PlugZap, Plus, Trash } from "lucide-react";
@@ -39,9 +39,9 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { GlobalError } from "@/components/ui";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
@@ -49,273 +49,318 @@ import { type DatabaseList } from "@/components/modules/databases/lib/interface.
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { updateToken } from "@/components/modules/auth/lib/slice.ts";
 
 export default function List() {
-  const dispatch = useAppDispatch();
-  const [data, setData] = React.useState<DatabaseList>([]);
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const active_database = useAppSelector(
-    (state: RootState) => state.auth.login.claims?.active_tenant,
-  );
-  const [deleteDialogOpen, setDeleteDialogOpen] =
-    React.useState<boolean>(false);
-  const [deleteId, setDeleteId] = React.useState<string>("");
-  const [deleteName, setDeleteName] = React.useState<string>("");
+    const dispatch = useAppDispatch();
+    const [data, setData] = React.useState<DatabaseList>([]);
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const active_database = useAppSelector(
+        (state: RootState) => state.auth.login.claims?.active_tenant,
+    );
+    const [deleteDialogOpen, setDeleteDialogOpen] =
+        React.useState<boolean>(false);
+    const [deleteId, setDeleteId] = React.useState<string>("");
+    const [deleteName, setDeleteName] = React.useState<string>("");
 
-  const {
-    rawQuery,
-    page,
-    setPage,
-    setLimit,
-    setTotal,
-    orderBy,
-    order,
-    paginatorSelect,
-    orderSelect,
-    filterSelect,
-    totalPages,
-    filterValue,
-    setFilterValue,
-  } = useDataDisplayCommon(null);
+    const {
+        rawQuery,
+        page,
+        setPage,
+        setLimit,
+        setTotal,
+        orderBy,
+        order,
+        paginatorSelect,
+        orderSelect,
+        filterSelect,
+        totalPages,
+        filterValue,
+        setFilterValue,
+    } = useDataDisplayCommon(null);
 
-  const activateDatabase = useActivateDatabase();
+    const activateDatabase = useActivateDatabase();
 
-  const refresh = useCallback(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      if (list.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined" &&
-          typeof response.payload.jsonData?.meta !== "undefined"
-        ) {
-          setPage(response.payload.jsonData.meta.page);
-          setLimit(response.payload.jsonData.meta.limit);
-          setTotal(response.payload.jsonData.meta.total);
-          setData(response.payload.jsonData.data);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    rawQuery,
-    dispatch,
-    setLimit,
-    setPage,
-    setTotal,
-    setErrors,
-    unexpectedError,
-  ]);
+    const refresh = useCallback(() => {
+        dispatch(list(rawQuery)).then(async (response) => {
+            if (list.fulfilled.match(response)) {
+                if (
+                    response.payload.statusCode === 200 &&
+                    typeof response.payload.jsonData?.data !== "undefined" &&
+                    typeof response.payload.jsonData?.meta !== "undefined"
+                ) {
+                    setPage(response.payload.jsonData.meta.page);
+                    setLimit(response.payload.jsonData.meta.limit);
+                    setTotal(response.payload.jsonData.meta.total);
+                    setData(response.payload.jsonData.data);
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        rawQuery,
+        dispatch,
+        setLimit,
+        setPage,
+        setTotal,
+        setErrors,
+        unexpectedError,
+    ]);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const handleActivate = async (new_tenant_id: string) => {
-    await activateDatabase(new_tenant_id);
-  };
-
-  const handleDeletePopup = (id: string, name: string) => {
-    setDeleteId(id);
-    setDeleteName(name);
-    setDeleteDialogOpen(true);
-  };
-
-  const handleDeletePopupClose = () => {
-    setDeleteId("");
-    setDeleteName("");
-    setDeleteDialogOpen(false);
-  };
-
-  const handleDelete = (id: string) => {
-    setDeleteDialogOpen(false);
-    dispatch(deleteDatabase(id)).then(async (response) => {
-      if (
-        deleteDatabase.fulfilled.match(response) &&
-        response.payload.statusCode === 200 &&
-        typeof response.payload.jsonData?.data !== "undefined"
-      ) {
-        dispatch(updateToken(response.payload.jsonData.data));
+    useEffect(() => {
         refresh();
-        return true;
-      }
-      return false;
-    });
-  };
+    }, [refresh]);
 
-  return (
-    <>
-      <AlertDialog open={deleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Teljesen biztos vagy ebben?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ezt a műveletet nem lehet visszavonni. Ez a művelet véglegesen
-              törli a(z) <span className="font-bold">{deleteName}</span>{" "}
-              adatbázist a szerverről.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleDeletePopupClose()}>
-              Mégsem
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => handleDelete(deleteId)}>
-              Törlés
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      <GlobalError error={errors} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Adatbázisok</CardTitle>
-          <CardAction>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button className={"mr-2"} variant="outline">
-                  Szűrő <Funnel />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="leading-none font-medium">Szűrő</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Szűkítsd a találatok listáját szűrőfeltételekkel!
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="name">Név</Label>
-                      <Input
-                        id="name"
-                        onBlur={(e) => filterSelect("name", e.target.value)}
-                        value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
-                        className="col-span-2 h-8"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Link to={"/adatbazis/letrehozas"}>
-              <Button style={{ color: "green" }} variant="outline">
-                Új <Plus color="green" />
-              </Button>
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead />
-                <TableHead>Aktív</TableHead>
-                <SortableTableHead
-                  field="name"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Név
-                </SortableTableHead>
-                <SortableTableHead
-                  field="created_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Létrehozva
-                </SortableTableHead>
-                <SortableTableHead
-                  field="updated_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Frissítve
-                </SortableTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side={"bottom"} align="start">
-                        <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => handleActivate(item.id)}
+    const handleActivate = async (new_tenant_id: string) => {
+        await activateDatabase(new_tenant_id);
+    };
+
+    const handleDeletePopup = (id: string, name: string) => {
+        setDeleteId(id);
+        setDeleteName(name);
+        setDeleteDialogOpen(true);
+    };
+
+    const handleDeletePopupClose = () => {
+        setDeleteId("");
+        setDeleteName("");
+        setDeleteDialogOpen(false);
+    };
+
+    const handleDelete = (id: string) => {
+        setDeleteDialogOpen(false);
+        dispatch(deleteDatabase(id)).then(async (response) => {
+            if (
+                deleteDatabase.fulfilled.match(response) &&
+                response.payload.statusCode === 200 &&
+                typeof response.payload.jsonData?.data !== "undefined"
+            ) {
+                dispatch(updateToken(response.payload.jsonData.data));
+                refresh();
+                return true;
+            }
+            return false;
+        });
+    };
+
+    return (
+        <>
+            <AlertDialog open={deleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>
+                            Teljesen biztos vagy ebben?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Ezt a műveletet nem lehet visszavonni. Ez a művelet
+                            véglegesen törli a(z){" "}
+                            <span className="font-bold">{deleteName}</span>{" "}
+                            adatbázist a szerverről.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel
+                            onClick={() => handleDeletePopupClose()}
                         >
-                          <PlugZap /> Aktiválás
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleDeletePopup(item.id, item.name)}
+                            Mégsem
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => handleDelete(deleteId)}
                         >
-                          <Trash /> Törlés
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>
-                    {active_database === item.id ? (
-                      <PlugZap color="green" />
-                    ) : null}
-                  </TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Paginator
-            page={page}
-            totalPages={totalPages}
-            onPageChange={paginatorSelect}
-          />
-        </CardContent>
-      </Card>
-    </>
-  );
+                            Törlés
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <GlobalError error={errors} />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Adatbázisok</CardTitle>
+                    <CardAction>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button className={"mr-2"} variant="outline">
+                                    Szűrő <Funnel />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                                <div className="grid gap-4">
+                                    <div className="space-y-2">
+                                        <h4 className="leading-none font-medium">
+                                            Szűrő
+                                        </h4>
+                                        <p className="text-muted-foreground text-sm">
+                                            Szűkítsd a találatok listáját
+                                            szűrőfeltételekkel!
+                                        </p>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label htmlFor="name">Név</Label>
+                                            <Input
+                                                id="name"
+                                                onBlur={(e) =>
+                                                    filterSelect(
+                                                        "name",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                value={filterValue}
+                                                onChange={(e) =>
+                                                    setFilterValue(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="col-span-2 h-8"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Link to={"/adatbazis/letrehozas"}>
+                            <Button
+                                style={{ color: "green" }}
+                                variant="outline"
+                            >
+                                Új <Plus color="green" />
+                            </Button>
+                        </Link>
+                    </CardAction>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead />
+                                <TableHead>Aktív</TableHead>
+                                <SortableTableHead
+                                    field="name"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Név
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="created_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Létrehozva
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="updated_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Frissítve
+                                </SortableTableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <span className="sr-only">
+                                                        Menü megnyitása
+                                                    </span>
+                                                    <MoreHorizontal />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                                side={"bottom"}
+                                                align="start"
+                                            >
+                                                <DropdownMenuLabel>
+                                                    Műveletek
+                                                </DropdownMenuLabel>
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        handleActivate(item.id)
+                                                    }
+                                                >
+                                                    <PlugZap /> Aktiválás
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    onClick={() =>
+                                                        handleDeletePopup(
+                                                            item.id,
+                                                            item.name,
+                                                        )
+                                                    }
+                                                >
+                                                    <Trash /> Törlés
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                    <TableCell>
+                                        {active_database === item.id ? (
+                                            <PlugZap color="green" />
+                                        ) : null}
+                                    </TableCell>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.created_at)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.updated_at)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <Paginator
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={paginatorSelect}
+                    />
+                </CardContent>
+            </Card>
+        </>
+    );
 }

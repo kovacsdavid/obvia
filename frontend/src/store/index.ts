@@ -29,7 +29,7 @@ import usersReducer from "@/components/modules/users/lib/slice.ts";
 import warehousesReducer from "@/components/modules/warehouses/lib/slice.ts";
 import worksheetsReducer from "@/components/modules/worksheets/lib/slice.ts";
 import inventoryMovementsReducer from "@/components/modules/inventory_movements/lib/slice.ts";
-import storage from "redux-persist/lib/storage";
+import storage from "redux-persist/es/storage";
 import { persistReducer, persistStore } from "redux-persist";
 
 const rootReducer = combineReducers({

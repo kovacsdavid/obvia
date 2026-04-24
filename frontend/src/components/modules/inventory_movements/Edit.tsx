@@ -64,8 +64,12 @@ export default function Edit({
   referenceType = null,
 }: EditProps) {
   const params = useParams();
+  const routeInventoryId = React.useMemo(
+    () => params["inventoryId"] ?? "",
+    [params],
+  );
   const referenceId = React.useMemo(() => params["referenceId"], [params]);
-  const [inventoryId, setInventoryId] = React.useState("");
+  const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
   const [movementType, setMovementType] = React.useState(
     typeof referenceId === "string" ? "out" : "",
   );
@@ -79,10 +83,6 @@ export default function Edit({
   const { setListResponse } = useSelectList();
   const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
     useFormError();
-  const routeInventoryId = React.useMemo(
-    () => params["inventoryId"] ?? "",
-    [params],
-  );
   const id = React.useMemo(() => params["id"] ?? "", [params]);
   const quantity = useNumberInput({
     showThousandSeparator: true,
@@ -103,9 +103,6 @@ export default function Edit({
     return null;
   }, [quantity, unitPrice]);
 
-  useEffect(() => {
-    setInventoryId(routeInventoryId);
-  }, [routeInventoryId]);
   const [openNewInventoryDialog, setOpenNewInventoryDialog] =
     React.useState(false);
 
@@ -118,7 +115,7 @@ export default function Edit({
     });
   };
 
-  const loadLists = useCallback(() => {
+  const loadLists = () => {
     return Promise.all([
       !routeInventoryId &&
         dispatch(select_list("inventory")).then((response) => {
@@ -144,7 +141,7 @@ export default function Edit({
         }
       }),
     ]);
-  }, [dispatch, routeInventoryId, setErrors, setListResponse, unexpectedError]);
+  };
 
   useEffect(() => {
     loadLists().then(() => {

@@ -16,16 +16,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Password(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Password(String);
 
 impl ValueObjectData for Password {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         let len_ok = self.0.len() >= 8 && self.0.len() <= 128;
         let has_letter = self.0.chars().any(|c| c.is_alphabetic());
@@ -39,18 +46,8 @@ impl ValueObjectData for Password {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<Password> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Password(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -66,31 +63,35 @@ mod tests {
 
     #[test]
     fn test_valid_password() {
-        let pwd: ValueObject<Password> = serde_json::from_str(r#""password123""#).unwrap();
-        assert_eq!(pwd.as_str(), "password123");
+        let pwd = "password123"
+            .parse::<ValueObjectRequired<Password>>()
+            .unwrap();
+        assert_eq!(pwd.as_str().unwrap(), "password123");
     }
 
     #[test]
     fn test_invalid_password_too_short() {
-        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""pass1""#);
+        let pwd = "pass1".parse::<ValueObjectRequired<Password>>();
         assert!(pwd.is_err());
     }
 
     #[test]
     fn test_invalid_password_no_letters() {
-        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""12345678""#);
+        let pwd = "12345678".parse::<ValueObjectRequired<Password>>();
         assert!(pwd.is_err());
     }
 
     #[test]
     fn test_invalid_password_no_numbers() {
-        let pwd: Result<ValueObject<Password>, _> = serde_json::from_str(r#""password""#);
+        let pwd = "password".parse::<ValueObjectRequired<Password>>();
         assert!(pwd.is_err());
     }
 
     #[test]
     fn test_password_display() {
-        let pwd = Password("secret123".to_string());
+        let pwd = "secret123"
+            .parse::<ValueObjectRequired<Password>>()
+            .unwrap();
         assert_eq!(format!("{}", pwd), "********");
     }
 }

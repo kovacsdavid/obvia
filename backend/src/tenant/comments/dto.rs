@@ -25,7 +25,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::{
         error::FormErrorResponse,
-        types::{UuidVO, ValueObject},
+        types::UuidVO,
+        value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired},
     },
     tenant::comments::types::{Comment, CommentableType},
 };
@@ -72,12 +73,19 @@ impl IntoResponse for CommentUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for CommentUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CommentUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub commentable_type: ValueObject<CommentableType>,
-    pub commentable_id: ValueObject<UuidVO>,
-    pub comment: ValueObject<Comment>,
+    #[allow(dead_code)]
+    pub id: ValueObjectOptional<UuidVO>,
+    pub commentable_type: ValueObjectRequired<CommentableType>,
+    pub commentable_id: ValueObjectRequired<UuidVO>,
+    pub comment: ValueObjectRequired<Comment>,
 }
 
 impl TryFrom<CommentUserInputHelper> for CommentUserInput {
@@ -85,37 +93,80 @@ impl TryFrom<CommentUserInputHelper> for CommentUserInput {
     fn try_from(value: CommentUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = CommentUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let commentable_type = ValueObject::new_required(CommentableType(value.commentable_type))
+        let commentable_type = value
+            .commentable_type
+            .parse::<ValueObjectRequired<CommentableType>>()
             .inspect_err(|e| {
                 error.commentable_type = Some(e.to_string());
             });
 
-        let commentable_id =
-            ValueObject::new_required(UuidVO(value.commentable_id)).inspect_err(|e| {
+        let commentable_id = value
+            .commentable_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
                 error.commentable_id = Some(e.to_string());
             });
 
-        let comment = ValueObject::new_required(Comment(value.comment)).inspect_err(|e| {
-            error.comment = Some(e.to_string());
-        });
+        let comment = value
+            .comment
+            .parse::<ValueObjectRequired<Comment>>()
+            .inspect_err(|e| {
+                error.comment = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(CommentUserInput {
-                id: id.map_err(|_| CommentUserInputError::default())?,
-                commentable_type: commentable_type.map_err(|_| CommentUserInputError::default())?,
-                commentable_id: commentable_id.map_err(|_| CommentUserInputError::default())?,
-                comment: comment.map_err(|_| CommentUserInputError::default())?,
+                id: id?,
+                commentable_type: commentable_type?,
+                commentable_id: commentable_id?,
+                comment: comment?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use uuid::Uuid;
+
+    use super::*;
+
+    #[test]
+    fn valid_comment_user_input() {
+        let commentable_id = Uuid::new_v4();
+        let cui = CommentUserInput::try_from(CommentUserInputHelper {
+            id: None,
+            commentable_type: String::from("customers"),
+            commentable_id: commentable_id.to_string(),
+            comment: String::from("comment"),
+        })
+        .unwrap();
+        assert_eq!(cui.commentable_type.as_str().unwrap(), "customers");
+        assert_eq!(cui.commentable_id.as_uuid().unwrap(), commentable_id);
+        assert_eq!(cui.comment.as_str().unwrap(), "comment");
+    }
+    #[test]
+    fn invalid_comment_user_input() {
+        let cuie = CommentUserInput::try_from(CommentUserInputHelper {
+            id: Some(String::from("asd")),
+            commentable_type: String::from(""),
+            commentable_id: String::from("asd"),
+            comment: String::from(""),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.commentable_type.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.commentable_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.comment.unwrap(), ValueObjectError::REQUIRED);
     }
 }

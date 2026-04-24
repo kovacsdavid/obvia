@@ -17,18 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct OrderBy(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct OrderBy(String);
 
 impl ValueObjectData for OrderBy {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.trim() {
             "product" | "warehouse" | "quantity_on_hand" | "quantity_reserved"
@@ -38,26 +43,8 @@ impl ValueObjectData for OrderBy {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for OrderBy {
-    type Err = ValueObjectError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OrderBy(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(OrderBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -73,8 +60,8 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""product""#).unwrap();
-        assert_eq!(order_by.as_str(), "product");
+        let order_by = "product".parse::<ValueObjectRequired<OrderBy>>().unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "product");
     }
 
     #[test]
@@ -87,35 +74,8 @@ mod tests {
         ];
 
         for case in cases {
-            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
+            let order_by = case.parse::<ValueObjectRequired<OrderBy>>();
             assert!(order_by.is_err());
         }
-    }
-
-    #[test]
-    fn test_from_str() {
-        let order_by = OrderBy::from_str("product").unwrap();
-        assert_eq!(order_by.get_value(), "product");
-    }
-
-    #[test]
-    fn test_display() {
-        let order_by = OrderBy("product".to_string());
-        assert_eq!(format!("{}", order_by), "product");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let order_by = OrderBy("product".to_string());
-        assert_eq!(order_by.get_value(), "product");
-    }
-
-    #[test]
-    fn test_validation() {
-        assert!(OrderBy("product".to_string()).validate().is_ok());
-        assert!(OrderBy("name".to_string()).validate().is_err());
-        assert!(OrderBy("price".to_string()).validate().is_err());
-        assert!(OrderBy("quantity".to_string()).validate().is_err());
-        assert!(OrderBy("invalid_column".to_string()).validate().is_err());
     }
 }

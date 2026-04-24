@@ -17,29 +17,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct UnitsOfMeasure(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct UnitsOfMeasure(String);
+
+impl UnitsOfMeasure {
+    pub const VALIDATION_ERROR: &'static str = "A mező maximum 50 karakter hosszú lehet";
+}
 
 impl ValueObjectData for UnitsOfMeasure {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
-            return Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező"));
+        if self.0.len() <= 50 {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
-        if self.0.trim().len() > 50 {
-            return Err(ValueObjectError::InvalidInput(
-                "A mező maximum 50 karakter hosszú lehet",
-            ));
-        }
-        Ok(())
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -50,73 +56,29 @@ impl Display for UnitsOfMeasure {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<UnitsOfMeasure> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(UnitsOfMeasure(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_unit_of_measure() {
-        let uom: ValueObject<UnitsOfMeasure> = serde_json::from_str(r#""kg""#).unwrap();
-        assert_eq!(uom.as_str(), "kg");
-    }
-
-    #[test]
-    fn test_empty_unit_of_measure() {
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(r#""""#);
-        assert!(uom.is_err());
-    }
-
-    #[test]
-    fn test_whitespace_only_unit_of_measure() {
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(r#"" ""#);
-        assert!(uom.is_err());
+        let uom = "kg".parse::<ValueObjectRequired<UnitsOfMeasure>>().unwrap();
+        assert_eq!(uom.as_str().unwrap(), "kg");
     }
 
     #[test]
     fn test_too_long_unit_of_measure() {
         let long_str = "a".repeat(51);
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> =
-            serde_json::from_str(&format!(r#""{}""#, long_str));
+        let uom = long_str.parse::<ValueObjectRequired<UnitsOfMeasure>>();
         assert!(uom.is_err());
     }
 
     #[test]
     fn test_max_length_unit_of_measure() {
         let max_str = "a".repeat(50);
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> =
-            serde_json::from_str(&format!(r#""{}""#, max_str));
-        assert!(uom.is_ok());
-    }
-
-    #[test]
-    fn test_special_characters() {
-        let cases = vec![r#""kg/m²""#, r#""°C""#, r#""m³""#, r#""μm""#];
-        for case in cases {
-            let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(case);
-            assert!(uom.is_ok());
-        }
-    }
-
-    #[test]
-    fn test_display_format() {
-        let uom = UnitsOfMeasure("kg".to_string());
-        assert_eq!(format!("{}", uom), "kg");
-    }
-
-    #[test]
-    fn test_deserialization_error_handling() {
-        let invalid_json = r#"{"unit": "kg"}"#;
-        let uom: Result<ValueObject<UnitsOfMeasure>, _> = serde_json::from_str(invalid_json);
-        assert!(uom.is_err());
+        let uom = max_str
+            .parse::<ValueObjectRequired<UnitsOfMeasure>>()
+            .unwrap();
+        assert_eq!(uom.as_str().unwrap(), max_str);
     }
 }

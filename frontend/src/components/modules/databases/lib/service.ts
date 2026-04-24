@@ -39,15 +39,7 @@ import {
 } from "@/lib/interfaces/common.ts";
 
 export async function create(
-  {
-    name,
-    dbIsSelfHosted,
-    dbHost,
-    dbPort,
-    dbName,
-    dbUser,
-    dbPassword,
-  }: CreateDatabase,
+  { name }: CreateDatabase,
   token: string | null,
 ): Promise<ProcessedResponse<CreateDatabaseResponse>> {
   return await fetch(`/api/tenants/create`, {
@@ -58,12 +50,6 @@ export async function create(
     },
     body: JSON.stringify({
       name,
-      is_self_hosted: dbIsSelfHosted,
-      db_host: dbHost,
-      db_port: dbPort,
-      db_name: dbName,
-      db_user: dbUser,
-      db_password: dbPassword,
     }),
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
@@ -96,7 +82,7 @@ export async function list(
 }
 
 export async function activate(
-  new_tenant_id: string | null,
+  uuid: string | null,
   token: string | null,
 ): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
   return await fetch(`/api/tenants/activate`, {
@@ -106,7 +92,7 @@ export async function activate(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({
-      new_tenant_id,
+      uuid,
     }),
     signal: AbortSignal.timeout(globalRequestTimeout),
   }).then(async (response: Response) => {
@@ -131,6 +117,28 @@ export async function get_resolved(
   }).then(async (response: Response) => {
     return (
       (await ProcessResponse(response, isDatabaseResponse)) ?? unexpectedError
+    );
+  });
+}
+
+export async function deleteDatabase(
+  uuid: string,
+  token: string | null,
+): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
+  return await fetch(`/api/tenants/delete`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({
+      uuid,
+    }),
+    signal: AbortSignal.timeout(globalRequestTimeout),
+  }).then(async (response: Response) => {
+    return (
+      (await ProcessResponse(response, isActiveDatabaseResponse)) ??
+      unexpectedError
     );
   });
 }

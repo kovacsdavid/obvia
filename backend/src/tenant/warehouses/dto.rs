@@ -18,7 +18,8 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::warehouses::types::warehouse::{
     WarehouseContactName, WarehouseContactPhone, WarehouseName, WarehouseStatus,
 };
@@ -71,13 +72,19 @@ impl IntoResponse for WarehouseUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for WarehouseUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct WarehouseUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub name: ValueObject<WarehouseName>,
-    pub contact_name: Option<ValueObject<WarehouseContactName>>,
-    pub contact_phone: Option<ValueObject<WarehouseContactPhone>>,
-    pub status: ValueObject<WarehouseStatus>, // Will default to true if not provided
+    pub id: ValueObjectOptional<UuidVO>,
+    pub name: ValueObjectRequired<WarehouseName>,
+    pub contact_name: ValueObjectOptional<WarehouseContactName>,
+    pub contact_phone: ValueObjectOptional<WarehouseContactPhone>,
+    pub status: ValueObjectRequired<WarehouseStatus>,
 }
 
 impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
@@ -85,42 +92,104 @@ impl TryFrom<WarehouseUserInputHelper> for WarehouseUserInput {
     fn try_from(value: WarehouseUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = WarehouseUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let name = ValueObject::new_required(WarehouseName(value.name)).inspect_err(|e| {
-            error.name = Some(e.to_string());
-        });
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<WarehouseName>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        let contact_name = ValueObject::new_optional(WarehouseContactName(value.contact_name))
+        let contact_name = value
+            .contact_name
+            .parse::<ValueObjectOptional<WarehouseContactName>>()
             .inspect_err(|e| {
                 error.contact_name = Some(e.to_string());
             });
 
-        let contact_phone = ValueObject::new_optional(WarehouseContactPhone(value.contact_phone))
+        let contact_phone = value
+            .contact_phone
+            .parse::<ValueObjectOptional<WarehouseContactPhone>>()
             .inspect_err(|e| {
                 error.contact_phone = Some(e.to_string());
             });
 
-        let status = ValueObject::new_required(WarehouseStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<WarehouseStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(WarehouseUserInput {
-                id: id.map_err(|_| WarehouseUserInputError::default())?,
-                name: name.map_err(|_| WarehouseUserInputError::default())?,
-                contact_name: contact_name.map_err(|_| WarehouseUserInputError::default())?,
-                contact_phone: contact_phone.map_err(|_| WarehouseUserInputError::default())?,
-                status: status.map_err(|_| WarehouseUserInputError::default())?,
+                id: id?,
+                name: name?,
+                contact_name: contact_name?,
+                contact_phone: contact_phone?,
+                status: status?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let user_input = WarehouseUserInput::try_from(WarehouseUserInputHelper {
+            id: None,
+            name: String::from("Warehouse 1"),
+            contact_name: String::from("John Doe"),
+            contact_phone: String::from("+36301234567"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert!(!user_input.id.is_present());
+        assert_eq!(user_input.name.as_str().unwrap(), "Warehouse 1");
+        assert_eq!(user_input.contact_name.as_str().unwrap(), "John Doe");
+        assert_eq!(user_input.contact_phone.as_str().unwrap(), "+36301234567");
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_name = "a".repeat(256);
+        let invalid_contact_name = "a".repeat(256);
+        let user_input = WarehouseUserInput::try_from(WarehouseUserInputHelper {
+            id: None,
+            name: invalid_name,
+            contact_name: invalid_contact_name,
+            contact_phone: String::from("invalid"),
+            status: String::from("invalid"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), WarehouseName::VALIDATION_ERROR);
+        assert_eq!(
+            user_input.contact_name.unwrap(),
+            WarehouseContactName::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.contact_phone.unwrap(),
+            WarehouseContactPhone::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.status.unwrap(),
+            WarehouseStatus::VALIDATION_ERROR
+        );
     }
 }

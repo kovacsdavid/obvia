@@ -17,25 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Code(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Code(String);
+
+impl Code {
+    pub const VALIDATION_ERROR: &'static str = "Hibás ország azonosító";
+}
 
 impl ValueObjectData for Code {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().len() == 2 {
+        if self.0.len() == 2 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput("Hibás ország azonosító"))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -46,81 +57,31 @@ impl Display for Code {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Code> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Code(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::ValueObject;
 
     #[test]
     fn test_valid_postal_code() {
-        let code = Code("HU".to_string());
-        assert!(code.validate().is_ok());
+        let code = "HU".parse::<ValueObjectRequired<Code>>().unwrap();
+        assert_eq!(code.as_str().unwrap(), "HU");
     }
 
     #[test]
     fn test_invalid_postal_code_too_short() {
-        let code = Code("H".to_string());
-        assert!(code.validate().is_err());
+        let code = "H".parse::<ValueObjectRequired<Code>>();
+        assert!(code.is_err());
     }
 
     #[test]
     fn test_invalid_postal_code_too_long() {
-        let code = Code("HUN".to_string());
-        assert!(code.validate().is_err());
+        let code = "HUN".parse::<ValueObjectRequired<Code>>();
+        assert!(code.is_err());
     }
 
     #[test]
     fn test_postal_code_with_spaces() {
-        let code = Code("  HU  ".to_string());
-        assert!(code.validate().is_ok());
-    }
-
-    #[test]
-    fn test_get_value() {
-        let code = Code("HU".to_string());
-        assert_eq!(code.get_value(), "HU");
-    }
-
-    #[test]
-    fn test_display() {
-        let code = Code("HU".to_string());
-        assert_eq!(format!("{}", code), "HU");
-    }
-
-    #[test]
-    fn test_value_object_creation() {
-        let result = ValueObject::new_required(Code("HU".to_string()));
-        assert!(result.is_ok());
-
-        let result = ValueObject::new_required(Code("INVALID".to_string()));
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_serialization() {
-        let code = Code("HU".to_string());
-        let serialized = serde_json::to_string(&code).unwrap();
-        assert_eq!(serialized, r#""HU""#);
-    }
-
-    #[test]
-    fn test_deserialization() {
-        let json = r#""HU""#;
-        let deserialized: ValueObject<Code> = serde_json::from_str(json).unwrap();
-        assert_eq!(deserialized.as_str(), "HU");
-
-        let json = r#""INVALID""#;
-        let result: Result<ValueObject<Code>, _> = serde_json::from_str(json);
-        assert!(result.is_err());
+        let code = "  HU  ".parse::<ValueObjectRequired<Code>>().unwrap();
+        assert_eq!(code.as_str().unwrap(), "HU");
     }
 }

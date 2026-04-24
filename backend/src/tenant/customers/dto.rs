@@ -18,11 +18,9 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{Email, UuidVO, ValueObject};
-use crate::tenant::customers::types::customer::customer_type::CustomerType;
-use crate::tenant::customers::types::customer::{
-    CustomerContactName, CustomerName, CustomerPhoneNumber, CustomerStatus,
-};
+use crate::common::types::{Email, UuidVO};
+use crate::common::value_object::*;
+use crate::tenant::customers::types::customer::*;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -78,15 +76,21 @@ impl IntoResponse for CustomerUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for CustomerUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        CustomerUserInputError::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CustomerUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub name: ValueObject<CustomerName>,
-    pub contact_name: Option<ValueObject<CustomerContactName>>,
-    pub email: ValueObject<Email>,
-    pub phone_number: Option<ValueObject<CustomerPhoneNumber>>,
-    pub status: ValueObject<CustomerStatus>,
-    pub customer_type: ValueObject<CustomerType>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub name: ValueObjectRequired<CustomerName>,
+    pub contact_name: Option<ValueObjectRequired<CustomerContactName>>,
+    pub email: ValueObjectRequired<Email>,
+    pub phone_number: ValueObjectOptional<CustomerPhoneNumber>,
+    pub status: ValueObjectRequired<CustomerStatus>,
+    pub customer_type: ValueObjectRequired<CustomerType>,
 }
 
 impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
@@ -94,40 +98,55 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
     fn try_from(value: CustomerUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = CustomerUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let name = ValueObject::new_required(CustomerName(value.name)).inspect_err(|e| {
-            error.name = Some(e.to_string());
-        });
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<CustomerName>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        let email = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
-            error.email = Some(e.to_string());
-        });
+        let email = value
+            .email
+            .parse::<ValueObjectRequired<Email>>()
+            .inspect_err(|e| {
+                error.email = Some(e.to_string());
+            });
 
-        let phone_number = ValueObject::new_required(CustomerPhoneNumber(value.phone_number))
+        let phone_number = value
+            .phone_number
+            .parse::<ValueObjectOptional<CustomerPhoneNumber>>()
             .inspect_err(|e| {
                 error.phone_number = Some(e.to_string());
             });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<CustomerStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
-        let status = ValueObject::new_required(CustomerStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
-
-        let customer_type = ValueObject::new_required(CustomerType(value.customer_type))
+        let customer_type = value
+            .customer_type
+            .parse::<ValueObjectRequired<CustomerType>>()
             .inspect_err(|e| {
                 error.customer_type = Some(e.to_string());
             });
 
         let contact_name = if let Ok(customer_type) = &customer_type
-            && customer_type.as_str() == "legal"
+            && let Ok(customer_type) = customer_type.as_str()
+            && customer_type == "legal"
         {
-            ValueObject::new_required(CustomerContactName(value.contact_name))
+            value
+                .contact_name
+                .parse::<ValueObjectRequired<CustomerContactName>>()
                 .inspect_err(|e| {
                     error.contact_name = Some(e.to_string());
                 })
@@ -138,16 +157,110 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
 
         if error.is_empty() {
             Ok(CustomerUserInput {
-                id: id.map_err(|_| CustomerUserInputError::default())?,
-                name: name.map_err(|_| CustomerUserInputError::default())?,
-                contact_name: contact_name.map_err(|_| CustomerUserInputError::default())?,
-                email: email.map_err(|_| CustomerUserInputError::default())?,
-                phone_number: Some(phone_number.map_err(|_| CustomerUserInputError::default())?),
-                status: status.map_err(|_| CustomerUserInputError::default())?,
-                customer_type: customer_type.map_err(|_| CustomerUserInputError::default())?,
+                id: id?,
+                name: name?,
+                contact_name: contact_name?,
+                email: email?,
+                phone_number: phone_number?,
+                status: status?,
+                customer_type: customer_type?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_customer_user_input_natural() {
+        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from("Teszt Elek"),
+            contact_name: String::from(""),
+            email: String::from("teszt.elek@example.com"),
+            phone_number: String::from("+36301234567"),
+            status: String::from("active"),
+            customer_type: String::from("natural"),
+        })
+        .unwrap();
+        assert_eq!(cui.id.as_uuid(), None);
+        assert_eq!(cui.name.as_str().unwrap(), "Teszt Elek");
+        assert_eq!(cui.contact_name, None);
+        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
+        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
+        assert_eq!(cui.status.as_str().unwrap(), "active");
+        assert_eq!(cui.customer_type.as_str().unwrap(), "natural");
+    }
+
+    #[test]
+    fn valid_customer_user_input_legal() {
+        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from("Teszt Kft."),
+            contact_name: String::from("Teszt Elek"),
+            email: String::from("teszt.elek@example.com"),
+            phone_number: String::from("+36301234567"),
+            status: String::from("active"),
+            customer_type: String::from("legal"),
+        })
+        .unwrap();
+        assert_eq!(cui.id.as_uuid(), None);
+        assert_eq!(cui.name.as_str().unwrap(), "Teszt Kft.");
+        assert_eq!(cui.contact_name.unwrap().as_str().unwrap(), "Teszt Elek");
+        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
+        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
+        assert_eq!(cui.status.as_str().unwrap(), "active");
+        assert_eq!(cui.customer_type.as_str().unwrap(), "legal");
+    }
+    #[test]
+    fn invalid_customer_user_input_natural() {
+        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: Some(String::from("asd")),
+            name: String::from(""),
+            contact_name: String::from(""),
+            email: String::from("teszt.elekexample.com"),
+            phone_number: String::from("+36@301234567"),
+            status: String::from("activee"),
+            customer_type: String::from("natural"),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.contact_name, None);
+        assert_eq!(cuie.email.unwrap(), Email::VALIDATION_ERROR);
+        assert_eq!(
+            cuie.phone_number.unwrap(),
+            CustomerPhoneNumber::VALIDATION_ERROR
+        );
+        assert_eq!(cuie.status.unwrap(), CustomerStatus::VALIDATION_ERROR);
+        assert_eq!(cuie.customer_type, None);
+    }
+
+    #[test]
+    fn invalid_customer_user_input_legal() {
+        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+            id: None,
+            name: String::from(""),
+            contact_name: String::from(""),
+            email: String::from(""),
+            phone_number: String::from("+3630a234567"),
+            status: String::from(""),
+            customer_type: String::from("legal"),
+        })
+        .unwrap_err();
+        assert_eq!(cuie.id, None);
+        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.contact_name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.email.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            cuie.phone_number.unwrap(),
+            CustomerPhoneNumber::VALIDATION_ERROR
+        );
+        assert_eq!(cuie.status.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(cuie.customer_type, None);
     }
 }

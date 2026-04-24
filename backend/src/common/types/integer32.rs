@@ -17,30 +17,34 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Integer32(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Integer32(i32);
+
+impl Integer32 {
+    pub const PARSE_ERROR: &'static str = "A mező csak egész számot tartalmazhat";
+}
 
 impl ValueObjectData for Integer32 {
-    type DataType = String;
+    type DataType = i32;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
-            Ok(())
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.parse::<i32>().map_err(|_| {
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
+            })?)))
         } else {
-            self.0
-                .trim()
-                .replace(",", ".")
-                .parse::<i32>()
-                .map_err(|_| ValueObjectError::InvalidInput("Hibás szám formátum!"))?;
-            Ok(())
+            Ok(None)
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        Ok(())
+    }
+
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -51,86 +55,49 @@ impl Display for Integer32 {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Integer32> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Integer32(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_validate_empty_string() {
-        let integer = Integer32(String::from(""));
-        assert!(integer.validate().is_ok());
+    fn test_empty_string() {
+        let integer = "".parse::<ValueObjectRequired<Integer32>>().unwrap_err();
+        assert_eq!(integer.to_string().as_str(), "A mező kitöltése kötelező");
     }
 
     #[test]
-    fn test_validate_valid_integer() {
-        let integer = Integer32(String::from("123"));
-        assert!(integer.validate().is_ok());
+    fn test_valid_integer() {
+        let integer = "123".parse::<ValueObjectRequired<Integer32>>().unwrap();
+        assert_eq!(integer.as_i32().unwrap(), 123);
     }
 
     #[test]
     fn test_validate_negative_integer() {
-        let integer = Integer32(String::from("-123"));
-        assert!(integer.validate().is_ok());
+        let integer = "-123".parse::<ValueObjectRequired<Integer32>>().unwrap();
+        assert_eq!(integer.as_i32().unwrap(), -123);
     }
 
     #[test]
     fn test_validate_decimal_comma() {
-        let integer = Integer32(String::from("123,456"));
-        assert!(integer.validate().is_err());
+        let integer = "123,456".parse::<ValueObjectRequired<Integer32>>();
+        assert!(integer.is_err());
     }
 
     #[test]
     fn test_validate_decimal_period() {
-        let integer = Integer32(String::from("123.456"));
-        assert!(integer.validate().is_err());
+        let integer = "123.456".parse::<ValueObjectRequired<Integer32>>();
+        assert!(integer.is_err());
     }
 
     #[test]
     fn test_validate_non_numeric() {
-        let integer = Integer32(String::from("abc"));
-        assert!(integer.validate().is_err());
+        let integer = "abc".parse::<ValueObjectRequired<Integer32>>();
+        assert!(integer.is_err());
     }
 
     #[test]
     fn test_validate_overflow() {
-        let integer = Integer32(String::from("2147483648")); // Max i32 + 1
-        assert!(integer.validate().is_err());
-    }
-
-    #[test]
-    fn test_get_value() {
-        let value = String::from("123");
-        let integer = Integer32(value.clone());
-        assert_eq!(integer.get_value(), &value);
-    }
-
-    #[test]
-    fn test_display() {
-        let integer = Integer32(String::from("123"));
-        assert_eq!(format!("{}", integer), "123");
-    }
-
-    #[test]
-    fn test_deserialize_valid() {
-        let json = "\"123\"";
-        let result: Result<ValueObject<Integer32>, _> = serde_json::from_str(json);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_deserialize_invalid() {
-        let json = "\"abc\"";
-        let result: Result<ValueObject<Integer32>, _> = serde_json::from_str(json);
-        assert!(result.is_err());
+        let integer = "2147483648".parse::<ValueObjectRequired<Integer32>>();
+        assert!(integer.is_err());
     }
 }

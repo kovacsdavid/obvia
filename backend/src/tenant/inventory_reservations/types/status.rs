@@ -17,27 +17,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Status(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Status(String);
+
+impl Status {
+    pub const VALIDATION_ERROR: &'static str = "Hibás foglalás státusz";
+}
 
 impl ValueObjectData for Status {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "active" => Ok(()),
             "fulfilled" => Ok(()),
             "cancelled" => Ok(()),
             "expired" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás foglalás státusz")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -48,77 +59,22 @@ impl Display for Status {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Status> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Status(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::types::ValueObject;
 
     #[test]
     fn test_validate_valid_status() {
-        let valid_statuses = vec!["active", "fulfilled", "cancelled", "expired"];
-
-        for status in valid_statuses {
-            let status = Status(status.to_string());
-            assert_eq!(status.validate(), Ok(()));
+        let items = vec!["active", "fulfilled", "cancelled", "expired"];
+        for item in items {
+            let status = item.parse::<ValueObjectRequired<Status>>().unwrap();
+            assert_eq!(status.as_str().unwrap(), item);
         }
     }
 
     #[test]
     fn test_validate_invalid_status() {
-        let invalid_status = Status("invalid".to_string());
-        assert_eq!(
-            invalid_status.validate(),
-            Err(ValueObjectError::InvalidInput("Hibás foglalás státusz"))
-        );
-    }
-
-    #[test]
-    fn test_get_value() {
-        let status = Status("active".to_string());
-        assert_eq!(status.get_value(), &"active".to_string());
-    }
-
-    #[test]
-    fn test_display() {
-        let status = Status("active".to_string());
-        assert_eq!(format!("{}", status), "active");
-    }
-
-    #[test]
-    fn test_deserialize_valid_status() {
-        let json = r#""active""#;
-        let status: ValueObject<Status> = serde_json::from_str(json).unwrap();
-        assert_eq!(status.as_str(), "active");
-    }
-
-    #[test]
-    fn test_deserialize_invalid_status() {
-        let json = r#""invalid""#;
-        let result: Result<ValueObject<Status>, _> = serde_json::from_str(json);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_serialize() {
-        let status = Status("active".to_string());
-        let serialized = serde_json::to_string(&status).unwrap();
-        assert_eq!(serialized, r#""active""#);
-    }
-
-    #[test]
-    fn test_clone() {
-        let status = Status("active".to_string());
-        let cloned = status.clone();
-        assert_eq!(status, cloned);
+        let status = "invalid".parse::<ValueObjectRequired<Status>>();
+        assert!(status.is_err());
     }
 }

@@ -17,20 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct CommentableType(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct CommentableType(String);
+
+impl CommentableType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás erőforrás típus";
+}
 
 impl ValueObjectData for CommentableType {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.trim() {
+        match self.0.as_str() {
             "customers"
             | "warehouses"
             | "taxes"
@@ -41,30 +51,12 @@ impl ValueObjectData for CommentableType {
             | "services"
             | "tasks"
             | "worksheets" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás erőforrás típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for CommentableType {
-    type Err = ValueObjectError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(CommentableType(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<CommentableType> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(CommentableType(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -80,9 +72,10 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by: ValueObject<CommentableType> =
-            serde_json::from_str(r#""customers""#).unwrap();
-        assert_eq!(order_by.as_str(), "customers");
+        let order_by = "customers"
+            .parse::<ValueObjectRequired<CommentableType>>()
+            .unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "customers");
     }
 
     #[test]
@@ -90,38 +83,8 @@ mod tests {
         let cases = vec![r#""invalid""#, r#""''""#, r#"";""#];
 
         for case in cases {
-            let order_by: Result<ValueObject<CommentableType>, _> = serde_json::from_str(case);
+            let order_by = case.parse::<ValueObjectRequired<CommentableType>>();
             assert!(order_by.is_err());
         }
-    }
-
-    #[test]
-    fn test_from_str() {
-        let order_by = CommentableType::from_str("customers").unwrap();
-        assert_eq!(order_by.get_value(), "customers");
-    }
-
-    #[test]
-    fn test_display() {
-        let order_by = CommentableType("customers".to_string());
-        assert_eq!(format!("{}", order_by), "customers");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let order_by = CommentableType("customers".to_string());
-        assert_eq!(order_by.get_value(), "customers");
-    }
-
-    #[test]
-    fn test_validation() {
-        assert!(CommentableType("customers".to_string()).validate().is_ok());
-        assert!(CommentableType("price".to_string()).validate().is_err());
-        assert!(CommentableType("quantity".to_string()).validate().is_err());
-        assert!(
-            CommentableType("invalid_column".to_string())
-                .validate()
-                .is_err()
-        );
     }
 }

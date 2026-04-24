@@ -25,7 +25,6 @@ use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use async_trait::async_trait;
-use chrono::NaiveDate;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
@@ -46,11 +45,11 @@ pub trait TasksRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
     async fn insert(
         &self,
-        task: TaskUserInput,
+        task: &TaskUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task>;
-    async fn update(&self, task: TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task>;
+    async fn update(&self, task: &TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task>;
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
@@ -256,58 +255,35 @@ impl TasksRepository for PgPoolManager {
     }
     async fn insert(
         &self,
-        task: TaskUserInput,
+        task: &TaskUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Task> {
-        let quantity = match &task.quantity {
-            None => None,
-            Some(v) => Some(v.as_f64()?),
-        };
-        let price = match &task.price {
-            None => None,
-            Some(v) => Some(v.as_f64()?),
-        };
-        let due_date = match task.due_date {
-            None => None,
-            Some(v) => Some(
-                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d")
-                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
-            ),
-        };
         Ok(sqlx::query_as::<_, Task>(
             "INSERT INTO tasks (worksheet_id, service_id, currency_code, quantity, price, tax_id, created_by_id, status, priority, due_date, description)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *"
         )
             .bind(task.worksheet_id.as_uuid()?)
             .bind(task.service_id.as_uuid()?)
-            .bind(task.currency_code.as_str())
-            .bind(quantity)
-            .bind(price)
+            .bind(task.currency_code.as_str()?)
+            .bind(task.quantity.as_f64())
+            .bind(task.price.as_f64())
             .bind(task.tax_id.as_uuid()?)
             .bind(sub)
-            .bind(task.status.as_str())
-            .bind(task.priority.as_ref()
-                .map(|d| d.as_str()))
-            .bind(due_date)
-            .bind(task.description.as_ref()
-                .map(|d| d.as_str()))
+            .bind(task.status.as_str()? )
+            .bind(task.priority.as_str())
+            .bind(task.due_date.as_date_naive())
+            .bind(task.description.as_str())
             .fetch_one(&self.get_tenant_pool(active_tenant)?)
             .await?
         )
     }
 
-    async fn update(&self, task: TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task> {
+    async fn update(&self, task: &TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task> {
         let id = task
             .id
+            .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-        let due_date = match task.due_date {
-            None => None,
-            Some(v) => Some(
-                NaiveDate::parse_from_str(v.as_str(), "%Y-%m-%d %H:%M:%S")
-                    .map_err(|e| RepositoryError::InvalidInput(e.to_string()))?,
-            ),
-        };
         Ok(sqlx::query_as::<_, Task>(
             r#"
             UPDATE tasks
@@ -328,15 +304,15 @@ impl TasksRepository for PgPoolManager {
         )
         .bind(task.worksheet_id.as_uuid()?)
         .bind(task.service_id.as_uuid()?)
-        .bind(task.currency_code.as_str())
-        .bind(task.quantity.as_ref().map(|d| d.as_str()))
-        .bind(task.price.as_ref().map(|d| d.as_str()))
+        .bind(task.currency_code.as_str()?)
+        .bind(task.quantity.as_f64())
+        .bind(task.price.as_f64())
         .bind(task.tax_id.as_uuid()?)
-        .bind(task.status.as_str())
-        .bind(task.priority.as_ref().map(|d| d.as_str()))
-        .bind(due_date)
-        .bind(task.description.as_ref().map(|d| d.as_str()))
-        .bind(id.as_uuid()?)
+        .bind(task.status.as_str()?)
+        .bind(task.priority.as_str())
+        .bind(task.due_date.as_date_naive())
+        .bind(task.description.as_str())
+        .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

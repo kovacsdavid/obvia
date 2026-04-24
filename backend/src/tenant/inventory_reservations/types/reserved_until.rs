@@ -17,60 +17,50 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use chrono::{Local, NaiveDate};
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct ReservedUntil(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct ReservedUntil(NaiveDate);
+
+impl ReservedUntil {
+    pub const PARSE_ERROR: &'static str = "Hibás dátum formátum!";
+    pub const VALIDATION_ERROR: &'static str =
+        "Foglalás csak a mai napnál későbbi dátumra lehetséges";
+}
 
 impl ValueObjectData for ReservedUntil {
-    type DataType = String;
+    type DataType = NaiveDate;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        let today = Local::now().date_naive();
-        let input_date: NaiveDate = self
-            .0
-            .trim()
-            .parse()
-            .map_err(|_| ValueObjectError::InvalidInput("Hibás dátum formátum!"))?;
-        if input_date > today {
-            Ok(())
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.parse().map_err(|_| {
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
+            })?)))
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "Foglalás csak a mai napnál későbbi dátumra lehetséges",
-            ))
+            Ok(None)
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
-        &self.0
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        let today = Local::now().date_naive();
+        if self.0 > today {
+            Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
+        }
     }
-}
 
-impl ValueObject<ReservedUntil> {
-    pub fn date_naive(&self) -> Result<NaiveDate, ValueObjectError> {
-        self.as_str()
-            .trim()
-            .parse()
-            .map_err(|_| ValueObjectError::InvalidInput("Hibás dátum formátum!"))
+    fn get_data(&self) -> &Self::DataType {
+        &self.0
     }
 }
 
 impl Display for ReservedUntil {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<ReservedUntil> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(ReservedUntil(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -87,13 +77,17 @@ mod tests {
             .unwrap()
             .date_naive()
             .to_string();
-        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_ok());
+        let date = valid_date
+            .parse::<ValueObjectRequired<ReservedUntil>>()
+            .unwrap();
+        assert_eq!(date.as_date_naive().unwrap().to_string(), valid_date);
     }
 
     #[test]
     fn test_today() {
         let valid_date = Local::now().date_naive().to_string();
-        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_err());
+        let date = valid_date.parse::<ValueObjectRequired<ReservedUntil>>();
+        assert!(date.is_err());
     }
 
     #[test]
@@ -103,7 +97,8 @@ mod tests {
             .unwrap()
             .date_naive()
             .to_string();
-        assert!(ValueObject::new_required(ReservedUntil(valid_date)).is_err());
+        let date = valid_date.parse::<ValueObjectRequired<ReservedUntil>>();
+        assert!(date.is_err());
     }
 
     #[test]
@@ -122,20 +117,8 @@ mod tests {
         ];
 
         for case in cases {
-            let due_date: Result<ValueObject<ReservedUntil>, _> = serde_json::from_str(case);
-            assert!(due_date.is_err());
+            let date = case.parse::<ValueObjectRequired<ReservedUntil>>();
+            assert!(date.is_err());
         }
-    }
-
-    #[test]
-    fn test_display() {
-        let due_date = ReservedUntil("2024-01-01".to_string());
-        assert_eq!(format!("{}", due_date), "2024-01-01");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let due_date = ReservedUntil("2024-01-01".to_string());
-        assert_eq!(due_date.get_value(), "2024-01-01");
     }
 }

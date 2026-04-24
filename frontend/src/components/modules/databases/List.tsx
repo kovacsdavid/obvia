@@ -18,8 +18,11 @@
  */
 
 import { Link } from "react-router-dom";
-import React, { useEffect } from "react";
-import { list } from "@/components/modules/databases/lib/slice.ts";
+import React, { useCallback, useEffect } from "react";
+import {
+  list,
+  deleteDatabase,
+} from "@/components/modules/databases/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
   SortableTableHead,
@@ -63,6 +66,17 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { updateToken } from "@/components/modules/auth/lib/slice.ts";
 
 export default function List() {
   const dispatch = useAppDispatch();
@@ -71,6 +85,10 @@ export default function List() {
   const active_database = useAppSelector(
     (state: RootState) => state.auth.login.claims?.active_tenant,
   );
+  const [deleteDialogOpen, setDeleteDialogOpen] =
+    React.useState<boolean>(false);
+  const [deleteId, setDeleteId] = React.useState<string>("");
+  const [deleteName, setDeleteName] = React.useState<string>("");
 
   const {
     rawQuery,
@@ -90,7 +108,7 @@ export default function List() {
 
   const activateDatabase = useActivateDatabase();
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     dispatch(list(rawQuery)).then(async (response) => {
       if (list.fulfilled.match(response)) {
         if (
@@ -121,12 +139,64 @@ export default function List() {
     unexpectedError,
   ]);
 
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
   const handleActivate = async (new_tenant_id: string) => {
     await activateDatabase(new_tenant_id);
   };
 
+  const handleDeletePopup = (id: string, name: string) => {
+    setDeleteId(id);
+    setDeleteName(name);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeletePopupClose = () => {
+    setDeleteId("");
+    setDeleteName("");
+    setDeleteDialogOpen(false);
+  };
+
+  const handleDelete = (id: string) => {
+    setDeleteDialogOpen(false);
+    dispatch(deleteDatabase(id)).then(async (response) => {
+      if (
+        deleteDatabase.fulfilled.match(response) &&
+        response.payload.statusCode === 200 &&
+        typeof response.payload.jsonData?.data !== "undefined"
+      ) {
+        dispatch(updateToken(response.payload.jsonData.data));
+        refresh();
+        return true;
+      }
+      return false;
+    });
+  };
+
   return (
     <>
+      <AlertDialog open={deleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Teljesen biztos vagy ebben?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ezt a műveletet nem lehet visszavonni. Ez a művelet véglegesen
+              törli a(z) <span className="font-bold">{deleteName}</span>{" "}
+              adatbázist a szerverről.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => handleDeletePopupClose()}>
+              Mégsem
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleDelete(deleteId)}>
+              Törlés
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <GlobalError error={errors} />
       <Card>
         <CardHeader>
@@ -219,7 +289,9 @@ export default function List() {
                           <PlugZap /> Aktiválás
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleDeletePopup(item.id, item.name)}
+                        >
                           <Trash /> Törlés
                         </DropdownMenuItem>
                       </DropdownMenuContent>

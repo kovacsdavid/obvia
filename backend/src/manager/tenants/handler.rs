@@ -25,8 +25,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
-    CreateTenant, CreateTenantHelper, PublicTenantManaged, PublicTenantSelfHosted,
-    TenantActivateRequest,
+    CreateTenant, CreateTenantHelper, PublicTenantManaged, TenantIdRequest,
 };
 use crate::manager::tenants::service::TenantsService;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
@@ -44,43 +43,19 @@ pub async fn create(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    if user_input.is_self_hosted() {
-        let result =
-            match TenantsService::create_self_hosted(&claims, &user_input, tenants_module.clone())
-                .await
-            {
-                Ok(r) => r,
-                Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
-            };
-
-        match SuccessResponseBuilder::<EmptyType, _>::new()
-            .status_code(StatusCode::CREATED)
-            .data(PublicTenantSelfHosted::from(result))
-            .build()
-        {
-            Ok(r) => Ok(r.into_response()),
-            Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-        }
-    } else {
-        let result = match TenantsService::create_managed(
-            &claims,
-            &user_input,
-            tenants_module.clone(),
-        )
-        .await
-        {
+    let result =
+        match TenantsService::create_managed(&claims, &user_input, tenants_module.clone()).await {
             Ok(r) => r,
             Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
         };
 
-        match SuccessResponseBuilder::<EmptyType, _>::new()
-            .status_code(StatusCode::CREATED)
-            .data(PublicTenantManaged::from(result))
-            .build()
-        {
-            Ok(r) => Ok(r.into_response()),
-            Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-        }
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::CREATED)
+        .data(PublicTenantManaged::from(result))
+        .build()
+    {
+        Ok(r) => Ok(r.into_response()),
+        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
     }
 }
 
@@ -122,7 +97,7 @@ pub async fn list(
 pub async fn activate(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<dyn TenantsModule>>,
-    ValidJson(payload): ValidJson<TenantActivateRequest>,
+    ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let result = match TenantsService::activate(
         &payload,
@@ -145,13 +120,37 @@ pub async fn activate(
     }
 }
 
+pub async fn delete(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tenants_module): State<Arc<dyn TenantsModule>>,
+    ValidJson(payload): ValidJson<TenantIdRequest>,
+) -> HandlerResult {
+    let result = match TenantsService::delete(
+        payload.uuid,
+        claims,
+        tenants_module.tenants_repo(),
+        tenants_module.config(),
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
+    };
+
+    match SuccessResponseBuilder::<EmptyType, _>::new()
+        .status_code(StatusCode::OK)
+        .data(result)
+        .build()
+    {
+        Ok(success) => Ok(success.into_response()),
+        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::config::{
-        database_config::DatabasePoolSizeProvider, database_config::DatabaseUrlProvider,
-        tests::AppConfigBuilder,
-    };
+    use crate::common::config::tests::AppConfigBuilder;
     use crate::manager::app::database::{MockConnectionTester, MockDatabaseMigrator};
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
@@ -166,9 +165,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use chrono::Local;
-    use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
     use std::ops::{Add, Sub};
-    use std::str::FromStr;
     use std::time::Duration;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -245,13 +242,7 @@ mod tests {
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
-            name: String::from("test"),
-            is_self_hosted: false,
-            db_host: None,
-            db_port: None,
-            db_name: None,
-            db_user: None,
-            db_password: None,
+            name: "test".to_string(),
         })
         .unwrap();
 
@@ -327,7 +318,7 @@ mod tests {
         let expected_response = serde_json::to_string(
             &SuccessResponseBuilder::<EmptyType, _>::new()
                 .status_code(StatusCode::CREATED)
-                .data(PublicTenantSelfHosted {
+                .data(PublicTenantManaged {
                     id: new_tenant_id,
                     name: "test".to_string(),
                     is_self_hosted: false,
@@ -385,13 +376,7 @@ mod tests {
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
-            name: String::from("test"),
-            is_self_hosted: false,
-            db_host: None,
-            db_port: None,
-            db_name: None,
-            db_user: None,
-            db_password: None,
+            name: "test".to_string(),
         })
         .unwrap();
 
@@ -449,200 +434,6 @@ mod tests {
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
     #[tokio::test]
-    #[ignore]
-    async fn test_create_self_hosted_success() {
-        let new_tenant_id = Uuid::new_v4();
-        let now = Local::now();
-
-        let mut tenants_repo = MockTenantsRepository::new();
-        tenants_repo
-            .expect_setup_self_hosted()
-            .times(1)
-            .withf(|name, _, _| name == "test")
-            .returning(move |_, _, _| {
-                Ok(Tenant {
-                    id: new_tenant_id,
-                    name: "test".to_string(),
-                    is_self_hosted: true,
-                    db_host: "example.com".to_string(),
-                    db_port: 5432,
-                    db_name: "tenant_1234567890".to_string(),
-                    db_user: "tenant_1234567890".to_string(),
-                    db_password: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx".to_string(),
-                    db_max_pool_size: 5,
-                    db_ssl_mode: "verify-full".to_string(),
-                    created_at: now,
-                    updated_at: now,
-                    deleted_at: None,
-                })
-            });
-
-        let mut manager_user_repo = MockManagerUserRepository::new();
-
-        manager_user_repo
-            .expect_get_by_uuid()
-            .times(1)
-            .returning(|_| {
-                Ok(ManagerUser {
-                    id: Uuid::new_v4(),
-                    email: "testuser@example.com".to_string(),
-                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
-                    first_name: Some("Test".to_string()),
-                    last_name: Some("User".to_string()),
-                    phone: Some("+123456789".to_string()),
-                    status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
-                    profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
-                    invited_by: None,
-                    email_verified_at: Some(Local::now()),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
-                    deleted_at: None,
-                    is_mfa_enabled: false,
-                    mfa_secret: None,
-                })
-            });
-
-        let mut tenant_user_repo = MockTenantUserRepository::new();
-
-        tenant_user_repo
-            .expect_insert_from_manager()
-            .times(1)
-            .returning(|user, _| Ok(user));
-
-        let mut migrator = MockDatabaseMigrator::new();
-        migrator
-            .expect_migrate_tenant_db()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let mut connection_tester = MockConnectionTester::new();
-        connection_tester
-            .expect_test_connect()
-            .times(1)
-            .returning(|config, ssl_mode| {
-                let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
-                let pool = PgPoolOptions::new()
-                    .max_connections(config.max_pool_size())
-                    .acquire_timeout(Duration::from_secs(3))
-                    .connect_lazy_with(conn);
-                Ok(pool)
-            });
-
-        connection_tester
-            .expect_is_empty_database()
-            .times(1)
-            .returning(|_| Ok(()));
-
-        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
-
-        let payload = serde_json::to_string(&CreateTenantHelper {
-            name: String::from("test"),
-            is_self_hosted: true,
-            db_host: Some(String::from("example.com")),
-            db_port: Some(5432),
-            db_name: Some(String::from("tenant_1234567890")),
-            db_user: Some(String::from("tenant_1234567890")),
-            db_password: Some(String::from("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")),
-        })
-        .unwrap();
-
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
-
-        let bearer = Claims::new(
-            Uuid::new_v4(),
-            usize::try_from(exp).unwrap(),
-            usize::try_from(iat).unwrap(),
-            usize::try_from(nbf).unwrap(),
-            config.auth().jwt_issuer().to_string(),
-            format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
-            None,
-            None,
-        )
-        .to_token(config.auth().jwt_secret().as_bytes())
-        .unwrap();
-
-        let request = Request::builder()
-            .header("Authorization", format!("Bearer {}", bearer))
-            .header("Content-Type", "application/json")
-            .method("POST")
-            .uri("/api/tenants/create")
-            .body(Body::from(payload))
-            .unwrap();
-
-        let tenants_repo = Arc::new(tenants_repo);
-        let tenant_user_repo = Arc::new(tenant_user_repo);
-        let manager_user_repo = Arc::new(manager_user_repo);
-        let migrator = Arc::new(migrator);
-        let connection_tester = Arc::new(connection_tester);
-
-        let mut tenants_module = MockTenantsModule::new();
-        tenants_module
-            .expect_config()
-            .returning(move || config.clone());
-        tenants_module
-            .expect_tenants_repo()
-            .returning(move || tenants_repo.clone());
-        tenants_module
-            .expect_tenant_user_repo()
-            .returning(move || tenant_user_repo.clone());
-        tenants_module
-            .expect_manager_user_repo()
-            .returning(move || manager_user_repo.clone());
-        tenants_module
-            .expect_migrator()
-            .returning(move || migrator.clone());
-        tenants_module
-            .expect_connection_tester()
-            .returning(move || connection_tester.clone());
-        tenants_module
-            .expect_add_tenant_pool()
-            .times(1)
-            .returning(|tenant_id, _| Ok(tenant_id));
-
-        let app = Router::new().nest(
-            "/api",
-            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
-        );
-
-        let response = app.oneshot(request).await.unwrap();
-
-        assert_eq!(response.status(), StatusCode::CREATED);
-
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-
-        let expected_response = serde_json::to_string(
-            &SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(PublicTenantSelfHosted {
-                    id: new_tenant_id,
-                    name: "test".to_string(),
-                    is_self_hosted: true,
-                    db_host: "example.com".to_string(),
-                    db_port: 5432,
-                    db_name: "tenant_1234567890".to_string(),
-                    db_user: "tenant_1234567890".to_string(),
-                    db_password: "[REDACTED]".to_string(),
-                    db_max_pool_size: 5,
-                    db_ssl_mode: "verify-full".to_string(),
-                    created_at: now,
-                    updated_at: now,
-                    deleted_at: None,
-                })
-                .build()
-                .unwrap(),
-        )
-        .unwrap();
-
-        assert_eq!(&body[..], expected_response.as_bytes());
-    }
-    #[tokio::test]
     async fn test_activate_success() {
         let active_tenant_id1 = Uuid::new_v4();
         let active_tenant_id2 = active_tenant_id1;
@@ -675,8 +466,8 @@ mod tests {
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
-        let payload = serde_json::to_string(&TenantActivateRequest {
-            new_tenant_id: active_tenant_id2,
+        let payload = serde_json::to_string(&TenantIdRequest {
+            uuid: active_tenant_id2,
         })
         .unwrap();
 

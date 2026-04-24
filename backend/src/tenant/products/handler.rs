@@ -136,13 +136,13 @@ pub async fn delete(
 pub async fn create(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<dyn ProductsModule>>,
-    UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
+    UserInput(mut user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let result = match ProductsService::create(&claims, &user_input, products_module.clone()).await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(products_module).await.into_response()),
-    };
+    let result =
+        match ProductsService::create(&claims, &mut user_input, products_module.clone()).await {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(products_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
         .data(result)

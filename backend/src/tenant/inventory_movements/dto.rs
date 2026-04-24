@@ -20,9 +20,10 @@
 use crate::common::error::FormErrorResponse;
 use crate::common::types::Float64;
 use crate::common::types::UuidVO;
-use crate::common::types::ValueObject;
 use crate::common::types::quantity::Quantity;
-use crate::common::types::value_object::ValueObjectError;
+use crate::common::value_object::ValueObjectError;
+use crate::common::value_object::ValueObjectOptional;
+use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::inventory_movements::types::{InventoryMovementType, InventoryReferenceType};
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
@@ -38,7 +39,6 @@ pub struct InventoryMovementUserInputHelper {
     pub reference_type: String,
     pub reference_id: String,
     pub unit_price: String,
-    pub total_price: String,
     pub tax_id: String,
 }
 
@@ -64,7 +64,6 @@ impl InventoryMovementUserInputError {
             && self.reference_type.is_none()
             && self.reference_id.is_none()
             && self.unit_price.is_none()
-            && self.total_price.is_none()
             && self.tax_id.is_none()
     }
 }
@@ -86,17 +85,23 @@ impl IntoResponse for InventoryMovementUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for InventoryMovementUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct InventoryMovementUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub inventory_id: ValueObject<UuidVO>,
-    pub movement_type: ValueObject<InventoryMovementType>,
-    pub quantity: ValueObject<Quantity>,
-    pub reference_type: Option<ValueObject<InventoryReferenceType>>,
-    pub reference_id: Option<ValueObject<UuidVO>>,
-    pub unit_price: Option<ValueObject<Float64>>,
-    pub total_price: Option<ValueObject<Float64>>,
-    pub tax_id: ValueObject<UuidVO>,
+    #[allow(dead_code)]
+    pub id: ValueObjectOptional<UuidVO>,
+    pub inventory_id: ValueObjectRequired<UuidVO>,
+    pub movement_type: ValueObjectRequired<InventoryMovementType>,
+    pub quantity: ValueObjectRequired<Quantity>,
+    pub reference_type: Option<ValueObjectRequired<InventoryReferenceType>>,
+    pub reference_id: ValueObjectOptional<UuidVO>,
+    pub unit_price: ValueObjectOptional<Float64>,
+    pub tax_id: ValueObjectRequired<UuidVO>,
 }
 
 impl InventoryMovementUserInput {
@@ -114,63 +119,74 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
     fn try_from(value: InventoryMovementUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = InventoryMovementUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
+            });
+
+        let inventory_id = value
+            .inventory_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.inventory_id = Some(e.to_string());
+            });
+
+        let tax_id = value
+            .tax_id
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.tax_id = Some(e.to_string());
+            });
+
+        let movement_type = value
+            .movement_type
+            .parse::<ValueObjectRequired<InventoryMovementType>>()
+            .inspect_err(|e| error.movement_type = Some(e.to_string()));
+
+        let quantity = value
+            .quantity
+            .parse::<ValueObjectRequired<Quantity>>()
+            .inspect_err(|e| error.quantity = Some(e.to_string()));
+
+        let reference_id = value
+            .reference_id
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
+                error.reference_id = Some(e.to_string());
+            });
+
+        let reference_type = if let Ok(reference_id) = &reference_id
+            && reference_id.is_present()
+        {
+            value
+                .reference_type
+                .parse::<ValueObjectRequired<InventoryReferenceType>>()
+                .inspect_err(|e| error.reference_type = Some(e.to_string()))
+                .map(Some)
         } else {
             Ok(None)
         };
 
-        let inventory_id =
-            ValueObject::new_required(UuidVO(value.inventory_id)).inspect_err(|_| {
-                error.inventory_id = Some("A mező kitöltése kötelező!".to_string());
+        let unit_price = value
+            .unit_price
+            .parse::<ValueObjectOptional<Float64>>()
+            .inspect_err(|e| {
+                error.unit_price = Some(e.to_string());
             });
-
-        let tax_id = ValueObject::new_required(UuidVO(value.tax_id)).inspect_err(|_| {
-            error.tax_id = Some("A mező kitöltése kötelező!".to_string());
-        });
-
-        let movement_type = ValueObject::new_required(InventoryMovementType(value.movement_type))
-            .inspect_err(|e| error.movement_type = Some(e.to_string()));
-
-        let quantity = ValueObject::new_required(Quantity(value.quantity))
-            .inspect_err(|e| error.quantity = Some(e.to_string()));
-
-        let reference_id = ValueObject::new_optional(UuidVO(value.reference_id)).inspect_err(|e| {
-            error.reference_id = Some(e.to_string());
-        });
-
-        let reference_type = if value.reference_type.trim() == "" {
-            None
-        } else {
-            ValueObject::new_required(InventoryReferenceType(value.reference_type))
-                .inspect_err(|e| error.reference_type = Some(e.to_string()))
-                .ok()
-        };
-
-        let unit_price = ValueObject::new_optional(Float64(value.unit_price)).inspect_err(|e| {
-            error.unit_price = Some(e.to_string());
-        });
-
-        let total_price = ValueObject::new_optional(Float64(value.total_price)).inspect_err(|e| {
-            error.total_price = Some(e.to_string());
-        });
 
         if error.is_empty() {
             Ok(InventoryMovementUserInput {
-                id: id.map_err(|_| InventoryMovementUserInputError::default())?,
-                inventory_id: inventory_id
-                    .map_err(|_| InventoryMovementUserInputError::default())?,
-                movement_type: movement_type
-                    .map_err(|_| InventoryMovementUserInputError::default())?,
-                quantity: quantity.map_err(|_| InventoryMovementUserInputError::default())?,
-                reference_type,
-                reference_id: reference_id
-                    .map_err(|_| InventoryMovementUserInputError::default())?,
-                unit_price: unit_price.map_err(|_| InventoryMovementUserInputError::default())?,
-                total_price: total_price.map_err(|_| InventoryMovementUserInputError::default())?,
-                tax_id: tax_id.map_err(|_| InventoryMovementUserInputError::default())?,
+                id: id?,
+                inventory_id: inventory_id?,
+                movement_type: movement_type?,
+                quantity: quantity?,
+                reference_type: reference_type?,
+                reference_id: reference_id?,
+                unit_price: unit_price?,
+                tax_id: tax_id?,
             })
         } else {
             Err(error)
@@ -193,5 +209,63 @@ impl InventoryMovementsRawQuery {
             Some(v) => v,
             None => "",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_inventory_movements_user_input() {
+        let inventory_id = Uuid::new_v4();
+        let reference_id = Uuid::new_v4();
+        let tax_id = Uuid::new_v4();
+        let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
+            id: None,
+            inventory_id: inventory_id.to_string(),
+            movement_type: String::from("out"),
+            quantity: String::from("10"),
+            reference_type: String::from("worksheets"),
+            reference_id: reference_id.to_string(),
+            unit_price: String::from("1000"),
+            tax_id: tax_id.to_string(),
+        })
+        .unwrap();
+
+        assert_eq!(imui.inventory_id.as_uuid().unwrap(), inventory_id);
+        assert_eq!(imui.movement_type.as_str().unwrap(), "out");
+        assert_eq!(imui.quantity.as_f64().unwrap(), 10_f64);
+        assert_eq!(imui.reference_type.unwrap().as_str().unwrap(), "worksheets");
+        assert_eq!(imui.reference_id.as_uuid().unwrap(), reference_id);
+        assert_eq!(imui.unit_price.as_f64().unwrap(), 1000_f64);
+        assert_eq!(imui.tax_id.as_uuid().unwrap(), tax_id);
+    }
+
+    #[test]
+    fn invalid_inventory_movements_user_input() {
+        let reference_id = Uuid::new_v4();
+        let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
+            id: None,
+            inventory_id: String::from("invalid"),
+            movement_type: String::from("invalid"),
+            quantity: String::from(""),
+            reference_type: String::from(""),
+            reference_id: reference_id.to_string(),
+            unit_price: String::from("asd"),
+            tax_id: String::from("asd"),
+        })
+        .unwrap_err();
+
+        assert_eq!(imui.inventory_id.unwrap(), UuidVO::PARSE_ERROR);
+        assert_eq!(
+            imui.movement_type.unwrap(),
+            InventoryMovementType::VALIDATION_ERROR
+        );
+        assert_eq!(imui.quantity.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(imui.reference_type.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(imui.reference_id, None);
+        assert_eq!(imui.unit_price.unwrap(), Float64::PARSE_ERROR);
+        assert_eq!(imui.tax_id.unwrap(), UuidVO::PARSE_ERROR);
     }
 }

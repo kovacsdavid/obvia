@@ -18,7 +18,8 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::address::types::country::CountryCode;
 use crate::tenant::taxes::types::legal_text::LegalText;
 use crate::tenant::taxes::types::reporting_code::ReportingCode;
@@ -89,18 +90,24 @@ impl IntoResponse for TaxUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for TaxUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct TaxUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub rate: Option<ValueObject<TaxRate>>,
-    pub description: ValueObject<TaxDescription>,
-    pub country_code: ValueObject<CountryCode>,
-    pub tax_category: ValueObject<TaxCategory>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub rate: Option<ValueObjectRequired<TaxRate>>,
+    pub description: ValueObjectRequired<TaxDescription>,
+    pub country_code: ValueObjectRequired<CountryCode>,
+    pub tax_category: ValueObjectRequired<TaxCategory>,
     pub is_rate_applicable: bool,
-    pub legal_text: Option<ValueObject<TaxLegalText>>,
-    pub reporting_code: Option<ValueObject<TaxReportingCode>>,
+    pub legal_text: ValueObjectOptional<TaxLegalText>,
+    pub reporting_code: ValueObjectOptional<TaxReportingCode>,
     pub is_default: bool,
-    pub status: ValueObject<TaxStatus>,
+    pub status: ValueObjectRequired<TaxStatus>,
 }
 
 impl TryFrom<TaxUserInputHelper> for TaxUserInput {
@@ -108,71 +115,164 @@ impl TryFrom<TaxUserInputHelper> for TaxUserInput {
     fn try_from(value: TaxUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = TaxUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        if value.is_rate_applicable.is_none() {
-            error.is_rate_applicable = Some("A mező kitöltése kötelező!".to_string());
-        }
+        let is_rate_applicable = if let Some(v) = value.is_rate_applicable {
+            v
+        } else {
+            error.is_rate_applicable = Some(ValueObjectError::REQUIRED.to_string());
+            false
+        };
 
         let rate = if let Some(is_rate_applicable) = value.is_rate_applicable
             && is_rate_applicable
         {
-            ValueObject::new_required(TaxRate(value.rate))
+            value
+                .rate
+                .parse::<ValueObjectRequired<TaxRate>>()
                 .inspect_err(|e| error.rate = Some(e.to_string()))
                 .map(Some)
         } else {
             Ok(None)
         };
 
-        let description =
-            ValueObject::new_required(TaxDescription(value.description)).inspect_err(|e| {
+        let description = value
+            .description
+            .parse::<ValueObjectRequired<TaxDescription>>()
+            .inspect_err(|e| {
                 error.description = Some(e.to_string());
             });
 
-        let country_code = ValueObject::new_required(CountryCode(value.country_code))
+        let country_code = value
+            .country_code
+            .parse::<ValueObjectRequired<CountryCode>>()
             .inspect_err(|e| error.country_code = Some(e.to_string()));
 
-        let tax_category =
-            ValueObject::new_required(TaxCategory(value.tax_category)).inspect_err(|e| {
+        let tax_category = value
+            .tax_category
+            .parse::<ValueObjectRequired<TaxCategory>>()
+            .inspect_err(|e| {
                 error.tax_category = Some(e.to_string());
             });
 
-        let legal_text = ValueObject::new_optional(LegalText(value.legal_text)).inspect_err(|e| {
-            error.legal_text = Some(e.to_string());
-        });
+        let legal_text = value
+            .legal_text
+            .parse::<ValueObjectOptional<LegalText>>()
+            .inspect_err(|e| {
+                error.legal_text = Some(e.to_string());
+            });
 
-        let reporting_code = ValueObject::new_optional(ReportingCode(value.reporting_code))
+        let reporting_code = value
+            .reporting_code
+            .parse::<ValueObjectOptional<ReportingCode>>()
             .inspect_err(|e| {
                 error.reporting_code = Some(e.to_string());
             });
 
-        let status = ValueObject::new_required(TaxStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<TaxStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(TaxUserInput {
-                id: id.map_err(|_| TaxUserInputError::default())?,
-                rate: rate.map_err(|_| TaxUserInputError::default())?,
-                description: description.map_err(|_| TaxUserInputError::default())?,
-                country_code: country_code.map_err(|_| TaxUserInputError::default())?,
-                tax_category: tax_category.map_err(|_| TaxUserInputError::default())?,
-                is_rate_applicable: value
-                    .is_rate_applicable
-                    .ok_or(TaxUserInputError::default())?,
-                legal_text: legal_text.map_err(|_| TaxUserInputError::default())?,
-                reporting_code: reporting_code.map_err(|_| TaxUserInputError::default())?,
+                id: id?,
+                rate: rate?,
+                description: description?,
+                country_code: country_code?,
+                tax_category: tax_category?,
+                is_rate_applicable,
+                legal_text: legal_text?,
+                reporting_code: reporting_code?,
                 is_default: value.is_default,
-                status: status.map_err(|_| TaxUserInputError::default())?,
+                status: status?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_user_input() {
+        let user_input = TaxUserInput::try_from(TaxUserInputHelper {
+            id: None,
+            rate: String::from("27"),
+            description: String::from("description"),
+            country_code: String::from("HU"),
+            tax_category: String::from("standard"),
+            is_rate_applicable: Some(true),
+            legal_text: String::from("legal text"),
+            reporting_code: String::from("reporting code"),
+            is_default: false,
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.rate.unwrap().as_f64().unwrap(), 27_f64);
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.country_code.as_str().unwrap(), "HU");
+        assert_eq!(user_input.tax_category.as_str().unwrap(), "standard");
+        assert!(user_input.is_rate_applicable);
+        assert_eq!(user_input.legal_text.as_str().unwrap(), "legal text");
+        assert_eq!(
+            user_input.reporting_code.as_str().unwrap(),
+            "reporting code"
+        );
+        assert!(!user_input.is_default);
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_user_input() {
+        let invalid_legal_text = "a".repeat(10001);
+        let invalid_reporting_code = "a".repeat(100);
+        let user_input = TaxUserInput::try_from(TaxUserInputHelper {
+            id: None,
+            rate: String::from(""),
+            description: String::from(""),
+            country_code: String::from("invalid"),
+            tax_category: String::from("invalid"),
+            is_rate_applicable: Some(true),
+            legal_text: invalid_legal_text,
+            reporting_code: invalid_reporting_code,
+            is_default: false,
+            status: String::from("activee"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.rate.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(user_input.description.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.country_code.unwrap(),
+            CountryCode::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.tax_category.unwrap(),
+            TaxCategory::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.is_rate_applicable, None);
+        assert_eq!(
+            user_input.legal_text.unwrap(),
+            TaxLegalText::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.reporting_code.unwrap(),
+            TaxReportingCode::VALIDATION_ERROR
+        );
+        assert_eq!(user_input.is_default, None);
+        assert_eq!(user_input.status.unwrap(), TaxStatus::VALIDATION_ERROR);
     }
 }

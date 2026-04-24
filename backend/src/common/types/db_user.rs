@@ -17,18 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-use uuid::Uuid;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct DbUser(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct DbUser(String);
 
 impl ValueObjectData for DbUser {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(r##"^tenant_[A-Za-z0-9_]{1,50}$"##) {
             Ok(re) => match re.is_match(&self.0) {
@@ -43,7 +48,7 @@ impl ValueObjectData for DbUser {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -54,51 +59,38 @@ impl Display for DbUser {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<DbUser> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(DbUser(s)).map_err(serde::de::Error::custom)
-    }
-}
-
-impl TryFrom<Uuid> for ValueObject<DbUser> {
-    type Error = ValueObjectError;
-    fn try_from(value: Uuid) -> Result<Self, Self::Error> {
-        ValueObject::new_required(DbUser(value.to_string()))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_db_user() {
-        let user: ValueObject<DbUser> = serde_json::from_str(r#""tenant_test123""#).unwrap();
-        assert_eq!(user.as_str(), "tenant_test123");
+        let user = "tenant_test123"
+            .parse::<ValueObjectRequired<DbUser>>()
+            .unwrap();
+        assert_eq!(user.as_str().unwrap(), "tenant_test123");
 
-        let user: ValueObject<DbUser> = serde_json::from_str(r#""tenant_valid_user""#).unwrap();
-        assert_eq!(user.as_str(), "tenant_valid_user");
+        let user = "tenant_valid_user"
+            .parse::<ValueObjectRequired<DbUser>>()
+            .unwrap();
+        assert_eq!(user.as_str().unwrap(), "tenant_valid_user");
     }
 
     #[test]
     fn test_invalid_db_user_without_prefix() {
-        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""test123""#);
+        let user = "test123".parse::<ValueObjectRequired<DbUser>>();
         assert!(user.is_err());
     }
 
     #[test]
     fn test_invalid_db_user_empty() {
-        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""""#);
+        let user = "".parse::<ValueObjectRequired<DbUser>>();
         assert!(user.is_err());
     }
 
     #[test]
     fn test_invalid_db_user_special_chars() {
-        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(r#""tenant_test!@#""#);
+        let user = r#"tenant_test!@#"'"#.parse::<ValueObjectRequired<DbUser>>();
         assert!(user.is_err());
     }
 
@@ -113,7 +105,7 @@ mod tests {
         ];
 
         for attempt in sql_injection_attempts {
-            let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(attempt);
+            let user = attempt.parse::<ValueObjectRequired<DbUser>>();
             assert!(user.is_err());
         }
     }
@@ -121,17 +113,7 @@ mod tests {
     #[test]
     fn test_invalid_db_user_too_long() {
         let long_name = format!(r#""tenant_{}" "#, "a".repeat(51));
-        let user: Result<ValueObject<DbUser>, _> = serde_json::from_str(&long_name);
+        let user = long_name.parse::<ValueObjectRequired<DbUser>>();
         assert!(user.is_err());
-    }
-
-    #[test]
-    fn test_uuid_conversion() {
-        let uuid = Uuid::new_v4();
-        let user = ValueObject::<DbUser>::try_from(uuid);
-        assert!(
-            user.is_err(),
-            "UUID should not be valid since it doesn't start with tenant_"
-        );
     }
 }

@@ -17,24 +17,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct MovementType(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct MovementType(String);
+
+impl MovementType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás mozgás típus";
+}
 
 impl ValueObjectData for MovementType {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "in" | "out" | "adjustment" | "transfer" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás mozgás típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -45,12 +56,19 @@ impl Display for MovementType {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<MovementType> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(MovementType(s)).map_err(serde::de::Error::custom)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid() {
+        let movement_type = "in".parse::<ValueObjectRequired<MovementType>>().unwrap();
+        assert_eq!(movement_type.as_str().unwrap(), "in");
+    }
+
+    #[test]
+    fn test_invalid() {
+        let movement_type = "invalid".parse::<ValueObjectRequired<MovementType>>();
+        assert!(movement_type.is_err());
     }
 }

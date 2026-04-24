@@ -18,7 +18,8 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::{UuidVO, ValueObject};
+use crate::common::types::UuidVO;
+use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
 use axum::response::{IntoResponse, Response};
@@ -72,14 +73,20 @@ impl IntoResponse for ProductUserInputError {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl From<ValueObjectError> for ProductUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ProductUserInput {
-    pub id: Option<ValueObject<UuidVO>>,
-    pub name: ValueObject<ProductName>,
-    pub description: Option<ValueObject<ProductDescription>>,
-    pub unit_of_measure_id: Option<ValueObject<UuidVO>>,
-    pub new_unit_of_measure: Option<ValueObject<UnitsOfMeasure>>,
-    pub status: ValueObject<ProductStatus>,
+    pub id: ValueObjectOptional<UuidVO>,
+    pub name: ValueObjectRequired<ProductName>,
+    pub description: ValueObjectOptional<ProductDescription>,
+    pub unit_of_measure_id: Option<ValueObjectRequired<UuidVO>>,
+    pub new_unit_of_measure: Option<ValueObjectRequired<UnitsOfMeasure>>,
+    pub status: ValueObjectRequired<ProductStatus>,
 }
 
 impl TryFrom<ProductUserInputHelper> for ProductUserInput {
@@ -87,31 +94,41 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
     fn try_from(value: ProductUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = ProductUserInputError::default();
 
-        let id = if let Some(id) = value.id {
-            ValueObject::new_optional(UuidVO(id)).inspect_err(|e| {
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            })
-        } else {
-            Ok(None)
-        };
+            });
 
-        let name = ValueObject::new_required(ProductName(value.name)).inspect_err(|e| {
-            error.name = Some(e.to_string());
-        });
+        let name = value
+            .name
+            .parse::<ValueObjectRequired<ProductName>>()
+            .inspect_err(|e| {
+                error.name = Some(e.to_string());
+            });
 
-        let status = ValueObject::new_required(ProductStatus(value.status)).inspect_err(|e| {
-            error.status = Some(e.to_string());
-        });
+        let status = value
+            .status
+            .parse::<ValueObjectRequired<ProductStatus>>()
+            .inspect_err(|e| {
+                error.status = Some(e.to_string());
+            });
 
-        let description = ValueObject::new_optional(ProductDescription(value.description))
+        let description = value
+            .description
+            .parse::<ValueObjectOptional<ProductDescription>>()
             .inspect_err(|e| {
                 error.description = Some(e.to_string());
             });
 
         let unit_of_measure_id = if value.unit_of_measure_id.as_str() != "other" {
-            ValueObject::new_required(UuidVO(value.unit_of_measure_id))
-                .inspect_err(|_| {
-                    error.unit_of_measure_id = Some("Hibás mértékegység".to_string());
+            value
+                .unit_of_measure_id
+                .parse::<ValueObjectRequired<UuidVO>>()
+                .inspect_err(|e| {
+                    error.unit_of_measure_id = Some(e.to_string());
                 })
                 .map(Some)
         } else {
@@ -121,25 +138,84 @@ impl TryFrom<ProductUserInputHelper> for ProductUserInput {
         let new_unit_of_measure = if let Ok(result) = &unit_of_measure_id
             && result.is_some()
         {
-            None
+            Ok(None)
         } else {
-            ValueObject::new_required(UnitsOfMeasure(value.new_unit_of_measure))
+            value
+                .new_unit_of_measure
+                .parse::<ValueObjectRequired<UnitsOfMeasure>>()
                 .inspect_err(|e| error.new_unit_of_measure = Some(e.to_string()))
-                .ok()
+                .map(Some)
         };
 
         if error.is_empty() {
             Ok(ProductUserInput {
-                id: id.map_err(|_| ProductUserInputError::default())?,
-                name: name.map_err(|_| ProductUserInputError::default())?,
-                description: description.map_err(|_| ProductUserInputError::default())?,
-                unit_of_measure_id: unit_of_measure_id
-                    .map_err(|_| ProductUserInputError::default())?,
-                new_unit_of_measure,
-                status: status.map_err(|_| ProductUserInputError::default())?,
+                id: id?,
+                name: name?,
+                description: description?,
+                unit_of_measure_id: unit_of_measure_id?,
+                new_unit_of_measure: new_unit_of_measure?,
+                status: status?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_products_user_input() {
+        let user_input = ProductUserInput::try_from(ProductUserInputHelper {
+            id: None,
+            name: String::from("John Doe"),
+            description: String::from("description"),
+            unit_of_measure_id: String::from("other"),
+            new_unit_of_measure: String::from("cm"),
+            status: String::from("active"),
+        })
+        .unwrap();
+
+        assert_eq!(user_input.id.as_uuid(), None);
+        assert_eq!(user_input.name.as_str().unwrap(), "John Doe");
+        assert_eq!(user_input.description.as_str().unwrap(), "description");
+        assert_eq!(user_input.unit_of_measure_id, None);
+        assert_eq!(
+            user_input.new_unit_of_measure.unwrap().as_str().unwrap(),
+            "cm"
+        );
+        assert_eq!(user_input.status.as_str().unwrap(), "active");
+    }
+
+    #[test]
+    fn invalid_products_user_input() {
+        let invalid_description = "a".repeat(3001);
+        let user_input = ProductUserInput::try_from(ProductUserInputHelper {
+            id: None,
+            name: String::from(""),
+            description: invalid_description,
+            unit_of_measure_id: String::from(""),
+            new_unit_of_measure: String::from(""),
+            status: String::from("activeee"),
+        })
+        .unwrap_err();
+
+        assert_eq!(user_input.id, None);
+        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
+        assert_eq!(
+            user_input.description.unwrap(),
+            ProductDescription::VALIDATION_ERROR
+        );
+        assert_eq!(
+            user_input.unit_of_measure_id.unwrap(),
+            ValueObjectError::REQUIRED
+        );
+        assert_eq!(
+            user_input.new_unit_of_measure.unwrap(),
+            ValueObjectError::REQUIRED
+        );
+        assert_eq!(user_input.status.unwrap(), ProductStatus::VALIDATION_ERROR);
     }
 }

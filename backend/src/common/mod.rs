@@ -50,6 +50,7 @@ pub(crate) mod model;
 pub(crate) mod query_parser;
 pub(crate) mod services;
 pub(crate) mod types;
+pub(crate) mod value_object;
 
 pub trait ConfigProvider: Send + Sync {
     fn config(&self) -> Arc<AppConfig>;
@@ -77,7 +78,7 @@ pub type DefaultAppState = AppState<PgPoolManager, DefaultSmtpTransport>;
 
 impl DefaultAppState {
     async fn init_pool_manager(config: Arc<AppConfig>) -> anyhow::Result<PgPoolManager> {
-        Ok(PgPoolManager::new(config.main_database(), config.default_tenant_database()).await?)
+        Ok(PgPoolManager::new(config.main_database()).await?)
     }
     fn init_smpt_transport(config: Arc<AppConfig>) -> anyhow::Result<DefaultSmtpTransport> {
         Ok(
@@ -188,9 +189,6 @@ where
     fn get_main_pool(&self) -> PgPool {
         self.pool_manager.get_main_pool()
     }
-    fn get_default_tenant_pool(&self) -> PgPool {
-        self.pool_manager.get_default_tenant_pool()
-    }
     fn get_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<PgPool> {
         self.pool_manager.get_tenant_pool(tenant_id)
     }
@@ -200,5 +198,8 @@ where
         config: &BasicDatabaseConfig,
     ) -> RepositoryResult<Uuid> {
         self.pool_manager.add_tenant_pool(tenant_id, config).await
+    }
+    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<()> {
+        self.pool_manager.delete_tenant_pool(tenant_id).await
     }
 }

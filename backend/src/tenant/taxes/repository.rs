@@ -276,14 +276,14 @@ impl TaxesRepository for PgPoolManager {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
         )
         .bind(rate)
-        .bind(tax.description.as_str())
-        .bind(tax.country_code.as_str())
-        .bind(tax.tax_category.as_str())
+        .bind(tax.description.as_str()?)
+        .bind(tax.country_code.as_str()?)
+        .bind(tax.tax_category.as_str()?)
         .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.as_ref().map(|d| d.as_str()))
-        .bind(tax.reporting_code.as_ref().map(|d| d.as_str()))
+        .bind(tax.legal_text.as_str())
+        .bind(tax.reporting_code.as_str())
         .bind(tax.is_default)
-        .bind(tax.status.as_str())
+        .bind(tax.status.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -292,10 +292,11 @@ impl TaxesRepository for PgPoolManager {
     async fn update(&self, tax: TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax> {
         let id = tax
             .id
+            .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-        let rate = match &tax.rate {
-            None => None,
+        let tax_rate = match &tax.rate {
             Some(v) => Some(v.as_f64()?),
+            None => None,
         };
         Ok(sqlx::query_as::<_, Tax>(
             r#"
@@ -310,20 +311,20 @@ impl TaxesRepository for PgPoolManager {
                 is_default = $8,
                 status = $9
             WHERE id = $10
-                AND deleted_at IS NULL 
+                AND deleted_at IS NULL
             RETURNING *
             "#,
         )
-        .bind(rate)
-        .bind(tax.description.as_str())
-        .bind(tax.country_code.as_str())
-        .bind(tax.tax_category.as_str())
+        .bind(tax_rate)
+        .bind(tax.description.as_str()?)
+        .bind(tax.country_code.as_str()?)
+        .bind(tax.tax_category.as_str()?)
         .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.as_ref().map(|d| d.as_str()))
-        .bind(tax.reporting_code.as_ref().map(|d| d.as_str()))
+        .bind(tax.legal_text.as_str())
+        .bind(tax.reporting_code.as_str())
         .bind(tax.is_default)
-        .bind(tax.status.as_str())
-        .bind(id.as_uuid()?)
+        .bind(tax.status.as_str()?)
+        .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

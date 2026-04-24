@@ -43,7 +43,7 @@ The full text of the DCO is available in the [DCO](./DCO) file in this repositor
 You must add a `Signed-off-by` line to each commit message. This can be done automatically by using the `-s` flag with `git commit`:
 
 ```
-git commit -s -m "Your commit message"
+git commit -s -m "docs: Your commit message"
 ```
 
 This will add something like this to your commit message:
@@ -54,9 +54,16 @@ Signed-off-by: Your Name <your.email@example.com>
 
 **Pull requests with unsigned commits will not be merged.**
 
+### How to format the commit messages
+
+All commits **MUST** use the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) specification.
+
+**Pull requests with commits not formatted properly will not be merged.**
+
 ## Attribution
 
 All contributors will be listed in [CONTRIBUTORS.md](./CONTRIBUTORS.md). If you have contributed and your name is missing, feel free to open a pull request to add yourself.
+Do not forget to include or update the AGPL license header at the top of the files you created or modified!
 
 ## Questions
 

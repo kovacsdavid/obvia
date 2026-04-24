@@ -110,7 +110,7 @@ impl TasksService {
         Ok(tasks_module
             .tasks_repo()
             .insert(
-                payload.clone(),
+                payload,
                 claims.sub(),
                 claims
                     .active_tenant()
@@ -188,7 +188,7 @@ impl TasksService {
     ) -> TasksServiceResult<Task> {
         Ok(repo
             .update(
-                payload.clone(),
+                payload,
                 claims
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,

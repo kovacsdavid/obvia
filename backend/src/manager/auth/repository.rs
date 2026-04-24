@@ -117,10 +117,10 @@ impl AuthRepository for PgPoolManager {
             ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
         )
         .bind(Uuid::new_v4())
-        .bind(payload.email.as_str())
+        .bind(payload.email.as_str()?)
         .bind(password_hash)
-        .bind(payload.first_name.as_str())
-        .bind(payload.last_name.as_str())
+        .bind(payload.first_name.as_str()?)
+        .bind(payload.last_name.as_str()?)
         .fetch_one(&self.get_main_pool())
         .await?)
     }
@@ -201,7 +201,16 @@ impl AuthRepository for PgPoolManager {
 
     async fn get_user_active_tenant(&self, user_id: Uuid) -> RepositoryResult<Option<UserTenant>> {
         let user_tenant_result = sqlx::query_as::<_, UserTenant>(
-            "SELECT * FROM user_tenants WHERE user_id = $1 AND deleted_at IS NULL ORDER BY last_activated DESC LIMIT 1",
+            r#"
+            SELECT *
+            FROM user_tenants
+            LEFT JOIN tenants ON user_tenants.tenant_id = tenants.id
+            WHERE user_tenants.user_id = $1
+                AND user_tenants.deleted_at IS NULL
+                AND tenants.deleted_at IS NULL
+            ORDER BY user_tenants.last_activated DESC
+            LIMIT 1
+            "#,
         )
         .bind(user_id)
         .fetch_one(&self.get_main_pool())

@@ -21,25 +21,26 @@ use crate::common::value_object::*;
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct ContactName(String);
+pub struct CurrencyCode(String);
 
-impl ContactName {
+impl CurrencyCode {
     pub const VALIDATION_ERROR: &'static str =
-        "A kapcsolattartó neve nem lehet 255 karakternél hosszabb";
+        "A mező csak három karakteres pénznemformátumot tartalmazhat. Pl.: HUF";
 }
 
-impl ValueObjectData for ContactName {
+impl ValueObjectData for CurrencyCode {
     type DataType = String;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
-        if !data.trim().is_empty() {
-            Ok(Some(Self(data.to_owned())))
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_uppercase().to_owned())))
         } else {
             Ok(None)
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() < 256 {
+        if self.0.trim().len() == 3 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
@@ -51,7 +52,7 @@ impl ValueObjectData for ContactName {
     }
 }
 
-impl Display for ContactName {
+impl Display for CurrencyCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -62,17 +63,40 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid() {
-        let contact_name = "John Doe"
-            .parse::<ValueObjectRequired<ContactName>>()
-            .unwrap();
-        assert_eq!(contact_name.as_str().unwrap(), "John Doe");
+    fn test_valid_currency() {
+        let currency = "USD".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
     }
 
     #[test]
-    fn test_invalid() {
-        let invalid = "a".repeat(256);
-        let contact_name = invalid.parse::<ValueObjectRequired<ContactName>>();
-        assert!(contact_name.is_err());
+    fn test_invalid_currency_too_short() {
+        let currency = "US".parse::<ValueObjectRequired<CurrencyCode>>();
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_invalid_currency_too_long() {
+        let currency = "USDT".parse::<ValueObjectRequired<CurrencyCode>>();
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_invalid_currency_empty() {
+        let currency = "".parse::<ValueObjectRequired<CurrencyCode>>();
+        assert!(currency.is_err());
+    }
+
+    #[test]
+    fn test_validation_with_spaces() {
+        let currency = " USD "
+            .parse::<ValueObjectRequired<CurrencyCode>>()
+            .unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
+    }
+
+    #[test]
+    fn test_validation_with_lowercase() {
+        let currency = "usd".parse::<ValueObjectRequired<CurrencyCode>>().unwrap();
+        assert_eq!(currency.as_str().unwrap(), "USD");
     }
 }

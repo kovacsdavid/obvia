@@ -17,29 +17,41 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use chrono::NaiveDate;
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
+use chrono::{Local, NaiveDate};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct DueDate(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct DueDate(NaiveDate);
+
+impl DueDate {
+    pub const PARSE_ERROR: &'static str = "Hibás dátum formátum!";
+    pub const VALIDATION_ERROR: &'static str = "A határidő csak a mai napnál későbbi dátum lehet";
+}
 
 impl ValueObjectData for DueDate {
-    type DataType = String;
+    type DataType = NaiveDate;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.parse().map_err(|_| {
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
+            })?)))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
+        let today = Local::now().date_naive();
+        if self.0 > today {
             Ok(())
         } else {
-            NaiveDate::parse_from_str(self.0.trim(), "%Y-%m-%d").map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás dátum formátum! (2006-01-02)")
-            })?;
-            Ok(())
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -50,42 +62,39 @@ impl Display for DueDate {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<DueDate> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(DueDate(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use chrono::Days;
+
     use super::*;
 
     #[test]
-    fn test_valid_due_dates() {
-        let cases = vec![
-            "2024-01-01",
-            "2025-12-31",
-            "2000-02-29", // Leap year
-        ];
-
-        for date in cases {
-            let due_date: ValueObject<DueDate> =
-                serde_json::from_str(&format!(r#""{}""#, date)).unwrap();
-            assert_eq!(due_date.as_str(), date);
-        }
+    fn test_tomorrow() {
+        let valid_date = Local::now()
+            .checked_add_days(Days::new(1))
+            .unwrap()
+            .date_naive()
+            .to_string();
+        let date = valid_date.parse::<ValueObjectRequired<DueDate>>().unwrap();
+        assert_eq!(date.as_date_naive().unwrap().to_string(), valid_date);
     }
 
     #[test]
-    fn test_empty_due_date() {
-        let due_date: ValueObject<DueDate> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(due_date.as_str(), "");
+    fn test_today() {
+        let valid_date = Local::now().date_naive().to_string();
+        let date = valid_date.parse::<ValueObjectRequired<DueDate>>();
+        assert!(date.is_err());
+    }
 
-        let due_date: ValueObject<DueDate> = serde_json::from_str(r#""  ""#).unwrap();
-        assert_eq!(due_date.as_str(), "  ");
+    #[test]
+    fn test_yesterday() {
+        let valid_date = Local::now()
+            .checked_sub_days(Days::new(1))
+            .unwrap()
+            .date_naive()
+            .to_string();
+        let date = valid_date.parse::<ValueObjectRequired<DueDate>>();
+        assert!(date.is_err());
     }
 
     #[test]
@@ -99,37 +108,13 @@ mod tests {
             r#""2024-00-01""#,
             r#""2024-01-00""#,
             r#""abc""#,
+            r#""""#,
+            r#""    ""#,
         ];
 
         for case in cases {
-            let due_date: Result<ValueObject<DueDate>, _> = serde_json::from_str(case);
-            assert!(due_date.is_err());
+            let date = case.parse::<ValueObjectRequired<DueDate>>();
+            assert!(date.is_err());
         }
-    }
-
-    #[test]
-    fn test_display() {
-        let due_date = DueDate("2024-01-01".to_string());
-        assert_eq!(format!("{}", due_date), "2024-01-01");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let due_date = DueDate("2024-01-01".to_string());
-        assert_eq!(due_date.get_value(), "2024-01-01");
-    }
-
-    #[test]
-    fn test_validation() {
-        assert!(DueDate("2024-01-01".to_string()).validate().is_ok());
-        assert!(DueDate("".to_string()).validate().is_ok());
-        assert!(DueDate("  ".to_string()).validate().is_ok());
-
-        assert!(DueDate("2024/01/01".to_string()).validate().is_err());
-        assert!(DueDate("2024.01.01".to_string()).validate().is_err());
-        assert!(DueDate("01-01-2024".to_string()).validate().is_err());
-        assert!(DueDate("2024-13-01".to_string()).validate().is_err());
-        assert!(DueDate("2024-01-32".to_string()).validate().is_err());
-        assert!(DueDate("abc".to_string()).validate().is_err());
     }
 }

@@ -239,10 +239,10 @@ impl WarehousesRepository for PgPoolManager {
             VALUES ($1, $2, $3, $4, $5) RETURNING *
              "#,
         )
-        .bind(warehouse.name.as_str())
-        .bind(warehouse.contact_name.as_ref().map(|d| d.as_str()))
-        .bind(warehouse.contact_phone.as_ref().map(|d| d.as_str()))
-        .bind(warehouse.status.as_str())
+        .bind(warehouse.name.as_str()?)
+        .bind(warehouse.contact_name.as_str())
+        .bind(warehouse.contact_phone.as_str())
+        .bind(warehouse.status.as_str()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
@@ -255,6 +255,7 @@ impl WarehousesRepository for PgPoolManager {
     ) -> RepositoryResult<Warehouse> {
         let id = warehouse
             .id
+            .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
         Ok(sqlx::query_as::<_, Warehouse>(
             r#"
@@ -268,11 +269,11 @@ impl WarehousesRepository for PgPoolManager {
             RETURNING *
             "#,
         )
-        .bind(warehouse.name.as_str())
-        .bind(warehouse.contact_name.as_ref().map(|d| d.as_str()))
-        .bind(warehouse.contact_phone.as_ref().map(|d| d.as_str()))
-        .bind(warehouse.status.as_str())
-        .bind(id.as_uuid()?)
+        .bind(warehouse.name.as_str()?)
+        .bind(warehouse.contact_name.as_str())
+        .bind(warehouse.contact_phone.as_str())
+        .bind(warehouse.status.as_str()?)
+        .bind(id)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?)
     }

@@ -18,5 +18,4 @@
  */
 
 pub(crate) mod product;
-pub(crate) mod product_category;
 pub(crate) mod unit_of_measure;

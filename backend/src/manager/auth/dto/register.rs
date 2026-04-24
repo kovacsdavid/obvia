@@ -18,13 +18,12 @@
  */
 
 use crate::common::error::FormErrorResponse;
-use crate::common::types::ValueObject;
-use crate::common::types::{Email, FirstName, LastName, Password};
-use ::serde::Serialize;
+use crate::common::types::{Email, FirstName, LastName, Password, UuidVO};
+use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use axum::response::{IntoResponse, Response};
 use serde::Deserialize;
+use serde::Serialize;
 use std::fmt::{Display, Formatter};
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
 pub struct RegisterRequestHelper {
@@ -62,6 +61,12 @@ impl Display for RegisterRequestError {
     }
 }
 
+impl From<ValueObjectError> for RegisterRequestError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
 impl FormErrorResponse for RegisterRequestError {}
 
 impl IntoResponse for RegisterRequestError {
@@ -70,12 +75,12 @@ impl IntoResponse for RegisterRequestError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RegisterRequest {
-    pub email: ValueObject<Email>,
-    pub first_name: ValueObject<FirstName>,
-    pub last_name: ValueObject<LastName>,
-    pub password: ValueObject<Password>,
+    pub email: ValueObjectRequired<Email>,
+    pub first_name: ValueObjectRequired<FirstName>,
+    pub last_name: ValueObjectRequired<LastName>,
+    pub password: ValueObjectRequired<Password>,
 }
 
 impl TryFrom<RegisterRequestHelper> for RegisterRequest {
@@ -83,24 +88,37 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
     fn try_from(value: RegisterRequestHelper) -> Result<Self, Self::Error> {
         let mut error = RegisterRequestError::default();
 
-        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
-            error.email = Some(e.to_string());
-        });
-        let first_name_result =
-            ValueObject::new_required(FirstName(value.first_name)).inspect_err(|e| {
+        let email = value
+            .email
+            .parse::<ValueObjectRequired<Email>>()
+            .inspect_err(|e| {
+                error.email = Some(e.to_string());
+            });
+
+        let first_name = value
+            .first_name
+            .parse::<ValueObjectRequired<FirstName>>()
+            .inspect_err(|e| {
                 error.first_name = Some(e.to_string());
             });
-        let last_name_result =
-            ValueObject::new_required(LastName(value.last_name)).inspect_err(|e| {
+
+        let last_name = value
+            .last_name
+            .parse::<ValueObjectRequired<LastName>>()
+            .inspect_err(|e| {
                 error.last_name = Some(e.to_string());
             });
-        let password_result =
-            ValueObject::new_required(Password(value.password)).inspect_err(|e| {
+
+        let password = value
+            .password
+            .parse::<ValueObjectRequired<Password>>()
+            .inspect_err(|e| {
                 error.password = Some(e.to_string());
             });
 
-        if let Ok(password) = &password_result
-            && password.as_str() != value.password_confirm
+        if let Ok(password) = &password
+            && let Ok(password) = password.as_str()
+            && password != value.password_confirm
         {
             error.password_confirm =
                 Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
@@ -108,10 +126,10 @@ impl TryFrom<RegisterRequestHelper> for RegisterRequest {
 
         if error.is_empty() {
             Ok(RegisterRequest {
-                email: email_result.map_err(|_| RegisterRequestError::default())?,
-                first_name: first_name_result.map_err(|_| RegisterRequestError::default())?,
-                last_name: last_name_result.map_err(|_| RegisterRequestError::default())?,
-                password: password_result.map_err(|_| RegisterRequestError::default())?,
+                email: email?,
+                first_name: first_name?,
+                last_name: last_name?,
+                password: password?,
             })
         } else {
             Err(error)
@@ -144,6 +162,12 @@ impl Display for ResendEmailValidationError {
     }
 }
 
+impl From<ValueObjectError> for ResendEmailValidationError {
+    fn from(value: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
 impl FormErrorResponse for ResendEmailValidationError {}
 
 impl IntoResponse for ResendEmailValidationError {
@@ -152,9 +176,9 @@ impl IntoResponse for ResendEmailValidationError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ResendEmailValidationRequest {
-    pub email: ValueObject<Email>,
+    pub email: ValueObjectRequired<Email>,
 }
 
 impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationRequest {
@@ -163,14 +187,15 @@ impl TryFrom<ResendEmailValidationRequestHelper> for ResendEmailValidationReques
     fn try_from(value: ResendEmailValidationRequestHelper) -> Result<Self, Self::Error> {
         let mut error = ResendEmailValidationError::default();
 
-        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
-            error.email = Some(e.to_string());
-        });
+        let email = value
+            .email
+            .parse::<ValueObjectRequired<Email>>()
+            .inspect_err(|e| {
+                error.email = Some(e.to_string());
+            });
 
         if error.is_empty() {
-            Ok(ResendEmailValidationRequest {
-                email: email_result.map_err(|_| ResendEmailValidationError::default())?,
-            })
+            Ok(ResendEmailValidationRequest { email: email? })
         } else {
             Err(error)
         }
@@ -210,9 +235,9 @@ impl IntoResponse for ForgottenPasswordRequestError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ForgottenPasswordRequest {
-    pub email: ValueObject<Email>,
+    pub email: ValueObjectRequired<Email>,
 }
 
 impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
@@ -221,13 +246,16 @@ impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
     fn try_from(value: ForgottenPasswordRequestHelper) -> Result<Self, Self::Error> {
         let mut error = ForgottenPasswordRequestError::default();
 
-        let email_result = ValueObject::new_required(Email(value.email)).inspect_err(|e| {
-            error.email = Some(e.to_string());
-        });
+        let email = value
+            .email
+            .parse::<ValueObjectRequired<Email>>()
+            .inspect_err(|e| {
+                error.email = Some(e.to_string());
+            });
 
         if error.is_empty() {
             Ok(ForgottenPasswordRequest {
-                email: email_result.map_err(|_| ForgottenPasswordRequestError::default())?,
+                email: email.map_err(|_| ForgottenPasswordRequestError::default())?,
             })
         } else {
             Err(error)
@@ -264,6 +292,12 @@ impl Display for NewPasswordRequestError {
     }
 }
 
+impl From<ValueObjectError> for NewPasswordRequestError {
+    fn from(_: ValueObjectError) -> Self {
+        Self::default()
+    }
+}
+
 impl FormErrorResponse for NewPasswordRequestError {}
 
 impl IntoResponse for NewPasswordRequestError {
@@ -272,10 +306,10 @@ impl IntoResponse for NewPasswordRequestError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct NewPasswordRequest {
-    pub token: Uuid,
-    pub password: ValueObject<Password>,
+    pub token: ValueObjectRequired<UuidVO>,
+    pub password: ValueObjectRequired<Password>,
 }
 
 impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
@@ -284,17 +318,23 @@ impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
     fn try_from(value: NewPasswordRequestHelper) -> Result<Self, Self::Error> {
         let mut error = NewPasswordRequestError::default();
 
-        let token_result = Uuid::parse_str(&value.token).inspect_err(|e| {
-            error.token = Some("Hibás azonosító".to_string());
-        });
+        let token = value
+            .token
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .inspect_err(|e| {
+                error.token = Some(e.to_string());
+            });
 
-        let password_result =
-            ValueObject::new_required(Password(value.password)).inspect_err(|e| {
+        let password = value
+            .password
+            .parse::<ValueObjectRequired<Password>>()
+            .inspect_err(|e| {
                 error.password = Some(e.to_string());
             });
 
-        if let Ok(password) = &password_result
-            && password.as_str() != value.password_confirm
+        if let Ok(password) = &password
+            && let Ok(password) = password.as_str()
+            && password != value.password_confirm
         {
             error.password_confirm =
                 Some("A jelszó és a jelszó megerősítés mező nem egyezik".to_string());
@@ -302,11 +342,52 @@ impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {
 
         if error.is_empty() {
             Ok(NewPasswordRequest {
-                token: token_result.map_err(|_| NewPasswordRequestError::default())?,
-                password: password_result.map_err(|_| NewPasswordRequestError::default())?,
+                token: token?,
+                password: password?,
             })
         } else {
             Err(error)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_register_request() {
+        let register_request_helper = RegisterRequestHelper {
+            email: "teszt.elek@kovacsdavid.dev".to_owned(),
+            first_name: "Elek".to_owned(),
+            last_name: "Teszt".to_owned(),
+            password: "Password1!".to_owned(),
+            password_confirm: "Password1!".to_owned(),
+        };
+
+        let register_request =
+            <RegisterRequest as TryFrom<RegisterRequestHelper>>::try_from(register_request_helper);
+
+        assert!(register_request.is_ok());
+    }
+
+    #[test]
+    fn register_request_password_mismatch() {
+        let register_request_helper = RegisterRequestHelper {
+            email: "teszt.elek@kovacsdavid.dev".to_owned(),
+            first_name: "Elek".to_owned(),
+            last_name: "Teszt".to_owned(),
+            password: "Password1!".to_owned(),
+            password_confirm: "Password1".to_owned(),
+        };
+
+        let register_request_error =
+            <RegisterRequest as TryFrom<RegisterRequestHelper>>::try_from(register_request_helper)
+                .unwrap_err();
+
+        assert_eq!(
+            register_request_error.password_confirm.unwrap().as_str(),
+            "A jelszó és a jelszó megerősítés mező nem egyezik"
+        );
     }
 }

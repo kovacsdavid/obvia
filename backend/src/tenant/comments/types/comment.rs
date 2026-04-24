@@ -17,27 +17,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Comment(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Comment(String);
+
+impl Comment {
+    pub const VALIDATION_ERROR: &'static str =
+        "A megjegyzés nem lehet 10 000 karakternél hosszabb!";
+}
 
 impl ValueObjectData for Comment {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         if self.0.len() <= 10_000 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput(
-                "A megjegyzés nem lehet 10 000 karakternél hosszabb!",
-            ))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -48,94 +57,29 @@ impl Display for Comment {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Comment> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Comment(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_comment() {
-        let desc: ValueObject<Comment> = serde_json::from_str(r#""Valid comment""#).unwrap();
-        assert_eq!(desc.as_str(), "Valid comment");
-    }
-
-    #[test]
-    fn test_empty_comment() {
-        let desc: ValueObject<Comment> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(desc.as_str(), "");
+        let comment = "Valid comment"
+            .parse::<ValueObjectRequired<Comment>>()
+            .unwrap();
+        assert_eq!(comment.as_str().unwrap(), "Valid comment");
     }
 
     #[test]
     fn test_max_length_comment() {
-        let desc = "a".repeat(3000);
-        let result: ValueObject<Comment> = serde_json::from_str(&format!(r#""{}""#, desc)).unwrap();
-        assert_eq!(result.as_str(), &desc);
+        let long_string = "a".repeat(10000);
+        let comment = long_string.parse::<ValueObjectRequired<Comment>>().unwrap();
+        assert_eq!(comment.as_str().unwrap(), long_string);
     }
 
     #[test]
     fn test_too_long_comment() {
-        let desc = "a".repeat(10001);
-        let result: Result<ValueObject<Comment>, _> =
-            serde_json::from_str(&format!(r#""{}""#, desc));
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn test_display_trait() {
-        let desc = Comment("Test comment".to_string());
-        assert_eq!(format!("{}", desc), "Test comment");
-    }
-
-    #[test]
-    fn test_debug_trait() {
-        let desc = Comment("Test comment".to_string());
-        assert_eq!(format!("{:?}", desc), r#"Comment("Test comment")"#);
-    }
-
-    #[test]
-    fn test_clone_trait() {
-        let desc = Comment("Test comment".to_string());
-        let cloned = desc.clone();
-        assert_eq!(desc, cloned);
-    }
-
-    #[test]
-    fn test_serialize() {
-        let desc = Comment("Test comment".to_string());
-        let serialized = serde_json::to_string(&desc).unwrap();
-        assert_eq!(serialized, r#""Test comment""#);
-    }
-
-    #[test]
-    fn test_deserialize() {
-        let input = r#""Test comment""#;
-        let deserialized: ValueObject<Comment> = serde_json::from_str(input).unwrap();
-        assert_eq!(deserialized.as_str(), "Test comment");
-    }
-
-    #[test]
-    fn test_special_characters() {
-        let special = r#""Test with !@#$%^&*()_+ and unicode 你好世界""#;
-        let desc: ValueObject<Comment> = serde_json::from_str(special).unwrap();
-        assert_eq!(
-            desc.as_str(),
-            r#"Test with !@#$%^&*()_+ and unicode 你好世界"#
-        );
-    }
-
-    #[test]
-    fn test_multiline_comment() {
-        let multiline = r#""Line 1\nLine 2\nLine 3""#;
-        let desc: ValueObject<Comment> = serde_json::from_str(multiline).unwrap();
-        assert_eq!(desc.as_str(), "Line 1\nLine 2\nLine 3");
+        let long_string = "a".repeat(10001);
+        let comment = long_string.parse::<ValueObjectRequired<Comment>>();
+        assert!(comment.is_err());
     }
 }

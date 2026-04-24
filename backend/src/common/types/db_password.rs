@@ -17,17 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct DbPassword(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct DbPassword(String);
 
 impl ValueObjectData for DbPassword {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match Regex::new(r##"^[A-Za-z0-9]{40,99}$"##) {
             Ok(re) => match re.is_match(&self.0) {
@@ -38,7 +44,7 @@ impl ValueObjectData for DbPassword {
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -49,18 +55,9 @@ impl Display for DbPassword {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<DbPassword> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(DbPassword(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -73,9 +70,8 @@ mod tests {
             r#"1111111111111111111111111111111111111111"#,
         ];
         for password in valid_passwords {
-            let db_password: ValueObject<DbPassword> =
-                serde_json::from_str(format!("\"{}\"", &password).as_str()).unwrap();
-            assert_eq!(db_password.as_str(), password);
+            let db_password = password.parse::<ValueObjectRequired<DbPassword>>().unwrap();
+            assert_eq!(db_password.as_str().unwrap(), password);
         }
     }
 
@@ -100,8 +96,7 @@ mod tests {
             r#"abc123!@#"#,
         ];
         for password in invalid_passwords {
-            let db_password: Result<ValueObject<DbPassword>, _> =
-                serde_json::from_str(format!("\"{}\"", &password).as_str());
+            let db_password = password.parse::<ValueObjectRequired<DbPassword>>();
             assert!(db_password.is_err());
         }
     }

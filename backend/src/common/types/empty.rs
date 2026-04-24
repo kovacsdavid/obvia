@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,40 +17,52 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Name(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Empty(String);
 
-impl ValueObjectData for Name {
+impl ValueObjectData for Empty {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        Ok(Some(Self(data_trim.to_owned())))
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        Err(ValueObjectError::InvalidInput("Not implemented yet!"))
+        match self.0.as_str() {
+            "" => Ok(()),
+            _ => Err(ValueObjectError::InvalidInput(
+                "A mező nem tartalmazhat értéket",
+            )),
+        }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
 
-impl Display for Name {
+impl Display for Empty {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Name(s)).map_err(serde::de::Error::custom)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_empty() {
+        let empty = "".parse::<ValueObjectRequired<Empty>>().unwrap();
+        assert_eq!(empty.as_str().unwrap(), "");
+    }
+
+    #[test]
+    fn test_invalid_empty() {
+        let filter_by = "any".parse::<ValueObjectRequired<Empty>>();
+        assert!(filter_by.is_err());
     }
 }
-
-#[cfg(test)]
-mod tests {}

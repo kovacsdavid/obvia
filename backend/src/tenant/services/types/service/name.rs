@@ -17,25 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Name(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Name(String);
 
 impl ValueObjectData for Name {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if !self.0.trim().is_empty() {
+        if self.0.len() <= 255 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező"))
+            Err(ValueObjectError::InvalidInput(
+                "A név nem lehet 255 karakternél hosszabb",
+            ))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -46,89 +54,13 @@ impl Display for Name {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Name> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Name(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_name() {
-        let name: ValueObject<Name> = serde_json::from_str(r#""Test Service""#).unwrap();
-        assert_eq!(name.as_str(), "Test Service");
-    }
-
-    #[test]
-    fn test_empty_name() {
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""""#);
-        assert!(name.is_err());
-    }
-
-    #[test]
-    fn test_whitespace_name() {
-        let name: Result<ValueObject<Name>, _> = serde_json::from_str(r#""   ""#);
-        assert!(name.is_err());
-    }
-
-    #[test]
-    fn test_name_display() {
-        let name = Name("Test Service".to_string());
-        assert_eq!(format!("{}", name), "Test Service");
-    }
-
-    #[test]
-    fn test_name_clone() {
-        let name = Name("Test Service".to_string());
-        let cloned = name.clone();
-        assert_eq!(name, cloned);
-    }
-
-    #[test]
-    fn test_name_debug() {
-        let name = Name("Test Service".to_string());
-        assert_eq!(format!("{:?}", name), r#"Name("Test Service")"#);
-    }
-
-    #[test]
-    fn test_name_partial_eq() {
-        let name1 = Name("Test Service".to_string());
-        let name2 = Name("Test Service".to_string());
-        let name3 = Name("Different Service".to_string());
-
-        assert_eq!(name1, name2);
-        assert_ne!(name1, name3);
-    }
-
-    #[test]
-    fn test_name_validation() {
-        let name = Name("Test Service".to_string());
-        assert!(name.validate().is_ok());
-    }
-
-    #[test]
-    fn test_name_get_value() {
-        let name = Name("Test Service".to_string());
-        assert_eq!(name.get_value(), "Test Service");
-    }
-
-    #[test]
-    fn test_name_serialization() {
-        let name = ValueObject::new_required(Name("Test Service".to_string())).unwrap();
-        let serialized = serde_json::to_string(&name).unwrap();
-        assert_eq!(serialized, r#""Test Service""#);
-    }
-
-    #[test]
-    fn test_name_deserialization() {
-        let name: ValueObject<Name> = serde_json::from_str(r#""Test Service""#).unwrap();
-        assert_eq!(name.as_str(), "Test Service");
+        let name = "Test Service".parse::<ValueObjectRequired<Name>>().unwrap();
+        assert_eq!(name.as_str().unwrap(), "Test Service");
     }
 }

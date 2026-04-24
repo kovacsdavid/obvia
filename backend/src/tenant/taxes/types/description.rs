@@ -17,25 +17,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Description(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Description(String);
+
+impl Description {
+    pub const VALIDATION_ERROR: &'static str = "A leírás nem lehet 255 karakternél hosszabb!";
+}
 
 impl ValueObjectData for Description {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if !self.0.trim().is_empty() {
+        if self.0.len() <= 255 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező"))
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -46,89 +56,29 @@ impl Display for Description {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Description> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Description(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_name() {
-        let name: ValueObject<Description> = serde_json::from_str(r#""Test Tax""#).unwrap();
-        assert_eq!(name.as_str(), "Test Tax");
+    fn test_valid_description() {
+        let desc = "Tax description"
+            .parse::<ValueObjectRequired<Description>>()
+            .unwrap();
+        assert_eq!(desc.as_str().unwrap(), "Tax description");
     }
 
     #[test]
-    fn test_empty_name() {
-        let name: Result<ValueObject<Description>, _> = serde_json::from_str(r#""""#);
-        assert!(name.is_err());
+    fn test_max_length_description() {
+        let desc = "a".repeat(255);
+        let result = desc.parse::<ValueObjectRequired<Description>>().unwrap();
+        assert_eq!(result.as_str().unwrap(), desc);
     }
 
     #[test]
-    fn test_whitespace_name() {
-        let name: Result<ValueObject<Description>, _> = serde_json::from_str(r#""   ""#);
-        assert!(name.is_err());
-    }
-
-    #[test]
-    fn test_name_display() {
-        let name = Description("Test Tax".to_string());
-        assert_eq!(format!("{}", name), "Test Tax");
-    }
-
-    #[test]
-    fn test_name_clone() {
-        let name = Description("Test Tax".to_string());
-        let cloned = name.clone();
-        assert_eq!(name, cloned);
-    }
-
-    #[test]
-    fn test_name_debug() {
-        let name = Description("Test Tax".to_string());
-        assert_eq!(format!("{:?}", name), r#"Description("Test Tax")"#);
-    }
-
-    #[test]
-    fn test_name_partial_eq() {
-        let name1 = Description("Test Tax".to_string());
-        let name2 = Description("Test Tax".to_string());
-        let name3 = Description("Different Tax".to_string());
-
-        assert_eq!(name1, name2);
-        assert_ne!(name1, name3);
-    }
-
-    #[test]
-    fn test_name_validation() {
-        let name = Description("Test Tax".to_string());
-        assert!(name.validate().is_ok());
-    }
-
-    #[test]
-    fn test_name_get_value() {
-        let name = Description("Test Tax".to_string());
-        assert_eq!(name.get_value(), "Test Tax");
-    }
-
-    #[test]
-    fn test_name_serialization() {
-        let name = ValueObject::new_required(Description("Test Tax".to_string())).unwrap();
-        let serialized = serde_json::to_string(&name).unwrap();
-        assert_eq!(serialized, r#""Test Tax""#);
-    }
-
-    #[test]
-    fn test_name_deserialization() {
-        let name: ValueObject<Description> = serde_json::from_str(r#""Test Tax""#).unwrap();
-        assert_eq!(name.as_str(), "Test Tax");
+    fn test_too_long_description() {
+        let desc = "a".repeat(256);
+        let result = desc.parse::<ValueObjectRequired<Description>>();
+        assert!(result.is_err());
     }
 }

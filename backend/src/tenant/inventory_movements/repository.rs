@@ -246,18 +246,10 @@ impl InventoryMovementsRepository for PgPoolManager {
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement> {
-        let unit_price = match &input.unit_price {
-            None => None,
-            Some(v) => Some(v.as_f64()?),
-        };
-        let movement_type = input.movement_type.as_str();
-        let referecen_id = match &input.reference_id {
-            Some(v) => Some(v.as_uuid()?),
+        let reference_type = match &input.reference_type {
+            Some(v) => Some(v.as_str()?),
             None => None,
         };
-        let quantity = input
-            .quantity(movement_type == "out")
-            .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?;
         Ok(sqlx::query_as::<_, InventoryMovement>(
             r#"
             INSERT INTO inventory_movements (
@@ -268,11 +260,15 @@ impl InventoryMovementsRepository for PgPoolManager {
             "#,
         )
         .bind(input.inventory_id.as_uuid()?)
-        .bind(movement_type)
-        .bind(quantity)
-        .bind(input.reference_type.as_ref().map(|v| v.as_str()))
-        .bind(referecen_id)
-        .bind(unit_price)
+        .bind(input.movement_type.as_str()?)
+        .bind(
+            input
+                .quantity(input.movement_type.as_str()? == "out")
+                .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
+        )
+        .bind(reference_type)
+        .bind(input.reference_id.as_uuid())
+        .bind(input.unit_price.as_f64())
         .bind(input.tax_id.as_uuid()?)
         .bind(sub)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)

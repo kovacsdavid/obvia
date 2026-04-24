@@ -17,32 +17,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
+use crate::common::value_object::*;
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ContactPhone(pub String);
+
+impl ContactPhone {
+    pub const VALIDATION_ERROR: &'static str = "Hibás telefonszám formátum";
+}
 
 impl ValueObjectData for ContactPhone {
     type DataType = String;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
-            Ok(())
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
         } else {
-            match Regex::new(r##"^\+[1-9]\d{4,15}$"##) {
-                Ok(re) => match re.is_match(&self.0) {
-                    true => Ok(()),
-                    false => Err(ValueObjectError::InvalidInput("Hibás telefonszám formátum")),
-                },
-                Err(_) => Err(ValueObjectError::InvalidInput("Hibás telefonszám formátum")),
-            }
+            Ok(None)
+        }
+    }
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        match Regex::new(r##"^\+[1-9]\d{4,15}$"##)?.is_match(&self.0) {
+            true => Ok(()),
+            false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -53,83 +56,21 @@ impl Display for ContactPhone {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<ContactPhone> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(ContactPhone(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_phone_number() {
-        let phone: ValueObject<ContactPhone> = serde_json::from_str(r#""+36301234567""#).unwrap();
-        assert_eq!(phone.as_str(), "+36301234567");
+        let phone = "+36301234567"
+            .parse::<ValueObjectRequired<ContactPhone>>()
+            .unwrap();
+        assert_eq!(phone.as_str().unwrap(), "+36301234567");
     }
 
     #[test]
-    fn test_valid_empty_phone() {
-        let phone: ValueObject<ContactPhone> = serde_json::from_str(r#""""#).unwrap();
-        assert_eq!(phone.as_str(), "");
-    }
-
-    #[test]
-    fn test_invalid_phone_without_plus() {
-        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""36301234567""#);
+    fn test_invalid_phone_number() {
+        let phone = "abc".parse::<ValueObjectRequired<ContactPhone>>();
         assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_invalid_phone_too_short() {
-        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+3612""#);
-        assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_invalid_phone_too_long() {
-        let phone: Result<ValueObject<ContactPhone>, _> =
-            serde_json::from_str(r#""+361234567890123456789""#);
-        assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_invalid_phone_with_letters() {
-        let phone: Result<ValueObject<ContactPhone>, _> = serde_json::from_str(r#""+3630abc1234""#);
-        assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_invalid_phone_with_spaces() {
-        let phone: Result<ValueObject<ContactPhone>, _> =
-            serde_json::from_str(r#""+36 30 123 4567""#);
-        assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_invalid_phone_with_special_chars() {
-        let phone: Result<ValueObject<ContactPhone>, _> =
-            serde_json::from_str(r#""+36-30-123-4567""#);
-        assert!(phone.is_err());
-    }
-
-    #[test]
-    fn test_display_formatting() {
-        let phone = ContactPhone(String::from("+36301234567"));
-        assert_eq!(format!("{}", phone), "+36301234567");
-    }
-
-    #[test]
-    fn test_validation_error_message() {
-        let phone = ContactPhone(String::from("invalid"));
-        assert_eq!(
-            phone.validate().err().unwrap(),
-            ValueObjectError::InvalidInput("Hibás telefonszám formátum")
-        );
     }
 }

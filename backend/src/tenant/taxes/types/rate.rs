@@ -17,30 +17,38 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct Rate(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct Rate(f64);
+
+impl Rate {
+    pub const PARSE_ERROR: &'static str = "Hibás adókulcs formátum!";
+    pub const VALIDATION_ERROR: &'static str = "A adókulcs csak 0 és 100 közötti érték lehet.";
+}
 
 impl ValueObjectData for Rate {
-    type DataType = String;
+    type DataType = f64;
 
-    fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().is_empty() {
-            Err(ValueObjectError::InvalidInput("A mező kitöltése kötelező!"))
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.replace(",", ".").parse().map_err(
+                |_| ValueObjectError::InvalidInput(Self::PARSE_ERROR),
+            )?)))
         } else {
-            self.0
-                .trim()
-                .replace(",", ".")
-                .parse::<f64>()
-                .map_err(|_| ValueObjectError::InvalidInput("Hibás fogyasztói ár formátum!"))?;
+            Ok(None)
+        }
+    }
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        if self.0 >= 0_f64 && self.0 <= 100_f64 {
             Ok(())
+        } else {
+            Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -51,27 +59,17 @@ impl Display for Rate {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<Rate> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(Rate(s)).map_err(serde::de::Error::custom)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_valid_rate() {
-        let price: ValueObject<Rate> = serde_json::from_str(r#""123.45""#).unwrap();
-        assert_eq!(price.as_str(), "123.45");
+        let price = "23.45".parse::<ValueObjectRequired<Rate>>().unwrap();
+        assert_eq!(price.as_f64().unwrap(), 23.45_f64);
 
-        let price: ValueObject<Rate> = serde_json::from_str(r#""123,45""#).unwrap();
-        assert_eq!(price.as_str(), "123,45");
+        let price = "23,45".parse::<ValueObjectRequired<Rate>>().unwrap();
+        assert_eq!(price.as_f64().unwrap(), 23.45_f64);
     }
 
     #[test]
@@ -85,31 +83,8 @@ mod tests {
         ];
 
         for case in cases {
-            let price: Result<ValueObject<Rate>, _> = serde_json::from_str(case);
+            let price = case.parse::<ValueObjectRequired<Rate>>();
             assert!(price.is_err());
         }
-    }
-
-    #[test]
-    fn test_display() {
-        let price = Rate("123.45".to_string());
-        assert_eq!(format!("{}", price), "123.45");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let price = Rate("123.45".to_string());
-        assert_eq!(price.get_value(), "123.45");
-    }
-
-    #[test]
-    fn test_validation() {
-        assert!(Rate("123.45".to_string()).validate().is_ok());
-        assert!(Rate("123,45".to_string()).validate().is_ok());
-
-        assert!(Rate("abc".to_string()).validate().is_err());
-        assert!(Rate("12.34.56".to_string()).validate().is_err());
-        assert!(Rate("12,34,56".to_string()).validate().is_err());
-        assert!(Rate("$123".to_string()).validate().is_err());
     }
 }

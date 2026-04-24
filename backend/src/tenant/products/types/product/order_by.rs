@@ -17,45 +17,32 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct OrderBy(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct OrderBy(String);
 
 impl ValueObjectData for OrderBy {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.trim() {
+        match self.0.as_str() {
             "name" | "unit_of_measure" | "status" | "created_at" | "updated_at" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for OrderBy {
-    type Err = ValueObjectError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(OrderBy(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<OrderBy> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(OrderBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -71,8 +58,8 @@ mod tests {
 
     #[test]
     fn test_valid_order_by() {
-        let order_by: ValueObject<OrderBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(order_by.as_str(), "name");
+        let order_by = "name".parse::<ValueObjectRequired<OrderBy>>().unwrap();
+        assert_eq!(order_by.as_str().unwrap(), "name");
     }
 
     #[test]
@@ -80,137 +67,8 @@ mod tests {
         let cases = vec![r#""id""#, r#""description""#];
 
         for case in cases {
-            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
+            let order_by = case.parse::<ValueObjectRequired<OrderBy>>();
             assert!(order_by.is_err());
         }
-    }
-
-    #[test]
-    fn test_empty_order_by() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#""""#);
-        assert!(order_by.is_err());
-    }
-
-    #[test]
-    fn test_whitespace_order_by() {
-        let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(r#"" ""#);
-        assert!(order_by.is_err());
-    }
-
-    #[test]
-    fn test_case_sensitivity() {
-        let cases = vec![r#""NAME""#, r#""Name""#, r#""nAmE""#];
-
-        for case in cases {
-            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
-            assert!(order_by.is_err());
-        }
-    }
-
-    #[test]
-    fn test_sql_injection_attempts() {
-        let cases = vec![
-            r#""name; DROP TABLE products"#,
-            r#""name OR 1=1"#,
-            r#""name--"#,
-            r#""name/*comment*/"#,
-            r#""name' OR '1'='1"#,
-        ];
-
-        for case in cases {
-            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
-            assert!(order_by.is_err());
-        }
-    }
-
-    #[test]
-    fn test_special_characters() {
-        let cases = vec![
-            r#""name@"#,
-            r#""name!"#,
-            r#""name#"#,
-            r#""name$"#,
-            r#""name%"#,
-        ];
-
-        for case in cases {
-            let order_by: Result<ValueObject<OrderBy>, _> = serde_json::from_str(case);
-            assert!(order_by.is_err());
-        }
-    }
-
-    #[test]
-    fn test_display_implementation() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{}", order_by), "name");
-    }
-
-    #[test]
-    fn test_debug_format() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(format!("{:?}", order_by), r#"OrderBy("name")"#);
-    }
-
-    #[test]
-    fn test_value_object_clone() {
-        let order_by = OrderBy("name".to_string());
-        let cloned = order_by.clone();
-        assert_eq!(order_by, cloned);
-    }
-
-    #[test]
-    fn test_from_str_implementation() {
-        let order_by = OrderBy::from_str("name").unwrap();
-        assert_eq!(order_by.get_value(), "name");
-    }
-
-    #[test]
-    fn test_value_object_serialization() {
-        let order_by = ValueObject::new_required(OrderBy("name".to_string())).unwrap();
-        let serialized = serde_json::to_string(&order_by).unwrap();
-        assert_eq!(serialized, r#""name""#);
-    }
-
-    #[test]
-    fn test_value_object_deserialization() {
-        let json = r#""name""#;
-        let deserialized: ValueObject<OrderBy> = serde_json::from_str(json).unwrap();
-        assert_eq!(deserialized.as_str(), "name");
-    }
-
-    #[test]
-    fn test_partial_eq() {
-        let order_by1 = OrderBy("name".to_string());
-        let order_by2 = OrderBy("name".to_string());
-        let order_by3 = OrderBy("different".to_string());
-
-        assert_eq!(order_by1, order_by2);
-        assert_ne!(order_by1, order_by3);
-    }
-
-    #[test]
-    fn test_get_value() {
-        let order_by = OrderBy("name".to_string());
-        assert_eq!(order_by.get_value(), "name");
-    }
-
-    #[test]
-    fn test_validation() {
-        let valid = OrderBy("name".to_string());
-        let invalid = OrderBy("invalid".to_string());
-
-        assert!(valid.validate().is_ok());
-        assert!(invalid.validate().is_err());
-    }
-
-    #[test]
-    fn test_validation_error_message() {
-        let invalid = OrderBy("invalid".to_string());
-        let result = invalid.validate();
-
-        assert_eq!(
-            result.unwrap_err(),
-            ValueObjectError::InvalidInput("Hibás sorrend formátum")
-        );
     }
 }

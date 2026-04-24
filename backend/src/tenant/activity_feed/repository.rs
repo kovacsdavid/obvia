@@ -20,7 +20,8 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::GetQuery;
-use crate::common::types::{EmptyFilterBy, EmptyOrderBy, ValueObject};
+use crate::common::types::Empty;
+use crate::common::value_object::ValueObjectRequired;
 use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
@@ -34,9 +35,9 @@ use uuid::Uuid;
 pub trait ActivityFeedRepository: Send + Sync {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
+        query_params: &GetQuery<Empty, Empty>,
         resource_id: Uuid,
-        resource_type: &ValueObject<ResourceType>,
+        resource_type: &ValueObjectRequired<ResourceType>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
 }
@@ -45,9 +46,9 @@ pub trait ActivityFeedRepository: Send + Sync {
 impl ActivityFeedRepository for PgPoolManager {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<EmptyOrderBy, EmptyFilterBy>,
+        query_params: &GetQuery<Empty, Empty>,
         resource_id: Uuid,
-        resource_type: &ValueObject<ResourceType>,
+        resource_type: &ValueObjectRequired<ResourceType>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         let total: (i64,) = sqlx::query_as(
@@ -60,7 +61,7 @@ impl ActivityFeedRepository for PgPoolManager {
             "#,
         )
         .bind(resource_id)
-        .bind(resource_type.as_str())
+        .bind(resource_type.as_str()?)
         .fetch_one(&self.get_tenant_pool(active_tenant)?)
         .await?;
 
@@ -92,7 +93,7 @@ impl ActivityFeedRepository for PgPoolManager {
 
         let activity_feed = sqlx::query_as::<_, ActivityFeedResolved>(sql)
             .bind(resource_id)
-            .bind(resource_type.as_str())
+            .bind(resource_type.as_str()?)
             .fetch_all(&self.get_tenant_pool(active_tenant)?)
             .await?;
 

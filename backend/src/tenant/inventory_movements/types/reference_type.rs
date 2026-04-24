@@ -17,24 +17,35 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::{ValueObject, ValueObjectData, value_object::ValueObjectError};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct ReferenceType(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct ReferenceType(String);
+
+impl ReferenceType {
+    pub const VALIDATION_ERROR: &'static str = "Hibás referencia típus";
+}
 
 impl ValueObjectData for ReferenceType {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "worksheets" => Ok(()),
-            _ => Err(ValueObjectError::InvalidInput("Hibás referencia típus")),
+            _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -45,12 +56,21 @@ impl Display for ReferenceType {
     }
 }
 
-impl<'de> Deserialize<'de> for ValueObject<ReferenceType> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(ReferenceType(s)).map_err(serde::de::Error::custom)
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid() {
+        let reference_type = "worksheets"
+            .parse::<ValueObjectRequired<ReferenceType>>()
+            .unwrap();
+        assert_eq!(reference_type.as_str().unwrap(), "worksheets");
+    }
+
+    #[test]
+    fn test_invalid() {
+        let reference_type = "invalid".parse::<ValueObjectRequired<ReferenceType>>();
+        assert!(reference_type.is_err());
     }
 }

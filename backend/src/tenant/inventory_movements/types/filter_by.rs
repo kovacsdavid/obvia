@@ -17,42 +17,29 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
-use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct FilterBy(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct FilterBy(String);
 
 impl ValueObjectData for FilterBy {
     type DataType = String;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        let data_trim = data.trim();
+        if !data_trim.is_empty() {
+            Ok(Some(Self(data_trim.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
         Err(ValueObjectError::InvalidInput("Hibás szűrő formátum"))
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
-    }
-}
-
-impl FromStr for FilterBy {
-    type Err = ValueObjectError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(FilterBy(s.to_string()))
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<FilterBy> {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        ValueObject::new_required(FilterBy(s)).map_err(serde::de::Error::custom)
     }
 }
 
@@ -69,83 +56,21 @@ mod tests {
     #[test]
     #[ignore]
     fn test_valid_filter_by() {
-        let filter_by: ValueObject<FilterBy> = serde_json::from_str(r#""name""#).unwrap();
-        assert_eq!(filter_by.as_str(), "name");
+        let filter_by = "name".parse::<ValueObjectRequired<FilterBy>>().unwrap();
+        assert_eq!(filter_by.as_str().unwrap(), "name");
     }
 
     #[test]
     #[ignore]
     fn test_invalid_filter_by() {
-        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
+        let filter_by = "invalid".parse::<ValueObjectRequired<FilterBy>>();
         assert!(filter_by.is_err());
     }
 
     #[test]
     #[ignore]
     fn test_empty_filter_by() {
-        let filter_by: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""""#);
+        let filter_by = "".parse::<ValueObjectRequired<FilterBy>>();
         assert!(filter_by.is_err());
-    }
-
-    #[test]
-    #[ignore]
-    fn test_display_implementation() {
-        let filter_by = FilterBy("name".to_string());
-        assert_eq!(format!("{}", filter_by), "name");
-    }
-
-    #[test]
-    #[ignore]
-    fn test_clone() {
-        let filter_by = FilterBy("name".to_string());
-        let cloned = filter_by.clone();
-        assert_eq!(filter_by, cloned);
-    }
-
-    #[test]
-    #[ignore]
-    fn test_debug_output() {
-        let filter_by = FilterBy("name".to_string());
-        assert_eq!(format!("{:?}", filter_by), r#"FilterBy("name")"#);
-    }
-
-    #[test]
-    #[ignore]
-    fn test_validation() {
-        let valid = FilterBy("name".to_string());
-        assert!(valid.validate().is_ok());
-
-        let invalid = FilterBy("invalid".to_string());
-        assert!(invalid.validate().is_err());
-
-        let empty = FilterBy("".to_string());
-        assert!(empty.validate().is_err());
-    }
-
-    #[test]
-    #[ignore]
-    fn test_get_value() {
-        let value = "name".to_string();
-        let filter_by = FilterBy(value.clone());
-        assert_eq!(filter_by.get_value(), &value);
-    }
-
-    #[test]
-    #[ignore]
-    fn test_from_str() {
-        let filter_by = FilterBy::from_str("name").unwrap();
-        assert_eq!(filter_by.get_value(), "name");
-    }
-
-    #[test]
-    #[ignore]
-    fn test_deserialization_error_messages() {
-        let invalid: Result<ValueObject<FilterBy>, _> = serde_json::from_str(r#""invalid""#);
-        assert!(
-            invalid
-                .unwrap_err()
-                .to_string()
-                .contains("Hibás sorrend formátum")
-        );
     }
 }

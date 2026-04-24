@@ -17,31 +17,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::types::value_object::ValueObjectError;
-use crate::common::types::{ValueObject, ValueObjectData};
-use serde::de::{self, Visitor};
-use serde::{Deserialize, Serialize};
+use crate::common::value_object::*;
 use std::fmt::Display;
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub struct DbPort(pub String);
+#[derive(Debug, PartialEq, Clone)]
+pub struct DbPort(u16);
 
 impl ValueObjectData for DbPort {
-    type DataType = String;
+    type DataType = u16;
 
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.parse().map_err(|_| {
+                ValueObjectError::InvalidInput("Hibás adatbázis port")
+            })?)))
+        } else {
+            Ok(None)
+        }
+    }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        let value = self
-            .0
-            .parse::<u16>()
-            .map_err(|_| ValueObjectError::InvalidInput("Hibás adatbázis port"))?;
-        if value > 1024 {
+        if self.0 > 1024 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput("Hibás adatbázis port"))
         }
     }
 
-    fn get_value(&self) -> &Self::DataType {
+    fn get_data(&self) -> &Self::DataType {
         &self.0
     }
 }
@@ -51,37 +53,6 @@ impl Display for DbPort {
         write!(f, "{}", self.0)
     }
 }
-struct DbPortVisitor;
-
-impl<'de> Visitor<'de> for DbPortVisitor {
-    type Value = ValueObject<DbPort>;
-
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        formatter.write_str("an integer between -2^63 and 2^63-1")
-    }
-    fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        ValueObject::new_required(DbPort(v.to_string())).map_err(de::Error::custom)
-    }
-    fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        ValueObject::new_required(DbPort(v.to_string())).map_err(de::Error::custom)
-    }
-}
-
-impl<'de> Deserialize<'de> for ValueObject<DbPort> {
-    /// A custom implementation of the `deserialize` method
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_i64(DbPortVisitor)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -89,62 +60,19 @@ mod tests {
 
     #[test]
     fn test_valid_db_port_i64() {
-        let port: ValueObject<DbPort> = serde_json::from_str("5432").unwrap();
-        assert_eq!(port.as_u16().unwrap(), 5432);
-    }
-
-    #[test]
-    fn test_valid_db_port_u64() {
-        let port: ValueObject<DbPort> = serde_json::from_str("5432").unwrap();
+        let port = "5432".parse::<ValueObjectRequired<DbPort>>().unwrap();
         assert_eq!(port.as_u16().unwrap(), 5432);
     }
 
     #[test]
     fn test_invalid_db_port_too_low() {
-        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("1024");
+        let port = "1024".parse::<ValueObjectRequired<DbPort>>();
         assert!(port.is_err());
     }
 
     #[test]
     fn test_invalid_db_port_too_high() {
-        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("65536");
+        let port = "65536".parse::<ValueObjectRequired<DbPort>>();
         assert!(port.is_err());
-    }
-
-    #[test]
-    fn test_validation() {
-        let valid_port = DbPort(5432.to_string());
-        assert!(valid_port.validate().is_ok());
-
-        let invalid_port_low = DbPort(1024.to_string());
-        assert!(invalid_port_low.validate().is_err());
-
-        let invalid_port_high = DbPort(65536.to_string());
-        assert!(invalid_port_high.validate().is_err());
-    }
-
-    #[test]
-    fn test_display() {
-        let port = DbPort(5432.to_string());
-        assert_eq!(format!("{}", port), "5432");
-    }
-
-    #[test]
-    fn test_get_value() {
-        let port = DbPort(5432.to_string());
-        assert_eq!(port.get_value(), 5432.to_string().as_str());
-    }
-
-    #[test]
-    fn test_deserialization_invalid_json() {
-        let port: Result<ValueObject<DbPort>, _> = serde_json::from_str("invalid");
-        assert!(port.is_err());
-    }
-
-    #[test]
-    fn test_cloning() {
-        let port = DbPort(5432.to_string());
-        let cloned = port.clone();
-        assert_eq!(port, cloned);
     }
 }

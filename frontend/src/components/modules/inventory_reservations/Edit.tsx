@@ -51,7 +51,12 @@ import {
 } from "@/components/ui/field";
 
 export default function Edit() {
-  const [inventoryId, setInventoryId] = React.useState("");
+  const params = useParams();
+  const routeInventoryId = React.useMemo(
+    () => params["inventoryId"] ?? "",
+    [params],
+  );
+  const [inventoryId, setInventoryId] = React.useState(routeInventoryId);
   const [referenceType, setReferenceType] = React.useState<string | null>("");
   const [referenceId, setReferenceId] = React.useState<string | null>("");
   const [reservedUntil, setReservedUntil] = React.useState<string | null>("");
@@ -62,14 +67,9 @@ export default function Edit() {
     React.useState<SelectOptionList>([]);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const params = useParams();
   const { setListResponse } = useSelectList();
   const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
     useFormError();
-  const routeInventoryId = React.useMemo(
-    () => params["inventoryId"] ?? "",
-    [params],
-  );
   const id = React.useMemo(() => params["id"] ?? "", [params]);
   const [openNewInventoryDialog, setOpenNewInventoryDialog] =
     React.useState(false);
@@ -86,10 +86,6 @@ export default function Edit() {
       setOpenNewInventoryDialog(false);
     });
   };
-
-  useEffect(() => {
-    setInventoryId(routeInventoryId);
-  }, [routeInventoryId]);
 
   const handleReferenceTypeChange = useCallback(
     async (newReferenceType: string) => {
@@ -110,7 +106,7 @@ export default function Edit() {
     [dispatch, setErrors, setListResponse, unexpectedError],
   );
 
-  const loadLists = useCallback(async () => {
+  const loadLists = async () => {
     if (!routeInventoryId) {
       return dispatch(select_list("inventory")).then((response) => {
         if (select_list.fulfilled.match(response)) {
@@ -125,7 +121,7 @@ export default function Edit() {
       });
     }
     return Promise.resolve();
-  }, [dispatch, routeInventoryId, setErrors, setListResponse, unexpectedError]);
+  };
 
   useEffect(() => {
     loadLists().then(() => {

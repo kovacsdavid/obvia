@@ -156,7 +156,7 @@ pub async fn register(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::try_register(auth_module.clone(), user_input).await {
+    match AuthService::try_register(auth_module.clone(), &user_input).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -294,8 +294,8 @@ mod tests {
 
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
-    use crate::common::types::ValueObject;
     use crate::common::types::{Email, FirstName, LastName, Password};
+    use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::auth::model::AccountEventLogEntry;
@@ -541,10 +541,10 @@ mod tests {
             .withf(move |payload_param, hashed_password| {
                 *payload_param
                     == RegisterRequest {
-                        email: ValueObject::new_required(Email("testuser@example.com".to_string())).unwrap(),
-                        first_name: ValueObject::new_required(FirstName("Test".to_string())).unwrap(),
-                        last_name: ValueObject::new_required(LastName("User".to_string())).unwrap(),
-                        password: ValueObject::new_required(Password("Password1!".to_string())).unwrap(),
+                        email: "testuser@example.com".parse::<ValueObjectRequired<Email>>().unwrap(),
+                        first_name: "Test".parse::<ValueObjectRequired<FirstName>>().unwrap(),
+                        last_name: "User".parse::<ValueObjectRequired<LastName>>().unwrap(),
+                        password: "Password1!".parse::<ValueObjectRequired<Password>>().unwrap(),
                     }
                     && Argon2::default()
                         .verify_password(

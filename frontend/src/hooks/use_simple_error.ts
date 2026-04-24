@@ -23,35 +23,35 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use_auth";
 
 export function useSimpleError() {
-  const [errors, setErrors] = useState<SimpleError | null>(null);
-  const navigate = useNavigate();
-  const { logout } = useAuth();
+    const [errors, setErrors] = useState<SimpleError | null>(null);
+    const navigate = useNavigate();
+    const { logout } = useAuth();
 
-  const unexpectedError = useCallback(
-    (statusCode: number | null = null) => {
-      switch (statusCode) {
-        case 401:
-          logout();
-          navigate("/bejelentkezes");
-          break;
-        case 429:
-          setErrors({
-            message:
-              "Túl sok kérés érkezett rövid időn belül, ezért a szerver ideiglenesen korlátozta a hozzáférést. Próbáld újra néhány másodperc múlva!",
-          });
-          break;
-        default:
-          setErrors({
-            message: "Váratlan hiba történt a feldolgozás során!",
-          });
-      }
-    },
-    [logout, navigate],
-  );
+    const unexpectedError = useCallback(
+        (statusCode: number | null = null) => {
+            switch (statusCode) {
+                case 401:
+                    logout();
+                    navigate("/bejelentkezes");
+                    break;
+                case 429:
+                    setErrors({
+                        message:
+                            "Túl sok kérés érkezett rövid időn belül, ezért a szerver ideiglenesen korlátozta a hozzáférést. Próbáld újra néhány másodperc múlva!",
+                    });
+                    break;
+                default:
+                    setErrors({
+                        message: "Váratlan hiba történt a feldolgozás során!",
+                    });
+            }
+        },
+        [logout, navigate],
+    );
 
-  return {
-    errors,
-    setErrors,
-    unexpectedError,
-  };
+    return {
+        errors,
+        setErrors,
+        unexpectedError,
+    };
 }

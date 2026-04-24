@@ -18,59 +18,61 @@
  */
 
 import type {
-  ActivityFeedResolvedEntry,
-  PaginatedActivityFeedResponse,
-  PostCommentResponse,
+    ActivityFeedResolvedEntry,
+    PaginatedActivityFeedResponse,
+    PostCommentResponse,
 } from "@/components/modules/activity_feed/lib/interface";
 import {
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
+    isCommonResponse,
+    isFormError,
+    isPaginatedDataResponse,
 } from "@/lib/interfaces/common";
 
 export function isActivityFeedEntry(
-  data: unknown,
+    data: unknown,
 ): data is ActivityFeedResolvedEntry {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "resource_id" in data &&
-    typeof data.resource_id === "string" &&
-    "resource_type" in data &&
-    typeof data.resource_type === "string" &&
-    "activity_type" in data &&
-    typeof data.activity_type === "string" &&
-    "content" in data &&
-    typeof data.content === "string" &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "resource_id" in data &&
+        typeof data.resource_id === "string" &&
+        "resource_type" in data &&
+        typeof data.resource_type === "string" &&
+        "activity_type" in data &&
+        typeof data.activity_type === "string" &&
+        "content" in data &&
+        typeof data.content === "string" &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "created_by" in data &&
+        typeof data.created_by === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
 }
 
 export function isPostCommentResponse(
-  data: unknown,
+    data: unknown,
 ): data is PostCommentResponse {
-  return isCommonResponse(data, isActivityFeedEntry, isFormError);
+    return isCommonResponse(data, isActivityFeedEntry, isFormError);
 }
 
 export function isActivityFeedArray(
-  data: unknown,
+    data: unknown,
 ): data is ActivityFeedResolvedEntry[] {
-  return Array.isArray(data) && data.every((item) => isActivityFeedEntry(item));
+    return (
+        Array.isArray(data) && data.every((item) => isActivityFeedEntry(item))
+    );
 }
 
 export function isPaginatedActivityFeedResponse(
-  data: unknown,
+    data: unknown,
 ): data is PaginatedActivityFeedResponse {
-  return isPaginatedDataResponse(data, isActivityFeedArray);
+    return isPaginatedDataResponse(data, isActivityFeedArray);
 }

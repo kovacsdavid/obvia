@@ -27,54 +27,54 @@ type ActivityFeedState = object;
 const initialState: ActivityFeedState = {};
 
 export const list = createAsyncThunk(
-  "activity_feed/list",
-  async (
-    {
-      resourceId,
-      resourceType,
-    }: {
-      resourceId: string;
-      resourceType: string;
+    "activity_feed/list",
+    async (
+        {
+            resourceId,
+            resourceType,
+        }: {
+            resourceId: string;
+            resourceType: string;
+        },
+        { getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await activityFeedApi.list(resourceId, resourceType, token);
     },
-    { getState, dispatch },
-  ) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await activityFeedApi.list(resourceId, resourceType, token);
-  },
 );
 
 export const postComment = createAsyncThunk(
-  "activity_feed/post_comment",
-  async (
-    {
-      resourceId,
-      resourceType,
-      comment,
-    }: {
-      resourceId: string;
-      resourceType: string;
-      comment: string;
+    "activity_feed/post_comment",
+    async (
+        {
+            resourceId,
+            resourceType,
+            comment,
+        }: {
+            resourceId: string;
+            resourceType: string;
+            comment: string;
+        },
+        { getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await activityFeedApi.post_comment(
+            resourceId,
+            resourceType,
+            comment,
+            token,
+        );
     },
-    { getState, dispatch },
-  ) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await activityFeedApi.post_comment(
-      resourceId,
-      resourceType,
-      comment,
-      token,
-    );
-  },
 );
 
 const activityFeedSlice = createSlice({
-  name: "activity_feed",
-  initialState,
-  reducers: {},
+    name: "activity_feed",
+    initialState,
+    reducers: {},
 });
 
 export default activityFeedSlice.reducer;

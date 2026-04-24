@@ -18,157 +18,161 @@
  */
 
 import {
-  type FormError,
-  isCommonResponse,
-  isFormError,
-  isSimpleError,
-  isSimpleMessageData,
-  type SimpleMessageData,
-  type SimpleError,
+    type FormError,
+    isCommonResponse,
+    isFormError,
+    isSimpleError,
+    isSimpleMessageData,
+    type SimpleMessageData,
+    type SimpleError,
 } from "@/lib/interfaces/common.ts";
 import type {
-  Claims,
-  ClaimsResponse,
-  DisableOtpResponse,
-  EnableOtpResponse,
-  ForgottenPasswordResponse,
-  LoginData,
-  LoginResponse,
-  User,
-  NewPasswordResponse,
-  RegisterResponse,
-  VerifyEmailResponse,
-  VerifyOtpResponse,
+    Claims,
+    ClaimsResponse,
+    DisableOtpResponse,
+    EnableOtpResponse,
+    ForgottenPasswordResponse,
+    LoginData,
+    LoginResponse,
+    User,
+    NewPasswordResponse,
+    RegisterResponse,
+    VerifyEmailResponse,
+    VerifyOtpResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 
 export function isClaims(data: unknown): data is Claims {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "sub" in data &&
-    typeof data.sub === "string" &&
-    "exp" in data &&
-    typeof data.exp === "number" &&
-    "iat" in data &&
-    typeof data.iat === "number" &&
-    "nbf" in data &&
-    typeof data.nbf === "number" &&
-    "iss" in data &&
-    typeof data.iss === "string" &&
-    "aud" in data &&
-    typeof data.aud === "string" &&
-    "jti" in data &&
-    typeof data.jti === "string" &&
-    "family_id" in data &&
-    (data.family_id === null || typeof data.family_id === "string") &&
-    "active_tenant" in data &&
-    (data.active_tenant === null || typeof data.active_tenant === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "sub" in data &&
+        typeof data.sub === "string" &&
+        "exp" in data &&
+        typeof data.exp === "number" &&
+        "iat" in data &&
+        typeof data.iat === "number" &&
+        "nbf" in data &&
+        typeof data.nbf === "number" &&
+        "iss" in data &&
+        typeof data.iss === "string" &&
+        "aud" in data &&
+        typeof data.aud === "string" &&
+        "jti" in data &&
+        typeof data.jti === "string" &&
+        "family_id" in data &&
+        (data.family_id === null || typeof data.family_id === "string") &&
+        "active_tenant" in data &&
+        (data.active_tenant === null || typeof data.active_tenant === "string")
+    );
 }
 
 export function isClaimsResponse(data: unknown): data is ClaimsResponse {
-  return isCommonResponse(data, isClaims, isSimpleError);
+    return isCommonResponse(data, isClaims, isSimpleError);
 }
 
 export function isUser(data: unknown): data is User {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "email" in data &&
-    typeof data.email === "string" &&
-    "first_name" in data &&
-    (data.first_name === null || typeof data.first_name === "string") &&
-    "last_name" in data &&
-    (data.last_name === null || typeof data.last_name === "string") &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "profile_picture_url" in data &&
-    (data.profile_picture_url === null ||
-      typeof data.profile_picture_url === "string") &&
-    "is_mfa_enabled" in data &&
-    typeof data.is_mfa_enabled === "boolean"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "email" in data &&
+        typeof data.email === "string" &&
+        "first_name" in data &&
+        (data.first_name === null || typeof data.first_name === "string") &&
+        "last_name" in data &&
+        (data.last_name === null || typeof data.last_name === "string") &&
+        "status" in data &&
+        typeof data.status === "string" &&
+        "profile_picture_url" in data &&
+        (data.profile_picture_url === null ||
+            typeof data.profile_picture_url === "string") &&
+        "is_mfa_enabled" in data &&
+        typeof data.is_mfa_enabled === "boolean"
+    );
 }
 
 export function isLoginData(data: unknown): data is LoginData {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "claims" in data &&
-    isClaims(data.claims) &&
-    "user" in data &&
-    isUser(data.user) &&
-    "token" in data &&
-    typeof data.token === "string"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "claims" in data &&
+        isClaims(data.claims) &&
+        "user" in data &&
+        isUser(data.user) &&
+        "token" in data &&
+        typeof data.token === "string"
+    );
 }
 
 export function isLoginResponse(data: unknown): data is LoginResponse {
-  return isCommonResponse<LoginData, FormError>(data, isLoginData, isFormError);
+    return isCommonResponse<LoginData, FormError>(
+        data,
+        isLoginData,
+        isFormError,
+    );
 }
 
 export function isRegisterResponse(data: unknown): data is RegisterResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  );
+    return isCommonResponse<SimpleMessageData, FormError>(
+        data,
+        isSimpleMessageData,
+        isFormError,
+    );
 }
 
 export function isVerifyEmailResponse(
-  data: unknown,
+    data: unknown,
 ): data is VerifyEmailResponse {
-  return isCommonResponse<SimpleMessageData, SimpleError>(
-    data,
-    isSimpleMessageData,
-    isSimpleError,
-  );
+    return isCommonResponse<SimpleMessageData, SimpleError>(
+        data,
+        isSimpleMessageData,
+        isSimpleError,
+    );
 }
 
 export function isForgottenPasswordResponse(
-  data: unknown,
+    data: unknown,
 ): data is ForgottenPasswordResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  );
+    return isCommonResponse<SimpleMessageData, FormError>(
+        data,
+        isSimpleMessageData,
+        isFormError,
+    );
 }
 
 export function isNewPasswordResponse(
-  data: unknown,
+    data: unknown,
 ): data is NewPasswordResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  );
+    return isCommonResponse<SimpleMessageData, FormError>(
+        data,
+        isSimpleMessageData,
+        isFormError,
+    );
 }
 
 export function isEnableOtpResponse(data: unknown): data is EnableOtpResponse {
-  return isCommonResponse<string, FormError>(
-    data,
-    (data: unknown): data is string => typeof data === "string",
-    isFormError,
-  );
+    return isCommonResponse<string, FormError>(
+        data,
+        (data: unknown): data is string => typeof data === "string",
+        isFormError,
+    );
 }
 
 export function isVerifyOtpResponse(data: unknown): data is VerifyOtpResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  );
+    return isCommonResponse<SimpleMessageData, FormError>(
+        data,
+        isSimpleMessageData,
+        isFormError,
+    );
 }
 
 export function isDisableOtpResponse(
-  data: unknown,
+    data: unknown,
 ): data is DisableOtpResponse {
-  return isCommonResponse<SimpleMessageData, FormError>(
-    data,
-    isSimpleMessageData,
-    isFormError,
-  );
+    return isCommonResponse<SimpleMessageData, FormError>(
+        data,
+        isSimpleMessageData,
+        isFormError,
+    );
 }

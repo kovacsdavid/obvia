@@ -24,77 +24,77 @@ import type { WarehouseUserInput } from "@/components/modules/warehouses/lib/int
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface WarehousesState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: WarehousesState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const create = createAsyncThunk(
-  "warehouses/create",
-  async (requestData: WarehouseUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return warehousesApi.create(requestData, token);
-  },
+    "warehouses/create",
+    async (requestData: WarehouseUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return warehousesApi.create(requestData, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "warehouses/list",
-  async (query: string | null, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return warehousesApi.list(query, token);
-  },
+    "warehouses/list",
+    async (query: string | null, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return warehousesApi.list(query, token);
+    },
 );
 
 export const get_resolved = createAsyncThunk(
-  "warehouses/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await warehousesApi.get_resolved(uuid, token);
-  },
+    "warehouses/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await warehousesApi.get_resolved(uuid, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "warehouses/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await warehousesApi.get(uuid, token);
-  },
+    "warehouses/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await warehousesApi.get(uuid, token);
+    },
 );
 
 export const update = createAsyncThunk(
-  "warehouses/update",
-  async (requestData: WarehouseUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await warehousesApi.update(requestData, token);
-  },
+    "warehouses/update",
+    async (requestData: WarehouseUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await warehousesApi.update(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "warehouses/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await warehousesApi.deleteItem(uuid, token);
-  },
+    "warehouses/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await warehousesApi.deleteItem(uuid, token);
+    },
 );
 
 const warehousesSlice = createSlice({
-  name: "warehouses",
-  initialState,
-  reducers: {},
+    name: "warehouses",
+    initialState,
+    reducers: {},
 });
 
 export default warehousesSlice.reducer;

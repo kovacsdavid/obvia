@@ -18,182 +18,185 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import {
-  type ClaimsResponse,
-  type ForgottenPasswordRequest,
-  type ForgottenPasswordResponse,
-  type LoginRequest,
-  type LoginResponse,
-  type NewPasswordRequest,
-  type NewPasswordResponse,
-  type RegisterRequest,
-  type RegisterResponse,
-  type VerifyEmailResponse,
+    type ClaimsResponse,
+    type ForgottenPasswordRequest,
+    type ForgottenPasswordResponse,
+    type LoginRequest,
+    type LoginResponse,
+    type NewPasswordRequest,
+    type NewPasswordResponse,
+    type RegisterRequest,
+    type RegisterResponse,
+    type VerifyEmailResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 import {
-  type ProcessedResponse,
-  ProcessResponse,
+    type ProcessedResponse,
+    ProcessResponse,
 } from "@/lib/interfaces/common.ts";
 import {
-  isClaimsResponse,
-  isForgottenPasswordResponse,
-  isLoginResponse,
-  isNewPasswordResponse,
-  isRegisterResponse,
-  isVerifyEmailResponse,
+    isClaimsResponse,
+    isForgottenPasswordResponse,
+    isLoginResponse,
+    isNewPasswordResponse,
+    isRegisterResponse,
+    isVerifyEmailResponse,
 } from "@/components/modules/auth/lib/guards.ts";
 
 export async function login({
-  email,
-  password,
-  otp,
+    email,
+    password,
+    otp,
 }: LoginRequest): Promise<ProcessedResponse<LoginResponse>> {
-  let body;
-  if (typeof otp === "string" && otp.trim().length > 0) {
-    body = JSON.stringify({ email, password, otp });
-  } else {
-    body = JSON.stringify({ email, password });
-  }
-  return await fetch(`/api/auth/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body,
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isLoginResponse)) ?? unexpectedFormError
-    );
-  });
+    let body;
+    if (typeof otp === "string" && otp.trim().length > 0) {
+        body = JSON.stringify({ email, password, otp });
+    } else {
+        body = JSON.stringify({ email, password });
+    }
+    return await fetch(`/api/auth/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body,
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isLoginResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
-  return await fetch(`/api/auth/t/refresh`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isLoginResponse)) ?? unexpectedFormError
-    );
-  });
+    return await fetch(`/api/auth/t/refresh`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isLoginResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function logout(): Promise<Response> {
-  return await fetch(`/api/auth/t/logout`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  });
+    return await fetch(`/api/auth/t/logout`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    });
 }
 
 export async function register({
-  firstName,
-  lastName,
-  email,
-  password,
-  passwordConfirm,
+    firstName,
+    lastName,
+    email,
+    password,
+    passwordConfirm,
 }: RegisterRequest): Promise<ProcessedResponse<RegisterResponse>> {
-  return await fetch(`/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      password,
-      password_confirm: passwordConfirm,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isRegisterResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            email,
+            password,
+            password_confirm: passwordConfirm,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isRegisterResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function get_claims(
-  token: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<ClaimsResponse>> {
-  return await fetch(`/api/auth/get_claims`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isClaimsResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/auth/get_claims`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isClaimsResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function verfiy_email(
-  id: string,
+    id: string,
 ): Promise<ProcessedResponse<VerifyEmailResponse>> {
-  return await fetch(`/api/auth/verify_email?id=${id}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isVerifyEmailResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/auth/verify_email?id=${id}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isVerifyEmailResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function forgottenPassword(
-  forgottenPasswordRequest: ForgottenPasswordRequest,
+    forgottenPasswordRequest: ForgottenPasswordRequest,
 ): Promise<ProcessedResponse<ForgottenPasswordResponse>> {
-  return await fetch(`/api/auth/forgotten_password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email: forgottenPasswordRequest.email,
-    }),
-    signal: AbortSignal.timeout(10000),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isForgottenPasswordResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/auth/forgotten_password`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            email: forgottenPasswordRequest.email,
+        }),
+        signal: AbortSignal.timeout(10000),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isForgottenPasswordResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function newPassword(
-  newPasswordRequest: NewPasswordRequest,
+    newPasswordRequest: NewPasswordRequest,
 ): Promise<ProcessedResponse<NewPasswordResponse>> {
-  return await fetch(`/api/auth/new_password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      token: newPasswordRequest.token,
-      password: newPasswordRequest.password,
-      password_confirm: newPasswordRequest.password_confirm,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isNewPasswordResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/auth/new_password`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            token: newPasswordRequest.token,
+            password: newPasswordRequest.password,
+            password_confirm: newPasswordRequest.password_confirm,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isNewPasswordResponse)) ??
+            unexpectedError
+        );
+    });
 }

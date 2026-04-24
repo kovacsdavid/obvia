@@ -18,206 +18,212 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import {
-  type CreateTaxResponse,
-  type DeleteTaxResponse,
-  type PaginatedTaxResolvedListResponse,
-  type TaxResolvedResponse,
-  type TaxResponse,
-  type TaxUserInput,
-  type UpdateTaxResponse,
+    type CreateTaxResponse,
+    type DeleteTaxResponse,
+    type PaginatedTaxResolvedListResponse,
+    type TaxResolvedResponse,
+    type TaxResponse,
+    type TaxUserInput,
+    type UpdateTaxResponse,
 } from "@/components/modules/taxes/lib/interface.ts";
 import {
-  isSelectOptionListResponse,
-  type ProcessedResponse,
-  ProcessResponse,
-  type SelectOptionListResponse,
+    isSelectOptionListResponse,
+    type ProcessedResponse,
+    ProcessResponse,
+    type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateTaxResponse,
-  isDeleteTaxResponse,
-  isPaginatedTaxResolvedListResponse,
-  isTaxResolvedResponse,
-  isTaxResponse,
-  isUpdateTaxResponse,
+    isCreateTaxResponse,
+    isDeleteTaxResponse,
+    isPaginatedTaxResolvedListResponse,
+    isTaxResolvedResponse,
+    isTaxResponse,
+    isUpdateTaxResponse,
 } from "@/components/modules/taxes/lib/guards.ts";
 
 export async function create(
-  {
-    id,
-    rate,
-    description,
-    countryCode,
-    taxCategory,
-    isRateApplicable,
-    legalText,
-    reportingCode,
-    isDefault,
-    status,
-  }: TaxUserInput,
-  token: string | null,
+    {
+        id,
+        rate,
+        description,
+        countryCode,
+        taxCategory,
+        isRateApplicable,
+        legalText,
+        reportingCode,
+        isDefault,
+        status,
+    }: TaxUserInput,
+    token: string | null,
 ): Promise<ProcessedResponse<CreateTaxResponse>> {
-  return await fetch(`/api/taxes/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id,
-      rate,
-      description,
-      country_code: countryCode,
-      tax_category: taxCategory,
-      is_rate_applicable: isRateApplicable,
-      legal_text: legalText,
-      reporting_code: reportingCode,
-      is_default: isDefault,
-      status,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isCreateTaxResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/taxes/create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            id,
+            rate,
+            description,
+            country_code: countryCode,
+            tax_category: taxCategory,
+            is_rate_applicable: isRateApplicable,
+            legal_text: legalText,
+            reporting_code: reportingCode,
+            is_default: isDefault,
+            status,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isCreateTaxResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function update(
-  {
-    id,
-    rate,
-    description,
-    countryCode,
-    taxCategory,
-    isRateApplicable,
-    legalText,
-    reportingCode,
-    isDefault,
-    status,
-  }: TaxUserInput,
-  token: string | null,
+    {
+        id,
+        rate,
+        description,
+        countryCode,
+        taxCategory,
+        isRateApplicable,
+        legalText,
+        reportingCode,
+        isDefault,
+        status,
+    }: TaxUserInput,
+    token: string | null,
 ): Promise<ProcessedResponse<UpdateTaxResponse>> {
-  return await fetch(`/api/taxes/update`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id,
-      rate,
-      description,
-      country_code: countryCode,
-      tax_category: taxCategory,
-      is_rate_applicable: isRateApplicable,
-      legal_text: legalText,
-      reporting_code: reportingCode,
-      is_default: isDefault,
-      status,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isUpdateTaxResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/taxes/update`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            id,
+            rate,
+            description,
+            country_code: countryCode,
+            tax_category: taxCategory,
+            is_rate_applicable: isRateApplicable,
+            legal_text: legalText,
+            reporting_code: reportingCode,
+            is_default: isDefault,
+            status,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isUpdateTaxResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function list(
-  query: string | null,
-  token: string | null,
+    query: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<PaginatedTaxResolvedListResponse>> {
-  const uri = query === null ? `/api/taxes/list` : `/api/taxes/list?q=${query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isPaginatedTaxResolvedListResponse)) ??
-      unexpectedError
-    );
-  });
+    const uri =
+        query === null ? `/api/taxes/list` : `/api/taxes/list?q=${query}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isPaginatedTaxResolvedListResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function get_resolved(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<TaxResolvedResponse>> {
-  return await fetch(`/api/taxes/get_resolved?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isTaxResolvedResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/taxes/get_resolved?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isTaxResolvedResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function get(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<TaxResponse>> {
-  return await fetch(`/api/taxes/get?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (await ProcessResponse(response, isTaxResponse)) ?? unexpectedError;
-  });
+    return await fetch(`/api/taxes/get?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isTaxResponse)) ?? unexpectedError
+        );
+    });
 }
 
 export async function deleteItem(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<DeleteTaxResponse>> {
-  return await fetch(`/api/taxes/delete?uuid=${uuid}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isDeleteTaxResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/taxes/delete?uuid=${uuid}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isDeleteTaxResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function select_list(
-  list: string,
-  token: string | null,
+    list: string,
+    token: string | null,
 ): Promise<ProcessedResponse<SelectOptionListResponse>> {
-  return await fetch(`/api/taxes/select_list?list=${list}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isSelectOptionListResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/taxes/select_list?list=${list}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            unexpectedError
+        );
+    });
 }

@@ -18,73 +18,73 @@
  */
 
 import type {
-  CommonResponse,
-  FormError,
-  PaginatedDataResponse,
-  SimpleError,
-  SimpleMessageData,
+    CommonResponse,
+    FormError,
+    PaginatedDataResponse,
+    SimpleError,
+    SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface InventoryMovementUserInput {
-  id: string | null;
-  inventoryId: string;
-  movementType: string;
-  quantity: string;
-  referenceType: string | null;
-  referenceId: string | null;
-  unitPrice: string | null;
-  totalPrice: string | null;
-  taxId: string;
+    id: string | null;
+    inventoryId: string;
+    movementType: string;
+    quantity: string;
+    referenceType: string | null;
+    referenceId: string | null;
+    unitPrice: string | null;
+    totalPrice: string | null;
+    taxId: string;
 }
 
 export interface InventoryMovement {
-  id: string;
-  inventory_id: string;
-  movement_type: string;
-  quantity: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  unit_price: string | null; // BigDecimal serialized as string
-  total_price: string | null; // BigDecimal serialized as string
-  tax_id: string;
-  movement_date: string;
-  created_by_id: string;
-  created_at: string;
+    id: string;
+    inventory_id: string;
+    movement_type: string;
+    quantity: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    unit_price: string | null; // BigDecimal serialized as string
+    total_price: string | null; // BigDecimal serialized as string
+    tax_id: string;
+    movement_date: string;
+    created_by_id: string;
+    created_at: string;
 }
 
 export interface InventoryMovementResolved {
-  id: string;
-  inventory_id: string;
-  movement_type: string;
-  quantity: string;
-  reference_type: string | null;
-  reference_id: string | null;
-  unit_price: string | null; // BigDecimal serialized as string
-  total_price: string | null; // BigDecimal serialized as string
-  tax_id: string;
-  tax: string | null;
-  movement_date: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
+    id: string;
+    inventory_id: string;
+    movement_type: string;
+    quantity: string;
+    reference_type: string | null;
+    reference_id: string | null;
+    unit_price: string | null; // BigDecimal serialized as string
+    total_price: string | null; // BigDecimal serialized as string
+    tax_id: string;
+    tax: string | null;
+    movement_date: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
 }
 
 export type CreateInventoryMovementResponse = CommonResponse<
-  InventoryMovement,
-  FormError
+    InventoryMovement,
+    FormError
 >;
 export type DeleteInventoryMovementResponse = CommonResponse<
-  SimpleMessageData,
-  SimpleError
+    SimpleMessageData,
+    SimpleError
 >;
 export type InventoryMovementResponse = CommonResponse<
-  InventoryMovement,
-  SimpleError
+    InventoryMovement,
+    SimpleError
 >;
 export type InventoryMovementResolvedResponse = CommonResponse<
-  InventoryMovementResolved,
-  SimpleError
+    InventoryMovementResolved,
+    SimpleError
 >;
 export type InventoryMovementResolvedList = InventoryMovementResolved[];
 export type PaginatedInventoryMovementResolvedListResponse =
-  PaginatedDataResponse<InventoryMovementResolvedList, SimpleError>;
+    PaginatedDataResponse<InventoryMovementResolvedList, SimpleError>;

@@ -63,195 +63,215 @@ import Settings from "@/components/modules/users/Settings";
 import { useAppSelector } from "./store/hooks";
 
 interface RouteConfig {
-  path: string;
-  element: React.ComponentType;
-  isPrivate?: boolean;
+    path: string;
+    element: React.ComponentType;
+    isPrivate?: boolean;
 }
 
 const ROUTE_CONFIGS: RouteConfig[] = [
-  // Public routes
-  {
-    path: "/",
-    element: (): React.JSX.Element => <Navigate to="/bejelentkezes" replace />,
-    isPrivate: false,
-  },
-  { path: "/bejelentkezes", element: Login, isPrivate: false },
-  { path: "/regisztracio", element: Register, isPrivate: false },
-  {
-    path: "/email_megerosites/:id",
-    element: EmailVerification,
-    isPrivate: false,
-  },
-  { path: "/elfelejtett_jelszo", element: ForgottenPassword, isPrivate: false },
-  {
-    path: "/elfelejtett_jelszo/:id",
-    element: ForgottenPassword,
-    isPrivate: false,
-  },
+    // Public routes
+    {
+        path: "/",
+        element: (): React.JSX.Element => (
+            <Navigate to="/bejelentkezes" replace />
+        ),
+        isPrivate: false,
+    },
+    { path: "/bejelentkezes", element: Login, isPrivate: false },
+    { path: "/regisztracio", element: Register, isPrivate: false },
+    {
+        path: "/email_megerosites/:id",
+        element: EmailVerification,
+        isPrivate: false,
+    },
+    {
+        path: "/elfelejtett_jelszo",
+        element: ForgottenPassword,
+        isPrivate: false,
+    },
+    {
+        path: "/elfelejtett_jelszo/:id",
+        element: ForgottenPassword,
+        isPrivate: false,
+    },
 
-  { path: "/felhasznalo/beallitasok", element: Settings, isPrivate: true },
+    { path: "/felhasznalo/beallitasok", element: Settings, isPrivate: true },
 
-  // Dashboard
-  { path: "/vezerlopult", element: Dashboard, isPrivate: true },
+    // Dashboard
+    { path: "/vezerlopult", element: Dashboard, isPrivate: true },
 
-  // Tenants
-  { path: "/adatbazis/letrehozas", element: TenantsEdit, isPrivate: true },
-  { path: "/adatbazis/lista", element: TenantsList, isPrivate: true },
-  { path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true },
+    // Tenants
+    { path: "/adatbazis/letrehozas", element: TenantsEdit, isPrivate: true },
+    { path: "/adatbazis/lista", element: TenantsList, isPrivate: true },
+    { path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true },
 
-  // Customers
-  { path: "/vevo/letrehozas", element: CustomerEdit, isPrivate: true },
-  { path: "/vevo/modositas/:id", element: CustomerEdit, isPrivate: true },
-  { path: "/vevo/lista", element: CustomerList, isPrivate: true },
-  { path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true },
+    // Customers
+    { path: "/vevo/letrehozas", element: CustomerEdit, isPrivate: true },
+    { path: "/vevo/modositas/:id", element: CustomerEdit, isPrivate: true },
+    { path: "/vevo/lista", element: CustomerList, isPrivate: true },
+    { path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true },
 
-  // Inventory
-  {
-    path: "/raktarkeszlet/letrehozas",
-    element: InventoryEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet/modositas/:id",
-    element: InventoryEdit,
-    isPrivate: true,
-  },
-  { path: "/raktarkeszlet/lista", element: InventoryList, isPrivate: true },
-  {
-    path: "/raktarkeszlet/reszletek/:id",
-    element: InventoryView,
-    isPrivate: true,
-  },
+    // Inventory
+    {
+        path: "/raktarkeszlet/letrehozas",
+        element: InventoryEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet/modositas/:id",
+        element: InventoryEdit,
+        isPrivate: true,
+    },
+    { path: "/raktarkeszlet/lista", element: InventoryList, isPrivate: true },
+    {
+        path: "/raktarkeszlet/reszletek/:id",
+        element: InventoryView,
+        isPrivate: true,
+    },
 
-  // InventoryMovements
-  {
-    path: "/raktarkeszlet-mozgas/letrehozas",
-    element: InventoryMovementsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-mozgas/letrehozas/:inventoryId",
-    element: InventoryMovementsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-mozgas/modositas/:id",
-    element: InventoryMovementsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-mozgas/lista/:inventoryId",
-    element: InventoryMovementsList,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-mozgas/reszletek/:id",
-    element: InventoryMovementsView,
-    isPrivate: true,
-  },
+    // InventoryMovements
+    {
+        path: "/raktarkeszlet-mozgas/letrehozas",
+        element: InventoryMovementsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-mozgas/letrehozas/:inventoryId",
+        element: InventoryMovementsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-mozgas/modositas/:id",
+        element: InventoryMovementsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-mozgas/lista/:inventoryId",
+        element: InventoryMovementsList,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-mozgas/reszletek/:id",
+        element: InventoryMovementsView,
+        isPrivate: true,
+    },
 
-  // InventoryReservations
-  {
-    path: "/raktarkeszlet-foglalas/letrehozas",
-    element: InventoryReservationsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-foglalas/letrehozas/:inventoryId",
-    element: InventoryReservationsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-foglalas/modositas/:id",
-    element: InventoryReservationsEdit,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-foglalas/lista/:inventoryId",
-    element: InventoryReservationsList,
-    isPrivate: true,
-  },
-  {
-    path: "/raktarkeszlet-foglalas/reszletek/:id",
-    element: InventoryReservationsView,
-    isPrivate: true,
-  },
+    // InventoryReservations
+    {
+        path: "/raktarkeszlet-foglalas/letrehozas",
+        element: InventoryReservationsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-foglalas/letrehozas/:inventoryId",
+        element: InventoryReservationsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-foglalas/modositas/:id",
+        element: InventoryReservationsEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-foglalas/lista/:inventoryId",
+        element: InventoryReservationsList,
+        isPrivate: true,
+    },
+    {
+        path: "/raktarkeszlet-foglalas/reszletek/:id",
+        element: InventoryReservationsView,
+        isPrivate: true,
+    },
 
-  // Products
-  { path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true },
-  { path: "/termek/modositas/:id", element: ProductsEdit, isPrivate: true },
-  { path: "/termek/lista", element: ProductsList, isPrivate: true },
-  { path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true },
+    // Products
+    { path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true },
+    { path: "/termek/modositas/:id", element: ProductsEdit, isPrivate: true },
+    { path: "/termek/lista", element: ProductsList, isPrivate: true },
+    { path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true },
 
-  // Tasks
-  { path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true },
-  { path: "/feladat/modositas/:id", element: TasksEdit, isPrivate: true },
-  { path: "/feladat/lista", element: TasksList, isPrivate: true },
-  { path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true },
+    // Tasks
+    { path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true },
+    { path: "/feladat/modositas/:id", element: TasksEdit, isPrivate: true },
+    { path: "/feladat/lista", element: TasksList, isPrivate: true },
+    { path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true },
 
-  // Warehouses
-  { path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true },
-  { path: "/raktar/modositas/:id", element: WarehousesEdit, isPrivate: true },
-  { path: "/raktar/lista", element: WarehousesList, isPrivate: true },
-  { path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true },
+    // Warehouses
+    { path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true },
+    { path: "/raktar/modositas/:id", element: WarehousesEdit, isPrivate: true },
+    { path: "/raktar/lista", element: WarehousesList, isPrivate: true },
+    { path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true },
 
-  // Worksheets
-  { path: "/munkalap/letrehozas", element: WorksheetsEdit, isPrivate: true },
-  { path: "/munkalap/modositas/:id", element: WorksheetsEdit, isPrivate: true },
-  { path: "/munkalap/lista", element: WorksheetsList, isPrivate: true },
-  { path: "/munkalap/reszletek/:id", element: WorksheetsView, isPrivate: true },
-  {
-    path: "/munkalap/:referenceId/raktarkeszlet-mozgas/letrehozas",
-    element: () => <InventoryMovementsEdit referenceType="worksheets" />,
-    isPrivate: true,
-  },
+    // Worksheets
+    { path: "/munkalap/letrehozas", element: WorksheetsEdit, isPrivate: true },
+    {
+        path: "/munkalap/modositas/:id",
+        element: WorksheetsEdit,
+        isPrivate: true,
+    },
+    { path: "/munkalap/lista", element: WorksheetsList, isPrivate: true },
+    {
+        path: "/munkalap/reszletek/:id",
+        element: WorksheetsView,
+        isPrivate: true,
+    },
+    {
+        path: "/munkalap/:referenceId/raktarkeszlet-mozgas/letrehozas",
+        element: () => <InventoryMovementsEdit referenceType="worksheets" />,
+        isPrivate: true,
+    },
 
-  // Taxes
-  { path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true },
-  { path: "/ado/modositas/:id", element: TaxesEdit, isPrivate: true },
-  { path: "/ado/lista", element: TaxesList, isPrivate: true },
-  { path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true },
+    // Taxes
+    { path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true },
+    { path: "/ado/modositas/:id", element: TaxesEdit, isPrivate: true },
+    { path: "/ado/lista", element: TaxesList, isPrivate: true },
+    { path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true },
 
-  // Services
-  { path: "/szolgaltatas/letrehozas", element: ServicesEdit, isPrivate: true },
-  {
-    path: "/szolgaltatas/modositas/:id",
-    element: ServicesEdit,
-    isPrivate: true,
-  },
-  { path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true },
-  {
-    path: "/szolgaltatas/reszletek/:id",
-    element: ServicesView,
-    isPrivate: true,
-  },
+    // Services
+    {
+        path: "/szolgaltatas/letrehozas",
+        element: ServicesEdit,
+        isPrivate: true,
+    },
+    {
+        path: "/szolgaltatas/modositas/:id",
+        element: ServicesEdit,
+        isPrivate: true,
+    },
+    { path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true },
+    {
+        path: "/szolgaltatas/reszletek/:id",
+        element: ServicesView,
+        isPrivate: true,
+    },
 ];
 
 function PrivateRoute({ children }: { children: React.JSX.Element }) {
-  const user = useAppSelector((state: RootState) => state.auth.login.user);
-  return user ? children : <Navigate to="/bejelentkezes" replace />;
+    const user = useAppSelector((state: RootState) => state.auth.login.user);
+    return user ? children : <Navigate to="/bejelentkezes" replace />;
 }
 
 function createRouteElement(
-  Component: React.ComponentType,
-  isPrivate: boolean,
+    Component: React.ComponentType,
+    isPrivate: boolean,
 ): React.JSX.Element {
-  const element = <Component />;
-  return isPrivate ? <PrivateRoute>{element}</PrivateRoute> : element;
+    const element = <Component />;
+    return isPrivate ? <PrivateRoute>{element}</PrivateRoute> : element;
 }
 
 export default function App() {
-  return (
-    <Layout>
-      <Routes>
-        {ROUTE_CONFIGS.map(({ path, element: Component, isPrivate = true }) => (
-          <Route
-            key={path}
-            path={path}
-            element={createRouteElement(Component, isPrivate)}
-          />
-        ))}
-      </Routes>
-    </Layout>
-  );
+    return (
+        <Layout>
+            <Routes>
+                {ROUTE_CONFIGS.map(
+                    ({ path, element: Component, isPrivate = true }) => (
+                        <Route
+                            key={path}
+                            path={path}
+                            element={createRouteElement(Component, isPrivate)}
+                        />
+                    ),
+                )}
+            </Routes>
+        </Layout>
+    );
 }

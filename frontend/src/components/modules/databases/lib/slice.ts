@@ -24,67 +24,67 @@ import type { CreateDatabase } from "@/components/modules/databases/lib/interfac
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface DatabasesState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: DatabasesState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const create = createAsyncThunk(
-  "databases/create",
-  async (requestData: CreateDatabase, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await databasesApi.create(requestData, token);
-  },
+    "databases/create",
+    async (requestData: CreateDatabase, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await databasesApi.create(requestData, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "databases/list",
-  async (query: string | null, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await databasesApi.list(query, token);
-  },
+    "databases/list",
+    async (query: string | null, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await databasesApi.list(query, token);
+    },
 );
 
 export const activate = createAsyncThunk(
-  "databases/activate",
-  async (new_tenant_id: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await databasesApi.activate(new_tenant_id, token);
-  },
+    "databases/activate",
+    async (new_tenant_id: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await databasesApi.activate(new_tenant_id, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "databases/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await databasesApi.get_resolved(uuid, token);
-  },
+    "databases/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await databasesApi.get_resolved(uuid, token);
+    },
 );
 
 export const deleteDatabase = createAsyncThunk(
-  "database/deleteDatabase",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await databasesApi.deleteDatabase(uuid, token);
-  },
+    "database/deleteDatabase",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await databasesApi.deleteDatabase(uuid, token);
+    },
 );
 
 const databasesSlice = createSlice({
-  name: "databases",
-  initialState,
-  reducers: {},
+    name: "databases",
+    initialState,
+    reducers: {},
 });
 
 export default databasesSlice.reducer;

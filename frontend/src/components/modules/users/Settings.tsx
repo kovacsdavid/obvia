@@ -19,18 +19,18 @@
 
 import React, { useCallback, useMemo } from "react";
 import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
+    Card,
+    CardHeader,
+    CardContent,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { Button, GlobalError } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  enableOtp,
-  verifyOtp,
-  disableOtp,
+    enableOtp,
+    verifyOtp,
+    disableOtp,
 } from "@/components/modules/users/lib/slice.ts";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeClosed } from "lucide-react";
@@ -40,224 +40,240 @@ import { useAppSelector } from "@/store/hooks.ts";
 import { chMfaStatus } from "@/components/modules/auth/lib/slice";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSeparator,
-  InputOTPSlot,
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSeparator,
+    InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
 export default function Settings() {
-  const dispatch = useAppDispatch();
-  const [openVerifyOtpDialog, setOpenVerifyOtpDialog] = React.useState(false);
-  const [openDisableOtpDialog, setOpenDisableOtpDialog] = React.useState(false);
-  const [secret, setSecret] = React.useState("");
-  const [showSecret, setShowSecret] = React.useState(false);
-  const [otp, setOtp] = React.useState("");
-  const [otpErrors, setOtpErrors] = React.useState<SimpleError | null>(null);
-  const user = useAppSelector((state: RootState) => state.auth.login.user);
-  const user_email = useMemo(() => user?.email, [user]);
-  const user_is_mfa_enabled = useMemo(() => user?.is_mfa_enabled, [user]);
+    const dispatch = useAppDispatch();
+    const [openVerifyOtpDialog, setOpenVerifyOtpDialog] = React.useState(false);
+    const [openDisableOtpDialog, setOpenDisableOtpDialog] =
+        React.useState(false);
+    const [secret, setSecret] = React.useState("");
+    const [showSecret, setShowSecret] = React.useState(false);
+    const [otp, setOtp] = React.useState("");
+    const [otpErrors, setOtpErrors] = React.useState<SimpleError | null>(null);
+    const user = useAppSelector((state: RootState) => state.auth.login.user);
+    const user_email = useMemo(() => user?.email, [user]);
+    const user_is_mfa_enabled = useMemo(() => user?.is_mfa_enabled, [user]);
 
-  const handleDisableMfa = useCallback(
-    (e: React.SubmitEvent) => {
-      e.preventDefault();
-      dispatch(disableOtp(otp)).then((response) => {
-        if (disableOtp.fulfilled.match(response)) {
-          if (
-            response.payload.statusCode === 200 &&
-            typeof response.payload.jsonData?.data !== "undefined"
-          ) {
-            setOtp("");
-            setOpenDisableOtpDialog(false);
-            dispatch(chMfaStatus(false));
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setOtpErrors(response.payload.jsonData.error);
-          }
-        }
-      });
-    },
-    [dispatch, otp],
-  );
+    const handleDisableMfa = useCallback(
+        (e: React.SubmitEvent) => {
+            e.preventDefault();
+            dispatch(disableOtp(otp)).then((response) => {
+                if (disableOtp.fulfilled.match(response)) {
+                    if (
+                        response.payload.statusCode === 200 &&
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        setOtp("");
+                        setOpenDisableOtpDialog(false);
+                        dispatch(chMfaStatus(false));
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setOtpErrors(response.payload.jsonData.error);
+                    }
+                }
+            });
+        },
+        [dispatch, otp],
+    );
 
-  const handleVerfiyMfa = useCallback(
-    (e: React.SubmitEvent) => {
-      e.preventDefault();
-      dispatch(verifyOtp(otp)).then((response) => {
-        if (verifyOtp.fulfilled.match(response)) {
-          if (
-            response.payload.statusCode === 200 &&
-            typeof response.payload.jsonData?.data !== "undefined"
-          ) {
-            setOtp("");
-            setOpenVerifyOtpDialog(false);
-            dispatch(chMfaStatus(true));
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setOtpErrors(response.payload.jsonData.error);
-          }
-        }
-      });
-    },
-    [dispatch, otp],
-  );
+    const handleVerfiyMfa = useCallback(
+        (e: React.SubmitEvent) => {
+            e.preventDefault();
+            dispatch(verifyOtp(otp)).then((response) => {
+                if (verifyOtp.fulfilled.match(response)) {
+                    if (
+                        response.payload.statusCode === 200 &&
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        setOtp("");
+                        setOpenVerifyOtpDialog(false);
+                        dispatch(chMfaStatus(true));
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setOtpErrors(response.payload.jsonData.error);
+                    }
+                }
+            });
+        },
+        [dispatch, otp],
+    );
 
-  const handleEnableMfa = useCallback(() => {
-    dispatch(enableOtp()).then((response) => {
-      if (enableOtp.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined"
-        ) {
-          setSecret(response.payload.jsonData.data);
-        }
-        setOpenVerifyOtpDialog(true);
-      }
-    });
-  }, [dispatch]);
+    const handleEnableMfa = useCallback(() => {
+        dispatch(enableOtp()).then((response) => {
+            if (enableOtp.fulfilled.match(response)) {
+                if (
+                    response.payload.statusCode === 200 &&
+                    typeof response.payload.jsonData?.data !== "undefined"
+                ) {
+                    setSecret(response.payload.jsonData.data);
+                }
+                setOpenVerifyOtpDialog(true);
+            }
+        });
+    }, [dispatch]);
 
-  return (
-    <>
-      <Dialog
-        open={openDisableOtpDialog}
-        onOpenChange={setOpenDisableOtpDialog}
-      >
-        <DialogContent className="text-center">
-          <DialogTitle>Kétlépcsős azonosítás kikapcsolása</DialogTitle>
-          <form
-            onSubmit={handleDisableMfa}
-            className="space-y-4"
-            autoComplete={"off"}
-          >
-            <GlobalError error={otpErrors} />
-            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
-              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
-              <InputOTP
-                id="otp"
-                value={otp}
-                onChange={(e) => setOtp(e)}
-                maxLength={6}
-                pattern={REGEXP_ONLY_DIGITS}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSeparator />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </Field>
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                setOtp("");
-                setOpenDisableOtpDialog(false);
-                setOtpErrors(null);
-              }}
+    return (
+        <>
+            <Dialog
+                open={openDisableOtpDialog}
+                onOpenChange={setOpenDisableOtpDialog}
             >
-              Mégse
-            </Button>
-            <Button type="submit">Megerősítés</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={openVerifyOtpDialog} onOpenChange={setOpenVerifyOtpDialog}>
-        <DialogContent className="text-center">
-          <DialogTitle>Kétlépcsős azonosítás bekapcsolása</DialogTitle>
-          <div className="mr-auto ml-auto">
-            <QRCodeSVG
-              value={`otpauth://totp/obvia:${user_email}?secret=${secret}&issuer=obvia`}
-              level="H"
-            />
-          </div>
-          {showSecret ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => setShowSecret(!showSecret)}
-              >
-                <EyeClosed /> Titkos kulcs elrejtése
-              </Button>
-              {secret}
-            </>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={() => setShowSecret(!showSecret)}
+                <DialogContent className="text-center">
+                    <DialogTitle>
+                        Kétlépcsős azonosítás kikapcsolása
+                    </DialogTitle>
+                    <form
+                        onSubmit={handleDisableMfa}
+                        className="space-y-4"
+                        autoComplete={"off"}
+                    >
+                        <GlobalError error={otpErrors} />
+                        <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
+                            <FieldLabel htmlFor="otp">
+                                Megerősítő kód
+                            </FieldLabel>
+                            <InputOTP
+                                id="otp"
+                                value={otp}
+                                onChange={(e) => setOtp(e)}
+                                maxLength={6}
+                                pattern={REGEXP_ONLY_DIGITS}
+                            >
+                                <InputOTPGroup>
+                                    <InputOTPSlot index={0} />
+                                    <InputOTPSlot index={1} />
+                                    <InputOTPSlot index={2} />
+                                    <InputOTPSeparator />
+                                    <InputOTPSlot index={3} />
+                                    <InputOTPSlot index={4} />
+                                    <InputOTPSlot index={5} />
+                                </InputOTPGroup>
+                            </InputOTP>
+                        </Field>
+                        <Button
+                            className="mr-3"
+                            variant="outline"
+                            onClick={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                setOtp("");
+                                setOpenDisableOtpDialog(false);
+                                setOtpErrors(null);
+                            }}
+                        >
+                            Mégse
+                        </Button>
+                        <Button type="submit">Megerősítés</Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={openVerifyOtpDialog}
+                onOpenChange={setOpenVerifyOtpDialog}
             >
-              <Eye /> Titkos kulcs megjelenítése
-            </Button>
-          )}
-          <form
-            onSubmit={handleVerfiyMfa}
-            className="space-y-4"
-            autoComplete={"off"}
-          >
-            <GlobalError error={otpErrors} />
-            <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
-              <FieldLabel htmlFor="otp">Megerősítő kód</FieldLabel>
-              <InputOTP
-                id="otp"
-                value={otp}
-                onChange={(e) => setOtp(e)}
-                maxLength={6}
-                pattern={REGEXP_ONLY_DIGITS}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSeparator />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </Field>
-            <Button
-              className="mr-3"
-              variant="outline"
-              onClick={(e: React.MouseEvent) => {
-                e.preventDefault();
-                setOtp("");
-                setOpenVerifyOtpDialog(false);
-                setOtpErrors(null);
-              }}
-            >
-              Mégse
-            </Button>
-            <Button type="submit">Megerősítés</Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-      <Card>
-        <CardHeader>
-          <CardTitle>Kétlépcsős azonosítás</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {user_is_mfa_enabled ? (
-            <Button
-              style={{ color: "red" }}
-              variant="outline"
-              onClick={() => setOpenDisableOtpDialog(true)}
-            >
-              Kétlépcsős azonosítás kikapcsolása
-            </Button>
-          ) : (
-            <Button
-              style={{ color: "green" }}
-              variant="outline"
-              onClick={() => handleEnableMfa()}
-            >
-              Kétlépcsős azonosítás bekapcsolása
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-    </>
-  );
+                <DialogContent className="text-center">
+                    <DialogTitle>
+                        Kétlépcsős azonosítás bekapcsolása
+                    </DialogTitle>
+                    <div className="mr-auto ml-auto">
+                        <QRCodeSVG
+                            value={`otpauth://totp/obvia:${user_email}?secret=${secret}&issuer=obvia`}
+                            level="H"
+                        />
+                    </div>
+                    {showSecret ? (
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowSecret(!showSecret)}
+                            >
+                                <EyeClosed /> Titkos kulcs elrejtése
+                            </Button>
+                            {secret}
+                        </>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            onClick={() => setShowSecret(!showSecret)}
+                        >
+                            <Eye /> Titkos kulcs megjelenítése
+                        </Button>
+                    )}
+                    <form
+                        onSubmit={handleVerfiyMfa}
+                        className="space-y-4"
+                        autoComplete={"off"}
+                    >
+                        <GlobalError error={otpErrors} />
+                        <Field className="w-fit mr-auto ml-auto mt-5 mb-10">
+                            <FieldLabel htmlFor="otp">
+                                Megerősítő kód
+                            </FieldLabel>
+                            <InputOTP
+                                id="otp"
+                                value={otp}
+                                onChange={(e) => setOtp(e)}
+                                maxLength={6}
+                                pattern={REGEXP_ONLY_DIGITS}
+                            >
+                                <InputOTPGroup>
+                                    <InputOTPSlot index={0} />
+                                    <InputOTPSlot index={1} />
+                                    <InputOTPSlot index={2} />
+                                    <InputOTPSeparator />
+                                    <InputOTPSlot index={3} />
+                                    <InputOTPSlot index={4} />
+                                    <InputOTPSlot index={5} />
+                                </InputOTPGroup>
+                            </InputOTP>
+                        </Field>
+                        <Button
+                            className="mr-3"
+                            variant="outline"
+                            onClick={(e: React.MouseEvent) => {
+                                e.preventDefault();
+                                setOtp("");
+                                setOpenVerifyOtpDialog(false);
+                                setOtpErrors(null);
+                            }}
+                        >
+                            Mégse
+                        </Button>
+                        <Button type="submit">Megerősítés</Button>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Kétlépcsős azonosítás</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {user_is_mfa_enabled ? (
+                        <Button
+                            style={{ color: "red" }}
+                            variant="outline"
+                            onClick={() => setOpenDisableOtpDialog(true)}
+                        >
+                            Kétlépcsős azonosítás kikapcsolása
+                        </Button>
+                    ) : (
+                        <Button
+                            style={{ color: "green" }}
+                            variant="outline"
+                            onClick={() => handleEnableMfa()}
+                        >
+                            Kétlépcsős azonosítás bekapcsolása
+                        </Button>
+                    )}
+                </CardContent>
+            </Card>
+        </>
+    );
 }

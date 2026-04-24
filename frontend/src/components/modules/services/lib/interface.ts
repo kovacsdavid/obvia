@@ -18,66 +18,66 @@
  */
 
 import {
-  type CommonResponse,
-  type FormError,
-  type PaginatedDataResponse,
-  type SimpleError,
-  type SimpleMessageData,
+    type CommonResponse,
+    type FormError,
+    type PaginatedDataResponse,
+    type SimpleError,
+    type SimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 
 export interface ServiceUserInput {
-  id: string | null;
-  name: string;
-  description: string | null;
-  defaultPrice: string | null;
-  defaultTaxId: string | null;
-  currencyCode: string | null;
-  status: string;
+    id: string | null;
+    name: string;
+    description: string | null;
+    defaultPrice: string | null;
+    defaultTaxId: string | null;
+    currencyCode: string | null;
+    status: string;
 }
 
 export interface Service {
-  id: string;
-  name: string;
-  description: string | null;
-  default_price: string | null;
-  default_tax_id: string | null;
-  currency_code: string | null;
-  status: string;
-  created_by_id: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    name: string;
+    description: string | null;
+    default_price: string | null;
+    default_tax_id: string | null;
+    currency_code: string | null;
+    status: string;
+    created_by_id: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export interface ServiceResolved {
-  id: string;
-  name: string;
-  description: string | null;
-  default_price: string | null;
-  default_tax_id: string | null;
-  default_tax: string | null;
-  currency_code: string | null;
-  status: string;
-  created_by_id: string;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+    id: string;
+    name: string;
+    description: string | null;
+    default_price: string | null;
+    default_tax_id: string | null;
+    default_tax: string | null;
+    currency_code: string | null;
+    status: string;
+    created_by_id: string;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
 }
 
 export type CreateServiceResponse = CommonResponse<Service, FormError>;
 export type UpdateServiceResponse = CommonResponse<Service, FormError>;
 export type DeleteServiceResponse = CommonResponse<
-  SimpleMessageData,
-  SimpleError
+    SimpleMessageData,
+    SimpleError
 >;
 export type ServiceResolvedList = ServiceResolved[];
 export type ServiceResponse = CommonResponse<Service, SimpleError>;
 export type ServiceResolvedResponse = CommonResponse<
-  ServiceResolved,
-  SimpleError
+    ServiceResolved,
+    SimpleError
 >;
 export type PaginatedServiceResolvedListResponse = PaginatedDataResponse<
-  ServiceResolvedList,
-  SimpleError
+    ServiceResolvedList,
+    SimpleError
 >;

@@ -26,137 +26,137 @@ import type { FormError } from "@/lib/interfaces/common.ts";
 import { FieldError as BaseFieldError } from "@/components/ui/field";
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
-  {
-    variants: {
-      variant: {
-        default: "bg-card text-card-foreground",
-        destructive:
-          "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
-      },
+    "relative w-full rounded-lg border px-4 py-3 text-sm grid has-[>svg]:grid-cols-[calc(var(--spacing)*4)_1fr] grid-cols-[0_1fr] has-[>svg]:gap-x-3 gap-y-0.5 items-start [&>svg]:size-4 [&>svg]:translate-y-0.5 [&>svg]:text-current",
+    {
+        variants: {
+            variant: {
+                default: "bg-card text-card-foreground",
+                destructive:
+                    "text-destructive bg-card [&>svg]:text-current *:data-[slot=alert-description]:text-destructive/90",
+            },
+        },
+        defaultVariants: {
+            variant: "default",
+        },
     },
-    defaultVariants: {
-      variant: "default",
-    },
-  },
 );
 
 function Alert({
-  className,
-  variant,
-  ...props
+    className,
+    variant,
+    ...props
 }: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
-  return (
-    <div
-      data-slot="alert"
-      role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
-    />
-  );
+    return (
+        <div
+            data-slot="alert"
+            role="alert"
+            className={cn(alertVariants({ variant }), className)}
+            {...props}
+        />
+    );
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="alert-title"
-      className={cn(
-        "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
-        className,
-      )}
-      {...props}
-    />
-  );
+    return (
+        <div
+            data-slot="alert-title"
+            className={cn(
+                "col-start-2 line-clamp-1 min-h-4 font-medium tracking-tight",
+                className,
+            )}
+            {...props}
+        />
+    );
 }
 
 function AlertDescription({
-  className,
-  ...props
+    className,
+    ...props
 }: React.ComponentProps<"div">) {
-  return (
-    <div
-      data-slot="alert-description"
-      className={cn(
-        "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
-        className,
-      )}
-      {...props}
-    />
-  );
+    return (
+        <div
+            data-slot="alert-description"
+            className={cn(
+                "text-muted-foreground col-start-2 grid justify-items-start gap-1 text-sm [&_p]:leading-relaxed",
+                className,
+            )}
+            {...props}
+        />
+    );
 }
 
 interface GlobalNotificationProps {
-  message: string | null | undefined;
+    message: string | null | undefined;
 }
 
 function GlobalNotification({ message }: GlobalNotificationProps) {
-  return (
-    <>
-      {typeof message === "string" ? (
-        <Alert className={"mb-5"}>
-          <Info />
-          <AlertDescription>{message}</AlertDescription>
-        </Alert>
-      ) : null}
-    </>
-  );
+    return (
+        <>
+            {typeof message === "string" ? (
+                <Alert className={"mb-5"}>
+                    <Info />
+                    <AlertDescription>{message}</AlertDescription>
+                </Alert>
+            ) : null}
+        </>
+    );
 }
 
 interface GlobalSuccessProps {
-  success: { message: string | null | undefined } | null;
+    success: { message: string | null | undefined } | null;
 }
 
 function GlobalSuccess({ success }: GlobalSuccessProps) {
-  return (
-    <>
-      {typeof success?.message === "string" ? (
-        <Alert className={"mb-5"}>
-          <CheckCircle2Icon />
-          <AlertDescription>{success?.message}</AlertDescription>
-        </Alert>
-      ) : null}
-    </>
-  );
+    return (
+        <>
+            {typeof success?.message === "string" ? (
+                <Alert className={"mb-5"}>
+                    <CheckCircle2Icon />
+                    <AlertDescription>{success?.message}</AlertDescription>
+                </Alert>
+            ) : null}
+        </>
+    );
 }
 
 interface GlobalErrorProps {
-  error: { message: string | null | undefined } | null;
+    error: { message: string | null | undefined } | null;
 }
 
 function GlobalError({ error }: GlobalErrorProps) {
-  return (
-    <>
-      {typeof error?.message === "string" ? (
-        <Alert className={"mb-5"} variant="destructive">
-          <AlertCircle />
-          <AlertDescription>{error.message}</AlertDescription>
-        </Alert>
-      ) : null}
-    </>
-  );
+    return (
+        <>
+            {typeof error?.message === "string" ? (
+                <Alert className={"mb-5"} variant="destructive">
+                    <AlertCircle />
+                    <AlertDescription>{error.message}</AlertDescription>
+                </Alert>
+            ) : null}
+        </>
+    );
 }
 
 interface FieldErrorProps {
-  field: string;
-  error: FormError | null;
+    field: string;
+    error: FormError | null;
 }
 
 function FieldError({ error, field }: FieldErrorProps) {
-  return (
-    <>
-      {error?.fields?.[field] ?? (
-        <BaseFieldError>{error?.fields?.[field]}</BaseFieldError>
-      )}
-    </>
-  );
+    return (
+        <>
+            {error?.fields?.[field] ?? (
+                <BaseFieldError>{error?.fields?.[field]}</BaseFieldError>
+            )}
+        </>
+    );
 }
 
 export {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  GlobalError,
-  GlobalSuccess,
-  GlobalNotification,
-  FieldError,
+    Alert,
+    AlertTitle,
+    AlertDescription,
+    GlobalError,
+    GlobalSuccess,
+    GlobalNotification,
+    FieldError,
 };

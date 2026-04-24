@@ -18,127 +18,130 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import {
-  type ActiveDatabaseResponse,
-  type CreateDatabase,
-  type CreateDatabaseResponse,
-  type DatabaseResponse,
-  isActiveDatabaseResponse,
-  isCreateDatabaseResponse,
-  isDatabaseResponse,
-  isPaginatedDatabaseListResponse,
-  type PaginatedDatabaseListResponse,
+    type ActiveDatabaseResponse,
+    type CreateDatabase,
+    type CreateDatabaseResponse,
+    type DatabaseResponse,
+    isActiveDatabaseResponse,
+    isCreateDatabaseResponse,
+    isDatabaseResponse,
+    isPaginatedDatabaseListResponse,
+    type PaginatedDatabaseListResponse,
 } from "@/components/modules/databases/lib/interface.ts";
 import {
-  type ProcessedResponse,
-  ProcessResponse,
+    type ProcessedResponse,
+    ProcessResponse,
 } from "@/lib/interfaces/common.ts";
 
 export async function create(
-  { name }: CreateDatabase,
-  token: string | null,
+    { name }: CreateDatabase,
+    token: string | null,
 ): Promise<ProcessedResponse<CreateDatabaseResponse>> {
-  return await fetch(`/api/tenants/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      name,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isCreateDatabaseResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/tenants/create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            name,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isCreateDatabaseResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function list(
-  query: string | null,
-  token: string | null,
+    query: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<PaginatedDatabaseListResponse>> {
-  const uri =
-    query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isPaginatedDatabaseListResponse)) ??
-      unexpectedFormError
-    );
-  });
+    const uri =
+        query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isPaginatedDatabaseListResponse,
+            )) ?? unexpectedFormError
+        );
+    });
 }
 
 export async function activate(
-  uuid: string | null,
-  token: string | null,
+    uuid: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
-  return await fetch(`/api/tenants/activate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      uuid,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isActiveDatabaseResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/tenants/activate`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            uuid,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isActiveDatabaseResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function get_resolved(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<DatabaseResponse>> {
-  return await fetch(`/api/tenants/get?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isDatabaseResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/tenants/get?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isDatabaseResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function deleteDatabase(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
-  return await fetch(`/api/tenants/delete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
-      uuid,
-    }),
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isActiveDatabaseResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/tenants/delete`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+            uuid,
+        }),
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isActiveDatabaseResponse)) ??
+            unexpectedError
+        );
+    });
 }

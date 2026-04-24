@@ -24,86 +24,86 @@ import type { InventoryReservationUserInput } from "@/components/modules/invento
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface InventoryReservationsState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: InventoryReservationsState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const get_resolved = createAsyncThunk(
-  "inventory_reservations/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.get_resolved(uuid, token);
-  },
+    "inventory_reservations/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.get_resolved(uuid, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "inventory_reservations/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.get(uuid, token);
-  },
+    "inventory_reservations/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.get(uuid, token);
+    },
 );
 
 export const create = createAsyncThunk(
-  "inventory_reservations/create",
-  async (
-    requestData: InventoryReservationUserInput,
-    { getState, dispatch },
-  ) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.create(requestData, token);
-  },
+    "inventory_reservations/create",
+    async (
+        requestData: InventoryReservationUserInput,
+        { getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.create(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "inventory_reservations/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.deleteItem(uuid, token);
-  },
+    "inventory_reservations/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.deleteItem(uuid, token);
+    },
 );
 
 export const select_list = createAsyncThunk(
-  "inventory_reservations/select_list",
-  async (list: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.select_list(list, token);
-  },
+    "inventory_reservations/select_list",
+    async (list: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.select_list(list, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "inventory_reservations/list",
-  async (
-    params: {
-      inventoryId: string;
-      query: string | null;
+    "inventory_reservations/list",
+    async (
+        params: {
+            inventoryId: string;
+            query: string | null;
+        },
+        { getState, dispatch },
+    ) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.list(params, token);
     },
-    { getState, dispatch },
-  ) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await InventoryReservationsApi.list(params, token);
-  },
 );
 
 const InventoryReservationsSlice = createSlice({
-  name: "inventory_reservations",
-  initialState,
-  reducers: {},
+    name: "inventory_reservations",
+    initialState,
+    reducers: {},
 });
 
 export default InventoryReservationsSlice.reducer;

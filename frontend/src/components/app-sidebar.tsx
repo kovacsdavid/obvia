@@ -21,16 +21,16 @@ import * as React from "react";
 
 import { UserData } from "@/components/user-data.tsx";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
+    Sidebar,
+    SidebarContent,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    SidebarRail,
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/hooks/use_sidebar";
 import { useAuth } from "@/hooks/use_auth";
@@ -39,298 +39,320 @@ import { useAppDispatch } from "@/store/hooks.ts";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui";
 import {
-  Boxes,
-  Database,
-  HandCoins,
-  HandPlatter,
-  KeyRound,
-  ListTodo,
-  LogOut,
-  MapPinHouse,
-  NotebookPen,
-  NotebookText,
-  Package,
-  UsersRound,
-  Warehouse,
-  UserRoundCog,
+    Boxes,
+    Database,
+    HandCoins,
+    HandPlatter,
+    KeyRound,
+    ListTodo,
+    LogOut,
+    MapPinHouse,
+    NotebookPen,
+    NotebookText,
+    Package,
+    UsersRound,
+    Warehouse,
+    UserRoundCog,
 } from "lucide-react";
 
 interface NavigationItem {
-  title: string;
-  url?: string;
-  click?: () => void;
-  publicOnly?: boolean;
-  private?: boolean;
-  needActiveDatabase: boolean;
-  icon?: React.ReactNode;
-  isActive: boolean;
+    title: string;
+    url?: string;
+    click?: () => void;
+    publicOnly?: boolean;
+    private?: boolean;
+    needActiveDatabase: boolean;
+    icon?: React.ReactNode;
+    isActive: boolean;
 }
 
 interface NavigationSection {
-  title: string;
-  url: string;
-  items: NavigationItem[];
+    title: string;
+    url: string;
+    items: NavigationItem[];
 }
 
 interface NavigationData {
-  navMain: NavigationSection[];
+    navMain: NavigationSection[];
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const dispatch = useAppDispatch();
-  const location = useLocation();
-  const { isLoggedIn, hasActiveDatabase } = useAuth();
-  const handleLogout = () => {
-    dispatch(logoutAndRevokeRefreshToken());
-  };
-  const { toggleSidebar, setOpen, isMobile } = useSidebar();
+    const dispatch = useAppDispatch();
+    const location = useLocation();
+    const { isLoggedIn, hasActiveDatabase } = useAuth();
+    const handleLogout = () => {
+        dispatch(logoutAndRevokeRefreshToken());
+    };
+    const { toggleSidebar, setOpen, isMobile } = useSidebar();
 
-  const mobileCloseOnClick = () => {
-    if (isMobile) {
-      toggleSidebar();
-    }
-  };
-  const data: NavigationData = {
-    navMain: [
-      {
-        title: "Vezérlőpult",
-        url: "#",
-        items: [
-          {
-            title: "Vezérlőpult",
-            url: "/vezerlopult",
-            private: true,
-            needActiveDatabase: false,
-            icon: <MapPinHouse />,
-            isActive: location.pathname.includes("/vezerlopult"),
-          },
+    const mobileCloseOnClick = () => {
+        if (isMobile) {
+            toggleSidebar();
+        }
+    };
+    const data: NavigationData = {
+        navMain: [
+            {
+                title: "Vezérlőpult",
+                url: "#",
+                items: [
+                    {
+                        title: "Vezérlőpult",
+                        url: "/vezerlopult",
+                        private: true,
+                        needActiveDatabase: false,
+                        icon: <MapPinHouse />,
+                        isActive: location.pathname.includes("/vezerlopult"),
+                    },
+                ],
+            },
+            {
+                title: "Adatbázis",
+                url: "#",
+                items: [
+                    {
+                        title: "Adatbázis",
+                        url: "/adatbazis/lista",
+                        private: true,
+                        needActiveDatabase: false,
+                        icon: <Database />,
+                        isActive:
+                            location.pathname.includes("/adatbazis/lista"),
+                    },
+                ],
+            },
+            {
+                title: "Törzsadatok",
+                url: "#",
+                items: [
+                    // {
+                    //   title: "Felhasználók",
+                    //   url: "/felhasznalo/lista",
+                    //   private: true,
+                    //   icon: <UserCog/>,
+                    //   isActive: location.pathname.includes("/adatbazis/lista"),
+                    // },
+                    {
+                        title: "Vevők",
+                        url: "/vevo/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <UsersRound />,
+                        isActive: location.pathname.includes("/vevo/lista"),
+                    },
+                    //{
+                    //  title: "Címkék",
+                    //  url: "/cimke/lista",
+                    //  private: true,
+                    //  needActiveDatabase: true,
+                    //  icon: <Tag/>,
+                    //  isActive: location.pathname.includes("/cimke/lista"),
+                    //},
+                    {
+                        title: "Raktárak",
+                        url: "/raktar/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <Warehouse />,
+                        isActive: location.pathname.includes("/raktar/lista"),
+                    },
+                    {
+                        title: "Adók",
+                        url: "/ado/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <HandCoins />,
+                        isActive: location.pathname.includes("/ado/lista"),
+                    },
+                ],
+            },
+            {
+                title: "Készlet",
+                url: "#",
+                items: [
+                    {
+                        title: "Termékek",
+                        url: "/termek/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <Package />,
+                        isActive: location.pathname.includes("/termek/lista"),
+                    },
+                    {
+                        title: "Raktárkészlet",
+                        url: "/raktarkeszlet/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <Boxes />,
+                        isActive: location.pathname.includes(
+                            "/raktarkeszlet/lista",
+                        ),
+                    },
+                ],
+            },
+            {
+                title: "Munkafolyamat",
+                url: "#",
+                items: [
+                    {
+                        title: "Szolgáltatások",
+                        url: "/szolgaltatas/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <HandPlatter />,
+                        isActive: location.pathname.includes(
+                            "/szolgaltatas/lista",
+                        ),
+                    },
+                    {
+                        title: "Feladatok",
+                        url: "/feladat/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <ListTodo />,
+                        isActive: location.pathname.includes("/feladat/lista"),
+                    },
+                    //          {
+                    //            title: "Projektek",
+                    //            url: "/projekt/lista",
+                    //            private: true,
+                    //            needActiveDatabase: true,
+                    //            icon: <FolderOpen />,
+                    //            isActive: location.pathname.includes("/projekt/lista"),
+                    //          },
+                    {
+                        title: "Munkalapok",
+                        url: "/munkalap/lista",
+                        private: true,
+                        needActiveDatabase: true,
+                        icon: <NotebookText />,
+                        isActive: location.pathname.includes("/munkalap/lista"),
+                    },
+                ],
+            },
+            {
+                title: "Fiókom",
+                url: "#",
+                items: [
+                    {
+                        title: "Bejelentkezés",
+                        url: "/bejelentkezes",
+                        publicOnly: true,
+                        needActiveDatabase: false,
+                        icon: <KeyRound />,
+                        isActive: location.pathname.includes("/bejelentkezes"),
+                    },
+                    {
+                        title: "Regisztráció",
+                        url: "/regisztracio",
+                        icon: <NotebookPen />,
+                        publicOnly: true,
+                        needActiveDatabase: false,
+                        isActive: location.pathname.includes("/regisztracio"),
+                    },
+                    {
+                        title: "Beállítások",
+                        url: "/felhasznalo/beallitasok",
+                        icon: <UserRoundCog />,
+                        private: true,
+                        needActiveDatabase: false,
+                        isActive: location.pathname.includes(
+                            "/felhasznalo/beallitasok",
+                        ),
+                    },
+                    {
+                        title: "Kijelentkezés",
+                        click: handleLogout,
+                        icon: <LogOut />,
+                        private: true,
+                        needActiveDatabase: false,
+                        isActive: false,
+                    },
+                ],
+            },
         ],
-      },
-      {
-        title: "Adatbázis",
-        url: "#",
-        items: [
-          {
-            title: "Adatbázis",
-            url: "/adatbazis/lista",
-            private: true,
-            needActiveDatabase: false,
-            icon: <Database />,
-            isActive: location.pathname.includes("/adatbazis/lista"),
-          },
-        ],
-      },
-      {
-        title: "Törzsadatok",
-        url: "#",
-        items: [
-          // {
-          //   title: "Felhasználók",
-          //   url: "/felhasznalo/lista",
-          //   private: true,
-          //   icon: <UserCog/>,
-          //   isActive: location.pathname.includes("/adatbazis/lista"),
-          // },
-          {
-            title: "Vevők",
-            url: "/vevo/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <UsersRound />,
-            isActive: location.pathname.includes("/vevo/lista"),
-          },
-          //{
-          //  title: "Címkék",
-          //  url: "/cimke/lista",
-          //  private: true,
-          //  needActiveDatabase: true,
-          //  icon: <Tag/>,
-          //  isActive: location.pathname.includes("/cimke/lista"),
-          //},
-          {
-            title: "Raktárak",
-            url: "/raktar/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <Warehouse />,
-            isActive: location.pathname.includes("/raktar/lista"),
-          },
-          {
-            title: "Adók",
-            url: "/ado/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <HandCoins />,
-            isActive: location.pathname.includes("/ado/lista"),
-          },
-        ],
-      },
-      {
-        title: "Készlet",
-        url: "#",
-        items: [
-          {
-            title: "Termékek",
-            url: "/termek/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <Package />,
-            isActive: location.pathname.includes("/termek/lista"),
-          },
-          {
-            title: "Raktárkészlet",
-            url: "/raktarkeszlet/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <Boxes />,
-            isActive: location.pathname.includes("/raktarkeszlet/lista"),
-          },
-        ],
-      },
-      {
-        title: "Munkafolyamat",
-        url: "#",
-        items: [
-          {
-            title: "Szolgáltatások",
-            url: "/szolgaltatas/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <HandPlatter />,
-            isActive: location.pathname.includes("/szolgaltatas/lista"),
-          },
-          {
-            title: "Feladatok",
-            url: "/feladat/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <ListTodo />,
-            isActive: location.pathname.includes("/feladat/lista"),
-          },
-          //          {
-          //            title: "Projektek",
-          //            url: "/projekt/lista",
-          //            private: true,
-          //            needActiveDatabase: true,
-          //            icon: <FolderOpen />,
-          //            isActive: location.pathname.includes("/projekt/lista"),
-          //          },
-          {
-            title: "Munkalapok",
-            url: "/munkalap/lista",
-            private: true,
-            needActiveDatabase: true,
-            icon: <NotebookText />,
-            isActive: location.pathname.includes("/munkalap/lista"),
-          },
-        ],
-      },
-      {
-        title: "Fiókom",
-        url: "#",
-        items: [
-          {
-            title: "Bejelentkezés",
-            url: "/bejelentkezes",
-            publicOnly: true,
-            needActiveDatabase: false,
-            icon: <KeyRound />,
-            isActive: location.pathname.includes("/bejelentkezes"),
-          },
-          {
-            title: "Regisztráció",
-            url: "/regisztracio",
-            icon: <NotebookPen />,
-            publicOnly: true,
-            needActiveDatabase: false,
-            isActive: location.pathname.includes("/regisztracio"),
-          },
-          {
-            title: "Beállítások",
-            url: "/felhasznalo/beallitasok",
-            icon: <UserRoundCog />,
-            private: true,
-            needActiveDatabase: false,
-            isActive: location.pathname.includes("/felhasznalo/beallitasok"),
-          },
-          {
-            title: "Kijelentkezés",
-            click: handleLogout,
-            icon: <LogOut />,
-            private: true,
-            needActiveDatabase: false,
-            isActive: false,
-          },
-        ],
-      },
-    ],
-  };
-  return (
-    <Sidebar
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      collapsible={isMobile ? "offcanvas" : "icon"}
-      {...props}
-    >
-      <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
-      <SidebarContent>
-        {data.navMain.map((item) => {
-          const filteredItems = item.items.filter(
-            (item) =>
-              !(
-                (item.private && !isLoggedIn) ||
-                (item.publicOnly && isLoggedIn)
-              ) &&
-              (!item.needActiveDatabase ||
-                (item.needActiveDatabase && hasActiveDatabase)),
-          );
-          return filteredItems.length === 0 ? null : (
-            <SidebarGroup key={item.title}>
-              <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {filteredItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild isActive={item.isActive}>
-                        {item.url ? (
-                          <Link
-                            onClick={mobileCloseOnClick}
-                            to={item.url}
-                            key={item.title}
-                          >
-                            {item.icon ? item.icon : ""}
-                            {item.title}
-                          </Link>
-                        ) : typeof item.click === "function" ? (
-                          <Button
-                            key={item.title}
-                            onClick={() => {
-                              mobileCloseOnClick();
-                              if (typeof item.click === "function") {
-                                item.click();
-                              }
-                            }}
-                            asChild
-                            variant={"ghost"}
-                          >
-                            <div className="justify-start cursor-pointer">
-                              {item.icon ? item.icon : ""}
-                              {item.title}
-                            </div>
-                          </Button>
-                        ) : (
-                          <span key={item.title}>{item.title}</span>
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
-      </SidebarContent>
-      <SidebarRail />
-    </Sidebar>
-  );
+    };
+    return (
+        <Sidebar
+            onMouseEnter={() => setOpen(true)}
+            onMouseLeave={() => setOpen(false)}
+            collapsible={isMobile ? "offcanvas" : "icon"}
+            {...props}
+        >
+            <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
+            <SidebarContent>
+                {data.navMain.map((item) => {
+                    const filteredItems = item.items.filter(
+                        (item) =>
+                            !(
+                                (item.private && !isLoggedIn) ||
+                                (item.publicOnly && isLoggedIn)
+                            ) &&
+                            (!item.needActiveDatabase ||
+                                (item.needActiveDatabase && hasActiveDatabase)),
+                    );
+                    return filteredItems.length === 0 ? null : (
+                        <SidebarGroup key={item.title}>
+                            <SidebarGroupLabel>{item.title}</SidebarGroupLabel>
+                            <SidebarGroupContent>
+                                <SidebarMenu>
+                                    {filteredItems.map((item) => (
+                                        <SidebarMenuItem key={item.title}>
+                                            <SidebarMenuButton
+                                                asChild
+                                                isActive={item.isActive}
+                                            >
+                                                {item.url ? (
+                                                    <Link
+                                                        onClick={
+                                                            mobileCloseOnClick
+                                                        }
+                                                        to={item.url}
+                                                        key={item.title}
+                                                    >
+                                                        {item.icon
+                                                            ? item.icon
+                                                            : ""}
+                                                        {item.title}
+                                                    </Link>
+                                                ) : typeof item.click ===
+                                                  "function" ? (
+                                                    <Button
+                                                        key={item.title}
+                                                        onClick={() => {
+                                                            mobileCloseOnClick();
+                                                            if (
+                                                                typeof item.click ===
+                                                                "function"
+                                                            ) {
+                                                                item.click();
+                                                            }
+                                                        }}
+                                                        asChild
+                                                        variant={"ghost"}
+                                                    >
+                                                        <div className="justify-start cursor-pointer">
+                                                            {item.icon
+                                                                ? item.icon
+                                                                : ""}
+                                                            {item.title}
+                                                        </div>
+                                                    </Button>
+                                                ) : (
+                                                    <span key={item.title}>
+                                                        {item.title}
+                                                    </span>
+                                                )}
+                                            </SidebarMenuButton>
+                                        </SidebarMenuItem>
+                                    ))}
+                                </SidebarMenu>
+                            </SidebarGroupContent>
+                        </SidebarGroup>
+                    );
+                })}
+            </SidebarContent>
+            <SidebarRail />
+        </Sidebar>
+    );
 }

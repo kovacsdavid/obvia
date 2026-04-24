@@ -21,16 +21,16 @@ import React, { useCallback, useEffect } from "react";
 import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  create,
-  get,
-  update,
+    create,
+    get,
+    update,
 } from "@/components/modules/warehouses/lib/slice.ts";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router-dom";
 import { useFormError } from "@/hooks/use_form_error.ts";
@@ -38,260 +38,297 @@ import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import type { Warehouse } from "./lib/interface";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from "@/components/ui/field";
 
 interface EditProps {
-  showCard?: boolean;
-  onSuccess?: (warehouse: Warehouse) => void;
-  onCancel?: () => void;
+    showCard?: boolean;
+    onSuccess?: (warehouse: Warehouse) => void;
+    onCancel?: () => void;
 }
 
 export default function Edit({
-  showCard = true,
-  onSuccess = undefined,
-  onCancel = undefined,
+    showCard = true,
+    onSuccess = undefined,
+    onCancel = undefined,
 }: EditProps) {
-  const [name, setName] = React.useState("");
-  const [contactName, setContactName] = React.useState("");
-  const [contactPhone, setContactPhone] = React.useState("");
-  const [status, setStatus] = React.useState("active");
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const params = useParams();
-  const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const [name, setName] = React.useState("");
+    const [contactName, setContactName] = React.useState("");
+    const [contactPhone, setContactPhone] = React.useState("");
+    const [status, setStatus] = React.useState("active");
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const params = useParams();
+    const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const handleCreate = useCallback(() => {
-    dispatch(
-      create({
-        id,
-        name,
-        contactName,
-        contactPhone,
-        status,
-      }),
-    ).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          if (
-            typeof onSuccess === "function" &&
-            typeof response.payload.jsonData?.data !== "undefined"
-          ) {
-            onSuccess(response.payload.jsonData.data);
-          } else {
-            navigate("/raktar/lista");
-          }
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    contactName,
-    contactPhone,
-    dispatch,
-    id,
-    name,
-    navigate,
-    onSuccess,
-    setErrors,
-    status,
-    unexpectedError,
-  ]);
-
-  const handleCancel = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (typeof onCancel === "function") {
-        onCancel();
-      } else {
-        navigate(-1);
-      }
-    },
-    [navigate, onCancel],
-  );
-
-  const handleUpdate = useCallback(() => {
-    dispatch(
-      update({
-        id,
-        name,
-        contactName,
-        contactPhone,
-        status,
-      }),
-    ).then(async (response) => {
-      if (update.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          navigate("/raktar/lista");
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    contactName,
-    contactPhone,
-    dispatch,
-    id,
-    name,
-    navigate,
-    setErrors,
-    status,
-    unexpectedError,
-  ]);
-
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setName(data.name);
-              setContactName(data.contact_name ?? "");
-              setContactPhone(data.contact_phone ?? "");
-              setStatus(data.status ?? "");
+    const handleCreate = useCallback(() => {
+        dispatch(
+            create({
+                id,
+                name,
+                contactName,
+                contactPhone,
+                status,
+            }),
+        ).then(async (response) => {
+            if (create.fulfilled.match(response)) {
+                if (response.payload.statusCode === 201) {
+                    if (
+                        typeof onSuccess === "function" &&
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        onSuccess(response.payload.jsonData.data);
+                    } else {
+                        navigate("/raktar/lista");
+                    }
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
             }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({
-              message: response.payload.jsonData.error.message,
-              fields: {},
+        });
+    }, [
+        contactName,
+        contactPhone,
+        dispatch,
+        id,
+        name,
+        navigate,
+        onSuccess,
+        setErrors,
+        status,
+        unexpectedError,
+    ]);
+
+    const handleCancel = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            if (typeof onCancel === "function") {
+                onCancel();
+            } else {
+                navigate(-1);
+            }
+        },
+        [navigate, onCancel],
+    );
+
+    const handleUpdate = useCallback(() => {
+        dispatch(
+            update({
+                id,
+                name,
+                contactName,
+                contactPhone,
+                status,
+            }),
+        ).then(async (response) => {
+            if (update.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    navigate("/raktar/lista");
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        contactName,
+        contactPhone,
+        dispatch,
+        id,
+        name,
+        navigate,
+        setErrors,
+        status,
+        unexpectedError,
+    ]);
+
+    useEffect(() => {
+        if (typeof id === "string") {
+            dispatch(get(id)).then(async (response) => {
+                if (get.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            const data = response.payload.jsonData.data;
+                            setName(data.name);
+                            setContactName(data.contact_name ?? "");
+                            setContactPhone(data.contact_phone ?? "");
+                            setStatus(data.status ?? "");
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors({
+                            message: response.payload.jsonData.error.message,
+                            fields: {},
+                        });
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
             });
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
         }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+    }, [dispatch, id, setErrors, unexpectedError]);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    if (typeof id === "string") {
-      handleUpdate();
-    } else {
-      handleCreate();
-    }
-  };
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        if (typeof id === "string") {
+            handleUpdate();
+        } else {
+            handleCreate();
+        }
+    };
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-          autoComplete={"off"}
-        >
-          <FieldSet>
-            <FieldLegend>
-              {`Raktár ${id ? "módosítás" : "létrehozás"}`}
-            </FieldLegend>
-            <FieldGroup>
-              <Field data-invalid={isInvalidField("name")}>
-                <FieldLabel htmlFor="name">Név</FieldLabel>
-                <Input
-                  id="name"
-                  placeholder="Sopron 4"
-                  type="text"
-                  value={name}
-                  onChange={(e) => {
-                    resetError("name");
-                    setName(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("name")}
-                />
-                <FieldError error={errors} field={"name"} />
-              </Field>
-              <Field data-invalid={isInvalidField("contact_name")}>
-                <FieldLabel htmlFor="contact_name">
-                  Kapcsolattartó neve
-                </FieldLabel>
-                <Input
-                  id="contact_name"
-                  type="text"
-                  placeholder="Példa Béla"
-                  value={contactName}
-                  onChange={(e) => {
-                    resetError("contact_name");
-                    setContactName(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("contact_name")}
-                />
-                <FieldError error={errors} field={"contact_name"} />
-              </Field>
-              <Field data-invalid={isInvalidField("contact_phone")}>
-                <FieldLabel htmlFor="contact_phone">
-                  Kapcsolattartó telefonszáma
-                </FieldLabel>
-                <Input
-                  id="contact_phone"
-                  type="text"
-                  placeholder="+36301234567"
-                  value={contactPhone}
-                  onChange={(e) => {
-                    resetError("contact_phone");
-                    setContactPhone(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("contact_phone")}
-                />
-                <FieldError error={errors} field={"contact_phone"} />
-              </Field>
-              <Field data-invalid={isInvalidField("status")}>
-                <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select
-                  value={status}
-                  onValueChange={(val) => {
-                    resetError("status");
-                    setStatus(val);
-                  }}
+    return (
+        <>
+            <GlobalError error={errors} />
+            <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    autoComplete={"off"}
                 >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("status")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktív</SelectItem>
-                    <SelectItem value="inactive">Inaktív</SelectItem>
-                    <SelectItem value="maintenance">
-                      Karbantartás alatt
-                    </SelectItem>
-                    <SelectItem value="closed">Véglegesen bezárt</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"status"} />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Field orientation="horizontal">
-            <div className="text-right mt-8 w-full">
-              <Button className="mr-3" variant="outline" onClick={handleCancel}>
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
-          </Field>
-        </form>
-      </ConditionalCard>
-    </>
-  );
+                    <FieldSet>
+                        <FieldLegend>
+                            {`Raktár ${id ? "módosítás" : "létrehozás"}`}
+                        </FieldLegend>
+                        <FieldGroup>
+                            <Field data-invalid={isInvalidField("name")}>
+                                <FieldLabel htmlFor="name">Név</FieldLabel>
+                                <Input
+                                    id="name"
+                                    placeholder="Sopron 4"
+                                    type="text"
+                                    value={name}
+                                    onChange={(e) => {
+                                        resetError("name");
+                                        setName(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("name")}
+                                />
+                                <FieldError error={errors} field={"name"} />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("contact_name")}
+                            >
+                                <FieldLabel htmlFor="contact_name">
+                                    Kapcsolattartó neve
+                                </FieldLabel>
+                                <Input
+                                    id="contact_name"
+                                    type="text"
+                                    placeholder="Példa Béla"
+                                    value={contactName}
+                                    onChange={(e) => {
+                                        resetError("contact_name");
+                                        setContactName(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField(
+                                        "contact_name",
+                                    )}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"contact_name"}
+                                />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("contact_phone")}
+                            >
+                                <FieldLabel htmlFor="contact_phone">
+                                    Kapcsolattartó telefonszáma
+                                </FieldLabel>
+                                <Input
+                                    id="contact_phone"
+                                    type="text"
+                                    placeholder="+36301234567"
+                                    value={contactPhone}
+                                    onChange={(e) => {
+                                        resetError("contact_phone");
+                                        setContactPhone(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField(
+                                        "contact_phone",
+                                    )}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"contact_phone"}
+                                />
+                            </Field>
+                            <Field data-invalid={isInvalidField("status")}>
+                                <FieldLabel htmlFor="status">
+                                    Státusz
+                                </FieldLabel>
+                                <Select
+                                    value={status}
+                                    onValueChange={(val) => {
+                                        resetError("status");
+                                        setStatus(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField("status")}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">
+                                            Aktív
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inaktív
+                                        </SelectItem>
+                                        <SelectItem value="maintenance">
+                                            Karbantartás alatt
+                                        </SelectItem>
+                                        <SelectItem value="closed">
+                                            Véglegesen bezárt
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError error={errors} field={"status"} />
+                            </Field>
+                        </FieldGroup>
+                    </FieldSet>
+                    <Field orientation="horizontal">
+                        <div className="text-right mt-8 w-full">
+                            <Button
+                                className="mr-3"
+                                variant="outline"
+                                onClick={handleCancel}
+                            >
+                                Mégse
+                            </Button>
+                            <Button type="submit">
+                                {id ? "Módosítás" : "Létrehozás"}
+                            </Button>
+                        </div>
+                    </Field>
+                </form>
+            </ConditionalCard>
+        </>
+    );
 }

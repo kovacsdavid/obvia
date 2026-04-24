@@ -18,128 +18,130 @@
  */
 
 import {
-  isCommonResponse,
-  isFormError,
-  isPaginatedDataResponse,
-  isSimpleError,
-  isSimpleMessageData,
+    isCommonResponse,
+    isFormError,
+    isPaginatedDataResponse,
+    isSimpleError,
+    isSimpleMessageData,
 } from "@/lib/interfaces/common.ts";
 import type {
-  CreateWorksheetResponse,
-  DeleteWorksheetResponse,
-  PaginatedWorksheetResolvedListResponse,
-  UpdateWorksheetResponse,
-  Worksheet,
-  WorksheetResolved,
-  WorksheetResolvedList,
-  WorksheetResolvedResponse,
-  WorksheetResponse,
+    CreateWorksheetResponse,
+    DeleteWorksheetResponse,
+    PaginatedWorksheetResolvedListResponse,
+    UpdateWorksheetResponse,
+    Worksheet,
+    WorksheetResolved,
+    WorksheetResolvedList,
+    WorksheetResolvedResponse,
+    WorksheetResponse,
 } from "@/components/modules/worksheets/lib/interface.ts";
 
 export function isCreateWorksheetResponse(
-  data: unknown,
+    data: unknown,
 ): data is CreateWorksheetResponse {
-  return isCommonResponse(data, isWorksheet, isFormError);
+    return isCommonResponse(data, isWorksheet, isFormError);
 }
 
 export function isWorksheetResolvedResponse(
-  data: unknown,
+    data: unknown,
 ): data is WorksheetResolvedResponse {
-  return isCommonResponse(data, isWorksheetResolved, isSimpleError);
+    return isCommonResponse(data, isWorksheetResolved, isSimpleError);
 }
 
 export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "customer_id" in data &&
-    typeof data.customer_id === "string" &&
-    "customer" in data &&
-    typeof data.customer === "string" &&
-    "project_id" in data &&
-    (data.project_id === null || typeof data.project_id === "string") &&
-    "project" in data &&
-    (data.project === null || typeof data.project === "string") &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "created_by" in data &&
-    typeof data.created_by === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string") &&
-    "net_material_cost" in data &&
-    typeof data.net_material_cost === "string" &&
-    "gross_material_cost" in data &&
-    typeof data.gross_material_cost === "string" &&
-    "net_work_cost" in data &&
-    typeof data.net_work_cost === "string" &&
-    "gross_work_cost" in data &&
-    typeof data.gross_work_cost === "string"
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "name" in data &&
+        typeof data.name === "string" &&
+        "description" in data &&
+        (data.description === null || typeof data.description === "string") &&
+        "customer_id" in data &&
+        typeof data.customer_id === "string" &&
+        "customer" in data &&
+        typeof data.customer === "string" &&
+        "project_id" in data &&
+        (data.project_id === null || typeof data.project_id === "string") &&
+        "project" in data &&
+        (data.project === null || typeof data.project === "string") &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "created_by" in data &&
+        typeof data.created_by === "string" &&
+        "status" in data &&
+        typeof data.status === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "net_material_cost" in data &&
+        typeof data.net_material_cost === "string" &&
+        "gross_material_cost" in data &&
+        typeof data.gross_material_cost === "string" &&
+        "net_work_cost" in data &&
+        typeof data.net_work_cost === "string" &&
+        "gross_work_cost" in data &&
+        typeof data.gross_work_cost === "string"
+    );
 }
 
 export function isWorksheetResolvedList(
-  data: unknown,
+    data: unknown,
 ): data is WorksheetResolvedList {
-  return Array.isArray(data) && data.every((item) => isWorksheetResolved(item));
+    return (
+        Array.isArray(data) && data.every((item) => isWorksheetResolved(item))
+    );
 }
 
 export function isPaginatedWorksheetResolvedListResponse(
-  data: unknown,
+    data: unknown,
 ): data is PaginatedWorksheetResolvedListResponse {
-  return isPaginatedDataResponse(data, isWorksheetResolvedList);
+    return isPaginatedDataResponse(data, isWorksheetResolvedList);
 }
 
 export function isWorksheet(data: unknown): data is Worksheet {
-  return (
-    typeof data === "object" &&
-    data !== null &&
-    "id" in data &&
-    typeof data.id === "string" &&
-    "name" in data &&
-    typeof data.name === "string" &&
-    "description" in data &&
-    (data.description === null || typeof data.description === "string") &&
-    "customer_id" in data &&
-    typeof data.customer_id === "string" &&
-    "project_id" in data &&
-    (data.project_id === null || typeof data.project_id === "string") &&
-    "created_by_id" in data &&
-    typeof data.created_by_id === "string" &&
-    "status" in data &&
-    typeof data.status === "string" &&
-    "created_at" in data &&
-    typeof data.created_at === "string" &&
-    "updated_at" in data &&
-    typeof data.updated_at === "string" &&
-    "deleted_at" in data &&
-    (data.deleted_at === null || typeof data.deleted_at === "string")
-  );
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
+        "name" in data &&
+        typeof data.name === "string" &&
+        "description" in data &&
+        (data.description === null || typeof data.description === "string") &&
+        "customer_id" in data &&
+        typeof data.customer_id === "string" &&
+        "project_id" in data &&
+        (data.project_id === null || typeof data.project_id === "string") &&
+        "created_by_id" in data &&
+        typeof data.created_by_id === "string" &&
+        "status" in data &&
+        typeof data.status === "string" &&
+        "created_at" in data &&
+        typeof data.created_at === "string" &&
+        "updated_at" in data &&
+        typeof data.updated_at === "string" &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
 }
 
 export function isWorksheetResponse(data: unknown): data is WorksheetResponse {
-  return isCommonResponse(data, isWorksheet, isSimpleError);
+    return isCommonResponse(data, isWorksheet, isSimpleError);
 }
 
 export function isUpdateWorksheetResponse(
-  data: unknown,
+    data: unknown,
 ): data is UpdateWorksheetResponse {
-  return isCommonResponse(data, isWorksheet, isFormError);
+    return isCommonResponse(data, isWorksheet, isFormError);
 }
 
 export function isDeleteWorksheetResponse(
-  data: unknown,
+    data: unknown,
 ): data is DeleteWorksheetResponse {
-  return isCommonResponse(data, isSimpleMessageData, isSimpleError);
+    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

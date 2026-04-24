@@ -20,116 +20,120 @@
 import { Button } from "@/components/ui";
 import { useAuth } from "@/hooks/use_auth";
 import {
-  Boxes,
-  Database,
-  HandCoins,
-  HandPlatter,
-  ListTodo,
-  LogOut,
-  NotebookText,
-  Package,
-  UsersRound,
-  Warehouse,
+    Boxes,
+    Database,
+    HandCoins,
+    HandPlatter,
+    ListTodo,
+    LogOut,
+    NotebookText,
+    Package,
+    UsersRound,
+    Warehouse,
 } from "lucide-react";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 
 export default function Dashboard() {
-  const { hasActiveDatabase } = useAuth();
-  const dispatch = useAppDispatch();
+    const { hasActiveDatabase } = useAuth();
+    const dispatch = useAppDispatch();
 
-  const handleLogout = () => {
-    dispatch(logoutAndRevokeRefreshToken());
-  };
-  const navigate = useNavigate();
-  return (
-    <Card className={"max-w-3xl mx-auto"}>
-      <CardHeader>
-        <CardTitle>Vezérlőpult</CardTitle>
-      </CardHeader>
-      <CardContent className="text-center">
-        <Button
-          onClick={() => navigate("/adatbazis/lista")}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <Database /> Adatbázis
-        </Button>
-        <Button
-          onClick={() => navigate("/vevo/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <UsersRound /> Vevők
-        </Button>
-        <Button
-          onClick={() => navigate("/raktar/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <Warehouse /> Raktárak
-        </Button>
-        <Button
-          onClick={() => navigate("/ado/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <HandCoins /> Adók
-        </Button>
-        <Button
-          onClick={() => navigate("/termek/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <Package /> Termékek
-        </Button>
-        <Button
-          onClick={() => navigate("/raktarkeszlet/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <Boxes /> Raktárkészlet
-        </Button>
-        <Button
-          onClick={() => navigate("/szolgaltatas/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <HandPlatter /> Szolgáltatások
-        </Button>
-        <Button
-          onClick={() => navigate("/feladat/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <ListTodo /> Feladatok
-        </Button>
-        <Button
-          onClick={() => navigate("/munkalap/lista")}
-          disabled={!hasActiveDatabase}
-          variant={"outline"}
-          className="p-8 m-5"
-        >
-          <NotebookText /> Munkalapok
-        </Button>
-        <Button onClick={handleLogout} variant={"outline"} className="p-8 m-5">
-          <LogOut /> Kijelentkezés
-        </Button>
-      </CardContent>
-    </Card>
-  );
+    const handleLogout = () => {
+        dispatch(logoutAndRevokeRefreshToken());
+    };
+    const navigate = useNavigate();
+    return (
+        <Card className={"max-w-3xl mx-auto"}>
+            <CardHeader>
+                <CardTitle>Vezérlőpult</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+                <Button
+                    onClick={() => navigate("/adatbazis/lista")}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <Database /> Adatbázis
+                </Button>
+                <Button
+                    onClick={() => navigate("/vevo/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <UsersRound /> Vevők
+                </Button>
+                <Button
+                    onClick={() => navigate("/raktar/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <Warehouse /> Raktárak
+                </Button>
+                <Button
+                    onClick={() => navigate("/ado/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <HandCoins /> Adók
+                </Button>
+                <Button
+                    onClick={() => navigate("/termek/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <Package /> Termékek
+                </Button>
+                <Button
+                    onClick={() => navigate("/raktarkeszlet/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <Boxes /> Raktárkészlet
+                </Button>
+                <Button
+                    onClick={() => navigate("/szolgaltatas/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <HandPlatter /> Szolgáltatások
+                </Button>
+                <Button
+                    onClick={() => navigate("/feladat/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <ListTodo /> Feladatok
+                </Button>
+                <Button
+                    onClick={() => navigate("/munkalap/lista")}
+                    disabled={!hasActiveDatabase}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <NotebookText /> Munkalapok
+                </Button>
+                <Button
+                    onClick={handleLogout}
+                    variant={"outline"}
+                    className="p-8 m-5"
+                >
+                    <LogOut /> Kijelentkezés
+                </Button>
+            </CardContent>
+        </Card>
+    );
 }

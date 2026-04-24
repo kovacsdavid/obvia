@@ -24,87 +24,87 @@ import type { TaxUserInput } from "@/components/modules/taxes/lib/interface.ts";
 import { refreshAccessToken } from "@/components/modules/auth/lib/slice.ts";
 
 interface TaxesState {
-  status: "idle" | "loading" | "succeeded" | "failed";
+    status: "idle" | "loading" | "succeeded" | "failed";
 }
 
 const initialState: TaxesState = {
-  status: "idle",
+    status: "idle",
 };
 
 export const create = createAsyncThunk(
-  "taxes/create",
-  async (requestData: TaxUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.create(requestData, token);
-  },
+    "taxes/create",
+    async (requestData: TaxUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.create(requestData, token);
+    },
 );
 
 export const deleteItem = createAsyncThunk(
-  "taxes/deleteItem",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.deleteItem(uuid, token);
-  },
+    "taxes/deleteItem",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.deleteItem(uuid, token);
+    },
 );
 
 export const update = createAsyncThunk(
-  "taxes/update",
-  async (requestData: TaxUserInput, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.update(requestData, token);
-  },
+    "taxes/update",
+    async (requestData: TaxUserInput, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.update(requestData, token);
+    },
 );
 
 export const list = createAsyncThunk(
-  "taxes/list",
-  async (query: string | null, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.list(query, token);
-  },
+    "taxes/list",
+    async (query: string | null, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.list(query, token);
+    },
 );
 
 export const get = createAsyncThunk(
-  "taxes/get",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.get(uuid, token);
-  },
+    "taxes/get",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.get(uuid, token);
+    },
 );
 
 export const get_resolved = createAsyncThunk(
-  "taxes/get_resolved",
-  async (uuid: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.get_resolved(uuid, token);
-  },
+    "taxes/get_resolved",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.get_resolved(uuid, token);
+    },
 );
 
 export const select_list = createAsyncThunk(
-  "taxes/select_list",
-  async (list: string, { getState, dispatch }) => {
-    await dispatch(refreshAccessToken());
-    const rootState = getState() as RootState;
-    const token = rootState.auth.login.token;
-    return await taxesApi.select_list(list, token);
-  },
+    "taxes/select_list",
+    async (list: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.select_list(list, token);
+    },
 );
 
 const taxesSlice = createSlice({
-  name: "taxes",
-  initialState,
-  reducers: {},
+    name: "taxes",
+    initialState,
+    reducers: {},
 });
 
 export default taxesSlice.reducer;

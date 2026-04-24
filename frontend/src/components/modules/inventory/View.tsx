@@ -22,16 +22,16 @@ import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/inventory/lib/slice.ts";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
@@ -42,121 +42,163 @@ import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
-  const [data, setData] = React.useState<InventoryResolved | null>(null);
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const dispatch = useAppDispatch();
-  const params = useParams();
-  const navigate = useNavigate();
+    const [data, setData] = React.useState<InventoryResolved | null>(null);
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const dispatch = useAppDispatch();
+    const params = useParams();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if (typeof params["id"] === "string") {
-      dispatch(get_resolved(params["id"])).then(async (response) => {
-        if (get_resolved.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              setData(response.payload.jsonData.data);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
+    useEffect(() => {
+        if (typeof params["id"] === "string") {
+            dispatch(get_resolved(params["id"])).then(async (response) => {
+                if (get_resolved.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            setData(response.payload.jsonData.data);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            });
         }
-      });
-    }
-  }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params, setErrors, unexpectedError]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      {data !== null ? (
+    return (
         <>
-          <Card className={"max-w-3xl mx-auto"}>
-            <CardHeader>
-              <CardTitle>Raktárkészlet</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Azonosító</TableCell>
-                    <TableCell>{data.id}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Termék</TableCell>
-                    <TableCell>
-                      <NavLink to={`/termek/reszletek/${data.product_id}`}>
-                        {data.product} <Link size={15} className="inline" />
-                      </NavLink>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Raktár</TableCell>
-                    <TableCell>
-                      <NavLink to={`/raktar/reszletek/${data.warehouse_id}`}>
-                        {data.warehouse} <Link size={15} className="inline" />
-                      </NavLink>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Készlet (raktáron)</TableCell>
-                    <TableCell>{data.quantity_on_hand}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Foglalt</TableCell>
-                    <TableCell>{data.quantity_reserved}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Rendelkezésre álló</TableCell>
-                    <TableCell>{data.quantity_available}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Minimum készlet</TableCell>
-                    <TableCell>{data.minimum_stock ?? "-"}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Maximum készlet</TableCell>
-                    <TableCell>{data.maximum_stock ?? "-"}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Állapot</TableCell>
-                    <TableCell>{data.status}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Pénznem</TableCell>
-                    <TableCell>{data.currency}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozta</TableCell>
-                    <TableCell>{data.created_by}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozva</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Frissítve</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-              <div className="mt-8">
-                <Button
-                  className="mr-3"
-                  type="submit"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Vissza
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <ActivityFeed resourceId={data.id} resourceType="inventory" />
+            <GlobalError error={errors} />
+            {data !== null ? (
+                <>
+                    <Card className={"max-w-3xl mx-auto"}>
+                        <CardHeader>
+                            <CardTitle>Raktárkészlet</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Azonosító</TableCell>
+                                        <TableCell>{data.id}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Termék</TableCell>
+                                        <TableCell>
+                                            <NavLink
+                                                to={`/termek/reszletek/${data.product_id}`}
+                                            >
+                                                {data.product}{" "}
+                                                <Link
+                                                    size={15}
+                                                    className="inline"
+                                                />
+                                            </NavLink>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Raktár</TableCell>
+                                        <TableCell>
+                                            <NavLink
+                                                to={`/raktar/reszletek/${data.warehouse_id}`}
+                                            >
+                                                {data.warehouse}{" "}
+                                                <Link
+                                                    size={15}
+                                                    className="inline"
+                                                />
+                                            </NavLink>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Készlet (raktáron)
+                                        </TableCell>
+                                        <TableCell>
+                                            {data.quantity_on_hand}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Foglalt</TableCell>
+                                        <TableCell>
+                                            {data.quantity_reserved}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Rendelkezésre álló
+                                        </TableCell>
+                                        <TableCell>
+                                            {data.quantity_available}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Minimum készlet</TableCell>
+                                        <TableCell>
+                                            {data.minimum_stock ?? "-"}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Maximum készlet</TableCell>
+                                        <TableCell>
+                                            {data.maximum_stock ?? "-"}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Állapot</TableCell>
+                                        <TableCell>{data.status}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Pénznem</TableCell>
+                                        <TableCell>{data.currency}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozta</TableCell>
+                                        <TableCell>{data.created_by}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozva</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.created_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Frissítve</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.updated_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <div className="mt-8">
+                                <Button
+                                    className="mr-3"
+                                    type="submit"
+                                    variant="outline"
+                                    onClick={() => navigate(-1)}
+                                >
+                                    Vissza
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <ActivityFeed
+                        resourceId={data.id}
+                        resourceType="inventory"
+                    />
+                </>
+            ) : null}
         </>
-      ) : null}
-    </>
-  );
+    );
 }

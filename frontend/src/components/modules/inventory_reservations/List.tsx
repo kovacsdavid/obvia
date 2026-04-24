@@ -20,25 +20,25 @@
 import React, { useCallback, useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  deleteItem,
-  list,
+    deleteItem,
+    list,
 } from "@/components/modules/inventory_reservations/lib/slice.ts";
 import type { InventoryReservationResolvedList } from "@/components/modules/inventory_reservations/lib/interface.ts";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import {
-  SortableTableHead,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    SortableTableHead,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import { Button, GlobalError } from "@/components/ui";
 import { Paginator } from "@/components/ui/pagination.tsx";
@@ -48,210 +48,242 @@ import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function InventoryReservationsList() {
-  const dispatch = useAppDispatch();
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const [data, setData] = React.useState<InventoryReservationResolvedList>([]);
-  const params = useParams();
-  const routeInventoryId = React.useMemo(
-    () => params["inventoryId"] ?? "",
-    [params],
-  );
-
-  const {
-    rawQuery,
-    page,
-    setPage,
-    setLimit,
-    setTotal,
-    orderBy,
-    order,
-    paginatorSelect,
-    orderSelect,
-    totalPages,
-  } = useDataDisplayCommon(null);
-
-  const refresh = useCallback(() => {
-    dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
-      async (response) => {
-        if (list.fulfilled.match(response)) {
-          if (
-            response.payload.statusCode === 200 &&
-            typeof response.payload.jsonData?.data !== "undefined" &&
-            typeof response.payload.jsonData?.meta !== "undefined"
-          ) {
-            setPage(response.payload.jsonData.meta.page);
-            setLimit(response.payload.jsonData.meta.limit);
-            setTotal(response.payload.jsonData.meta.total);
-            setData(response.payload.jsonData.data);
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
-        }
-      },
+    const dispatch = useAppDispatch();
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const [data, setData] = React.useState<InventoryReservationResolvedList>(
+        [],
     );
-  }, [
-    dispatch,
-    rawQuery,
-    setPage,
-    setLimit,
-    setTotal,
-    setErrors,
-    unexpectedError,
-    routeInventoryId,
-  ]);
+    const params = useParams();
+    const routeInventoryId = React.useMemo(
+        () => params["inventoryId"] ?? "",
+        [params],
+    );
 
-  const handleDelete = (id: string) => {
-    dispatch(deleteItem(id)).then(async (response) => {
-      if (deleteItem.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          refresh();
-        }
-      }
-    });
-  };
+    const {
+        rawQuery,
+        page,
+        setPage,
+        setLimit,
+        setTotal,
+        orderBy,
+        order,
+        paginatorSelect,
+        orderSelect,
+        totalPages,
+    } = useDataDisplayCommon(null);
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    const refresh = useCallback(() => {
+        dispatch(list({ inventoryId: routeInventoryId, query: rawQuery })).then(
+            async (response) => {
+                if (list.fulfilled.match(response)) {
+                    if (
+                        response.payload.statusCode === 200 &&
+                        typeof response.payload.jsonData?.data !==
+                            "undefined" &&
+                        typeof response.payload.jsonData?.meta !== "undefined"
+                    ) {
+                        setPage(response.payload.jsonData.meta.page);
+                        setLimit(response.payload.jsonData.meta.limit);
+                        setTotal(response.payload.jsonData.meta.total);
+                        setData(response.payload.jsonData.data);
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            },
+        );
+    }, [
+        dispatch,
+        rawQuery,
+        setPage,
+        setLimit,
+        setTotal,
+        setErrors,
+        unexpectedError,
+        routeInventoryId,
+    ]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Készletfoglalások</CardTitle>
-          <CardAction>
-            <Link to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}>
-              <Button style={{ color: "green" }} variant="outline">
-                Új <Plus color="green" />
-              </Button>
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead />
-                <SortableTableHead
-                  field="quantity"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Mennyiség
-                </SortableTableHead>
-                <SortableTableHead
-                  field="reference_type"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Hivatkozás típusa
-                </SortableTableHead>
-                <TableHead>Hivatkozás azonosító</TableHead>
-                <SortableTableHead
-                  field="reserved_until"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Lefoglalva eddig
-                </SortableTableHead>
-                <SortableTableHead
-                  field="status"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Státusz
-                </SortableTableHead>
-                <TableHead>Létrehozta</TableHead>
-                <SortableTableHead
-                  field="created_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Létrehozva
-                </SortableTableHead>
-                <SortableTableHead
-                  field="updated_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Módosítva
-                </SortableTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side={"bottom"} align="start">
-                        <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
+    const handleDelete = (id: string) => {
+        dispatch(deleteItem(id)).then(async (response) => {
+            if (deleteItem.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    refresh();
+                }
+            }
+        });
+    };
+
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
+
+    return (
+        <>
+            <GlobalError error={errors} />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Készletfoglalások</CardTitle>
+                    <CardAction>
                         <Link
-                          to={`/raktarkeszlet-foglalas/reszletek/${item.id}`}
+                            to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}
                         >
-                          <DropdownMenuItem>
-                            <Eye /> Részletek
-                          </DropdownMenuItem>
+                            <Button
+                                style={{ color: "green" }}
+                                variant="outline"
+                            >
+                                Új <Plus color="green" />
+                            </Button>
                         </Link>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className={"cursor-pointer"}
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash /> Törlés
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>{item.reference_type ?? "N/A"}</TableCell>
-                  <TableCell>{item.reference_id ?? "N/A"}</TableCell>
-                  <TableCell>
-                    {item.reserved_until
-                      ? formatDateToYMDHMS(item.reserved_until)
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.created_by}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Paginator
-            page={page}
-            totalPages={totalPages}
-            onPageChange={paginatorSelect}
-          />
-        </CardContent>
-      </Card>
-    </>
-  );
+                    </CardAction>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead />
+                                <SortableTableHead
+                                    field="quantity"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Mennyiség
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="reference_type"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Hivatkozás típusa
+                                </SortableTableHead>
+                                <TableHead>Hivatkozás azonosító</TableHead>
+                                <SortableTableHead
+                                    field="reserved_until"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Lefoglalva eddig
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="status"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Státusz
+                                </SortableTableHead>
+                                <TableHead>Létrehozta</TableHead>
+                                <SortableTableHead
+                                    field="created_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Létrehozva
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="updated_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Módosítva
+                                </SortableTableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <span className="sr-only">
+                                                        Menü megnyitása
+                                                    </span>
+                                                    <MoreHorizontal />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                                side={"bottom"}
+                                                align="start"
+                                            >
+                                                <DropdownMenuLabel>
+                                                    Műveletek
+                                                </DropdownMenuLabel>
+                                                <Link
+                                                    to={`/raktarkeszlet-foglalas/reszletek/${item.id}`}
+                                                >
+                                                    <DropdownMenuItem>
+                                                        <Eye /> Részletek
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className={"cursor-pointer"}
+                                                    onClick={() =>
+                                                        handleDelete(item.id)
+                                                    }
+                                                >
+                                                    <Trash /> Törlés
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                    <TableCell>{item.quantity}</TableCell>
+                                    <TableCell>
+                                        {item.reference_type ?? "N/A"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.reference_id ?? "N/A"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.reserved_until
+                                            ? formatDateToYMDHMS(
+                                                  item.reserved_until,
+                                              )
+                                            : "N/A"}
+                                    </TableCell>
+                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>{item.created_by}</TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.created_at)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.updated_at)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <Paginator
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={paginatorSelect}
+                    />
+                </CardContent>
+            </Card>
+        </>
+    );
 }

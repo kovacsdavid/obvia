@@ -18,20 +18,20 @@
  */
 
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
 import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
 import {
-  SortableTableHead,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+    SortableTableHead,
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import { Link } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
@@ -42,239 +42,284 @@ import { deleteItem, list } from "@/components/modules/services/lib/slice.ts";
 import { type ServiceResolvedList } from "@/components/modules/services/lib/interface.ts";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 
 export default function List() {
-  const dispatch = useAppDispatch();
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const [data, setData] = React.useState<ServiceResolvedList>([]);
+    const dispatch = useAppDispatch();
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const [data, setData] = React.useState<ServiceResolvedList>([]);
 
-  const {
-    rawQuery,
-    page,
-    setPage,
-    setLimit,
-    setTotal,
-    orderBy,
-    order,
-    paginatorSelect,
-    orderSelect,
-    filterSelect,
-    totalPages,
-    filterValue,
-    setFilterValue,
-  } = useDataDisplayCommon(null);
+    const {
+        rawQuery,
+        page,
+        setPage,
+        setLimit,
+        setTotal,
+        orderBy,
+        order,
+        paginatorSelect,
+        orderSelect,
+        filterSelect,
+        totalPages,
+        filterValue,
+        setFilterValue,
+    } = useDataDisplayCommon(null);
 
-  const refresh = useCallback(() => {
-    dispatch(list(rawQuery)).then(async (response) => {
-      if (list.fulfilled.match(response)) {
-        if (
-          response.payload.statusCode === 200 &&
-          typeof response.payload.jsonData?.data !== "undefined" &&
-          typeof response.payload.jsonData?.meta !== "undefined"
-        ) {
-          setPage(response.payload.jsonData.meta.page);
-          setLimit(response.payload.jsonData.meta.limit);
-          setTotal(response.payload.jsonData.meta.total);
-          setData(response.payload.jsonData.data);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    dispatch,
-    rawQuery,
-    setLimit,
-    setPage,
-    setTotal,
-    setErrors,
-    unexpectedError,
-  ]);
+    const refresh = useCallback(() => {
+        dispatch(list(rawQuery)).then(async (response) => {
+            if (list.fulfilled.match(response)) {
+                if (
+                    response.payload.statusCode === 200 &&
+                    typeof response.payload.jsonData?.data !== "undefined" &&
+                    typeof response.payload.jsonData?.meta !== "undefined"
+                ) {
+                    setPage(response.payload.jsonData.meta.page);
+                    setLimit(response.payload.jsonData.meta.limit);
+                    setTotal(response.payload.jsonData.meta.total);
+                    setData(response.payload.jsonData.data);
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        dispatch,
+        rawQuery,
+        setLimit,
+        setPage,
+        setTotal,
+        setErrors,
+        unexpectedError,
+    ]);
 
-  const handleDelete = (id: string) => {
-    dispatch(deleteItem(id)).then(async (response) => {
-      if (deleteItem.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          refresh();
-        }
-      }
-    });
-  };
+    const handleDelete = (id: string) => {
+        dispatch(deleteItem(id)).then(async (response) => {
+            if (deleteItem.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    refresh();
+                }
+            }
+        });
+    };
 
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
+    useEffect(() => {
+        refresh();
+    }, [refresh]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <Card>
-        <CardHeader>
-          <CardTitle>Szolgáltatások</CardTitle>
-          <CardAction>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  className={"mr-2"}
-                  variant="outline"
-                  style={{ marginBottom: "25px" }}
-                >
-                  Szűrő <Funnel />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="leading-none font-medium">Szűrő</h4>
-                    <p className="text-muted-foreground text-sm">
-                      Szűkítsd a találatok listáját szűrőfeltételekkel!
-                    </p>
-                  </div>
-                  <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Label htmlFor="name">Név</Label>
-                      <Input
-                        id="name"
-                        onBlur={(e) => filterSelect("name", e.target.value)}
-                        value={filterValue}
-                        onChange={(e) => setFilterValue(e.target.value)}
-                        className="col-span-2 h-8"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Link to={"/szolgaltatas/letrehozas"}>
-              <Button style={{ color: "green" }} variant="outline">
-                Új <Plus color="green" />
-              </Button>
-            </Link>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead />
-                <SortableTableHead
-                  field="name"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Megnevezés
-                </SortableTableHead>
-                <TableHead>Leírás</TableHead>
-                <SortableTableHead
-                  field="default_price"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Alapértelmezett ár
-                </SortableTableHead>
-                <TableHead>Alapértelmezett adózás</TableHead>
-                <TableHead>Alapértelmezett pénznem</TableHead>
-                <SortableTableHead
-                  field="status"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Státusz
-                </SortableTableHead>
-                <TableHead>Létrehozta</TableHead>
-                <SortableTableHead
-                  field="created_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Létrehozva
-                </SortableTableHead>
-                <SortableTableHead
-                  field="updated_at"
-                  orderBy={orderBy}
-                  order={order}
-                  onOrderSelect={orderSelect}
-                >
-                  Frissítve
-                </SortableTableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Menü megnyitása</span>
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side={"bottom"} align="start">
-                        <DropdownMenuLabel>Műveletek</DropdownMenuLabel>
-                        <Link to={`/szolgaltatas/reszletek/${item.id}`}>
-                          <DropdownMenuItem>
-                            <Eye /> Részletek
-                          </DropdownMenuItem>
+    return (
+        <>
+            <GlobalError error={errors} />
+            <Card>
+                <CardHeader>
+                    <CardTitle>Szolgáltatások</CardTitle>
+                    <CardAction>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    className={"mr-2"}
+                                    variant="outline"
+                                    style={{ marginBottom: "25px" }}
+                                >
+                                    Szűrő <Funnel />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                                <div className="grid gap-4">
+                                    <div className="space-y-2">
+                                        <h4 className="leading-none font-medium">
+                                            Szűrő
+                                        </h4>
+                                        <p className="text-muted-foreground text-sm">
+                                            Szűkítsd a találatok listáját
+                                            szűrőfeltételekkel!
+                                        </p>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <div className="grid grid-cols-3 items-center gap-4">
+                                            <Label htmlFor="name">Név</Label>
+                                            <Input
+                                                id="name"
+                                                onBlur={(e) =>
+                                                    filterSelect(
+                                                        "name",
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                value={filterValue}
+                                                onChange={(e) =>
+                                                    setFilterValue(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                className="col-span-2 h-8"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                        <Link to={"/szolgaltatas/letrehozas"}>
+                            <Button
+                                style={{ color: "green" }}
+                                variant="outline"
+                            >
+                                Új <Plus color="green" />
+                            </Button>
                         </Link>
-                        <Link to={`/szolgaltatas/modositas/${item.id}`}>
-                          <DropdownMenuItem>
-                            <Pencil /> Szerkesztés
-                          </DropdownMenuItem>
-                        </Link>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className={"cursor-pointer"}
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash /> Törlés
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.description ?? ""}</TableCell>
-                  <TableCell>{item.default_price ?? "N/A"}</TableCell>
-                  <TableCell>{item.default_tax ?? "N/A"}</TableCell>
-                  <TableCell>{item.currency_code ?? "N/A"}</TableCell>
-                  <TableCell>{item.status}</TableCell>
-                  <TableCell>{item.created_by}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.created_at)}</TableCell>
-                  <TableCell>{formatDateToYMDHMS(item.updated_at)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          <Paginator
-            page={page}
-            totalPages={totalPages}
-            onPageChange={paginatorSelect}
-          />
-        </CardContent>
-      </Card>
-    </>
-  );
+                    </CardAction>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead />
+                                <SortableTableHead
+                                    field="name"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Megnevezés
+                                </SortableTableHead>
+                                <TableHead>Leírás</TableHead>
+                                <SortableTableHead
+                                    field="default_price"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Alapértelmezett ár
+                                </SortableTableHead>
+                                <TableHead>Alapértelmezett adózás</TableHead>
+                                <TableHead>Alapértelmezett pénznem</TableHead>
+                                <SortableTableHead
+                                    field="status"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Státusz
+                                </SortableTableHead>
+                                <TableHead>Létrehozta</TableHead>
+                                <SortableTableHead
+                                    field="created_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Létrehozva
+                                </SortableTableHead>
+                                <SortableTableHead
+                                    field="updated_at"
+                                    orderBy={orderBy}
+                                    order={order}
+                                    onOrderSelect={orderSelect}
+                                >
+                                    Frissítve
+                                </SortableTableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {data.map((item) => (
+                                <TableRow key={item.id}>
+                                    <TableCell>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                >
+                                                    <span className="sr-only">
+                                                        Menü megnyitása
+                                                    </span>
+                                                    <MoreHorizontal />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent
+                                                side={"bottom"}
+                                                align="start"
+                                            >
+                                                <DropdownMenuLabel>
+                                                    Műveletek
+                                                </DropdownMenuLabel>
+                                                <Link
+                                                    to={`/szolgaltatas/reszletek/${item.id}`}
+                                                >
+                                                    <DropdownMenuItem>
+                                                        <Eye /> Részletek
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <Link
+                                                    to={`/szolgaltatas/modositas/${item.id}`}
+                                                >
+                                                    <DropdownMenuItem>
+                                                        <Pencil /> Szerkesztés
+                                                    </DropdownMenuItem>
+                                                </Link>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    className={"cursor-pointer"}
+                                                    onClick={() =>
+                                                        handleDelete(item.id)
+                                                    }
+                                                >
+                                                    <Trash /> Törlés
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                    <TableCell>{item.name}</TableCell>
+                                    <TableCell>
+                                        {item.description ?? ""}
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.default_price ?? "N/A"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.default_tax ?? "N/A"}
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.currency_code ?? "N/A"}
+                                    </TableCell>
+                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>{item.created_by}</TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.created_at)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {formatDateToYMDHMS(item.updated_at)}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <Paginator
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={paginatorSelect}
+                    />
+                </CardContent>
+            </Card>
+        </>
+    );
 }

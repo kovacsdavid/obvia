@@ -25,53 +25,57 @@ import { CheckCircle2Icon, CircleEllipsisIcon } from "lucide-react";
 import { Alert, AlertTitle, GlobalError } from "@/components/ui/alert";
 
 export default function EmailVerification() {
-  const params = useParams();
-  const dispatch = useAppDispatch();
-  const [success, setSuccess] = React.useState<boolean | null>(null);
+    const params = useParams();
+    const dispatch = useAppDispatch();
+    const [success, setSuccess] = React.useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (typeof params["id"] === "string") {
-      dispatch(verfiy_email(params["id"])).then(async (response) => {
-        if (verfiy_email.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            setSuccess(true);
-          } else {
-            setSuccess(false);
-          }
-        } else {
-          setSuccess(false);
+    useEffect(() => {
+        if (typeof params["id"] === "string") {
+            dispatch(verfiy_email(params["id"])).then(async (response) => {
+                if (verfiy_email.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setSuccess(true);
+                    } else {
+                        setSuccess(false);
+                    }
+                } else {
+                    setSuccess(false);
+                }
+            });
         }
-      });
-    }
-  }, [dispatch, params]);
+    }, [dispatch, params]);
 
-  if (success === true) {
-    return (
-      <>
-        <Alert>
-          <CheckCircle2Icon />
-          <AlertTitle>
-            Az e-mail cím megerősítése sikeresen megtörtént.
-          </AlertTitle>
-        </Alert>
-      </>
-    );
-  } else if (success === false) {
-    return (
-      <>
-        <GlobalError
-          error={{ message: "Az e-mail cím megerősítése sikertelen." }}
-        />
-      </>
-    );
-  } else {
-    return (
-      <>
-        <Alert>
-          <CircleEllipsisIcon />
-          <AlertTitle>Az e-mail cím megerősítése folyamatban...</AlertTitle>
-        </Alert>
-      </>
-    );
-  }
+    if (success === true) {
+        return (
+            <>
+                <Alert>
+                    <CheckCircle2Icon />
+                    <AlertTitle>
+                        Az e-mail cím megerősítése sikeresen megtörtént.
+                    </AlertTitle>
+                </Alert>
+            </>
+        );
+    } else if (success === false) {
+        return (
+            <>
+                <GlobalError
+                    error={{
+                        message: "Az e-mail cím megerősítése sikertelen.",
+                    }}
+                />
+            </>
+        );
+    } else {
+        return (
+            <>
+                <Alert>
+                    <CircleEllipsisIcon />
+                    <AlertTitle>
+                        Az e-mail cím megerősítése folyamatban...
+                    </AlertTitle>
+                </Alert>
+            </>
+        );
+    }
 }

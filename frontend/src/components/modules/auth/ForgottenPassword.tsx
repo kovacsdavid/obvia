@@ -19,174 +19,188 @@
 
 import React, { useState } from "react";
 import {
-  Button,
-  FieldError,
-  GlobalError,
-  GlobalSuccess,
-  GlobalNotification,
-  Input,
-  Label,
+    Button,
+    FieldError,
+    GlobalError,
+    GlobalSuccess,
+    GlobalNotification,
+    Input,
+    Label,
 } from "@/components/ui";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { useAppDispatch } from "@/store/hooks";
 import {
-  forgottenPassword,
-  newPassword,
+    forgottenPassword,
+    newPassword,
 } from "@/components/modules/auth/lib/slice.ts";
 import { useFormError } from "@/hooks/use_form_error";
 import { useParams } from "react-router";
 
 export default function ForgottenPassword() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordConfirm, setPasswordConfirm] = useState("");
-  const { errors, setErrors, unexpectedError } = useFormError();
-  const [success, setSuccess] = useState<boolean | null>(null);
-  const dispatch = useAppDispatch();
-  const params = useParams();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [passwordConfirm, setPasswordConfirm] = useState("");
+    const { errors, setErrors, unexpectedError } = useFormError();
+    const [success, setSuccess] = useState<boolean | null>(null);
+    const dispatch = useAppDispatch();
+    const params = useParams();
 
-  const handleSubmitNewPassword = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    const token = params["id"];
-    if (typeof token === "string" && token.length === 36) {
-      const response = await dispatch(
-        newPassword({
-          token,
-          password,
-          password_confirm: passwordConfirm,
-        }),
-      );
-      if (newPassword.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          setSuccess(true);
-          setErrors(null);
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setSuccess(false);
-          setErrors(response.payload.jsonData.error);
-        } else {
-          setSuccess(false);
-          unexpectedError();
+    const handleSubmitNewPassword = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        const token = params["id"];
+        if (typeof token === "string" && token.length === 36) {
+            const response = await dispatch(
+                newPassword({
+                    token,
+                    password,
+                    password_confirm: passwordConfirm,
+                }),
+            );
+            if (newPassword.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    setSuccess(true);
+                    setErrors(null);
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setSuccess(false);
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    setSuccess(false);
+                    unexpectedError();
+                }
+            } else {
+                unexpectedError();
+            }
         }
-      } else {
-        unexpectedError();
-      }
-    }
-  };
+    };
 
-  const handleSubmitForgottenPassword = async (e: React.SubmitEvent) => {
-    e.preventDefault();
+    const handleSubmitForgottenPassword = async (e: React.SubmitEvent) => {
+        e.preventDefault();
 
-    const response = await dispatch(
-      forgottenPassword({
-        email,
-      }),
-    );
-    if (forgottenPassword.fulfilled.match(response)) {
-      if (response.payload.statusCode === 200) {
-        setSuccess(true);
-        setErrors(null);
-      } else if (typeof response.payload.jsonData?.error !== "undefined") {
-        setSuccess(false);
-        setErrors(response.payload.jsonData.error);
-      } else {
-        setSuccess(false);
-        unexpectedError();
-      }
+        const response = await dispatch(
+            forgottenPassword({
+                email,
+            }),
+        );
+        if (forgottenPassword.fulfilled.match(response)) {
+            if (response.payload.statusCode === 200) {
+                setSuccess(true);
+                setErrors(null);
+            } else if (
+                typeof response.payload.jsonData?.error !== "undefined"
+            ) {
+                setSuccess(false);
+                setErrors(response.payload.jsonData.error);
+            } else {
+                setSuccess(false);
+                unexpectedError();
+            }
+        } else {
+            unexpectedError();
+        }
+    };
+
+    if (typeof params["id"] === "string" && params["id"].length === 36) {
+        return (
+            <>
+                {success ? (
+                    <GlobalSuccess
+                        success={{
+                            message:
+                                "A jelszó megváltoztatása sikeresen megtörtént.",
+                        }}
+                    />
+                ) : (
+                    <GlobalError error={errors} />
+                )}
+                <Card className={"max-w-lg mx-auto"}>
+                    <CardHeader>
+                        <CardTitle>Add meg az új jelszót!</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <GlobalNotification message="Ezt az űrlapot csak akkor töltsd ki, ha te kértél jelszóemlékeztetőt!" />
+                        <form
+                            onSubmit={handleSubmitNewPassword}
+                            className="space-y-4"
+                            autoComplete={"off"}
+                        >
+                            <Label htmlFor="password">Jelszó</Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                            <FieldError error={errors} field={"password"} />
+                            <Label htmlFor="password_confirm">
+                                Jelszó megerősítése
+                            </Label>
+                            <Input
+                                id="password_confirm"
+                                type="password"
+                                autoComplete="new-password"
+                                value={passwordConfirm}
+                                onChange={(e) =>
+                                    setPasswordConfirm(e.target.value)
+                                }
+                            />
+                            <FieldError
+                                error={errors}
+                                field={"password_confirm"}
+                            />
+                            <Button type="submit">
+                                Jelszó megváltoztatása
+                            </Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </>
+        );
     } else {
-      unexpectedError();
+        return (
+            <>
+                {success ? (
+                    <GlobalSuccess
+                        success={{
+                            message:
+                                "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
+                        }}
+                    />
+                ) : (
+                    <GlobalError error={errors} />
+                )}
+                <Card className={"max-w-lg mx-auto"}>
+                    <CardHeader>
+                        <CardTitle>Elfelejtett jelszó</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <GlobalNotification message="A megadott e-mail címre kapsz majd egy hivatkozást, aminek a segítségével megváltoztathatod a jelenlegi jelszavadat." />
+                        <form
+                            onSubmit={handleSubmitForgottenPassword}
+                            className="space-y-4"
+                            autoComplete={"off"}
+                        >
+                            <Label htmlFor="email">E-mail</Label>
+                            <Input
+                                id="email"
+                                type="text"
+                                autoComplete="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                            <FieldError error={errors} field={"email"} />
+                            <Button type="submit">Küldés</Button>
+                        </form>
+                    </CardContent>
+                </Card>
+            </>
+        );
     }
-  };
-
-  if (typeof params["id"] === "string" && params["id"].length === 36) {
-    return (
-      <>
-        {success ? (
-          <GlobalSuccess
-            success={{
-              message: "A jelszó megváltoztatása sikeresen megtörtént.",
-            }}
-          />
-        ) : (
-          <GlobalError error={errors} />
-        )}
-        <Card className={"max-w-lg mx-auto"}>
-          <CardHeader>
-            <CardTitle>Add meg az új jelszót!</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GlobalNotification message="Ezt az űrlapot csak akkor töltsd ki, ha te kértél jelszóemlékeztetőt!" />
-            <form
-              onSubmit={handleSubmitNewPassword}
-              className="space-y-4"
-              autoComplete={"off"}
-            >
-              <Label htmlFor="password">Jelszó</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <FieldError error={errors} field={"password"} />
-              <Label htmlFor="password_confirm">Jelszó megerősítése</Label>
-              <Input
-                id="password_confirm"
-                type="password"
-                autoComplete="new-password"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-              />
-              <FieldError error={errors} field={"password_confirm"} />
-              <Button type="submit">Jelszó megváltoztatása</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </>
-    );
-  } else {
-    return (
-      <>
-        {success ? (
-          <GlobalSuccess
-            success={{
-              message:
-                "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
-            }}
-          />
-        ) : (
-          <GlobalError error={errors} />
-        )}
-        <Card className={"max-w-lg mx-auto"}>
-          <CardHeader>
-            <CardTitle>Elfelejtett jelszó</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <GlobalNotification message="A megadott e-mail címre kapsz majd egy hivatkozást, aminek a segítségével megváltoztathatod a jelenlegi jelszavadat." />
-            <form
-              onSubmit={handleSubmitForgottenPassword}
-              className="space-y-4"
-              autoComplete={"off"}
-            >
-              <Label htmlFor="email">E-mail</Label>
-              <Input
-                id="email"
-                type="text"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <FieldError error={errors} field={"email"} />
-              <Button type="submit">Küldés</Button>
-            </form>
-          </CardContent>
-        </Card>
-      </>
-    );
-  }
 }

@@ -22,16 +22,16 @@ import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/worksheets/lib/slice.ts";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
+    Table,
+    TableBody,
+    TableCell,
+    TableRow,
 } from "@/components/ui/table.tsx";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
@@ -43,123 +43,160 @@ import { Link as LinkIcon } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 
 export default function View() {
-  const [data, setData] = React.useState<WorksheetResolved | null>(null);
-  const { errors, setErrors, unexpectedError } = useSimpleError();
-  const dispatch = useAppDispatch();
-  const params = useParams();
-  const navigate = useNavigate();
+    const [data, setData] = React.useState<WorksheetResolved | null>(null);
+    const { errors, setErrors, unexpectedError } = useSimpleError();
+    const dispatch = useAppDispatch();
+    const params = useParams();
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    if (typeof params["id"] === "string") {
-      dispatch(get_resolved(params["id"])).then(async (response) => {
-        if (get_resolved.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              setData(response.payload.jsonData.data);
-            }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors(response.payload.jsonData.error);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
+    useEffect(() => {
+        if (typeof params["id"] === "string") {
+            dispatch(get_resolved(params["id"])).then(async (response) => {
+                if (get_resolved.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            setData(response.payload.jsonData.data);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors(response.payload.jsonData.error);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            });
         }
-      });
-    }
-  }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params, setErrors, unexpectedError]);
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      {data !== null ? (
+    return (
         <>
-          <Card className={"max-w-3xl mx-auto"}>
-            <CardHeader>
-              <CardTitle>Munkalap</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>Azonosító</TableCell>
-                    <TableCell>{data.id}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Név</TableCell>
-                    <TableCell>{data.name}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Leírás</TableCell>
-                    <TableCell>{data.description ?? ""}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Vevő</TableCell>
-                    <TableCell>
-                      <NavLink to={`/vevo/reszletek/${data.customer_id}`}>
-                        {data.customer}{" "}
-                        <LinkIcon size={15} className="inline" />
-                      </NavLink>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Nettó anyagköltség</TableCell>
-                    <TableCell>
-                      {formatNumber(data.net_material_cost)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Bruttó anyagköltség</TableCell>
-                    <TableCell>
-                      {formatNumber(data.gross_material_cost)}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Nettó munkadíj</TableCell>
-                    <TableCell>{formatNumber(data.net_work_cost)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Bruttó munkadíj</TableCell>
-                    <TableCell>{formatNumber(data.gross_work_cost)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Státusz</TableCell>
-                    <TableCell>{data.status}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozta</TableCell>
-                    <TableCell>{data.created_by}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Létrehozva</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.created_at)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell>Frissítve</TableCell>
-                    <TableCell>{formatDateToYMDHMS(data.updated_at)}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-              <Link to={`/munkalap/${data.id}/raktarkeszlet-mozgas/letrehozas`}>
-                <Button variant="outline" className="mt-3">
-                  <Plus /> Anyagköltség hozzáadás
-                </Button>
-              </Link>
-              <div className="mt-8">
-                <Button
-                  className="mr-3"
-                  type="submit"
-                  variant="outline"
-                  onClick={() => navigate(-1)}
-                >
-                  Vissza
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          <ActivityFeed resourceId={data.id} resourceType="worksheets" />
+            <GlobalError error={errors} />
+            {data !== null ? (
+                <>
+                    <Card className={"max-w-3xl mx-auto"}>
+                        <CardHeader>
+                            <CardTitle>Munkalap</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableBody>
+                                    <TableRow>
+                                        <TableCell>Azonosító</TableCell>
+                                        <TableCell>{data.id}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Név</TableCell>
+                                        <TableCell>{data.name}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Leírás</TableCell>
+                                        <TableCell>
+                                            {data.description ?? ""}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Vevő</TableCell>
+                                        <TableCell>
+                                            <NavLink
+                                                to={`/vevo/reszletek/${data.customer_id}`}
+                                            >
+                                                {data.customer}{" "}
+                                                <LinkIcon
+                                                    size={15}
+                                                    className="inline"
+                                                />
+                                            </NavLink>
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Nettó anyagköltség
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                data.net_material_cost,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>
+                                            Bruttó anyagköltség
+                                        </TableCell>
+                                        <TableCell>
+                                            {formatNumber(
+                                                data.gross_material_cost,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Nettó munkadíj</TableCell>
+                                        <TableCell>
+                                            {formatNumber(data.net_work_cost)}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Bruttó munkadíj</TableCell>
+                                        <TableCell>
+                                            {formatNumber(data.gross_work_cost)}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Státusz</TableCell>
+                                        <TableCell>{data.status}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozta</TableCell>
+                                        <TableCell>{data.created_by}</TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Létrehozva</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.created_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Frissítve</TableCell>
+                                        <TableCell>
+                                            {formatDateToYMDHMS(
+                                                data.updated_at,
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <Link
+                                to={`/munkalap/${data.id}/raktarkeszlet-mozgas/letrehozas`}
+                            >
+                                <Button variant="outline" className="mt-3">
+                                    <Plus /> Anyagköltség hozzáadás
+                                </Button>
+                            </Link>
+                            <div className="mt-8">
+                                <Button
+                                    className="mr-3"
+                                    type="submit"
+                                    variant="outline"
+                                    onClick={() => navigate(-1)}
+                                >
+                                    Vissza
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <ActivityFeed
+                        resourceId={data.id}
+                        resourceType="worksheets"
+                    />
+                </>
+            ) : null}
         </>
-      ) : null}
-    </>
-  );
+    );
 }

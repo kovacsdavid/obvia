@@ -18,200 +18,201 @@
  */
 
 import {
-  globalRequestTimeout,
-  unexpectedError,
-  unexpectedFormError,
+    globalRequestTimeout,
+    unexpectedError,
+    unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import {
-  type CreateServiceResponse,
-  type DeleteServiceResponse,
-  type PaginatedServiceResolvedListResponse,
-  type ServiceResolvedResponse,
-  type ServiceResponse,
-  type ServiceUserInput,
-  type UpdateServiceResponse,
+    type CreateServiceResponse,
+    type DeleteServiceResponse,
+    type PaginatedServiceResolvedListResponse,
+    type ServiceResolvedResponse,
+    type ServiceResponse,
+    type ServiceUserInput,
+    type UpdateServiceResponse,
 } from "@/components/modules/services/lib/interface.ts";
 import {
-  isSelectOptionListResponse,
-  type ProcessedResponse,
-  ProcessResponse,
-  type SelectOptionListResponse,
+    isSelectOptionListResponse,
+    type ProcessedResponse,
+    ProcessResponse,
+    type SelectOptionListResponse,
 } from "@/lib/interfaces/common.ts";
 import {
-  isCreateServiceResponse,
-  isDeleteServiceResponse,
-  isPaginatedServiceResolvedListResponse,
-  isServiceResolvedResponse,
-  isServiceResponse,
-  isUpdateServiceResponse,
+    isCreateServiceResponse,
+    isDeleteServiceResponse,
+    isPaginatedServiceResolvedListResponse,
+    isServiceResolvedResponse,
+    isServiceResponse,
+    isUpdateServiceResponse,
 } from "@/components/modules/services/lib/guards.ts";
 
 export async function create(
-  {
-    id,
-    name,
-    description,
-    defaultPrice,
-    defaultTaxId,
-    currencyCode,
-    status,
-  }: ServiceUserInput,
-  token: string | null,
+    {
+        id,
+        name,
+        description,
+        defaultPrice,
+        defaultTaxId,
+        currencyCode,
+        status,
+    }: ServiceUserInput,
+    token: string | null,
 ): Promise<ProcessedResponse<CreateServiceResponse>> {
-  return await fetch(`/api/services/create`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id,
-      name,
-      description,
-      default_price: defaultPrice,
-      default_tax_id: defaultTaxId,
-      currency_code: currencyCode,
-      status,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isCreateServiceResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/services/create`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            id,
+            name,
+            description,
+            default_price: defaultPrice,
+            default_tax_id: defaultTaxId,
+            currency_code: currencyCode,
+            status,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isCreateServiceResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function update(
-  {
-    id,
-    name,
-    description,
-    defaultPrice,
-    defaultTaxId,
-    currencyCode,
-    status,
-  }: ServiceUserInput,
-  token: string | null,
+    {
+        id,
+        name,
+        description,
+        defaultPrice,
+        defaultTaxId,
+        currencyCode,
+        status,
+    }: ServiceUserInput,
+    token: string | null,
 ): Promise<ProcessedResponse<UpdateServiceResponse>> {
-  return await fetch(`/api/services/update`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-    body: JSON.stringify({
-      id,
-      name,
-      description,
-      default_price: defaultPrice,
-      default_tax_id: defaultTaxId,
-      currency_code: currencyCode,
-      status,
-    }),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isUpdateServiceResponse)) ??
-      unexpectedFormError
-    );
-  });
+    return await fetch(`/api/services/update`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+        body: JSON.stringify({
+            id,
+            name,
+            description,
+            default_price: defaultPrice,
+            default_tax_id: defaultTaxId,
+            currency_code: currencyCode,
+            status,
+        }),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isUpdateServiceResponse)) ??
+            unexpectedFormError
+        );
+    });
 }
 
 export async function list(
-  query: string | null,
-  token: string | null,
+    query: string | null,
+    token: string | null,
 ): Promise<ProcessedResponse<PaginatedServiceResolvedListResponse>> {
-  const uri =
-    query === null ? `/api/services/list` : `/api/services/list?q=${query}`;
-  return await fetch(uri, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(
-        response,
-        isPaginatedServiceResolvedListResponse,
-      )) ?? unexpectedError
-    );
-  });
+    const uri =
+        query === null ? `/api/services/list` : `/api/services/list?q=${query}`;
+    return await fetch(uri, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(
+                response,
+                isPaginatedServiceResolvedListResponse,
+            )) ?? unexpectedError
+        );
+    });
 }
 
 export async function get_resolved(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<ServiceResolvedResponse>> {
-  return await fetch(`/api/services/get_resolved?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isServiceResolvedResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/services/get_resolved?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isServiceResolvedResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function get(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<ServiceResponse>> {
-  return await fetch(`/api/services/get?uuid=${uuid}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isServiceResponse)) ?? unexpectedError
-    );
-  });
+    return await fetch(`/api/services/get?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isServiceResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function deleteItem(
-  uuid: string,
-  token: string | null,
+    uuid: string,
+    token: string | null,
 ): Promise<ProcessedResponse<DeleteServiceResponse>> {
-  return await fetch(`/api/services/delete?uuid=${uuid}`, {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isDeleteServiceResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/services/delete?uuid=${uuid}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isDeleteServiceResponse)) ??
+            unexpectedError
+        );
+    });
 }
 
 export async function select_list(
-  list: string,
-  token: string | null,
+    list: string,
+    token: string | null,
 ): Promise<ProcessedResponse<SelectOptionListResponse>> {
-  return await fetch(`/api/services/select_list?list=${list}`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    signal: AbortSignal.timeout(globalRequestTimeout),
-  }).then(async (response: Response) => {
-    return (
-      (await ProcessResponse(response, isSelectOptionListResponse)) ??
-      unexpectedError
-    );
-  });
+    return await fetch(`/api/services/select_list?list=${list}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            unexpectedError
+        );
+    });
 }

@@ -21,16 +21,16 @@ import React, { useCallback, useEffect } from "react";
 import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  create,
-  get,
-  update,
+    create,
+    get,
+    update,
 } from "@/components/modules/customers/lib/slice.ts";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router-dom";
 import { useFormError } from "@/hooks/use_form_error.ts";
@@ -38,322 +38,378 @@ import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from "@/components/ui/field";
 
 interface EditProps {
-  showCard?: boolean;
-  onSuccess?: (customer: Customer) => void;
-  onCancel?: () => void;
+    showCard?: boolean;
+    onSuccess?: (customer: Customer) => void;
+    onCancel?: () => void;
 }
 
 export default function Edit({
-  showCard = true,
-  onSuccess = undefined,
-  onCancel = undefined,
+    showCard = true,
+    onSuccess = undefined,
+    onCancel = undefined,
 }: EditProps) {
-  const [customerType, setCustomerType] = React.useState<string | undefined>(
-    "natural",
-  );
-  const [name, setName] = React.useState("");
-  const [contactName, setContactName] = React.useState("");
-  const [email, setEmail] = React.useState("");
-  const [phoneNumber, setPhoneNumber] = React.useState("");
-  const [status, setStatus] = React.useState<string | undefined>("active");
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const params = useParams();
-  const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const [customerType, setCustomerType] = React.useState<string | undefined>(
+        "natural",
+    );
+    const [name, setName] = React.useState("");
+    const [contactName, setContactName] = React.useState("");
+    const [email, setEmail] = React.useState("");
+    const [phoneNumber, setPhoneNumber] = React.useState("");
+    const [status, setStatus] = React.useState<string | undefined>("active");
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const params = useParams();
+    const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-  const handleCreate = useCallback(() => {
-    dispatch(
-      create({
-        id,
-        name,
-        contactName,
-        email,
-        phoneNumber,
-        status,
-        customerType,
-      }),
-    ).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          if (
-            typeof onSuccess === "function" &&
-            typeof response.payload.jsonData?.data !== "undefined"
-          ) {
-            onSuccess(response.payload.jsonData.data);
-          } else {
-            navigate("/vevo/lista");
-          }
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    contactName,
-    customerType,
-    dispatch,
-    email,
-    id,
-    name,
-    navigate,
-    onSuccess,
-    phoneNumber,
-    setErrors,
-    status,
-    unexpectedError,
-  ]);
-
-  const handleCancel = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (typeof onCancel === "function") {
-        onCancel();
-      } else {
-        navigate(-1);
-      }
-    },
-    [navigate, onCancel],
-  );
-
-  const handleUpdate = useCallback(() => {
-    dispatch(
-      update({
-        id,
-        name,
-        contactName,
-        email,
-        phoneNumber,
-        status,
-        customerType,
-      }),
-    ).then(async (response) => {
-      if (update.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          navigate("/vevo/lista");
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    contactName,
-    customerType,
-    dispatch,
-    email,
-    id,
-    name,
-    navigate,
-    phoneNumber,
-    setErrors,
-    status,
-    unexpectedError,
-  ]);
-
-  useEffect(() => {
-    if (typeof id === "string") {
-      dispatch(get(id)).then(async (response) => {
-        if (get.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            if (typeof response.payload.jsonData?.data !== "undefined") {
-              const data = response.payload.jsonData.data;
-              setCustomerType(data.customer_type);
-              setName(data.name);
-              setContactName(data.contact_name ?? "");
-              setEmail(data.email);
-              setPhoneNumber(data.phone_number ?? "");
-              setStatus(data.status);
+    const handleCreate = useCallback(() => {
+        dispatch(
+            create({
+                id,
+                name,
+                contactName,
+                email,
+                phoneNumber,
+                status,
+                customerType,
+            }),
+        ).then(async (response) => {
+            if (create.fulfilled.match(response)) {
+                if (response.payload.statusCode === 201) {
+                    if (
+                        typeof onSuccess === "function" &&
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        onSuccess(response.payload.jsonData.data);
+                    } else {
+                        navigate("/vevo/lista");
+                    }
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
             }
-          } else if (typeof response.payload.jsonData?.error !== "undefined") {
-            setErrors({
-              message: response.payload.jsonData.error.message,
-              fields: {},
+        });
+    }, [
+        contactName,
+        customerType,
+        dispatch,
+        email,
+        id,
+        name,
+        navigate,
+        onSuccess,
+        phoneNumber,
+        setErrors,
+        status,
+        unexpectedError,
+    ]);
+
+    const handleCancel = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            if (typeof onCancel === "function") {
+                onCancel();
+            } else {
+                navigate(-1);
+            }
+        },
+        [navigate, onCancel],
+    );
+
+    const handleUpdate = useCallback(() => {
+        dispatch(
+            update({
+                id,
+                name,
+                contactName,
+                email,
+                phoneNumber,
+                status,
+                customerType,
+            }),
+        ).then(async (response) => {
+            if (update.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    navigate("/vevo/lista");
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        contactName,
+        customerType,
+        dispatch,
+        email,
+        id,
+        name,
+        navigate,
+        phoneNumber,
+        setErrors,
+        status,
+        unexpectedError,
+    ]);
+
+    useEffect(() => {
+        if (typeof id === "string") {
+            dispatch(get(id)).then(async (response) => {
+                if (get.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        if (
+                            typeof response.payload.jsonData?.data !==
+                            "undefined"
+                        ) {
+                            const data = response.payload.jsonData.data;
+                            setCustomerType(data.customer_type);
+                            setName(data.name);
+                            setContactName(data.contact_name ?? "");
+                            setEmail(data.email);
+                            setPhoneNumber(data.phone_number ?? "");
+                            setStatus(data.status);
+                        }
+                    } else if (
+                        typeof response.payload.jsonData?.error !== "undefined"
+                    ) {
+                        setErrors({
+                            message: response.payload.jsonData.error.message,
+                            fields: {},
+                        });
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
             });
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
         }
-      });
-    }
-  }, [dispatch, id, setErrors, unexpectedError]);
+    }, [dispatch, id, setErrors, unexpectedError]);
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    if (typeof id === "string") {
-      handleUpdate();
-    } else {
-      handleCreate();
-    }
-  };
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        if (typeof id === "string") {
+            handleUpdate();
+        } else {
+            handleCreate();
+        }
+    };
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-          autoComplete={"off"}
-        >
-          <FieldSet>
-            <FieldLegend>
-              {`Vevő ${id ? "módosítás" : "létrehozás"}`}
-            </FieldLegend>
-            <FieldGroup>
-              <Field data-invalid={isInvalidField("customer_type")}>
-                <FieldLabel htmlFor="customer_type">Típus</FieldLabel>
-                <Select
-                  value={customerType}
-                  onValueChange={(val) => {
-                    resetError("customer_type");
-                    setCustomerType(val);
-                  }}
+    return (
+        <>
+            <GlobalError error={errors} />
+            <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    autoComplete={"off"}
                 >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("customer_type")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="natural">Természetes személy</SelectItem>
-                    <SelectItem value="legal">Jogi személy</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"customer_type"} />
-              </Field>
-              <Field data-invalid={isInvalidField("name")}>
-                <FieldLabel htmlFor="name">
-                  {customerType === "legal" ? "Jogi személy neve" : "Név"}
-                </FieldLabel>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder={
-                    customerType === "legal" ? "Példa Kft." : "Példa Béla"
-                  }
-                  value={name}
-                  onChange={(e) => {
-                    resetError("name");
-                    setName(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("name")}
-                />
-                <FieldError error={errors} field={"name"} />
-              </Field>
-              {customerType === "legal" ? (
-                <>
-                  <Field data-invalid={isInvalidField("contact_name")}>
-                    <FieldLabel htmlFor="contact_name">
-                      Kapcsolattartó neve
-                    </FieldLabel>
-                    <Input
-                      id="contact_name"
-                      type="text"
-                      placeholder="Példa Béla"
-                      value={contactName}
-                      onChange={(e) => {
-                        resetError("contact_name");
-                        setContactName(e.target.value);
-                      }}
-                      aria-invalid={isInvalidField("contact_name")}
-                    />
-                    <FieldError error={errors} field={"contact_name"} />
-                  </Field>
-                </>
-              ) : null}
-              <Field data-invalid={isInvalidField("email")}>
-                <FieldLabel htmlFor="email">
-                  {customerType === "legal"
-                    ? "Kapcsolattartó e-mail címe"
-                    : "E-mail cím"}
-                </FieldLabel>
-                <Input
-                  id="email"
-                  type="text"
-                  placeholder="pelda@kovacsdavid.dev"
-                  value={email}
-                  onChange={(e) => {
-                    resetError("email");
-                    setEmail(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("email")}
-                />
-                <FieldError error={errors} field={"email"} />
-              </Field>
-              <Field data-invalid={isInvalidField("phone_number")}>
-                <FieldLabel htmlFor="phone_number">
-                  {customerType === "legal"
-                    ? "Kapcsolattartó telefonszáma"
-                    : "Telefonszám"}
-                </FieldLabel>
-                <Input
-                  id="phone_number"
-                  type="text"
-                  placeholder="+36301234567"
-                  value={phoneNumber}
-                  onChange={(e) => {
-                    resetError("phone_number");
-                    setPhoneNumber(e.target.value);
-                  }}
-                  aria-invalid={isInvalidField("phone_number")}
-                />
-                <FieldError error={errors} field={"phone_number"} />
-              </Field>
-              <Field data-invalid={isInvalidField("status")}>
-                <FieldLabel htmlFor="status">Státusz</FieldLabel>
-                <Select
-                  value={status}
-                  onValueChange={(val) => {
-                    resetError("status");
-                    setStatus(val);
-                  }}
-                >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("status")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktív</SelectItem>
-                    <SelectItem value="lead">Érdeklődő</SelectItem>
-                    <SelectItem value="prospect">Lehetséges vevő</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"status"} />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Field orientation="horizontal">
-            <div className="text-right mt-8 w-full">
-              <Button className="mr-3" variant="outline" onClick={handleCancel}>
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
-          </Field>
-        </form>
-      </ConditionalCard>
-    </>
-  );
+                    <FieldSet>
+                        <FieldLegend>
+                            {`Vevő ${id ? "módosítás" : "létrehozás"}`}
+                        </FieldLegend>
+                        <FieldGroup>
+                            <Field
+                                data-invalid={isInvalidField("customer_type")}
+                            >
+                                <FieldLabel htmlFor="customer_type">
+                                    Típus
+                                </FieldLabel>
+                                <Select
+                                    value={customerType}
+                                    onValueChange={(val) => {
+                                        resetError("customer_type");
+                                        setCustomerType(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "customer_type",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="natural">
+                                            Természetes személy
+                                        </SelectItem>
+                                        <SelectItem value="legal">
+                                            Jogi személy
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"customer_type"}
+                                />
+                            </Field>
+                            <Field data-invalid={isInvalidField("name")}>
+                                <FieldLabel htmlFor="name">
+                                    {customerType === "legal"
+                                        ? "Jogi személy neve"
+                                        : "Név"}
+                                </FieldLabel>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    placeholder={
+                                        customerType === "legal"
+                                            ? "Példa Kft."
+                                            : "Példa Béla"
+                                    }
+                                    value={name}
+                                    onChange={(e) => {
+                                        resetError("name");
+                                        setName(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("name")}
+                                />
+                                <FieldError error={errors} field={"name"} />
+                            </Field>
+                            {customerType === "legal" ? (
+                                <>
+                                    <Field
+                                        data-invalid={isInvalidField(
+                                            "contact_name",
+                                        )}
+                                    >
+                                        <FieldLabel htmlFor="contact_name">
+                                            Kapcsolattartó neve
+                                        </FieldLabel>
+                                        <Input
+                                            id="contact_name"
+                                            type="text"
+                                            placeholder="Példa Béla"
+                                            value={contactName}
+                                            onChange={(e) => {
+                                                resetError("contact_name");
+                                                setContactName(e.target.value);
+                                            }}
+                                            aria-invalid={isInvalidField(
+                                                "contact_name",
+                                            )}
+                                        />
+                                        <FieldError
+                                            error={errors}
+                                            field={"contact_name"}
+                                        />
+                                    </Field>
+                                </>
+                            ) : null}
+                            <Field data-invalid={isInvalidField("email")}>
+                                <FieldLabel htmlFor="email">
+                                    {customerType === "legal"
+                                        ? "Kapcsolattartó e-mail címe"
+                                        : "E-mail cím"}
+                                </FieldLabel>
+                                <Input
+                                    id="email"
+                                    type="text"
+                                    placeholder="pelda@kovacsdavid.dev"
+                                    value={email}
+                                    onChange={(e) => {
+                                        resetError("email");
+                                        setEmail(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField("email")}
+                                />
+                                <FieldError error={errors} field={"email"} />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("phone_number")}
+                            >
+                                <FieldLabel htmlFor="phone_number">
+                                    {customerType === "legal"
+                                        ? "Kapcsolattartó telefonszáma"
+                                        : "Telefonszám"}
+                                </FieldLabel>
+                                <Input
+                                    id="phone_number"
+                                    type="text"
+                                    placeholder="+36301234567"
+                                    value={phoneNumber}
+                                    onChange={(e) => {
+                                        resetError("phone_number");
+                                        setPhoneNumber(e.target.value);
+                                    }}
+                                    aria-invalid={isInvalidField(
+                                        "phone_number",
+                                    )}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"phone_number"}
+                                />
+                            </Field>
+                            <Field data-invalid={isInvalidField("status")}>
+                                <FieldLabel htmlFor="status">
+                                    Státusz
+                                </FieldLabel>
+                                <Select
+                                    value={status}
+                                    onValueChange={(val) => {
+                                        resetError("status");
+                                        setStatus(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField("status")}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">
+                                            Aktív
+                                        </SelectItem>
+                                        <SelectItem value="lead">
+                                            Érdeklődő
+                                        </SelectItem>
+                                        <SelectItem value="prospect">
+                                            Lehetséges vevő
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError error={errors} field={"status"} />
+                            </Field>
+                        </FieldGroup>
+                    </FieldSet>
+                    <Field orientation="horizontal">
+                        <div className="text-right mt-8 w-full">
+                            <Button
+                                className="mr-3"
+                                variant="outline"
+                                onClick={handleCancel}
+                            >
+                                Mégse
+                            </Button>
+                            <Button type="submit">
+                                {id ? "Módosítás" : "Létrehozás"}
+                            </Button>
+                        </div>
+                    </Field>
+                </form>
+            </ConditionalCard>
+        </>
+    );
 }

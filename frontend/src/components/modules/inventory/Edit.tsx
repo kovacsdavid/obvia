@@ -21,18 +21,18 @@ import React, { useCallback, useEffect } from "react";
 import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
-  create,
-  get,
-  select_list,
-  update,
+    create,
+    get,
+    select_list,
+    update,
 } from "@/components/modules/inventory/lib/slice.ts";
 import { type SelectOptionList } from "@/lib/interfaces/common.ts";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select.tsx";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
@@ -48,489 +48,582 @@ import ProductsEdit from "@/components/modules/products/Edit.tsx";
 import { Plus } from "lucide-react";
 import { useNumberInput } from "@/hooks/use_number_input.ts";
 import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
+    Field,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet,
 } from "@/components/ui/field";
 
 interface EditProps {
-  showCard?: boolean;
-  onSuccess?: (inventory: Inventory) => void;
-  onCancel?: () => void;
+    showCard?: boolean;
+    onSuccess?: (inventory: Inventory) => void;
+    onCancel?: () => void;
 }
 
 export default function Edit({
-  showCard = true,
-  onSuccess = undefined,
-  onCancel = undefined,
+    showCard = true,
+    onSuccess = undefined,
+    onCancel = undefined,
 }: EditProps) {
-  const [productId, setProductId] = React.useState("");
-  const [warehouseId, setWarehouseId] = React.useState("");
-  const [currencyCode, setCurrencyCode] = React.useState("");
-  const [status, setStatus] = React.useState("");
-  const [currencyList, setCurrencyList] = React.useState<SelectOptionList>([]);
-  const [productList, setProductList] = React.useState<SelectOptionList>([]);
-  const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>(
-    [],
-  );
-  const dispatch = useAppDispatch();
-  const navigate = useNavigate();
-  const { setListResponse } = useSelectList();
-  const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-    useFormError();
-  const params = useParams();
-  const id = React.useMemo(() => params["id"] ?? null, [params]);
-  const [openNewProductDialog, setOpenNewProductDialog] = React.useState(false);
-  const [openNewWarehouseDialog, setOpenNewWarehouseDialog] =
-    React.useState(false);
+    const [productId, setProductId] = React.useState("");
+    const [warehouseId, setWarehouseId] = React.useState("");
+    const [currencyCode, setCurrencyCode] = React.useState("");
+    const [status, setStatus] = React.useState("");
+    const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
+        [],
+    );
+    const [productList, setProductList] = React.useState<SelectOptionList>([]);
+    const [warehouseList, setWarehouseList] = React.useState<SelectOptionList>(
+        [],
+    );
+    const dispatch = useAppDispatch();
+    const navigate = useNavigate();
+    const { setListResponse } = useSelectList();
+    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
+        useFormError();
+    const params = useParams();
+    const id = React.useMemo(() => params["id"] ?? null, [params]);
+    const [openNewProductDialog, setOpenNewProductDialog] =
+        React.useState(false);
+    const [openNewWarehouseDialog, setOpenNewWarehouseDialog] =
+        React.useState(false);
 
-  const minimumStockInput = useNumberInput({
-    showThousandSeparator: true,
-    decimalPlaces: 0,
-    allowEmpty: true,
-  });
-
-  const maximumStockInput = useNumberInput({
-    showThousandSeparator: true,
-    decimalPlaces: 0,
-    allowEmpty: true,
-  });
-
-  const handleEditProductsSuccess = async (product: Product) => {
-    return loadLists().then(() => {
-      setTimeout(() => {
-        setProductId(product.id);
-      }, 0);
-      setOpenNewProductDialog(false);
+    const minimumStockInput = useNumberInput({
+        showThousandSeparator: true,
+        decimalPlaces: 0,
+        allowEmpty: true,
     });
-  };
 
-  const handleEditWarehousesSuccess = async (warehouse: Warehouse) => {
-    return loadLists().then(() => {
-      setTimeout(() => {
-        setWarehouseId(warehouse.id);
-      }, 0);
-      setOpenNewWarehouseDialog(false);
+    const maximumStockInput = useNumberInput({
+        showThousandSeparator: true,
+        decimalPlaces: 0,
+        allowEmpty: true,
     });
-  };
 
-  const handleCreate = useCallback(() => {
-    dispatch(
-      create({
-        id,
-        productId,
-        warehouseId,
-        minimumStock: !isNaN(minimumStockInput.getNumericValue())
-          ? minimumStockInput.getNumericValue().toString()
-          : "",
-        maximumStock: !isNaN(maximumStockInput.getNumericValue())
-          ? maximumStockInput.getNumericValue().toString()
-          : "",
-        currencyCode,
-        status,
-      }),
-    ).then(async (response) => {
-      if (create.fulfilled.match(response)) {
-        if (response.payload.statusCode === 201) {
-          if (
-            typeof onSuccess === "function" &&
-            typeof response.payload.jsonData?.data !== "undefined"
-          ) {
-            onSuccess(response.payload.jsonData.data);
-          } else {
-            navigate("/raktarkeszlet/lista");
-          }
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    minimumStockInput,
-    dispatch,
-    id,
-    productId,
-    warehouseId,
-    maximumStockInput,
-    currencyCode,
-    status,
-    onSuccess,
-    navigate,
-    setErrors,
-    unexpectedError,
-  ]);
-
-  const handleCancel = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      if (typeof onCancel === "function") {
-        onCancel();
-      } else {
-        navigate(-1);
-      }
-    },
-    [navigate, onCancel],
-  );
-
-  const handleUpdate = useCallback(() => {
-    dispatch(
-      update({
-        id,
-        productId,
-        warehouseId,
-        minimumStock: !isNaN(minimumStockInput.getNumericValue())
-          ? minimumStockInput.getNumericValue().toString()
-          : "",
-        maximumStock: !isNaN(maximumStockInput.getNumericValue())
-          ? maximumStockInput.getNumericValue().toString()
-          : "",
-        currencyCode,
-        status,
-      }),
-    ).then(async (response) => {
-      if (update.fulfilled.match(response)) {
-        if (response.payload.statusCode === 200) {
-          navigate("/raktarkeszlet/lista");
-        } else if (typeof response.payload.jsonData?.error !== "undefined") {
-          setErrors(response.payload.jsonData.error);
-        } else {
-          unexpectedError(response.payload.statusCode);
-        }
-      } else {
-        unexpectedError();
-      }
-    });
-  }, [
-    dispatch,
-    id,
-    productId,
-    warehouseId,
-    minimumStockInput,
-    maximumStockInput,
-    currencyCode,
-    status,
-    navigate,
-    setErrors,
-    unexpectedError,
-  ]);
-
-  const loadLists = useCallback(async () => {
-    return Promise.all([
-      dispatch(select_list("currencies")).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            setListResponse(response.payload, setCurrencyList, setErrors);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
-        }
-      }),
-      dispatch(select_list("products")).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            setListResponse(response.payload, setProductList, setErrors);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
-        }
-      }),
-      dispatch(select_list("warehouses")).then((response) => {
-        if (select_list.fulfilled.match(response)) {
-          if (response.payload.statusCode === 200) {
-            setListResponse(response.payload, setWarehouseList, setErrors);
-          } else {
-            unexpectedError(response.payload.statusCode);
-          }
-        } else {
-          unexpectedError();
-        }
-      }),
-    ]);
-  }, [dispatch, setListResponse, setErrors, unexpectedError]);
-
-  useEffect(() => {
-    loadLists().then(() => {
-      if (typeof id === "string") {
-        dispatch(get(id)).then(async (response) => {
-          if (get.fulfilled.match(response)) {
-            if (response.payload.statusCode === 200) {
-              if (typeof response.payload.jsonData?.data !== "undefined") {
-                const data = response.payload.jsonData.data;
-                setProductId(data.product_id);
-                setWarehouseId(data.warehouse_id);
-                minimumStockInput.setValue(
-                  data.minimum_stock ? data.minimum_stock.toString() : "",
-                );
-                maximumStockInput.setValue(
-                  data.maximum_stock ? data.maximum_stock.toString() : "",
-                );
-                setCurrencyCode(data.currency_code);
-                setStatus(data.status);
-              }
-            } else if (
-              typeof response.payload.jsonData?.error !== "undefined"
-            ) {
-              setErrors({
-                message: response.payload.jsonData.error.message,
-                fields: {},
-              });
-            } else {
-              unexpectedError(response.payload.statusCode);
-            }
-          } else {
-            unexpectedError();
-          }
+    const handleEditProductsSuccess = async (product: Product) => {
+        return loadLists().then(() => {
+            setTimeout(() => {
+                setProductId(product.id);
+            }, 0);
+            setOpenNewProductDialog(false);
         });
-      }
-    });
-    // minimumStockInput and maximumStockInput are intentionally omitted to avoid infinite loops
-    // They are only used to set initial values and don't need to trigger re-runs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dispatch, id, setErrors, unexpectedError, loadLists]);
+    };
 
-  const handleSubmit = async (e: React.SubmitEvent) => {
-    e.preventDefault();
-    if (typeof id === "string") {
-      handleUpdate();
-    } else {
-      handleCreate();
-    }
-  };
+    const handleEditWarehousesSuccess = async (warehouse: Warehouse) => {
+        return loadLists().then(() => {
+            setTimeout(() => {
+                setWarehouseId(warehouse.id);
+            }, 0);
+            setOpenNewWarehouseDialog(false);
+        });
+    };
 
-  return (
-    <>
-      <GlobalError error={errors} />
-      <Dialog
-        open={openNewProductDialog}
-        onOpenChange={setOpenNewProductDialog}
-      >
-        <DialogContent>
-          <DialogTitle>Termék létrehozása</DialogTitle>
-          <ProductsEdit
-            showCard={false}
-            onSuccess={handleEditProductsSuccess}
-            onCancel={() => setOpenNewProductDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-      <Dialog
-        open={openNewWarehouseDialog}
-        onOpenChange={setOpenNewWarehouseDialog}
-      >
-        <DialogContent>
-          <DialogTitle>Raktár létrehozása</DialogTitle>
-          <WarehousesEdit
-            showCard={false}
-            onSuccess={handleEditWarehousesSuccess}
-            onCancel={() => setOpenNewWarehouseDialog(false)}
-          />
-        </DialogContent>
-      </Dialog>
-      <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4"
-          autoComplete={"off"}
-        >
-          <FieldSet>
-            <FieldLegend>
-              {`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
-            </FieldLegend>
-            <FieldGroup>
-              <Field data-invalid={isInvalidField("product_id")}>
-                <div className="flex items-center w-full">
-                  <div className="flex flex-1 items-center">
-                    <FieldLabel htmlFor="product_id">Termék</FieldLabel>
-                  </div>
-                  <div className="flex items-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setOpenNewProductDialog(true);
-                      }}
-                    >
-                      <Plus />
-                    </Button>
-                  </div>
-                </div>
-                <Select
-                  value={productId}
-                  onValueChange={(val) => {
-                    resetError("product_id");
-                    setProductId(val);
-                  }}
-                >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("product_id")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {productList.map((product) => {
-                      return (
-                        <SelectItem key={product.value} value={product.value}>
-                          {product.title}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"product_id"} />
-              </Field>
-              <Field data-invalid={isInvalidField("warehouse_id")}>
-                <div className="flex items-center w-full">
-                  <div className="flex flex-1 items-center">
-                    <FieldLabel htmlFor="warehouse_id">Raktár</FieldLabel>
-                  </div>
-                  <div className="flex items-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setOpenNewWarehouseDialog(true)}
-                    >
-                      <Plus />
-                    </Button>
-                  </div>
-                </div>
-                <Select
-                  value={warehouseId}
-                  onValueChange={(val) => {
-                    resetError("warehouse_id");
-                    setWarehouseId(val);
-                  }}
-                >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("warehouse_id")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {warehouseList.map((warehouse) => {
-                      return (
-                        <SelectItem
-                          key={warehouse.value}
-                          value={warehouse.value}
-                        >
-                          {warehouse.title}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"warehouse_id"} />
-              </Field>
-              <Field data-invalid={isInvalidField("minimum_stock")}>
-                <FieldLabel htmlFor="minimum_stock">Minimum készlet</FieldLabel>
-                <Input
-                  id="minimum_stock"
-                  type="text"
-                  placeholder="10"
-                  value={minimumStockInput.displayValue}
-                  onChange={(e) => {
-                    resetError("minimum_stock");
-                    minimumStockInput.handleInputChangeWithCursor(
-                      e.target.value,
-                      e.target,
-                    );
-                  }}
-                  aria-invalid={isInvalidField("minimum_stock")}
-                />
-                <FieldError error={errors} field={"minimum_stock"} />
-              </Field>
-              <Field data-invalid={isInvalidField("maximum_stock")}>
-                <FieldLabel htmlFor="maximum_stock">Maximum készlet</FieldLabel>
-                <Input
-                  id="maximum_stock"
-                  type="text"
-                  placeholder="100"
-                  value={maximumStockInput.displayValue}
-                  onChange={(e) => {
-                    resetError("maximum_stock");
-                    maximumStockInput.handleInputChangeWithCursor(
-                      e.target.value,
-                      e.target,
-                    );
-                  }}
-                  aria-invalid={isInvalidField("maximum_stock")}
-                />
-                <FieldError error={errors} field={"maximum_stock"} />
-              </Field>
-              <Field data-invalid={isInvalidField("currency_code")}>
-                <FieldLabel htmlFor="currency_code">Pénznem</FieldLabel>
-                <Select
-                  value={currencyCode}
-                  onValueChange={(val) => {
-                    resetError("currency_code");
-                    setCurrencyCode(val);
-                  }}
-                >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("currency_code")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {currencyList.map((currency) => {
-                      return (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.title}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"currency_code"} />
-              </Field>
+    const handleCreate = useCallback(() => {
+        dispatch(
+            create({
+                id,
+                productId,
+                warehouseId,
+                minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                    ? minimumStockInput.getNumericValue().toString()
+                    : "",
+                maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                    ? maximumStockInput.getNumericValue().toString()
+                    : "",
+                currencyCode,
+                status,
+            }),
+        ).then(async (response) => {
+            if (create.fulfilled.match(response)) {
+                if (response.payload.statusCode === 201) {
+                    if (
+                        typeof onSuccess === "function" &&
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        onSuccess(response.payload.jsonData.data);
+                    } else {
+                        navigate("/raktarkeszlet/lista");
+                    }
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        minimumStockInput,
+        dispatch,
+        id,
+        productId,
+        warehouseId,
+        maximumStockInput,
+        currencyCode,
+        status,
+        onSuccess,
+        navigate,
+        setErrors,
+        unexpectedError,
+    ]);
 
-              <Field data-invalid={isInvalidField("status")}>
-                <FieldLabel htmlFor="status">Állapot</FieldLabel>
-                <Select
-                  value={status}
-                  onValueChange={(val) => {
-                    resetError("status");
-                    setStatus(val);
-                  }}
+    const handleCancel = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            if (typeof onCancel === "function") {
+                onCancel();
+            } else {
+                navigate(-1);
+            }
+        },
+        [navigate, onCancel],
+    );
+
+    const handleUpdate = useCallback(() => {
+        dispatch(
+            update({
+                id,
+                productId,
+                warehouseId,
+                minimumStock: !isNaN(minimumStockInput.getNumericValue())
+                    ? minimumStockInput.getNumericValue().toString()
+                    : "",
+                maximumStock: !isNaN(maximumStockInput.getNumericValue())
+                    ? maximumStockInput.getNumericValue().toString()
+                    : "",
+                currencyCode,
+                status,
+            }),
+        ).then(async (response) => {
+            if (update.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    navigate("/raktarkeszlet/lista");
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [
+        dispatch,
+        id,
+        productId,
+        warehouseId,
+        minimumStockInput,
+        maximumStockInput,
+        currencyCode,
+        status,
+        navigate,
+        setErrors,
+        unexpectedError,
+    ]);
+
+    const loadLists = useCallback(async () => {
+        return Promise.all([
+            dispatch(select_list("currencies")).then((response) => {
+                if (select_list.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setListResponse(
+                            response.payload,
+                            setCurrencyList,
+                            setErrors,
+                        );
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            }),
+            dispatch(select_list("products")).then((response) => {
+                if (select_list.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setListResponse(
+                            response.payload,
+                            setProductList,
+                            setErrors,
+                        );
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            }),
+            dispatch(select_list("warehouses")).then((response) => {
+                if (select_list.fulfilled.match(response)) {
+                    if (response.payload.statusCode === 200) {
+                        setListResponse(
+                            response.payload,
+                            setWarehouseList,
+                            setErrors,
+                        );
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
+                } else {
+                    unexpectedError();
+                }
+            }),
+        ]);
+    }, [dispatch, setListResponse, setErrors, unexpectedError]);
+
+    useEffect(() => {
+        loadLists().then(() => {
+            if (typeof id === "string") {
+                dispatch(get(id)).then(async (response) => {
+                    if (get.fulfilled.match(response)) {
+                        if (response.payload.statusCode === 200) {
+                            if (
+                                typeof response.payload.jsonData?.data !==
+                                "undefined"
+                            ) {
+                                const data = response.payload.jsonData.data;
+                                setProductId(data.product_id);
+                                setWarehouseId(data.warehouse_id);
+                                minimumStockInput.setValue(
+                                    data.minimum_stock
+                                        ? data.minimum_stock.toString()
+                                        : "",
+                                );
+                                maximumStockInput.setValue(
+                                    data.maximum_stock
+                                        ? data.maximum_stock.toString()
+                                        : "",
+                                );
+                                setCurrencyCode(data.currency_code);
+                                setStatus(data.status);
+                            }
+                        } else if (
+                            typeof response.payload.jsonData?.error !==
+                            "undefined"
+                        ) {
+                            setErrors({
+                                message:
+                                    response.payload.jsonData.error.message,
+                                fields: {},
+                            });
+                        } else {
+                            unexpectedError(response.payload.statusCode);
+                        }
+                    } else {
+                        unexpectedError();
+                    }
+                });
+            }
+        });
+        // minimumStockInput and maximumStockInput are intentionally omitted to avoid infinite loops
+        // They are only used to set initial values and don't need to trigger re-runs
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dispatch, id, setErrors, unexpectedError, loadLists]);
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
+        e.preventDefault();
+        if (typeof id === "string") {
+            handleUpdate();
+        } else {
+            handleCreate();
+        }
+    };
+
+    return (
+        <>
+            <GlobalError error={errors} />
+            <Dialog
+                open={openNewProductDialog}
+                onOpenChange={setOpenNewProductDialog}
+            >
+                <DialogContent>
+                    <DialogTitle>Termék létrehozása</DialogTitle>
+                    <ProductsEdit
+                        showCard={false}
+                        onSuccess={handleEditProductsSuccess}
+                        onCancel={() => setOpenNewProductDialog(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+            <Dialog
+                open={openNewWarehouseDialog}
+                onOpenChange={setOpenNewWarehouseDialog}
+            >
+                <DialogContent>
+                    <DialogTitle>Raktár létrehozása</DialogTitle>
+                    <WarehousesEdit
+                        showCard={false}
+                        onSuccess={handleEditWarehousesSuccess}
+                        onCancel={() => setOpenNewWarehouseDialog(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+            <ConditionalCard showCard={showCard} className={"max-w-lg mx-auto"}>
+                <form
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    autoComplete={"off"}
                 >
-                  <SelectTrigger
-                    className={"w-full"}
-                    aria-invalid={isInvalidField("status")}
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Aktív</SelectItem>
-                    <SelectItem value="inactive">Inaktív</SelectItem>
-                    <SelectItem value="discontinued">Kivezetett</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FieldError error={errors} field={"status"} />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          <Field orientation="horizontal">
-            <div className="text-right mt-8 w-full">
-              <Button className="mr-3" variant="outline" onClick={handleCancel}>
-                Mégse
-              </Button>
-              <Button type="submit">{id ? "Módosítás" : "Létrehozás"}</Button>
-            </div>
-          </Field>
-        </form>
-      </ConditionalCard>
-    </>
-  );
+                    <FieldSet>
+                        <FieldLegend>
+                            {`Raktárkészlet ${id ? "módosítás" : "létrehozás"}`}
+                        </FieldLegend>
+                        <FieldGroup>
+                            <Field data-invalid={isInvalidField("product_id")}>
+                                <div className="flex items-center w-full">
+                                    <div className="flex flex-1 items-center">
+                                        <FieldLabel htmlFor="product_id">
+                                            Termék
+                                        </FieldLabel>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() => {
+                                                setOpenNewProductDialog(true);
+                                            }}
+                                        >
+                                            <Plus />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Select
+                                    value={productId}
+                                    onValueChange={(val) => {
+                                        resetError("product_id");
+                                        setProductId(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "product_id",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {productList.map((product) => {
+                                            return (
+                                                <SelectItem
+                                                    key={product.value}
+                                                    value={product.value}
+                                                >
+                                                    {product.title}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"product_id"}
+                                />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("warehouse_id")}
+                            >
+                                <div className="flex items-center w-full">
+                                    <div className="flex flex-1 items-center">
+                                        <FieldLabel htmlFor="warehouse_id">
+                                            Raktár
+                                        </FieldLabel>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={() =>
+                                                setOpenNewWarehouseDialog(true)
+                                            }
+                                        >
+                                            <Plus />
+                                        </Button>
+                                    </div>
+                                </div>
+                                <Select
+                                    value={warehouseId}
+                                    onValueChange={(val) => {
+                                        resetError("warehouse_id");
+                                        setWarehouseId(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "warehouse_id",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {warehouseList.map((warehouse) => {
+                                            return (
+                                                <SelectItem
+                                                    key={warehouse.value}
+                                                    value={warehouse.value}
+                                                >
+                                                    {warehouse.title}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"warehouse_id"}
+                                />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("minimum_stock")}
+                            >
+                                <FieldLabel htmlFor="minimum_stock">
+                                    Minimum készlet
+                                </FieldLabel>
+                                <Input
+                                    id="minimum_stock"
+                                    type="text"
+                                    placeholder="10"
+                                    value={minimumStockInput.displayValue}
+                                    onChange={(e) => {
+                                        resetError("minimum_stock");
+                                        minimumStockInput.handleInputChangeWithCursor(
+                                            e.target.value,
+                                            e.target,
+                                        );
+                                    }}
+                                    aria-invalid={isInvalidField(
+                                        "minimum_stock",
+                                    )}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"minimum_stock"}
+                                />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("maximum_stock")}
+                            >
+                                <FieldLabel htmlFor="maximum_stock">
+                                    Maximum készlet
+                                </FieldLabel>
+                                <Input
+                                    id="maximum_stock"
+                                    type="text"
+                                    placeholder="100"
+                                    value={maximumStockInput.displayValue}
+                                    onChange={(e) => {
+                                        resetError("maximum_stock");
+                                        maximumStockInput.handleInputChangeWithCursor(
+                                            e.target.value,
+                                            e.target,
+                                        );
+                                    }}
+                                    aria-invalid={isInvalidField(
+                                        "maximum_stock",
+                                    )}
+                                />
+                                <FieldError
+                                    error={errors}
+                                    field={"maximum_stock"}
+                                />
+                            </Field>
+                            <Field
+                                data-invalid={isInvalidField("currency_code")}
+                            >
+                                <FieldLabel htmlFor="currency_code">
+                                    Pénznem
+                                </FieldLabel>
+                                <Select
+                                    value={currencyCode}
+                                    onValueChange={(val) => {
+                                        resetError("currency_code");
+                                        setCurrencyCode(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField(
+                                            "currency_code",
+                                        )}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {currencyList.map((currency) => {
+                                            return (
+                                                <SelectItem
+                                                    key={currency.value}
+                                                    value={currency.value}
+                                                >
+                                                    {currency.title}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                <FieldError
+                                    error={errors}
+                                    field={"currency_code"}
+                                />
+                            </Field>
+
+                            <Field data-invalid={isInvalidField("status")}>
+                                <FieldLabel htmlFor="status">
+                                    Állapot
+                                </FieldLabel>
+                                <Select
+                                    value={status}
+                                    onValueChange={(val) => {
+                                        resetError("status");
+                                        setStatus(val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={isInvalidField("status")}
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="active">
+                                            Aktív
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inaktív
+                                        </SelectItem>
+                                        <SelectItem value="discontinued">
+                                            Kivezetett
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <FieldError error={errors} field={"status"} />
+                            </Field>
+                        </FieldGroup>
+                    </FieldSet>
+                    <Field orientation="horizontal">
+                        <div className="text-right mt-8 w-full">
+                            <Button
+                                className="mr-3"
+                                variant="outline"
+                                onClick={handleCancel}
+                            >
+                                Mégse
+                            </Button>
+                            <Button type="submit">
+                                {id ? "Módosítás" : "Létrehozás"}
+                            </Button>
+                        </div>
+                    </Field>
+                </form>
+            </ConditionalCard>
+        </>
+    );
 }

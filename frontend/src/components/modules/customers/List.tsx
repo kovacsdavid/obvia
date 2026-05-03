@@ -23,7 +23,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Printer, Trash } from "lucide-react";
 import {
     SortableTableHead,
     Table,
@@ -38,7 +38,7 @@ import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
-import { deleteItem, list } from "@/components/modules/customers/lib/slice.ts";
+import { deleteItem, list, print } from "@/components/modules/customers/lib/slice.ts";
 import { type CustomerResolvedList } from "@/components/modules/customers/lib/interface.ts";
 import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import {
@@ -119,6 +119,12 @@ export default function List() {
                     refresh();
                 }
             }
+        });
+    };
+
+    const handlePrint = (id: string) => {
+        dispatch(print(id)).then(async (response: unknown) => {
+            console.log(response);
         });
     };
 
@@ -276,6 +282,14 @@ export default function List() {
                                                         <Pencil /> Szerkesztés
                                                     </DropdownMenuItem>
                                                 </Link>
+                                                <DropdownMenuItem
+                                                    className={"cursor-pointer"}
+                                                    onClick={() =>
+                                                        handlePrint(item.id)
+                                                    }
+                                                >
+                                                    <Printer /> Print
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     className={"cursor-pointer"}

@@ -18,8 +18,9 @@
  */
 
 #![allow(dead_code)]
-use std::{collections::HashMap, fmt::Display, fs, path::Path, process::Command};
+use std::{fmt::Display, fs, path::Path, process::Command};
 
+use indexmap::IndexMap;
 use tempfile::NamedTempFile;
 use thiserror::Error;
 
@@ -38,11 +39,11 @@ pub enum PdfGenError {
 pub type PdfGenResult<T> = Result<T, PdfGenError>;
 
 #[derive(Debug)]
-pub enum Templates {
+pub enum PdfTemplates {
     Test,
 }
 
-impl Templates {
+impl PdfTemplates {
     pub fn input_keys(&self) -> Vec<&'static str> {
         match &self {
             Self::Test => vec!["test", "name"],
@@ -50,7 +51,7 @@ impl Templates {
     }
 }
 
-impl Display for Templates {
+impl Display for PdfTemplates {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let template = match &self {
             Self::Test => "test",
@@ -62,17 +63,17 @@ impl Display for Templates {
 #[derive(Debug)]
 struct PdfGen<'a> {
     path: &'a Path,
-    template: &'a Templates,
-    params: HashMap<String, String>,
+    template: &'a PdfTemplates,
+    params: IndexMap<String, String>,
 }
 
 impl<'a> PdfGen<'a> {
     pub fn new(
         path: &'a Path,
-        template: &'a Templates,
-        params: &HashMap<String, String>,
+        template: &'a PdfTemplates,
+        params: &IndexMap<String, String>,
     ) -> PdfGenResult<Self> {
-        let mut params_filtered: HashMap<String, String> = HashMap::new();
+        let mut params_filtered: IndexMap<String, String> = IndexMap::new();
         for key in template.input_keys() {
             if !params.contains_key(key) {
                 return Err(PdfGenError::MissingParam(key.to_owned()));
@@ -88,15 +89,17 @@ impl<'a> PdfGen<'a> {
     pub fn path(&self) -> &Path {
         self.path
     }
-    pub fn template(&self) -> &Templates {
+    pub fn template(&self) -> &PdfTemplates {
         self.template
     }
-    pub fn params(&self) -> &HashMap<String, String> {
+    pub fn params(&self) -> &IndexMap<String, String> {
         &self.params
     }
     pub fn typst_compile_args(&self) -> Vec<String> {
         let mut args = vec![
             "compile".to_owned(),
+            "-f".to_owned(),
+            "pdf".to_owned(),
             self.template().to_string(),
             self.path().to_string_lossy().into_owned(),
         ];
@@ -109,8 +112,8 @@ impl<'a> PdfGen<'a> {
 }
 
 pub fn gen_pdf_temporary(
-    template: &Templates,
-    params: &HashMap<String, String>,
+    template: &PdfTemplates,
+    params: &IndexMap<String, String>,
 ) -> PdfGenResult<Vec<u8>> {
     let tmp_file = NamedTempFile::new().map_err(|e| PdfGenError::IOError(e.to_string()))?;
     let pdf_gen = PdfGen::new(tmp_file.path(), template, params)?;
@@ -135,8 +138,8 @@ pub fn gen_pdf_temporary(
 
 pub fn gen_pdf_persistent<'a>(
     path: &'a Path,
-    template: &Templates,
-    params: &HashMap<String, String>,
+    template: &PdfTemplates,
+    params: &IndexMap<String, String>,
 ) -> PdfGenResult<&'a Path> {
     let pdf_gen = PdfGen::new(path, template, params)?;
 
@@ -165,8 +168,8 @@ mod tests {
     #[test]
     fn pdf_gen_struct_params() {
         let path = Path::new("/home/test");
-        let template = Templates::Test;
-        let mut params = HashMap::new();
+        let template = PdfTemplates::Test;
+        let mut params = IndexMap::new();
         params.insert("test".to_owned(), "value1".to_owned());
         params.insert("name".to_owned(), "value2".to_owned());
         let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
@@ -177,12 +180,12 @@ mod tests {
     #[test]
     fn pdf_gen_struct_too_many_params() {
         let path = Path::new("/home/test");
-        let template = Templates::Test;
-        let mut params = HashMap::new();
+        let template = PdfTemplates::Test;
+        let mut params = IndexMap::new();
         params.insert("test".to_owned(), "value1".to_owned());
         params.insert("name".to_owned(), "value2".to_owned());
         params.insert("extra1".to_owned(), "value3".to_owned());
-        let mut expected_params = HashMap::new();
+        let mut expected_params = IndexMap::new();
         expected_params.insert("test".to_owned(), "value1".to_owned());
         expected_params.insert("name".to_owned(), "value2".to_owned());
         let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
@@ -193,8 +196,8 @@ mod tests {
     #[test]
     fn pdf_gen_struct_missing_param() {
         let path = Path::new("/home/test");
-        let template = Templates::Test;
-        let mut params = HashMap::new();
+        let template = PdfTemplates::Test;
+        let mut params = IndexMap::new();
         params.insert("test".to_owned(), "value1".to_owned());
         let pdf_gen_error = PdfGen::new(path, &template, &params).unwrap_err();
         assert_eq!(pdf_gen_error, PdfGenError::MissingParam("name".to_owned()));
@@ -203,6 +206,8 @@ mod tests {
     fn gen_pdf_typst_compile_args() {
         let expected_args = vec![
             "compile".to_owned(),
+            "-f".to_owned(),
+            "pdf".to_owned(),
             "templates/test.typ".to_owned(),
             "/var/obvia/docs/test.pdf".to_owned(),
             "--input".to_owned(),
@@ -211,10 +216,10 @@ mod tests {
             "name={value2}".to_owned(),
         ];
         let path = Path::new("/var/obvia/docs/test.pdf");
-        let template = Templates::Test;
-        let mut params = HashMap::new();
-        params.insert("test".to_owned(), "value1".to_owned());
+        let template = PdfTemplates::Test;
+        let mut params = IndexMap::new();
         params.insert("name".to_owned(), "value2".to_owned());
+        params.insert("test".to_owned(), "value1".to_owned());
         let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
         assert_eq!(pdf_gen.typst_compile_args(), expected_args);
     }
@@ -222,6 +227,8 @@ mod tests {
     fn gen_pdf_typst_compile_args_too_many_params() {
         let expected_args = vec![
             "compile".to_owned(),
+            "-f".to_owned(),
+            "pdf".to_owned(),
             "templates/test.typ".to_owned(),
             "/var/obvia/docs/test.pdf".to_owned(),
             "--input".to_owned(),
@@ -230,8 +237,8 @@ mod tests {
             "name={value2}".to_owned(),
         ];
         let path = Path::new("/var/obvia/docs/test.pdf");
-        let template = Templates::Test;
-        let mut params = HashMap::new();
+        let template = PdfTemplates::Test;
+        let mut params = IndexMap::new();
         params.insert("test".to_owned(), "value1".to_owned());
         params.insert("name".to_owned(), "value2".to_owned());
         params.insert("extra1".to_owned(), "value3".to_owned());

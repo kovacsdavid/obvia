@@ -91,6 +91,16 @@ export const get_resolved = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "customers/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await customersApi.print(uuid, token);
+    },
+)
+
 const customersSlice = createSlice({
     name: "customers",
     initialState,

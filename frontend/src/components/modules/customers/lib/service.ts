@@ -199,3 +199,20 @@ export async function deleteItem(
         );
     });
 }
+
+
+export async function print(
+    uuid: string,
+    token: string | null,
+): Promise<Response> {
+    return await fetch(`/api/customers/print?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return response;
+    });
+}

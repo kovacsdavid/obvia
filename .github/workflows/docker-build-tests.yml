@@ -5,7 +5,7 @@ on:
     paths:
       - 'backend/Dockerfile'
       - 'frontend/Dockerfile'
-      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-build-tests.yml'
       - '.github/workflows/docker-hub-publish.yml'
   push:
     branches:
@@ -13,7 +13,7 @@ on:
     paths:
       - 'backend/Dockerfile'
       - 'frontend/Dockerfile'
-      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-build-tests.yml'
       - '.github/workflows/docker-hub-publish.yml'
 
 jobs:

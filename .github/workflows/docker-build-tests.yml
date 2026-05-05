@@ -2,6 +2,20 @@ name: Test Docker builds
 
 on:
   pull_request:
+    paths:
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-hub-publish.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-hub-publish.yml'
+  pull_request:
   push:
     branches:
       - main

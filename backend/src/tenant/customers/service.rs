@@ -20,6 +20,7 @@
 use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::customers::dto::CustomerUserInput;
@@ -27,6 +28,7 @@ use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use async_trait::async_trait;
+use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -42,6 +44,9 @@ pub enum CustomersServiceError {
 
     #[error("A megadot e-mail címmel már létezik vevő a rendszerben!")]
     CustomerExists,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
 }
 
 #[async_trait]
@@ -170,5 +175,17 @@ impl CustomersService {
                     .ok_or(CustomersServiceError::Unauthorized)?,
             )
             .await?)
+    }
+    pub async fn print(
+        claims: &Claims,
+        payload: &UuidParam,
+        repo: Arc<dyn CustomersRepository>,
+    ) -> CustomersServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::CustomerView,
+            &Self::get_resolved_by_id(claims, payload, repo)
+                .await?
+                .into(),
+        )?))
     }
 }

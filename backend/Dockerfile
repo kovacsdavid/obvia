@@ -75,6 +75,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /opt/obvia_backend /opt/obvia_backend
+COPY --from=builder /opt/templates /opt/templates
 COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
 RUN groupadd -r obvia && useradd -r -g obvia obvia
 RUN typst --version

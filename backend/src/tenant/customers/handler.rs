@@ -22,19 +22,16 @@ use crate::common::dto::{
 };
 use crate::common::error::{FriendlyError, IntoFriendlyError};
 use crate::common::extractors::UserInput;
-use crate::common::pdf::{PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
 use crate::tenant::customers::service::CustomersService;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use axum::body::Bytes;
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
-use indexmap::IndexMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -232,23 +229,25 @@ pub async fn list(
 }
 
 pub async fn print(
-    AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_customers_module): State<Arc<dyn CustomersModule>>,
-    Query(_payload): Query<UuidParam>,
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
+    Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let mut params = IndexMap::new();
-    params.insert("test".to_owned(), "value1".to_owned());
-    params.insert("name".to_owned(), "value2".to_owned());
+    let pdf =
+        match CustomersService::print(&claims, &payload, customers_module.customers_repo()).await {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(customers_module)
+                    .await
+                    .into_response());
+            }
+        };
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
         header::CONTENT_DISPOSITION,
         r#"inline; filename="invoice.pdf""#.parse().unwrap(),
     );
-    Ok((
-        StatusCode::OK,
-        headers,
-        Bytes::from(gen_pdf_temporary(&PdfTemplates::Test, &params).unwrap()),
-    )
-        .into_response())
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

@@ -41,12 +41,25 @@ pub type PdfGenResult<T> = Result<T, PdfGenError>;
 #[derive(Debug)]
 pub enum PdfTemplates {
     Test,
+    CustomerView,
 }
 
 impl PdfTemplates {
     pub fn input_keys(&self) -> Vec<&'static str> {
         match &self {
             Self::Test => vec!["test", "name"],
+            Self::CustomerView => vec![
+                "id",
+                "name",
+                "contact_name",
+                "email",
+                "phone_number",
+                "status",
+                "customer_type",
+                "created_by",
+                "created_at",
+                "updated_at",
+            ],
         }
     }
 }
@@ -55,6 +68,7 @@ impl Display for PdfTemplates {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let template = match &self {
             Self::Test => "test",
+            Self::CustomerView => "customer_view",
         };
         write!(f, "templates/{template}.typ")
     }
@@ -105,7 +119,7 @@ impl<'a> PdfGen<'a> {
         ];
         for (k, v) in self.params() {
             args.push("--input".to_owned());
-            args.push(format!("{k}={{{v}}}"));
+            args.push(format!("{k}={v}"));
         }
         args
     }
@@ -211,9 +225,9 @@ mod tests {
             "templates/test.typ".to_owned(),
             "/var/obvia/docs/test.pdf".to_owned(),
             "--input".to_owned(),
-            "test={value1}".to_owned(),
+            "test=value1".to_owned(),
             "--input".to_owned(),
-            "name={value2}".to_owned(),
+            "name=value2".to_owned(),
         ];
         let path = Path::new("/var/obvia/docs/test.pdf");
         let template = PdfTemplates::Test;
@@ -232,9 +246,9 @@ mod tests {
             "templates/test.typ".to_owned(),
             "/var/obvia/docs/test.pdf".to_owned(),
             "--input".to_owned(),
-            "test={value1}".to_owned(),
+            "test=value1".to_owned(),
             "--input".to_owned(),
-            "name={value2}".to_owned(),
+            "name=value2".to_owned(),
         ];
         let path = Path::new("/var/obvia/docs/test.pdf");
         let template = PdfTemplates::Test;

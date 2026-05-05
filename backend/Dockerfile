@@ -22,7 +22,7 @@ ARG TARGETPLATFORM
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl tar coreutils \
+    ca-certificates curl tar coreutils xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 ARG TYPST_VERSION=0.14.2
@@ -40,7 +40,7 @@ RUN case "${TARGETPLATFORM}" in \
     esac \
  && TYPST_URL="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-${TYPST_ARCH}.tar.xz" \
  && curl -fsSL -o /tmp/typst.tar.xz "${TYPST_URL}" \
- && echo "${TYPST_SHA256}  /tmp/typst.tar.xz" | sha256sum -c - \
+ && echo "${TYPST_SHA256} /tmp/typst.tar.xz" | sha256sum -c - \
  && mkdir -p /opt/typst \
  && tar -xJf /tmp/typst.tar.xz -C /opt/typst --strip-components=1 \
  && install -m 0755 /opt/typst/typst /usr/local/bin/typst \

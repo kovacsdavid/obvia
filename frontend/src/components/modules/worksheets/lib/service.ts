@@ -33,10 +33,10 @@ import {
 } from "@/components/modules/worksheets/lib/interface.ts";
 import {
     isSelectOptionListResponse,
-    type ProcessedResponse,
-    ProcessResponse,
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
     type SelectOptionListResponse,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import {
     isCreateWorksheetResponse,
     isDeleteWorksheetResponse,
@@ -56,7 +56,7 @@ export async function create(
         status,
     }: WorksheetUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateWorksheetResponse>> {
+): Promise<ProcessedJsonResponse<CreateWorksheetResponse>> {
     return await fetch(`/api/worksheets/create`, {
         method: "POST",
         headers: {
@@ -74,7 +74,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateWorksheetResponse)) ??
+            (await ProcessJsonResponse(response, isCreateWorksheetResponse)) ??
             unexpectedFormError
         );
     });
@@ -83,7 +83,7 @@ export async function create(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedWorksheetResolvedListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedWorksheetResolvedListResponse>> {
     const uri =
         query === null
             ? `/api/worksheets/list`
@@ -97,7 +97,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedWorksheetResolvedListResponse,
             )) ?? unexpectedError
@@ -108,7 +108,7 @@ export async function list(
 export async function select_list(
     list: string,
     token: string | null,
-): Promise<ProcessedResponse<SelectOptionListResponse>> {
+): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
     return await fetch(`/api/worksheets/select_list?list=${list}`, {
         method: "GET",
         headers: {
@@ -118,7 +118,7 @@ export async function select_list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
             unexpectedError
         );
     });
@@ -127,7 +127,7 @@ export async function select_list(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<WorksheetResolvedResponse>> {
+): Promise<ProcessedJsonResponse<WorksheetResolvedResponse>> {
     return await fetch(`/api/worksheets/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -137,8 +137,10 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isWorksheetResolvedResponse)) ??
-            unexpectedError
+            (await ProcessJsonResponse(
+                response,
+                isWorksheetResolvedResponse,
+            )) ?? unexpectedError
         );
     });
 }
@@ -153,7 +155,7 @@ export async function update(
         status,
     }: WorksheetUserInput,
     token: string | null,
-): Promise<ProcessedResponse<UpdateWorksheetResponse>> {
+): Promise<ProcessedJsonResponse<UpdateWorksheetResponse>> {
     return await fetch(`/api/worksheets/update`, {
         method: "PUT",
         headers: {
@@ -171,7 +173,7 @@ export async function update(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isUpdateWorksheetResponse)) ??
+            (await ProcessJsonResponse(response, isUpdateWorksheetResponse)) ??
             unexpectedFormError
         );
     });
@@ -180,7 +182,7 @@ export async function update(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<WorksheetResponse>> {
+): Promise<ProcessedJsonResponse<WorksheetResponse>> {
     return await fetch(`/api/worksheets/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -190,7 +192,7 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isWorksheetResponse)) ??
+            (await ProcessJsonResponse(response, isWorksheetResponse)) ??
             unexpectedError
         );
     });
@@ -199,7 +201,7 @@ export async function get(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteWorksheetResponse>> {
+): Promise<ProcessedJsonResponse<DeleteWorksheetResponse>> {
     return await fetch(`/api/worksheets/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -209,7 +211,7 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDeleteWorksheetResponse)) ??
+            (await ProcessJsonResponse(response, isDeleteWorksheetResponse)) ??
             unexpectedError
         );
     });

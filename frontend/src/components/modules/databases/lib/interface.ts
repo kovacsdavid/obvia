@@ -26,7 +26,7 @@ import {
     isSimpleError,
     type PaginatedDataResponse,
     type SimpleError,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import type { Claims } from "@/components/modules/auth/lib/interface.ts";
 import { isClaims } from "@/components/modules/auth/lib/guards.ts";
 

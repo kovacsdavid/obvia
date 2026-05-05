@@ -18,9 +18,9 @@
  */
 
 import {
-    type ProcessedResponse,
-    ProcessResponse,
-} from "@/lib/interfaces/common.ts";
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
+} from "@/lib/interface.ts";
 import {
     globalRequestTimeout,
     unexpectedError,
@@ -39,7 +39,7 @@ export async function list(
     resourceId: string,
     resourceType: string,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedActivityFeedResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedActivityFeedResponse>> {
     const uri = `/api/activity_feed/list?resource_id=${resourceId}&resource_type=${resourceType}`;
     return await fetch(uri, {
         method: "GET",
@@ -50,7 +50,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedActivityFeedResponse,
             )) ?? unexpectedError
@@ -63,7 +63,7 @@ export async function post_comment(
     resourceType: string,
     comment: string,
     token: string | null,
-): Promise<ProcessedResponse<PostCommentResponse>> {
+): Promise<ProcessedJsonResponse<PostCommentResponse>> {
     return await fetch(`/api/comments/post`, {
         method: "POST",
         headers: {
@@ -78,7 +78,7 @@ export async function post_comment(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isPostCommentResponse)) ??
+            (await ProcessJsonResponse(response, isPostCommentResponse)) ??
             unexpectedFormError
         );
     });

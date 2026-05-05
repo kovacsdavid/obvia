@@ -33,10 +33,10 @@ import {
 } from "@/components/modules/tasks/lib/interface.ts";
 import {
     isSelectOptionListResponse,
-    type ProcessedResponse,
-    ProcessResponse,
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
     type SelectOptionListResponse,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import {
     isCreateTaskResponse,
     isDeleteTaskResponse,
@@ -61,7 +61,7 @@ export async function create(
         description,
     }: TaskUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateTaskResponse>> {
+): Promise<ProcessedJsonResponse<CreateTaskResponse>> {
     return await fetch(`/api/tasks/create`, {
         method: "POST",
         headers: {
@@ -84,7 +84,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateTaskResponse)) ??
+            (await ProcessJsonResponse(response, isCreateTaskResponse)) ??
             unexpectedFormError
         );
     });
@@ -93,7 +93,7 @@ export async function create(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedTaskResolvedListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedTaskResolvedListResponse>> {
     const uri =
         query === null ? `/api/tasks/list` : `/api/tasks/list?q=${query}`;
     return await fetch(uri, {
@@ -105,7 +105,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedTaskResolvedListResponse,
             )) ?? unexpectedError
@@ -116,7 +116,7 @@ export async function list(
 export async function select_list(
     list: string,
     token: string | null,
-): Promise<ProcessedResponse<SelectOptionListResponse>> {
+): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
     return await fetch(`/api/tasks/select_list?list=${list}`, {
         method: "GET",
         headers: {
@@ -126,7 +126,7 @@ export async function select_list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
             unexpectedError
         );
     });
@@ -135,7 +135,7 @@ export async function select_list(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<TaskResolvedResponse>> {
+): Promise<ProcessedJsonResponse<TaskResolvedResponse>> {
     return await fetch(`/api/tasks/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -145,7 +145,7 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isTaskResolvedResponse)) ??
+            (await ProcessJsonResponse(response, isTaskResolvedResponse)) ??
             unexpectedError
         );
     });
@@ -166,7 +166,7 @@ export async function update(
         description,
     }: TaskUserInput,
     token: string | null,
-): Promise<ProcessedResponse<UpdateTaskResponse>> {
+): Promise<ProcessedJsonResponse<UpdateTaskResponse>> {
     return await fetch(`/api/tasks/update`, {
         method: "PUT",
         headers: {
@@ -189,7 +189,7 @@ export async function update(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isUpdateTaskResponse)) ??
+            (await ProcessJsonResponse(response, isUpdateTaskResponse)) ??
             unexpectedFormError
         );
     });
@@ -198,7 +198,7 @@ export async function update(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<TaskResponse>> {
+): Promise<ProcessedJsonResponse<TaskResponse>> {
     return await fetch(`/api/tasks/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -208,7 +208,8 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isTaskResponse)) ?? unexpectedError
+            (await ProcessJsonResponse(response, isTaskResponse)) ??
+            unexpectedError
         );
     });
 }
@@ -216,7 +217,7 @@ export async function get(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteTaskResponse>> {
+): Promise<ProcessedJsonResponse<DeleteTaskResponse>> {
     return await fetch(`/api/tasks/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -226,7 +227,7 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDeleteTaskResponse)) ??
+            (await ProcessJsonResponse(response, isDeleteTaskResponse)) ??
             unexpectedError
         );
     });

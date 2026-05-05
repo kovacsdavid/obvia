@@ -38,7 +38,7 @@ import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { list } from "@/components/modules/users/lib/slice.ts";
-import { type SimpleError } from "@/lib/interfaces/common.ts";
+import { type SimpleError } from "@/lib/interface.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,

@@ -99,7 +99,7 @@ export const print = createAsyncThunk(
         const token = rootState.auth.login.token;
         return await customersApi.print(uuid, token);
     },
-)
+);
 
 const customersSlice = createSlice({
     name: "customers",

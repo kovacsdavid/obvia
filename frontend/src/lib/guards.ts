@@ -17,32 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type {
-    CommonResponse,
-    FormError,
-    PaginatedDataResponse,
-    SimpleError,
-} from "@/lib/interface.ts";
+import { isCommonResponse, isSimpleError } from "@/lib/interface.ts";
 
-export interface ActivityFeedResolvedEntry {
-    id: string;
-    resource_id: string;
-    resource_type: string;
-    activity_type: string;
-    content: string;
-    created_by_id: string;
-    created_by: string;
-    created_at: string;
-    updated_at: string;
-    deleted_at: string | null;
+import type { Base64DataResponse } from "./interface";
+
+export function isBase64DataResponse(
+    data: unknown,
+): data is Base64DataResponse {
+    return isCommonResponse(
+        data,
+        (data: unknown): data is string => typeof data === "string",
+        isSimpleError,
+    );
 }
-
-export type PostCommentResponse = CommonResponse<
-    ActivityFeedResolvedEntry,
-    FormError
->;
-
-export type PaginatedActivityFeedResponse = PaginatedDataResponse<
-    ActivityFeedResolvedEntry[],
-    SimpleError
->;

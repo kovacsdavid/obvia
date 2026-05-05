@@ -19,16 +19,16 @@
 
 import type {
     FormError,
-    ProcessedResponse,
+    ProcessedJsonResponse,
     SelectOptionList,
     SelectOptionListResponse,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import React, { useCallback } from "react";
 
 export function useSelectList() {
     const setListResponse = useCallback(
         (
-            payload: ProcessedResponse<SelectOptionListResponse>,
+            payload: ProcessedJsonResponse<SelectOptionListResponse>,
             setList: (data: React.SetStateAction<SelectOptionList>) => void,
             setError: (data: React.SetStateAction<FormError | null>) => void,
         ) => {

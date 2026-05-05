@@ -23,7 +23,7 @@ import {
     type PaginatedDataResponse,
     type SimpleError,
     type SimpleMessageData,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 
 export interface CustomerUserInput {
     id: string | null;

@@ -187,3 +187,55 @@ export function isValidNumber(value: string): boolean {
     const numberPattern = /^-?(\d{1,3}(\s\d{3})*|\d+)(,\d+)?$/;
     return numberPattern.test(value.trim());
 }
+
+export function openPopup(): Window | undefined {
+    const w = window.open("", "obviaWindow", "popup");
+
+    if (!w) {
+        return;
+    }
+
+    try {
+        w.opener = null;
+    } catch (e) {
+        console.log(e);
+        w.close();
+        return;
+    }
+
+    try {
+        w.document.title = "Loading…";
+
+        const doc = w.document;
+        const body =
+            doc.body ??
+            doc.getElementsByTagName("body")[0] ??
+            doc.createElement("body");
+
+        if (!doc.body) {
+            doc.documentElement.appendChild(body);
+        }
+
+        body.style.fontFamily = "sans-serif";
+        body.style.padding = "16px";
+        body.textContent = "Loading…";
+    } catch {
+        console.log('Going without "Loading..." indicator');
+    }
+    return w;
+}
+
+export function updateWindowWithPdfData(
+    handler: Window,
+    data: Uint8Array<ArrayBuffer> | null,
+) {
+    if (data === null) {
+        return;
+    }
+    const blob = new Blob([data], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+
+    handler.location.href = url;
+
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}

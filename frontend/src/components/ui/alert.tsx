@@ -22,7 +22,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 import { AlertCircle, CheckCircle2Icon, Info } from "lucide-react";
-import type { FormError } from "@/lib/interfaces/common.ts";
+import type { FormError } from "@/lib/interface.ts";
 import { FieldError as BaseFieldError } from "@/components/ui/field";
 
 const alertVariants = cva(

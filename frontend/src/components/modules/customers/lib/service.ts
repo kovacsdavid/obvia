@@ -32,9 +32,11 @@ import {
     type UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
 import {
-    type ProcessedResponse,
-    ProcessResponse,
-} from "@/lib/interfaces/common.ts";
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
+    type ProcessedBytesResponse,
+    ProcessBytesResponse,
+} from "@/lib/interface.ts";
 import {
     isCreateCustomerResponse,
     isCustomerResolvedResponse,
@@ -55,7 +57,7 @@ export async function create(
         customerType,
     }: CustomerUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateCustomerResponse>> {
+): Promise<ProcessedJsonResponse<CreateCustomerResponse>> {
     return await fetch(`/api/customers/create`, {
         method: "POST",
         headers: {
@@ -75,7 +77,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateCustomerResponse)) ??
+            (await ProcessJsonResponse(response, isCreateCustomerResponse)) ??
             unexpectedFormError
         );
     });
@@ -92,7 +94,7 @@ export async function update(
         customerType,
     }: CustomerUserInput,
     token: string | null,
-): Promise<ProcessedResponse<UpdateCustomerResponse>> {
+): Promise<ProcessedJsonResponse<UpdateCustomerResponse>> {
     return await fetch(`/api/customers/update`, {
         method: "PUT",
         headers: {
@@ -112,7 +114,7 @@ export async function update(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isUpdateCustomerResponse)) ??
+            (await ProcessJsonResponse(response, isUpdateCustomerResponse)) ??
             unexpectedFormError
         );
     });
@@ -121,7 +123,7 @@ export async function update(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedCustomerResolvedListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedCustomerResolvedListResponse>> {
     const uri =
         query === null
             ? `/api/customers/list`
@@ -135,7 +137,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedCustomerResolvedListResponse,
             )) ?? unexpectedError
@@ -146,7 +148,7 @@ export async function list(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<CustomerResolvedResponse>> {
+): Promise<ProcessedJsonResponse<CustomerResolvedResponse>> {
     return await fetch(`/api/customers/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -156,7 +158,7 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCustomerResolvedResponse)) ??
+            (await ProcessJsonResponse(response, isCustomerResolvedResponse)) ??
             unexpectedError
         );
     });
@@ -165,7 +167,7 @@ export async function get_resolved(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<CustomerResponse>> {
+): Promise<ProcessedJsonResponse<CustomerResponse>> {
     return await fetch(`/api/customers/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -175,7 +177,7 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCustomerResponse)) ??
+            (await ProcessJsonResponse(response, isCustomerResponse)) ??
             unexpectedError
         );
     });
@@ -184,7 +186,7 @@ export async function get(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteCustomerResponse>> {
+): Promise<ProcessedJsonResponse<DeleteCustomerResponse>> {
     return await fetch(`/api/customers/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -194,17 +196,16 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDeleteCustomerResponse)) ??
+            (await ProcessJsonResponse(response, isDeleteCustomerResponse)) ??
             unexpectedError
         );
     });
 }
 
-
 export async function print(
     uuid: string,
     token: string | null,
-): Promise<Response> {
+): Promise<ProcessedBytesResponse> {
     return await fetch(`/api/customers/print?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -213,6 +214,6 @@ export async function print(
         },
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
-        return response;
+        return ProcessBytesResponse(response);
     });
 }

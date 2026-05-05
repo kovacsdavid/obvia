@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { SimpleError } from "@/lib/interfaces/common";
+import type { SimpleError } from "@/lib/interface.ts";
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use_auth";

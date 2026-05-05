@@ -35,7 +35,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import { type SelectOptionList } from "@/lib/interface.ts";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import type { InventoryMovement } from "./lib/interface";
 import { useNumberInput } from "@/hooks/use_number_input.ts";

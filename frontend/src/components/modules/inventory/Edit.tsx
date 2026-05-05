@@ -26,7 +26,7 @@ import {
     select_list,
     update,
 } from "@/components/modules/inventory/lib/slice.ts";
-import { type SelectOptionList } from "@/lib/interfaces/common.ts";
+import { type SelectOptionList } from "@/lib/interface.ts";
 import {
     Select,
     SelectContent,

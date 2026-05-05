@@ -32,9 +32,9 @@ import {
     type WarehouseUserInput,
 } from "@/components/modules/warehouses/lib/interface.ts";
 import {
-    type ProcessedResponse,
-    ProcessResponse,
-} from "@/lib/interfaces/common.ts";
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
+} from "@/lib/interface.ts";
 import {
     isCreateWarehouseResponse,
     isDeleteWarehouseResponse,
@@ -47,7 +47,7 @@ import {
 export async function create(
     { id, name, contactName, contactPhone, status }: WarehouseUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateWarehouseResponse>> {
+): Promise<ProcessedJsonResponse<CreateWarehouseResponse>> {
     return await fetch(`/api/warehouses/create`, {
         method: "POST",
         headers: {
@@ -64,7 +64,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateWarehouseResponse)) ??
+            (await ProcessJsonResponse(response, isCreateWarehouseResponse)) ??
             unexpectedFormError
         );
     });
@@ -73,7 +73,7 @@ export async function create(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedWarehouseResolvedListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedWarehouseResolvedListResponse>> {
     const uri =
         query === null
             ? `/api/warehouses/list`
@@ -87,7 +87,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedWarehouseResolvedListResponse,
             )) ?? unexpectedError
@@ -98,7 +98,7 @@ export async function list(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<WarehouseResolvedResponse>> {
+): Promise<ProcessedJsonResponse<WarehouseResolvedResponse>> {
     return await fetch(`/api/warehouses/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -108,8 +108,10 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isWarehouseResolvedResponse)) ??
-            unexpectedError
+            (await ProcessJsonResponse(
+                response,
+                isWarehouseResolvedResponse,
+            )) ?? unexpectedError
         );
     });
 }
@@ -117,7 +119,7 @@ export async function get_resolved(
 export async function update(
     { id, name, contactName, contactPhone, status }: WarehouseUserInput,
     token: string | null,
-): Promise<ProcessedResponse<UpdateWarehouseResponse>> {
+): Promise<ProcessedJsonResponse<UpdateWarehouseResponse>> {
     return await fetch(`/api/warehouses/update`, {
         method: "PUT",
         headers: {
@@ -134,7 +136,7 @@ export async function update(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isUpdateWarehouseResponse)) ??
+            (await ProcessJsonResponse(response, isUpdateWarehouseResponse)) ??
             unexpectedFormError
         );
     });
@@ -143,7 +145,7 @@ export async function update(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<WarehouseResponse>> {
+): Promise<ProcessedJsonResponse<WarehouseResponse>> {
     return await fetch(`/api/warehouses/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -153,7 +155,7 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isWarehouseResponse)) ??
+            (await ProcessJsonResponse(response, isWarehouseResponse)) ??
             unexpectedError
         );
     });
@@ -162,7 +164,7 @@ export async function get(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteWarehouseResponse>> {
+): Promise<ProcessedJsonResponse<DeleteWarehouseResponse>> {
     return await fetch(`/api/warehouses/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -172,7 +174,7 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDeleteWarehouseResponse)) ??
+            (await ProcessJsonResponse(response, isDeleteWarehouseResponse)) ??
             unexpectedError
         );
     });

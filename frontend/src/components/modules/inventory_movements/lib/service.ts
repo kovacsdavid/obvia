@@ -32,10 +32,10 @@ import {
 } from "@/components/modules/inventory_movements/lib/interface.ts";
 import {
     isSelectOptionListResponse,
-    type ProcessedResponse,
-    ProcessResponse,
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
     type SelectOptionListResponse,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import {
     isCreateInventoryMovementResponse,
     isDeleteInventoryMovementResponse,
@@ -47,7 +47,7 @@ import {
 export async function create(
     input: InventoryMovementUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateInventoryMovementResponse>> {
+): Promise<ProcessedJsonResponse<CreateInventoryMovementResponse>> {
     return await fetch(`/api/inventory_movements/create`, {
         method: "POST",
         headers: {
@@ -68,7 +68,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isCreateInventoryMovementResponse,
             )) ?? unexpectedFormError
@@ -82,7 +82,9 @@ export async function list(
         query: string | null;
     },
     token: string | null,
-): Promise<ProcessedResponse<PaginatedInventoryMovementResolvedListResponse>> {
+): Promise<
+    ProcessedJsonResponse<PaginatedInventoryMovementResolvedListResponse>
+> {
     const uri =
         params.query === null
             ? `/api/inventory_movements/list?inventory_id=${params.inventoryId}`
@@ -96,7 +98,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedInventoryMovementResolvedListResponse,
             )) ?? unexpectedError
@@ -107,7 +109,7 @@ export async function list(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<InventoryMovementResponse>> {
+): Promise<ProcessedJsonResponse<InventoryMovementResponse>> {
     return await fetch(`/api/inventory_movements/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -117,8 +119,10 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isInventoryMovementResponse)) ??
-            unexpectedError
+            (await ProcessJsonResponse(
+                response,
+                isInventoryMovementResponse,
+            )) ?? unexpectedError
         );
     });
 }
@@ -126,7 +130,7 @@ export async function get(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<InventoryMovementResolvedResponse>> {
+): Promise<ProcessedJsonResponse<InventoryMovementResolvedResponse>> {
     return await fetch(`/api/inventory_movements/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -136,7 +140,7 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isInventoryMovementResolvedResponse,
             )) ?? unexpectedError
@@ -147,7 +151,7 @@ export async function get_resolved(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteInventoryMovementResponse>> {
+): Promise<ProcessedJsonResponse<DeleteInventoryMovementResponse>> {
     return await fetch(`/api/inventory_movements/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -157,7 +161,7 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isDeleteInventoryMovementResponse,
             )) ?? unexpectedError
@@ -168,7 +172,7 @@ export async function deleteItem(
 export async function select_list(
     list: string,
     token: string | null,
-): Promise<ProcessedResponse<SelectOptionListResponse>> {
+): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
     return await fetch(`/api/inventory_movements/select_list?list=${list}`, {
         method: "GET",
         headers: {
@@ -178,7 +182,7 @@ export async function select_list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
             unexpectedError
         );
     });

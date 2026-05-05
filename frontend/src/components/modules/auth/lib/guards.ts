@@ -25,7 +25,7 @@ import {
     isSimpleMessageData,
     type SimpleMessageData,
     type SimpleError,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import type {
     Claims,
     ClaimsResponse,

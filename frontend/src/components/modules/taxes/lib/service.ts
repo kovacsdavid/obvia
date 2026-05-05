@@ -33,10 +33,10 @@ import {
 } from "@/components/modules/taxes/lib/interface.ts";
 import {
     isSelectOptionListResponse,
-    type ProcessedResponse,
-    ProcessResponse,
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
     type SelectOptionListResponse,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import {
     isCreateTaxResponse,
     isDeleteTaxResponse,
@@ -60,7 +60,7 @@ export async function create(
         status,
     }: TaxUserInput,
     token: string | null,
-): Promise<ProcessedResponse<CreateTaxResponse>> {
+): Promise<ProcessedJsonResponse<CreateTaxResponse>> {
     return await fetch(`/api/taxes/create`, {
         method: "POST",
         headers: {
@@ -82,7 +82,7 @@ export async function create(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateTaxResponse)) ??
+            (await ProcessJsonResponse(response, isCreateTaxResponse)) ??
             unexpectedFormError
         );
     });
@@ -102,7 +102,7 @@ export async function update(
         status,
     }: TaxUserInput,
     token: string | null,
-): Promise<ProcessedResponse<UpdateTaxResponse>> {
+): Promise<ProcessedJsonResponse<UpdateTaxResponse>> {
     return await fetch(`/api/taxes/update`, {
         method: "PUT",
         headers: {
@@ -124,7 +124,7 @@ export async function update(
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isUpdateTaxResponse)) ??
+            (await ProcessJsonResponse(response, isUpdateTaxResponse)) ??
             unexpectedFormError
         );
     });
@@ -133,7 +133,7 @@ export async function update(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedTaxResolvedListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedTaxResolvedListResponse>> {
     const uri =
         query === null ? `/api/taxes/list` : `/api/taxes/list?q=${query}`;
     return await fetch(uri, {
@@ -145,7 +145,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedTaxResolvedListResponse,
             )) ?? unexpectedError
@@ -156,7 +156,7 @@ export async function list(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<TaxResolvedResponse>> {
+): Promise<ProcessedJsonResponse<TaxResolvedResponse>> {
     return await fetch(`/api/taxes/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -166,7 +166,7 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isTaxResolvedResponse)) ??
+            (await ProcessJsonResponse(response, isTaxResolvedResponse)) ??
             unexpectedError
         );
     });
@@ -175,7 +175,7 @@ export async function get_resolved(
 export async function get(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<TaxResponse>> {
+): Promise<ProcessedJsonResponse<TaxResponse>> {
     return await fetch(`/api/taxes/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -185,7 +185,8 @@ export async function get(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isTaxResponse)) ?? unexpectedError
+            (await ProcessJsonResponse(response, isTaxResponse)) ??
+            unexpectedError
         );
     });
 }
@@ -193,7 +194,7 @@ export async function get(
 export async function deleteItem(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DeleteTaxResponse>> {
+): Promise<ProcessedJsonResponse<DeleteTaxResponse>> {
     return await fetch(`/api/taxes/delete?uuid=${uuid}`, {
         method: "DELETE",
         headers: {
@@ -203,7 +204,7 @@ export async function deleteItem(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDeleteTaxResponse)) ??
+            (await ProcessJsonResponse(response, isDeleteTaxResponse)) ??
             unexpectedError
         );
     });
@@ -212,7 +213,7 @@ export async function deleteItem(
 export async function select_list(
     list: string,
     token: string | null,
-): Promise<ProcessedResponse<SelectOptionListResponse>> {
+): Promise<ProcessedJsonResponse<SelectOptionListResponse>> {
     return await fetch(`/api/taxes/select_list?list=${list}`, {
         method: "GET",
         headers: {
@@ -222,7 +223,7 @@ export async function select_list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isSelectOptionListResponse)) ??
+            (await ProcessJsonResponse(response, isSelectOptionListResponse)) ??
             unexpectedError
         );
     });

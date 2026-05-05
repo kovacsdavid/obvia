@@ -34,14 +34,14 @@ import {
     type PaginatedDatabaseListResponse,
 } from "@/components/modules/databases/lib/interface.ts";
 import {
-    type ProcessedResponse,
-    ProcessResponse,
-} from "@/lib/interfaces/common.ts";
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
+} from "@/lib/interface.ts";
 
 export async function create(
     { name }: CreateDatabase,
     token: string | null,
-): Promise<ProcessedResponse<CreateDatabaseResponse>> {
+): Promise<ProcessedJsonResponse<CreateDatabaseResponse>> {
     return await fetch(`/api/tenants/create`, {
         method: "POST",
         headers: {
@@ -54,7 +54,7 @@ export async function create(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isCreateDatabaseResponse)) ??
+            (await ProcessJsonResponse(response, isCreateDatabaseResponse)) ??
             unexpectedFormError
         );
     });
@@ -63,7 +63,7 @@ export async function create(
 export async function list(
     query: string | null,
     token: string | null,
-): Promise<ProcessedResponse<PaginatedDatabaseListResponse>> {
+): Promise<ProcessedJsonResponse<PaginatedDatabaseListResponse>> {
     const uri =
         query === null ? `/api/tenants/list` : `/api/tenants/list?q=${query}`;
     return await fetch(uri, {
@@ -75,7 +75,7 @@ export async function list(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(
+            (await ProcessJsonResponse(
                 response,
                 isPaginatedDatabaseListResponse,
             )) ?? unexpectedFormError
@@ -86,7 +86,7 @@ export async function list(
 export async function activate(
     uuid: string | null,
     token: string | null,
-): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
+): Promise<ProcessedJsonResponse<ActiveDatabaseResponse>> {
     return await fetch(`/api/tenants/activate`, {
         method: "POST",
         headers: {
@@ -99,7 +99,7 @@ export async function activate(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isActiveDatabaseResponse)) ??
+            (await ProcessJsonResponse(response, isActiveDatabaseResponse)) ??
             unexpectedError
         );
     });
@@ -108,7 +108,7 @@ export async function activate(
 export async function get_resolved(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<DatabaseResponse>> {
+): Promise<ProcessedJsonResponse<DatabaseResponse>> {
     return await fetch(`/api/tenants/get?uuid=${uuid}`, {
         method: "GET",
         headers: {
@@ -118,7 +118,7 @@ export async function get_resolved(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDatabaseResponse)) ??
+            (await ProcessJsonResponse(response, isDatabaseResponse)) ??
             unexpectedError
         );
     });
@@ -127,7 +127,7 @@ export async function get_resolved(
 export async function deleteDatabase(
     uuid: string,
     token: string | null,
-): Promise<ProcessedResponse<ActiveDatabaseResponse>> {
+): Promise<ProcessedJsonResponse<ActiveDatabaseResponse>> {
     return await fetch(`/api/tenants/delete`, {
         method: "POST",
         headers: {
@@ -140,7 +140,7 @@ export async function deleteDatabase(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isActiveDatabaseResponse)) ??
+            (await ProcessJsonResponse(response, isActiveDatabaseResponse)) ??
             unexpectedError
         );
     });

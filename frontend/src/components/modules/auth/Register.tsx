@@ -22,7 +22,7 @@ import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { registerUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { useNavigate } from "react-router-dom";
-import { type ProcessedResponse } from "@/lib/interfaces/common.ts";
+import { type ProcessedJsonResponse } from "@/lib/interface.ts";
 import { type RegisterResponse } from "@/components/modules/auth/lib/interface.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import { Card, CardContent } from "@/components/ui/card.tsx";
@@ -48,7 +48,7 @@ export default function Register() {
     const { isLoggedIn } = useAuth();
 
     const handleRegistrationResponse = async (
-        response: ProcessedResponse<RegisterResponse>,
+        response: ProcessedJsonResponse<RegisterResponse>,
     ) => {
         if (response.statusCode === 201) {
             navigate("/bejelentkezes");

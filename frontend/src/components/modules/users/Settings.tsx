@@ -34,7 +34,7 @@ import {
 } from "@/components/modules/users/lib/slice.ts";
 import { QRCodeSVG } from "qrcode.react";
 import { Eye, EyeClosed } from "lucide-react";
-import type { SimpleError } from "@/lib/interfaces/common";
+import type { SimpleError } from "@/lib/interface.ts";
 import type { RootState } from "@/store";
 import { useAppSelector } from "@/store/hooks.ts";
 import { chMfaStatus } from "@/components/modules/auth/lib/slice";

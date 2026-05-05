@@ -35,9 +35,9 @@ import {
     type VerifyEmailResponse,
 } from "@/components/modules/auth/lib/interface.ts";
 import {
-    type ProcessedResponse,
-    ProcessResponse,
-} from "@/lib/interfaces/common.ts";
+    type ProcessedJsonResponse,
+    ProcessJsonResponse,
+} from "@/lib/interface.ts";
 import {
     isClaimsResponse,
     isForgottenPasswordResponse,
@@ -51,7 +51,7 @@ export async function login({
     email,
     password,
     otp,
-}: LoginRequest): Promise<ProcessedResponse<LoginResponse>> {
+}: LoginRequest): Promise<ProcessedJsonResponse<LoginResponse>> {
     let body;
     if (typeof otp === "string" && otp.trim().length > 0) {
         body = JSON.stringify({ email, password, otp });
@@ -67,13 +67,13 @@ export async function login({
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isLoginResponse)) ??
+            (await ProcessJsonResponse(response, isLoginResponse)) ??
             unexpectedFormError
         );
     });
 }
 
-export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
+export async function refresh(): Promise<ProcessedJsonResponse<LoginResponse>> {
     return await fetch(`/api/auth/t/refresh`, {
         method: "POST",
         headers: {
@@ -82,7 +82,7 @@ export async function refresh(): Promise<ProcessedResponse<LoginResponse>> {
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isLoginResponse)) ??
+            (await ProcessJsonResponse(response, isLoginResponse)) ??
             unexpectedFormError
         );
     });
@@ -104,7 +104,7 @@ export async function register({
     email,
     password,
     passwordConfirm,
-}: RegisterRequest): Promise<ProcessedResponse<RegisterResponse>> {
+}: RegisterRequest): Promise<ProcessedJsonResponse<RegisterResponse>> {
     return await fetch(`/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,7 +118,7 @@ export async function register({
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isRegisterResponse)) ??
+            (await ProcessJsonResponse(response, isRegisterResponse)) ??
             unexpectedFormError
         );
     });
@@ -126,7 +126,7 @@ export async function register({
 
 export async function get_claims(
     token: string | null,
-): Promise<ProcessedResponse<ClaimsResponse>> {
+): Promise<ProcessedJsonResponse<ClaimsResponse>> {
     return await fetch(`/api/auth/get_claims`, {
         method: "GET",
         headers: {
@@ -136,7 +136,7 @@ export async function get_claims(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isClaimsResponse)) ??
+            (await ProcessJsonResponse(response, isClaimsResponse)) ??
             unexpectedError
         );
     });
@@ -144,7 +144,7 @@ export async function get_claims(
 
 export async function verfiy_email(
     id: string,
-): Promise<ProcessedResponse<VerifyEmailResponse>> {
+): Promise<ProcessedJsonResponse<VerifyEmailResponse>> {
     return await fetch(`/api/auth/verify_email?id=${id}`, {
         method: "GET",
         headers: {
@@ -153,7 +153,7 @@ export async function verfiy_email(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isVerifyEmailResponse)) ??
+            (await ProcessJsonResponse(response, isVerifyEmailResponse)) ??
             unexpectedError
         );
     });
@@ -161,7 +161,7 @@ export async function verfiy_email(
 
 export async function forgottenPassword(
     forgottenPasswordRequest: ForgottenPasswordRequest,
-): Promise<ProcessedResponse<ForgottenPasswordResponse>> {
+): Promise<ProcessedJsonResponse<ForgottenPasswordResponse>> {
     return await fetch(`/api/auth/forgotten_password`, {
         method: "POST",
         headers: {
@@ -173,15 +173,17 @@ export async function forgottenPassword(
         signal: AbortSignal.timeout(10000),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isForgottenPasswordResponse)) ??
-            unexpectedError
+            (await ProcessJsonResponse(
+                response,
+                isForgottenPasswordResponse,
+            )) ?? unexpectedError
         );
     });
 }
 
 export async function newPassword(
     newPasswordRequest: NewPasswordRequest,
-): Promise<ProcessedResponse<NewPasswordResponse>> {
+): Promise<ProcessedJsonResponse<NewPasswordResponse>> {
     return await fetch(`/api/auth/new_password`, {
         method: "POST",
         headers: {
@@ -195,7 +197,7 @@ export async function newPassword(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isNewPasswordResponse)) ??
+            (await ProcessJsonResponse(response, isNewPasswordResponse)) ??
             unexpectedError
         );
     });

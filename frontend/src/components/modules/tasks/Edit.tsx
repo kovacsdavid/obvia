@@ -36,7 +36,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
-import type { SelectOptionList } from "@/lib/interfaces/common.ts";
+import type { SelectOptionList } from "@/lib/interface.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { formatDateToYMD } from "@/lib/utils.ts";

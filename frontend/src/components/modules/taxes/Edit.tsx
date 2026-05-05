@@ -38,7 +38,7 @@ import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useSelectList } from "@/hooks/use_select_list.ts";
-import type { SelectOptionList } from "@/lib/interfaces/common.ts";
+import type { SelectOptionList } from "@/lib/interface.ts";
 import type { Tax } from "./lib/interface";
 import {
     Field,

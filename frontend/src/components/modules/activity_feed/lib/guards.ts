@@ -26,7 +26,7 @@ import {
     isCommonResponse,
     isFormError,
     isPaginatedDataResponse,
-} from "@/lib/interfaces/common";
+} from "@/lib/interface.ts";
 
 export function isActivityFeedEntry(
     data: unknown,

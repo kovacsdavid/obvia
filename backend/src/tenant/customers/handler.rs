@@ -30,7 +30,7 @@ use crate::tenant::customers::service::CustomersService;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -226,4 +226,28 @@ pub async fn list(
             .await
             .into_response()),
     }
+}
+
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(customers_module): State<Arc<dyn CustomersModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf =
+        match CustomersService::print(&claims, &payload, customers_module.customers_repo()).await {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(customers_module)
+                    .await
+                    .into_response());
+            }
+        };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        r#"inline; filename="invoice.pdf""#.parse().unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

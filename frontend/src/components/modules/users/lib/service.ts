@@ -23,9 +23,9 @@ import {
 } from "@/services/utils/consts.ts";
 import type { CreateUser } from "@/components/modules/users/lib/interface.ts";
 import {
-    ProcessResponse,
-    type ProcessedResponse,
-} from "@/lib/interfaces/common";
+    ProcessJsonResponse,
+    type ProcessedJsonResponse,
+} from "@/lib/interface.ts";
 import type {
     DisableOtpResponse,
     EnableOtpResponse,
@@ -76,7 +76,7 @@ export async function list(
 
 export async function enableOtp(
     token: string | null,
-): Promise<ProcessedResponse<EnableOtpResponse>> {
+): Promise<ProcessedJsonResponse<EnableOtpResponse>> {
     return await fetch(`/api/users/otp/enable`, {
         method: "GET",
         headers: {
@@ -86,7 +86,7 @@ export async function enableOtp(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isEnableOtpResponse)) ??
+            (await ProcessJsonResponse(response, isEnableOtpResponse)) ??
             unexpectedError
         );
     });
@@ -95,7 +95,7 @@ export async function enableOtp(
 export async function verifyOtp(
     otp: string,
     token: string | null,
-): Promise<ProcessedResponse<VerifyOtpResponse>> {
+): Promise<ProcessedJsonResponse<VerifyOtpResponse>> {
     return await fetch(`/api/users/otp/verify`, {
         method: "POST",
         headers: {
@@ -108,7 +108,7 @@ export async function verifyOtp(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isVerifyOtpResponse)) ??
+            (await ProcessJsonResponse(response, isVerifyOtpResponse)) ??
             unexpectedError
         );
     });
@@ -117,7 +117,7 @@ export async function verifyOtp(
 export async function disableOtp(
     otp: string,
     token: string | null,
-): Promise<ProcessedResponse<DisableOtpResponse>> {
+): Promise<ProcessedJsonResponse<DisableOtpResponse>> {
     return await fetch(`/api/users/otp/disable`, {
         method: "POST",
         headers: {
@@ -130,7 +130,7 @@ export async function disableOtp(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessResponse(response, isDisableOtpResponse)) ??
+            (await ProcessJsonResponse(response, isDisableOtpResponse)) ??
             unexpectedError
         );
     });

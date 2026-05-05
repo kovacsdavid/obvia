@@ -23,7 +23,7 @@ import type {
     PaginatedDataResponse,
     SimpleError,
     SimpleMessageData,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 
 export interface InventoryMovementUserInput {
     id: string | null;

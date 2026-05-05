@@ -1,0 +1,72 @@
+name: Test Docker builds
+
+on:
+  pull_request:
+    paths:
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-hub-publish.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/Dockerfile'
+      - 'frontend/Dockerfile'
+      - '.github/workflows/docker-build-test.yml'
+      - '.github/workflows/docker-hub-publish.yml'
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-backend-docker-build:
+    name: Test backend Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build backend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64
+
+  test-frontend-docker-build:
+    name: Test frontend Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            VITE_GIT_COMMIT_HASH=${{ github.sha }}

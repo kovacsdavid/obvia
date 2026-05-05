@@ -22,7 +22,7 @@ import {
     type FormError,
     type SimpleError,
     type SimpleMessageData,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 
 export interface User {
     id: string;

@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useState } from "react";
-import type { FormError } from "@/lib/interfaces/common.ts";
+import type { FormError } from "@/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/use_auth";
 

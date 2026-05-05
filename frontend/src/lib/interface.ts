@@ -53,15 +53,36 @@ export function isFormError(data: unknown): data is FormError {
     );
 }
 
-export interface ProcessedResponse<T> {
+export interface ProcessedBytesResponse {
+    statusCode: number;
+    data?: Uint8Array<ArrayBuffer> | null;
+}
+
+export async function ProcessBytesResponse(
+    response: Response,
+): Promise<ProcessedBytesResponse> {
+    try {
+        const data = await response.bytes();
+        return {
+            statusCode: response.status,
+            data,
+        };
+    } catch {
+        return {
+            statusCode: response.status,
+        };
+    }
+}
+
+export interface ProcessedJsonResponse<T> {
     statusCode: number;
     jsonData?: T;
 }
 
-export async function ProcessResponse<T>(
+export async function ProcessJsonResponse<T>(
     response: Response,
     guard: (data: unknown) => data is T,
-): Promise<ProcessedResponse<T> | { statusCode: number }> {
+): Promise<ProcessedJsonResponse<T>> {
     try {
         const jsonData = await response.json();
         if (guard(jsonData)) {
@@ -216,3 +237,5 @@ export function isPaginatedDataResponse<T, E>(
 
     return true;
 }
+
+export type Base64DataResponse = CommonResponse<string, SimpleError>;

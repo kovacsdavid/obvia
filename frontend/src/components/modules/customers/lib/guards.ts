@@ -23,7 +23,7 @@ import {
     isPaginatedDataResponse,
     isSimpleError,
     isSimpleMessageData,
-} from "@/lib/interfaces/common.ts";
+} from "@/lib/interface.ts";
 import type {
     CreateCustomerResponse,
     Customer,

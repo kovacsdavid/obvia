@@ -15,10 +15,6 @@ on:
       - 'frontend/Dockerfile'
       - '.github/workflows/docker-build-test.yml'
       - '.github/workflows/docker-hub-publish.yml'
-  pull_request:
-  push:
-    branches:
-      - main
 
 jobs:
   test-backend-docker-build:

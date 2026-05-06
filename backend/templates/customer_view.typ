@@ -26,16 +26,16 @@
   numbering: "1/1",
 )
 
-#let id = sys.inputs.at("id")
-#let name = sys.inputs.at("name")
-#let contact_name = sys.inputs.at("contact_name")
-#let email = sys.inputs.at("email")
-#let phone_number = sys.inputs.at("phone_number")
-#let status = sys.inputs.at("status")
-#let customer_type = sys.inputs.at("customer_type")
-#let created_by = sys.inputs.at("created_by")
-#let created_at = sys.inputs.at("created_at")
-#let updated_at = sys.inputs.at("updated_at")
+#let customer_resolved_id = sys.inputs.at("customer_resolved_id")
+#let customer_resolved_name = sys.inputs.at("customer_resolved_name")
+#let customer_resolved_contact_name = sys.inputs.at("customer_resolved_contact_name")
+#let customer_resolved_email = sys.inputs.at("customer_resolved_email")
+#let customer_resolved_phone_number = sys.inputs.at("customer_resolved_phone_number")
+#let customer_resolved_status = sys.inputs.at("customer_resolved_status")
+#let customer_resolved_customer_type = sys.inputs.at("customer_resolved_customer_type")
+#let customer_resolved_created_by = sys.inputs.at("customer_resolved_created_by")
+#let customer_resolved_created_at = sys.inputs.at("customer_resolved_created_at")
+#let customer_resolved_updated_at = sys.inputs.at("customer_resolved_updated_at")
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("D9D9D9") },
@@ -44,13 +44,13 @@
 
 #table(
   columns: (1fr, 2fr),
-  [*Azonosító*], [#id],
-  [*Típus*], [#customer_type],
-  [*Kapcsolattartó neve*], [#contact_name],
-  [*E-mail cím*], [#email],
-  [*Telefonszám*], [#phone_number],
-  [*Státusz*], [#status],
-  [*Létrehozta*], [#created_by],
-  [*Létrehozva*], [#created_at],
-  [*Frissítve*], [#updated_at],
+  [*Azonosító*], [#customer_resolved_id],
+  [*Típus*], [#customer_resolved_customer_type],
+  [*Kapcsolattartó neve*], [#customer_resolved_contact_name],
+  [*E-mail cím*], [#customer_resolved_email],
+  [*Telefonszám*], [#customer_resolved_phone_number],
+  [*Státusz*], [#customer_resolved_status],
+  [*Létrehozta*], [#customer_resolved_created_by],
+  [*Létrehozva*], [#customer_resolved_created_at],
+  [*Frissítve*], [#customer_resolved_updated_at],
 )

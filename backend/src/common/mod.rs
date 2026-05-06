@@ -51,6 +51,7 @@ pub(crate) mod pdf;
 pub(crate) mod query_parser;
 pub(crate) mod services;
 pub(crate) mod types;
+pub(crate) mod utils;
 pub(crate) mod value_object;
 
 pub trait ConfigProvider: Send + Sync {

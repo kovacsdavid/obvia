@@ -49,16 +49,16 @@ impl PdfTemplates {
         match &self {
             Self::Test => vec!["test", "name"],
             Self::CustomerView => vec![
-                "id",
-                "name",
-                "contact_name",
-                "email",
-                "phone_number",
-                "status",
-                "customer_type",
-                "created_by",
-                "created_at",
-                "updated_at",
+                "customer_resolved_id",
+                "customer_resolved_name",
+                "customer_resolved_contact_name",
+                "customer_resolved_email",
+                "customer_resolved_phone_number",
+                "customer_resolved_status",
+                "customer_resolved_customer_type",
+                "customer_resolved_created_by",
+                "customer_resolved_created_at",
+                "customer_resolved_updated_at",
             ],
         }
     }

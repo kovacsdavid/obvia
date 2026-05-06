@@ -45,6 +45,7 @@
 #table(
   columns: (1fr, 2fr),
   [*Azonosító*], [#customer_resolved_id],
+  [*Név*], [#customer_resolved_name],
   [*Típus*], [#customer_resolved_customer_type],
   [*Kapcsolattartó neve*], [#customer_resolved_contact_name],
   [*E-mail cím*], [#customer_resolved_email],

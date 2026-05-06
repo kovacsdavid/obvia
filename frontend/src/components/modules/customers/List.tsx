@@ -324,7 +324,7 @@ export default function List() {
                                                         handlePrint(item.id)
                                                     }
                                                 >
-                                                    <Printer /> Print
+                                                    <Printer /> Nyomtatás
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem

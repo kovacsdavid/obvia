@@ -269,4 +269,19 @@ mod tests {
         let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
         assert_eq!(pdf_gen.typst_compile_args(), expected_args);
     }
+    #[test]
+    fn index_map_key_prefix_fn() {
+        let mut input = IndexMap::new();
+        input.insert("test".to_owned(), "value1".to_owned());
+        input.insert("name".to_owned(), "value2".to_owned());
+        input.insert("extra1".to_owned(), "value3".to_owned());
+        let mut expected = IndexMap::new();
+        expected.insert("test_prefix_test".to_owned(), "value1".to_owned());
+        expected.insert("test_prefix_name".to_owned(), "value2".to_owned());
+        expected.insert("test_prefix_extra1".to_owned(), "value3".to_owned());
+
+        let output = index_map_key_prefix("test_prefix", input);
+
+        assert_eq!(output, expected);
+    }
 }

@@ -84,108 +84,106 @@ impl IntoFriendlyError<GeneralError> for CustomersServiceError {
 
 type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
 
-    pub async fn create(
-        claims: &Claims,
-        payload: &CustomerUserInput,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<Customer> {
-        repo.insert(
-            payload,
-            claims.sub(),
+pub async fn create(
+    claims: &Claims,
+    payload: &CustomerUserInput,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<Customer> {
+    repo.insert(
+        payload,
+        claims.sub(),
+        claims
+            .active_tenant()
+            .ok_or(CustomersServiceError::Unauthorized)?,
+    )
+    .await
+    .map_err(|e| {
+        if e.is_unique_violation() {
+            CustomersServiceError::CustomerExists
+        } else {
+            e.into()
+        }
+    })
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<CustomerResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
             claims
                 .active_tenant()
                 .ok_or(CustomersServiceError::Unauthorized)?,
         )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                CustomersServiceError::CustomerExists
-            } else {
-                e.into()
-            }
-        })
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<CustomerResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<Customer> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &CustomerUserInput,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<Customer> {
-        Ok(repo
-            .update(
-                payload.clone(),
-                claims
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn print(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn CustomersRepository>,
-    ) -> CustomersServiceResult<Bytes> {
-        let params: IndexMap<String, String> = get_resolved_by_id(claims, payload, repo)
-            .await?
-            .into();
-        let params = index_map_key_prefix("customer_resolved", params);
-        Ok(Bytes::from(gen_pdf_temporary(
-            &PdfTemplates::CustomerView,
-            &params,
-        )?))
-    }
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<Customer> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(CustomersServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &CustomerUserInput,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<Customer> {
+    Ok(repo
+        .update(
+            payload.clone(),
+            claims
+                .active_tenant()
+                .ok_or(CustomersServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(CustomersServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(CustomersServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn print(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn CustomersRepository>,
+) -> CustomersServiceResult<Bytes> {
+    let params: IndexMap<String, String> = get_resolved_by_id(claims, payload, repo).await?.into();
+    let params = index_map_key_prefix("customer_resolved", params);
+    Ok(Bytes::from(gen_pdf_temporary(
+        &PdfTemplates::CustomerView,
+        &params,
+    )?))
+}

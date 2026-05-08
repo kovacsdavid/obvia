@@ -82,11 +82,8 @@ impl IntoFriendlyError<GeneralError> for CustomersServiceError {
     }
 }
 
-pub struct CustomersService;
-
 type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
 
-impl CustomersService {
     pub async fn create(
         claims: &Claims,
         payload: &CustomerUserInput,
@@ -183,7 +180,7 @@ impl CustomersService {
         payload: &UuidParam,
         repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<Bytes> {
-        let params: IndexMap<String, String> = Self::get_resolved_by_id(claims, payload, repo)
+        let params: IndexMap<String, String> = get_resolved_by_id(claims, payload, repo)
             .await?
             .into();
         let params = index_map_key_prefix("customer_resolved", params);
@@ -192,4 +189,3 @@ impl CustomersService {
             &params,
         )?))
     }
-}

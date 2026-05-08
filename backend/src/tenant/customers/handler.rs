@@ -26,7 +26,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
-use crate::tenant::customers::service::CustomersService;
+use crate::tenant::customers::service as customer_service;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -41,7 +41,7 @@ pub async fn get_resolved(
     State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match CustomersService::get_resolved_by_id(
+    let result = match customer_service::get_resolved_by_id(
         &claims,
         &payload,
         customers_module.customers_repo(),
@@ -76,7 +76,7 @@ pub async fn get(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let result =
-        match CustomersService::get(&claims, &payload, customers_module.customers_repo()).await {
+        match customer_service::get(&claims, &payload, customers_module.customers_repo()).await {
             Ok(r) => r,
             Err(e) => {
                 return Err(e
@@ -105,7 +105,7 @@ pub async fn create(
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match CustomersService::create(&claims, &user_input, customers_module.customers_repo())
+        match customer_service::create(&claims, &user_input, customers_module.customers_repo())
             .await
         {
             Ok(r) => r,
@@ -136,7 +136,7 @@ pub async fn update(
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match CustomersService::update(&claims, &user_input, customers_module.customers_repo())
+        match customer_service::update(&claims, &user_input, customers_module.customers_repo())
             .await
         {
             Ok(r) => r,
@@ -166,7 +166,7 @@ pub async fn delete(
     State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match CustomersService::delete(&claims, &payload, customers_module.customers_repo()).await {
+    match customer_service::delete(&claims, &payload, customers_module.customers_repo()).await {
         Ok(_) => (),
         Err(e) => {
             return Err(e
@@ -197,7 +197,7 @@ pub async fn list(
     State(customers_module): State<Arc<dyn CustomersModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match CustomersService::get_paged_list(
+    let (meta, data) = match customer_service::get_paged_list(
         &GetQuery::<CustomerOrderBy, CustomerFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -234,7 +234,7 @@ pub async fn print(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let pdf =
-        match CustomersService::print(&claims, &payload, customers_module.customers_repo()).await {
+        match customer_service::print(&claims, &payload, customers_module.customers_repo()).await {
             Ok(p) => p,
             Err(e) => {
                 return Err(e

@@ -28,7 +28,7 @@ use crate::manager::auth::dto::register::{
     ResendEmailValidationRequestHelper,
 };
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::auth::service::AuthService;
+use crate::manager::auth::service as auth_service;
 use axum::extract::Query;
 use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
@@ -44,7 +44,7 @@ pub async fn login(
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::try_login(auth_module.clone(), &payload, &client_context).await {
+        match auth_service::try_login(auth_module.clone(), &payload, &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };
@@ -86,7 +86,7 @@ pub async fn refresh(
     client_context: ClientContext,
 ) -> HandlerResult {
     let (access_token, access_claims, refresh_token, _, user_public) =
-        match AuthService::refresh(auth_module.clone(), jar.clone(), &client_context).await {
+        match auth_service::refresh(auth_module.clone(), jar.clone(), &client_context).await {
             Ok(u) => u,
             Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
         };
@@ -144,7 +144,7 @@ pub async fn logout(
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let _ = AuthService::logout(auth_module.clone(), jar.clone(), &client_context).await;
+    let _ = auth_service::logout(auth_module.clone(), jar.clone(), &client_context).await;
 
     Ok(jar
         .remove(Cookie::build("refresh_token").path("/api/auth/t"))
@@ -156,7 +156,7 @@ pub async fn register(
     State(auth_module): State<Arc<dyn AuthModule>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::try_register(auth_module.clone(), &user_input).await {
+    match auth_service::try_register(auth_module.clone(), &user_input).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -182,7 +182,7 @@ pub async fn verify_email(
         .get("id")
         .cloned()
         .unwrap_or(String::from("missing_token"));
-    match AuthService::verify_email(auth_module.clone(), &token).await {
+    match auth_service::verify_email(auth_module.clone(), &token).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -206,7 +206,7 @@ pub async fn resend_email_verification(
         ResendEmailValidationRequestHelper,
     >,
 ) -> HandlerResult {
-    match AuthService::resend_email_verification(auth_module.clone(), user_input).await {
+    match auth_service::resend_email_verification(auth_module.clone(), user_input).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -229,7 +229,7 @@ pub async fn forgotten_password(
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::forgotten_password(auth_module.clone(), user_input, &client_context).await {
+    match auth_service::forgotten_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }
@@ -252,7 +252,7 @@ pub async fn new_password(
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    match AuthService::new_password(auth_module.clone(), user_input, &client_context).await {
+    match auth_service::new_password(auth_module.clone(), user_input, &client_context).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
     }

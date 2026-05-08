@@ -169,17 +169,14 @@ impl IntoFriendlyError<GeneralError> for AuthServiceError {
     }
 }
 
-pub struct AuthService;
-
 pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
 
-impl AuthService {
     pub async fn try_login(
         auth_module: Arc<dyn AuthModule>,
         payload: &LoginRequest,
         client_context: &ClientContext,
     ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
-        Self::rate_limit_by_event_status(
+        rate_limit_by_event_status(
             60,
             10,
             auth_module.clone(),
@@ -333,11 +330,11 @@ impl AuthService {
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let (access_token, access_token_claims) = match Self::gen_jwt(
+        let (access_token, access_token_claims) = match gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+            match gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
                 Ok(v) => v,
                 Err(e) => {
                     auth_module
@@ -381,11 +378,11 @@ impl AuthService {
             }
         };
 
-        let (refresh_token, refresh_token_claims) = match Self::gen_jwt(
+        let (refresh_token, refresh_token_claims) = match gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-auth", auth_module.config().auth().jwt_audience()),
-            match Self::gen_exp(auth_module.config().auth().refresh_token_expiration_mins()) {
+            match gen_exp(auth_module.config().auth().refresh_token_expiration_mins()) {
                 Ok(v) => v,
                 Err(e) => {
                     auth_module
@@ -897,11 +894,11 @@ impl AuthService {
             Some(user_tenant) => Some(user_tenant.tenant_id),
         };
 
-        let (access_token, access_token_claims) = match Self::gen_jwt(
+        let (access_token, access_token_claims) = match gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-api", auth_module.config().auth().jwt_audience()),
-            match Self::gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
+            match gen_exp(auth_module.config().auth().access_token_expiration_mins()) {
                 Ok(v) => v,
                 Err(e) => {
                     auth_module
@@ -945,7 +942,7 @@ impl AuthService {
             }
         };
 
-        let (new_refresh_token, new_refresh_token_claims) = match Self::gen_jwt(
+        let (new_refresh_token, new_refresh_token_claims) = match gen_jwt(
             user.id,
             auth_module.config().auth().jwt_issuer().to_string(),
             format!("{}-auth", auth_module.config().auth().jwt_audience()),
@@ -1152,7 +1149,7 @@ impl AuthService {
         auth_module: Arc<dyn AuthModule>,
         payload: &RegisterRequest,
     ) -> AuthServiceResult<()> {
-        let password_hash = Self::generate_password_hash(payload.password.as_str()?.as_bytes())?;
+        let password_hash = generate_password_hash(payload.password.as_str()?.as_bytes())?;
 
         let user = auth_module
             .auth_repo()
@@ -1169,7 +1166,7 @@ impl AuthService {
             .auth_repo()
             .insert_email_verification(user.id)
             .await?;
-        Self::send_email_verification(auth_module, &user, email_verification).await?;
+        send_email_verification(auth_module, &user, email_verification).await?;
         Ok(())
     }
     fn generate_password_hash(password: &[u8]) -> AuthServiceResult<String> {
@@ -1214,7 +1211,7 @@ impl AuthService {
                 .auth_repo()
                 .insert_email_verification(user.id)
                 .await?;
-            Self::send_email_verification(auth_module, &user, email_verification).await?;
+            send_email_verification(auth_module, &user, email_verification).await?;
             Ok(())
         } else {
             Err(AuthServiceError::EmailValidationResend)
@@ -1278,7 +1275,7 @@ impl AuthService {
         payload: ForgottenPasswordRequest,
         client_context: &ClientContext,
     ) -> AuthServiceResult<()> {
-        Self::rate_limit_by_event_type(
+        rate_limit_by_event_type(
             120,
             5,
             auth_module.clone(),
@@ -1287,7 +1284,7 @@ impl AuthService {
             AccountEventType::PasswordResetRequest,
         )
         .await?;
-        Self::rate_limit_by_event_status(
+        rate_limit_by_event_status(
             60,
             10,
             auth_module.clone(),
@@ -1328,7 +1325,7 @@ impl AuthService {
                 .auth_repo()
                 .insert_forgotten_password(user.id)
                 .await?;
-            Self::send_forgotten_password_email(auth_module.clone(), &user, forgotten_password)
+            send_forgotten_password_email(auth_module.clone(), &user, forgotten_password)
                 .await?;
             auth_module
                 .auth_repo()
@@ -1370,7 +1367,7 @@ impl AuthService {
         payload: NewPasswordRequest,
         client_context: &ClientContext,
     ) -> AuthServiceResult<()> {
-        Self::rate_limit_by_event_type(
+        rate_limit_by_event_type(
             120,
             5,
             auth_module.clone(),
@@ -1379,7 +1376,7 @@ impl AuthService {
             AccountEventType::PasswordChange,
         )
         .await?;
-        Self::rate_limit_by_event_status(
+        rate_limit_by_event_status(
             60,
             10,
             auth_module.clone(),
@@ -1442,7 +1439,7 @@ impl AuthService {
 
         if user.is_active() {
             user.password_hash =
-                match Self::generate_password_hash(payload.password.as_str()?.as_bytes()) {
+                match generate_password_hash(payload.password.as_str()?.as_bytes()) {
                     Ok(v) => v,
                     Err(e) => {
                         auth_module
@@ -1600,4 +1597,3 @@ impl AuthService {
             Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
         }
     }
-}

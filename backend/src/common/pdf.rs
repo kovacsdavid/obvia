@@ -175,6 +175,16 @@ pub fn gen_pdf_persistent<'a>(
     Ok(path)
 }
 
+pub fn index_map_key_prefix<T>(
+    prefix: &'static str,
+    index_map: IndexMap<String, T>,
+) -> IndexMap<String, T> {
+    index_map
+        .into_iter()
+        .map(|(key, value)| (format!("{prefix}_{key}"), value))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

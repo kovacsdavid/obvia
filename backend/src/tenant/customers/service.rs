@@ -20,9 +20,9 @@
 use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::pdf::index_map_key_prefix;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
-use crate::common::pdf::index_map_key_prefix;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
@@ -184,8 +184,8 @@ impl CustomersService {
         repo: Arc<dyn CustomersRepository>,
     ) -> CustomersServiceResult<Bytes> {
         let params: IndexMap<String, String> = Self::get_resolved_by_id(claims, payload, repo)
-                .await?
-                .into();
+            .await?
+            .into();
         let params = index_map_key_prefix("customer_resolved", params);
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::CustomerView,

@@ -18,7 +18,7 @@
  */
 
 use super::UsersModule;
-use super::service::UsersService;
+use super::service as users_service;
 use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::{ClientContext, UserInput};
@@ -49,7 +49,7 @@ pub async fn otp_enable(
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
     let response =
-        match UsersService::otp_enable(users_module.clone(), &claims, &client_context).await {
+        match users_service::otp_enable(users_module.clone(), &claims, &client_context).await {
             Ok(v) => v,
             Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
         };
@@ -71,7 +71,7 @@ pub async fn otp_verify(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    match UsersService::otp_verify(users_module.clone(), &claims, &user_input, &client_context)
+    match users_service::otp_verify(users_module.clone(), &claims, &user_input, &client_context)
         .await
     {
         Ok(v) => v,
@@ -97,7 +97,7 @@ pub async fn otp_disable(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    match UsersService::otp_disable(users_module.clone(), &claims, &user_input, &client_context)
+    match users_service::otp_disable(users_module.clone(), &claims, &user_input, &client_context)
         .await
     {
         Ok(v) => v,

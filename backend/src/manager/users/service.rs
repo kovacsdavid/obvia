@@ -92,9 +92,6 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
 
 pub type UsersServiceResult<T> = Result<T, UsersServiceError>;
 
-pub struct UsersService;
-
-impl UsersService {
     pub async fn otp_enable(
         users_module: Arc<dyn UsersModule>,
         claims: &Claims,
@@ -363,7 +360,7 @@ impl UsersService {
         payload: &OtpUserInput,
         client_context: &ClientContext,
     ) -> UsersServiceResult<()> {
-        Self::rate_limit_by_event_type(
+        rate_limit_by_event_type(
             120,
             5,
             users_module.clone(),
@@ -457,4 +454,3 @@ impl UsersService {
 
         Ok(())
     }
-}

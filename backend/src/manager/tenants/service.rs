@@ -92,9 +92,6 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
     }
 }
 
-pub struct TenantsService;
-
-impl TenantsService {
     pub async fn create_managed(
         claims: &Claims,
         payload: &CreateTenant,
@@ -203,4 +200,3 @@ impl TenantsService {
             claims,
         })
     }
-}

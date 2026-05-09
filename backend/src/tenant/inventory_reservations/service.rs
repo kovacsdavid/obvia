@@ -100,9 +100,6 @@ impl FromStr for InventoryReservationsSelectLists {
     }
 }
 
-pub struct InventoryReservationsService;
-
-impl InventoryReservationsService {
     pub async fn create(
         claims: &Claims,
         payload: &InventoryReservationUserInput,
@@ -206,4 +203,3 @@ impl InventoryReservationsService {
             },
         )
     }
-}

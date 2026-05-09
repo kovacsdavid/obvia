@@ -30,7 +30,7 @@ use crate::tenant::inventory_reservations::dto::{
     InventoryReservationUserInput, InventoryReservationUserInputHelper,
     InventoryReservationsRawQuery,
 };
-use crate::tenant::inventory_reservations::service::InventoryReservationsService;
+use crate::tenant::inventory_reservations::service as inventory_reservations_service;
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
@@ -48,7 +48,7 @@ pub async fn get(
     State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match InventoryReservationsService::get(
+    let result = match inventory_reservations_service::get(
         &claims,
         &payload,
         inventory_reservations_module.inventory_reservations_repo(),
@@ -82,7 +82,7 @@ pub async fn get_resolved(
     State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match InventoryReservationsService::get_resolved(
+    let result = match inventory_reservations_service::get_resolved(
         &claims,
         &payload,
         inventory_reservations_module.inventory_reservations_repo(),
@@ -119,7 +119,7 @@ pub async fn create(
         InventoryReservationUserInputHelper,
     >,
 ) -> HandlerResult {
-    let result = match InventoryReservationsService::create(
+    let result = match inventory_reservations_service::create(
         &claims,
         &user_input,
         inventory_reservations_module.inventory_reservations_repo(),
@@ -153,7 +153,7 @@ pub async fn delete(
     State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match InventoryReservationsService::delete(
+    match inventory_reservations_service::delete(
         &claims,
         &payload,
         inventory_reservations_module.inventory_reservations_repo(),
@@ -190,7 +190,7 @@ pub async fn list(
     State(inventory_reservations_module): State<Arc<dyn InventoryReservationsModule>>,
     Query(payload): Query<InventoryReservationsRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match InventoryReservationsService::get_paged_list(
+    let (meta, data) = match inventory_reservations_service::get_paged_list(
         &GetQuery::<InventoryReservationOrderBy, InventoryReservationFilterBy>::from_str(
             payload.q(),
         )
@@ -234,7 +234,7 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match InventoryReservationsService::get_select_list_items(
+    let result = match inventory_reservations_service::get_select_list_items(
         &list_type,
         &claims,
         inventory_reservations_module.clone(),

@@ -24,7 +24,7 @@ use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
-use crate::tenant::activity_feed::service::ActivityFeedService;
+use crate::tenant::activity_feed::service as activity_feed_service;
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -38,7 +38,7 @@ pub async fn list(
     State(activity_feed_module): State<Arc<dyn ActivityFeedModule>>,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match ActivityFeedService::get_all_paged(
+    let (meta, data) = match activity_feed_service::get_all_paged(
         &GetQuery::<Empty, Empty>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,

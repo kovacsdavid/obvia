@@ -72,11 +72,8 @@ impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
     }
 }
 
-pub struct ActivityFeedService;
-
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
-impl ActivityFeedService {
     pub async fn get_all_paged(
         get_query: &GetQuery<Empty, Empty>,
         claims: &Claims,
@@ -95,4 +92,3 @@ impl ActivityFeedService {
             )
             .await?)
     }
-}

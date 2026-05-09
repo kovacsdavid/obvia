@@ -73,9 +73,6 @@ impl IntoFriendlyError<GeneralError> for WarehousesServiceError {
 
 pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
 
-pub struct WarehousesService;
-
-impl WarehousesService {
     pub async fn try_create(
         claims: &Claims,
         payload: &WarehouseUserInput,
@@ -162,4 +159,3 @@ impl WarehousesService {
             )
             .await?)
     }
-}

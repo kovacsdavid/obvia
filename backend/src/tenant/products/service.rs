@@ -101,122 +101,122 @@ impl FromStr for ProductsSelectLists {
     }
 }
 
-    pub async fn create(
-        claims: &Claims,
-        payload: &mut ProductUserInput,
-        products_module: Arc<dyn ProductsModule>,
-    ) -> ProductsServiceResult<Product> {
-        if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
-            payload.unit_of_measure_id = products_module
-                .products_repo()
-                .insert_unit_of_measure(
-                    new_unit_of_measure.as_str()?,
-                    claims.sub(),
-                    claims
-                        .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
-                )
-                .await?
-                .id
-                .to_string()
-                .parse::<ValueObjectRequired<UuidVO>>()
-                .map(Some)
-                .map_err(|_| ProductsServiceError::InvalidState)?;
-        }
-        Ok(products_module
+pub async fn create(
+    claims: &Claims,
+    payload: &mut ProductUserInput,
+    products_module: Arc<dyn ProductsModule>,
+) -> ProductsServiceResult<Product> {
+    if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
+        payload.unit_of_measure_id = products_module
             .products_repo()
-            .insert(
-                payload,
+            .insert_unit_of_measure(
+                new_unit_of_measure.as_str()?,
                 claims.sub(),
                 claims
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,
             )
-            .await?)
+            .await?
+            .id
+            .to_string()
+            .parse::<ValueObjectRequired<UuidVO>>()
+            .map(Some)
+            .map_err(|_| ProductsServiceError::InvalidState)?;
     }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        products_module: Arc<dyn ProductsModule>,
-    ) -> ProductsServiceResult<Vec<SelectOption>> {
-        match ProductsSelectLists::from_str(select_list)? {
-            ProductsSelectLists::UnitsOfMeasure => Ok(products_module
-                .products_repo()
-                .get_units_of_measure_select_list(
-                    claims
-                        .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<ProductResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
+    Ok(products_module
+        .products_repo()
+        .insert(
+            payload,
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    products_module: Arc<dyn ProductsModule>,
+) -> ProductsServiceResult<Vec<SelectOption>> {
+    match ProductsSelectLists::from_str(select_list)? {
+        ProductsSelectLists::UnitsOfMeasure => Ok(products_module
+            .products_repo()
+            .get_units_of_measure_select_list(
                 claims
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,
             )
-            .await?)
+            .await?),
     }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<Product> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &ProductUserInput,
-        repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<Product> {
-        Ok(repo
-            .update(
-                payload.clone(),
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<ProductOrderBy, ProductFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn ProductsRepository>,
-    ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<ProductResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<Product> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &ProductUserInput,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<Product> {
+    Ok(repo
+        .update(
+            payload.clone(),
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<ProductOrderBy, ProductFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(ProductsServiceError::Unauthorized)?,
+        )
+        .await?)
+}

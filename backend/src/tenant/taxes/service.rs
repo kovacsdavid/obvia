@@ -98,110 +98,110 @@ impl FromStr for TaxesSelectLists {
 
 type TaxesServiceResult<T> = Result<T, TaxesServiceError>;
 
-    pub async fn create(
-        claims: &Claims,
-        payload: &TaxUserInput,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<Tax> {
-        repo.insert(
-            payload.clone(),
-            claims.sub(),
+pub async fn create(
+    claims: &Claims,
+    payload: &TaxUserInput,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<Tax> {
+    repo.insert(
+        payload.clone(),
+        claims.sub(),
+        claims
+            .active_tenant()
+            .ok_or(TaxesServiceError::Unauthorized)?,
+    )
+    .await
+    .map_err(|e| {
+        if e.is_unique_violation() {
+            TaxesServiceError::TaxExists
+        } else {
+            e.into()
+        }
+    })
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<TaxResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
             claims
                 .active_tenant()
                 .ok_or(TaxesServiceError::Unauthorized)?,
         )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                TaxesServiceError::TaxExists
-            } else {
-                e.into()
-            }
-        })
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<TaxResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<Tax> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(TaxesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &TaxUserInput,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<Tax> {
+    Ok(repo
+        .update(
+            payload.clone(),
+            claims
+                .active_tenant()
+                .ok_or(TaxesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(TaxesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<TaxOrderBy, TaxFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(TaxesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    taxes_module: Arc<dyn TaxesModule>,
+) -> TaxesServiceResult<Vec<SelectOption>> {
+    match TaxesSelectLists::from_str(select_list)? {
+        TaxesSelectLists::Countries => Ok(taxes_module
+            .address_repo()
+            .get_all_countries_select_list_items(
                 claims
                     .active_tenant()
                     .ok_or(TaxesServiceError::Unauthorized)?,
             )
-            .await?)
+            .await?),
     }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<Tax> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &TaxUserInput,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<Tax> {
-        Ok(repo
-            .update(
-                payload.clone(),
-                claims
-                    .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<TaxOrderBy, TaxFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn TaxesRepository>,
-    ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        taxes_module: Arc<dyn TaxesModule>,
-    ) -> TaxesServiceResult<Vec<SelectOption>> {
-        match TaxesSelectLists::from_str(select_list)? {
-            TaxesSelectLists::Countries => Ok(taxes_module
-                .address_repo()
-                .get_all_countries_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(TaxesServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
-    }
+}

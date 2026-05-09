@@ -96,11 +96,8 @@ impl FromStr for TaxesSelectLists {
     }
 }
 
-pub struct TaxesService;
-
 type TaxesServiceResult<T> = Result<T, TaxesServiceError>;
 
-impl TaxesService {
     pub async fn create(
         claims: &Claims,
         payload: &TaxUserInput,
@@ -208,4 +205,3 @@ impl TaxesService {
                 .await?),
         }
     }
-}

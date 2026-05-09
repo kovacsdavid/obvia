@@ -26,7 +26,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::{ProductUserInput, ProductUserInputHelper};
-use crate::tenant::products::service::ProductsService;
+use crate::tenant::products::service as products_service;
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -42,7 +42,7 @@ pub async fn get_resolved(
     State(products_module): State<Arc<dyn ProductsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match ProductsService::get_resolved_by_id(
+    let result = match products_service::get_resolved_by_id(
         &claims,
         &payload,
         products_module.products_repo(),
@@ -69,7 +69,7 @@ pub async fn get(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let result =
-        match ProductsService::get(&claims, &payload, products_module.products_repo()).await {
+        match products_service::get(&claims, &payload, products_module.products_repo()).await {
             Ok(r) => r,
             Err(e) => return Err(e.into_friendly_error(products_module).await.into_response()),
         };
@@ -89,7 +89,7 @@ pub async fn update(
     State(products_module): State<Arc<dyn ProductsModule>>,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
-    let result = match ProductsService::update(
+    let result = match products_service::update(
         &claims,
         &user_input,
         products_module.products_repo(),
@@ -115,7 +115,7 @@ pub async fn delete(
     State(products_module): State<Arc<dyn ProductsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match ProductsService::delete(&claims, &payload, products_module.products_repo()).await {
+    match products_service::delete(&claims, &payload, products_module.products_repo()).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(products_module).await.into_response()),
     };
@@ -139,7 +139,7 @@ pub async fn create(
     UserInput(mut user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match ProductsService::create(&claims, &mut user_input, products_module.clone()).await {
+        match products_service::create(&claims, &mut user_input, products_module.clone()).await {
             Ok(r) => r,
             Err(e) => return Err(e.into_friendly_error(products_module).await.into_response()),
         };
@@ -159,7 +159,7 @@ pub async fn list(
     State(products_module): State<Arc<dyn ProductsModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match ProductsService::get_paged_list(
+    let (meta, data) = match products_service::get_paged_list(
         &GetQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -193,7 +193,7 @@ pub async fn select_list(
         .unwrap_or(String::from("missing_list"));
 
     let result =
-        match ProductsService::get_select_list_items(&list_type, &claims, products_module.clone())
+        match products_service::get_select_list_items(&list_type, &claims, products_module.clone())
             .await
         {
             Ok(r) => r,

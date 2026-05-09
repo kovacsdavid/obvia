@@ -101,9 +101,6 @@ impl FromStr for ProductsSelectLists {
     }
 }
 
-pub struct ProductsService;
-
-impl ProductsService {
     pub async fn create(
         claims: &Claims,
         payload: &mut ProductUserInput,
@@ -223,4 +220,3 @@ impl ProductsService {
             )
             .await?)
     }
-}

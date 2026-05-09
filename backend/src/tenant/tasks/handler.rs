@@ -42,16 +42,12 @@ pub async fn get_resolved(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match tasks_service::get_resolved_by_id(
-        &claims,
-        &payload,
-        tasks_module.tasks_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
-    };
+    let result =
+        match tasks_service::get_resolved_by_id(&claims, &payload, tasks_module.tasks_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)
@@ -88,7 +84,8 @@ pub async fn update(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let result = match tasks_service::update(&claims, &user_input, tasks_module.tasks_repo()).await {
+    let result = match tasks_service::update(&claims, &user_input, tasks_module.tasks_repo()).await
+    {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
     };
@@ -155,16 +152,12 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match tasks_service::get_select_list_items(
-        &list_type,
-        &claims,
-        tasks_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
-    };
+    let result =
+        match tasks_service::get_select_list_items(&list_type, &claims, tasks_module.clone()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+        };
 
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)

@@ -99,124 +99,124 @@ impl FromStr for TasksSelectLists {
     }
 }
 
-    pub async fn create(
-        claims: &Claims,
-        payload: &TaskUserInput,
-        tasks_module: Arc<dyn TasksModule>,
-    ) -> TasksServiceResult<Task> {
-        Ok(tasks_module
-            .tasks_repo()
-            .insert(
-                payload,
-                claims.sub(),
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        tasks_module: Arc<dyn TasksModule>,
-    ) -> TasksServiceResult<Vec<SelectOption>> {
-        let active_tenant = claims
-            .active_tenant()
-            .ok_or(TasksServiceError::Unauthorized)?;
-        Ok(match TasksSelectLists::from_str(select_list)? {
-            TasksSelectLists::Worksheets => {
-                tasks_module
-                    .worksheets_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            TasksSelectLists::Services => {
-                tasks_module
-                    .services_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            TasksSelectLists::Taxes => {
-                tasks_module
-                    .taxes_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            TasksSelectLists::Currencies => {
-                tasks_module
-                    .currencies_repo()
-                    .get_all_countries_select_list_items(active_tenant)
-                    .await?
-            }
-        })
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<TaskResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<Task> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &TaskUserInput,
-        repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<Task> {
-        Ok(repo
-            .update(
-                payload,
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<TaskOrderBy, TaskFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn TasksRepository>,
-    ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+pub async fn create(
+    claims: &Claims,
+    payload: &TaskUserInput,
+    tasks_module: Arc<dyn TasksModule>,
+) -> TasksServiceResult<Task> {
+    Ok(tasks_module
+        .tasks_repo()
+        .insert(
+            payload,
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    tasks_module: Arc<dyn TasksModule>,
+) -> TasksServiceResult<Vec<SelectOption>> {
+    let active_tenant = claims
+        .active_tenant()
+        .ok_or(TasksServiceError::Unauthorized)?;
+    Ok(match TasksSelectLists::from_str(select_list)? {
+        TasksSelectLists::Worksheets => {
+            tasks_module
+                .worksheets_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+        TasksSelectLists::Services => {
+            tasks_module
+                .services_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+        TasksSelectLists::Taxes => {
+            tasks_module
+                .taxes_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+        TasksSelectLists::Currencies => {
+            tasks_module
+                .currencies_repo()
+                .get_all_countries_select_list_items(active_tenant)
+                .await?
+        }
+    })
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TasksRepository>,
+) -> TasksServiceResult<TaskResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TasksRepository>,
+) -> TasksServiceResult<Task> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &TaskUserInput,
+    repo: Arc<dyn TasksRepository>,
+) -> TasksServiceResult<Task> {
+    Ok(repo
+        .update(
+            payload,
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TasksRepository>,
+) -> TasksServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<TaskOrderBy, TaskFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn TasksRepository>,
+) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
+}

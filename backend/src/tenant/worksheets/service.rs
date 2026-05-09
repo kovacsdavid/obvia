@@ -93,9 +93,6 @@ impl FromStr for WorksheetsSelectLists {
     }
 }
 
-pub struct WorksheetsService;
-
-impl WorksheetsService {
     pub async fn create(
         claims: &Claims,
         payload: &WorksheetUserInput,
@@ -199,4 +196,3 @@ impl WorksheetsService {
             )
             .await?)
     }
-}

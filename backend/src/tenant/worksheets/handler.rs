@@ -27,7 +27,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::{WorksheetUserInput, WorksheetUserInputHelper};
-use crate::tenant::worksheets::service::WorksheetsService;
+use crate::tenant::worksheets::service as worksheets_service;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,7 +43,7 @@ pub async fn get_resolved(
     State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match WorksheetsService::get_resolved_by_id(
+    let result = match worksheets_service::get_resolved_by_id(
         &claims,
         &payload,
         worksheets_module.worksheets_repo(),
@@ -77,7 +77,7 @@ pub async fn get(
     State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match WorksheetsService::get(
+    let result = match worksheets_service::get(
         &claims,
         &payload,
         worksheets_module.worksheets_repo(),
@@ -112,7 +112,7 @@ pub async fn update(
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match WorksheetsService::update(&claims, &user_input, worksheets_module.worksheets_repo())
+        match worksheets_service::update(&claims, &user_input, worksheets_module.worksheets_repo())
             .await
         {
             Ok(r) => r,
@@ -142,7 +142,7 @@ pub async fn delete(
     State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match WorksheetsService::delete(&claims, &payload, worksheets_module.worksheets_repo()).await {
+    match worksheets_service::delete(&claims, &payload, worksheets_module.worksheets_repo()).await {
         Ok(_) => (),
         Err(e) => {
             return Err(e
@@ -174,7 +174,7 @@ pub async fn create(
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match WorksheetsService::create(&claims, &user_input, worksheets_module.clone()).await {
+        match worksheets_service::create(&claims, &user_input, worksheets_module.clone()).await {
             Ok(r) => r,
             Err(e) => {
                 return Err(e
@@ -206,7 +206,7 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match WorksheetsService::get_select_list_items(
+    let result = match worksheets_service::get_select_list_items(
         &list_type,
         &claims,
         worksheets_module.clone(),
@@ -241,7 +241,7 @@ pub async fn list(
     State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match WorksheetsService::get_paged_list(
+    let (meta, data) = match worksheets_service::get_paged_list(
         &GetQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,

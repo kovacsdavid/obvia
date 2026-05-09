@@ -74,21 +74,21 @@ impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
 
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
-    pub async fn get_all_paged(
-        get_query: &GetQuery<Empty, Empty>,
-        claims: &Claims,
-        resource_id: Uuid,
-        resource_type: &ValueObjectRequired<ResourceType>,
-        repo: Arc<dyn ActivityFeedRepository>,
-    ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                resource_id,
-                resource_type,
-                claims
-                    .active_tenant()
-                    .ok_or(ActivityFeedServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+pub async fn get_all_paged(
+    get_query: &GetQuery<Empty, Empty>,
+    claims: &Claims,
+    resource_id: Uuid,
+    resource_type: &ValueObjectRequired<ResourceType>,
+    repo: Arc<dyn ActivityFeedRepository>,
+) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            resource_id,
+            resource_type,
+            claims
+                .active_tenant()
+                .ok_or(ActivityFeedServiceError::Unauthorized)?,
+        )
+        .await?)
+}

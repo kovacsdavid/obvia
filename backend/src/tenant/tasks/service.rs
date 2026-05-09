@@ -99,9 +99,6 @@ impl FromStr for TasksSelectLists {
     }
 }
 
-pub struct TasksService;
-
-impl TasksService {
     pub async fn create(
         claims: &Claims,
         payload: &TaskUserInput,
@@ -223,4 +220,3 @@ impl TasksService {
             )
             .await?)
     }
-}

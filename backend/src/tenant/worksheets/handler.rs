@@ -77,21 +77,17 @@ pub async fn get(
     State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match worksheets_service::get(
-        &claims,
-        &payload,
-        worksheets_module.worksheets_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(worksheets_module)
-                .await
-                .into_response());
-        }
-    };
+    let result =
+        match worksheets_service::get(&claims, &payload, worksheets_module.worksheets_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(worksheets_module)
+                    .await
+                    .into_response());
+            }
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)

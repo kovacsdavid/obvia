@@ -98,11 +98,8 @@ impl FromStr for ServicesSelectLists {
     }
 }
 
-pub struct ServicesService;
-
 type ServicesServiceResult<T> = Result<T, ServicesServiceError>;
 
-impl ServicesService {
     pub async fn create(
         claims: &Claims,
         payload: &ServiceUserInput,
@@ -218,4 +215,3 @@ impl ServicesService {
                 .await?),
         }
     }
-}

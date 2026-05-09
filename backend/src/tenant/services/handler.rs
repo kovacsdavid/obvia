@@ -27,7 +27,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::{ServiceUserInput, ServiceUserInputHelper};
-use crate::tenant::services::service::ServicesService;
+use crate::tenant::services::service as services_service;
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,7 +43,7 @@ pub async fn get_resolved(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match ServicesService::get_resolved_by_id(
+    let result = match services_service::get_resolved_by_id(
         &claims,
         &payload,
         services_module.services_repo(),
@@ -70,7 +70,7 @@ pub async fn get(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let result =
-        match ServicesService::get(&claims, &payload, services_module.services_repo()).await {
+        match services_service::get(&claims, &payload, services_module.services_repo()).await {
             Ok(r) => r,
             Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
         };
@@ -90,7 +90,7 @@ pub async fn create(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result = match ServicesService::create(
+    let result = match services_service::create(
         &claims,
         &user_input,
         services_module.services_repo(),
@@ -116,7 +116,7 @@ pub async fn update(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result = match ServicesService::update(
+    let result = match services_service::update(
         &claims,
         &user_input,
         services_module.services_repo(),
@@ -142,7 +142,7 @@ pub async fn delete(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match ServicesService::delete(&claims, &payload, services_module.services_repo()).await {
+    match services_service::delete(&claims, &payload, services_module.services_repo()).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
     };
@@ -165,7 +165,7 @@ pub async fn list(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match ServicesService::get_paged_list(
+    let (meta, data) = match services_service::get_paged_list(
         &GetQuery::<ServiceOrderBy, ServiceFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -200,7 +200,7 @@ pub async fn select_list(
         .unwrap_or(String::from("missing_list"));
 
     let result =
-        match ServicesService::get_select_list_items(&list_type, &claims, services_module.clone())
+        match services_service::get_select_list_items(&list_type, &claims, services_module.clone())
             .await
         {
             Ok(r) => r,

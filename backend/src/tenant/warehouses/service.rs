@@ -73,89 +73,89 @@ impl IntoFriendlyError<GeneralError> for WarehousesServiceError {
 
 pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
 
-    pub async fn try_create(
-        claims: &Claims,
-        payload: &WarehouseUserInput,
-        warehouses_module: Arc<dyn WarehousesModule>,
-    ) -> WarehousesServiceResult<Warehouse> {
-        Ok(warehouses_module
-            .warehouses_repo()
-            .insert(
-                payload.clone(),
-                claims.sub(),
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<WarehouseResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<Warehouse> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &WarehouseUserInput,
-        repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<Warehouse> {
-        Ok(repo
-            .update(
-                payload.clone(),
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn WarehousesRepository>,
-    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+pub async fn try_create(
+    claims: &Claims,
+    payload: &WarehouseUserInput,
+    warehouses_module: Arc<dyn WarehousesModule>,
+) -> WarehousesServiceResult<Warehouse> {
+    Ok(warehouses_module
+        .warehouses_repo()
+        .insert(
+            payload.clone(),
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn WarehousesRepository>,
+) -> WarehousesServiceResult<WarehouseResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn WarehousesRepository>,
+) -> WarehousesServiceResult<Warehouse> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &WarehouseUserInput,
+    repo: Arc<dyn WarehousesRepository>,
+) -> WarehousesServiceResult<Warehouse> {
+    Ok(repo
+        .update(
+            payload.clone(),
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn WarehousesRepository>,
+) -> WarehousesServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn WarehousesRepository>,
+) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
+}

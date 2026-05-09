@@ -76,21 +76,17 @@ pub async fn get(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match warehouses_service::get(
-        &claims,
-        &payload,
-        warehouses_module.warehouses_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(warehouses_module)
-                .await
-                .into_response());
-        }
-    };
+    let result =
+        match warehouses_service::get(&claims, &payload, warehouses_module.warehouses_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)
@@ -172,21 +168,17 @@ pub async fn create(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let result = match warehouses_service::try_create(
-        &claims,
-        &user_input,
-        warehouses_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(warehouses_module)
-                .await
-                .into_response());
-        }
-    };
+    let result =
+        match warehouses_service::try_create(&claims, &user_input, warehouses_module.clone()).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
         .data(result)

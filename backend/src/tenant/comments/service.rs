@@ -68,11 +68,8 @@ impl IntoFriendlyError<GeneralError> for CommentsServiceError {
     }
 }
 
-pub struct CommentsService;
-
 type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
 
-impl CommentsService {
     pub async fn post(
         claims: &Claims,
         payload: &CommentUserInput,
@@ -88,4 +85,3 @@ impl CommentsService {
             )
             .await?)
     }
-}

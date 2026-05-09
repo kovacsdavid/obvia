@@ -23,7 +23,7 @@ use crate::common::extractors::UserInput;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
-use crate::tenant::comments::service::CommentsService;
+use crate::tenant::comments::service as comments_service;
 use axum::debug_handler;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -37,7 +37,7 @@ pub async fn post(
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match CommentsService::post(&claims, &user_input, comments_module.comments_repo()).await {
+        match comments_service::post(&claims, &user_input, comments_module.comments_repo()).await {
             Ok(r) => r,
             Err(e) => {
                 return Err(e.into_friendly_error(comments_module).await.into_response());

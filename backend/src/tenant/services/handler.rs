@@ -90,16 +90,12 @@ pub async fn create(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result = match services_service::create(
-        &claims,
-        &user_input,
-        services_module.services_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-    };
+    let result =
+        match services_service::create(&claims, &user_input, services_module.services_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
         .data(result)
@@ -116,16 +112,12 @@ pub async fn update(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result = match services_service::update(
-        &claims,
-        &user_input,
-        services_module.services_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-    };
+    let result =
+        match services_service::update(&claims, &user_input, services_module.services_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)

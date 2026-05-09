@@ -104,9 +104,6 @@ impl FromStr for InventorySelectLists {
     }
 }
 
-pub struct InventoryService;
-
-impl InventoryService {
     pub async fn create(
         claims: &Claims,
         payload: &InventoryUserInput,
@@ -235,4 +232,3 @@ impl InventoryService {
             )
             .await?)
     }
-}

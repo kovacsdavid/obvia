@@ -58,6 +58,8 @@ import {
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
+import Status from "./Status";
+import { Badge } from "@/components/ui/badge";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -297,9 +299,13 @@ export default function List() {
                                             : ""}
                                     </TableCell>
                                     <TableCell>
-                                        {item.unit_of_measure}
+                                        <Badge variant="secondary">
+                                            {item.unit_of_measure}
+                                        </Badge>
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

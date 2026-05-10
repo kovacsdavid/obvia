@@ -39,6 +39,8 @@ import type { ProductResolved } from "@/components/modules/products/lib/interfac
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
+import { Badge } from "@/components/ui/badge";
 
 export default function View() {
     const [data, setData] = React.useState<ProductResolved | null>(null);
@@ -101,12 +103,16 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Mértékegység</TableCell>
                                         <TableCell>
-                                            {data.unit_of_measure}
+                                            <Badge variant="secondary">
+                                                {data.unit_of_measure}
+                                            </Badge>
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

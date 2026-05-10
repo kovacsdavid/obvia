@@ -39,6 +39,8 @@ import { formatDateToYMDHMS } from "@/lib/utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
+import Type from "./Type";
 
 export default function View() {
     const [data, setData] = React.useState<CustomerResolved | null>(null);
@@ -89,6 +91,12 @@ export default function View() {
                                         <TableCell>{data.id}</TableCell>
                                     </TableRow>
                                     <TableRow>
+                                        <TableCell>Típus</TableCell>
+                                        <TableCell>
+                                            <Type type={data.customer_type} />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
                                         <TableCell>Név</TableCell>
                                         <TableCell>{data.name}</TableCell>
                                     </TableRow>
@@ -116,7 +124,9 @@ export default function View() {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

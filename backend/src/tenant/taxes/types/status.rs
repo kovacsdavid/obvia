@@ -41,6 +41,7 @@ impl ValueObjectData for Status {
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
             "active" => Ok(()),
+            "draft" => Ok(()),
             "inactive" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }

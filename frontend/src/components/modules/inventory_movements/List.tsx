@@ -18,6 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
+import { NavLink } from "react-router";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     deleteItem,
@@ -47,6 +48,7 @@ import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
 import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
+import { Link as LinkIcon } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -288,9 +290,15 @@ export default function InventoryMovementsList() {
                                             : "N/A"}
                                     </TableCell>
                                     <TableCell>
-                                        {item.tax
-                                            ? formatNumber(item.tax)
-                                            : "N/A"}
+                                        <NavLink
+                                            to={`/ado/reszletek/${item.tax_id}`}
+                                        >
+                                            {item.tax}{" "}
+                                            <LinkIcon
+                                                size={15}
+                                                className="inline"
+                                            />
+                                        </NavLink>
                                     </TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.movement_date)}

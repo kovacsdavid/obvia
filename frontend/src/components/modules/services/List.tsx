@@ -57,6 +57,8 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
+import { Badge } from "@/components/ui/badge";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -299,9 +301,17 @@ export default function List() {
                                         {item.default_tax ?? "N/A"}
                                     </TableCell>
                                     <TableCell>
-                                        {item.currency_code ?? "N/A"}
+                                        {item.currency_code ? (
+                                            <Badge variant="secondary">
+                                                {item.currency_code}
+                                            </Badge>
+                                        ) : (
+                                            "N/A"
+                                        )}
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

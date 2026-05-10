@@ -35,10 +35,12 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
+import { Badge } from "@/components/ui/badge";
 
 export default function View() {
     const [data, setData] = React.useState<ServiceResolved | null>(null);
@@ -103,7 +105,11 @@ export default function View() {
                                             Alapértelmezett ár
                                         </TableCell>
                                         <TableCell>
-                                            {data.default_price ?? "N/A"}
+                                            {data.default_price
+                                                ? formatNumber(
+                                                      data.default_price,
+                                                  )
+                                                : "N/A"}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
@@ -119,12 +125,20 @@ export default function View() {
                                             Alapértelmezett pénznem
                                         </TableCell>
                                         <TableCell>
-                                            {data.currency_code ?? "N/A"}
+                                            {data.currency_code ? (
+                                                <Badge variant="secondary">
+                                                    {data.currency_code}
+                                                </Badge>
+                                            ) : (
+                                                "N/A"
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

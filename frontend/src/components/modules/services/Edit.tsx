@@ -488,11 +488,8 @@ export default function Edit({
                                         <SelectItem value="active">
                                             Aktív
                                         </SelectItem>
-                                        <SelectItem value="lead">
-                                            Érdeklődő
-                                        </SelectItem>
-                                        <SelectItem value="prospect">
-                                            Lehetséges vevő
+                                        <SelectItem value="inactive">
+                                            Inaktív
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

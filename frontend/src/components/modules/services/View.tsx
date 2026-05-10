@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useParams } from "react-router";
+import { NavLink, useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/services/lib/slice.ts";
@@ -41,6 +41,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "lucide-react";
 
 export default function View() {
     const [data, setData] = React.useState<ServiceResolved | null>(null);
@@ -117,7 +118,19 @@ export default function View() {
                                             Alapértelmezett adózás
                                         </TableCell>
                                         <TableCell>
-                                            {data.default_tax ?? "N/A"}
+                                            {data.default_tax ? (
+                                                <NavLink
+                                                    to={`/ado/reszletek/${data.default_tax_id}`}
+                                                >
+                                                    {data.default_tax}{" "}
+                                                    <Link
+                                                        size={15}
+                                                        className="inline"
+                                                    />
+                                                </NavLink>
+                                            ) : (
+                                                "N/A"
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>

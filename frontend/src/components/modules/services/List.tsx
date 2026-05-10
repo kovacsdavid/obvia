@@ -23,7 +23,15 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+    Eye,
+    Funnel,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash,
+    Link as LinkIcon,
+} from "lucide-react";
 import {
     SortableTableHead,
     Table,
@@ -33,7 +41,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
@@ -298,7 +306,19 @@ export default function List() {
                                         {item.default_price ?? "N/A"}
                                     </TableCell>
                                     <TableCell>
-                                        {item.default_tax ?? "N/A"}
+                                        {item.default_tax ? (
+                                            <NavLink
+                                                to={`/ado/reszletek/${item.default_tax_id}`}
+                                            >
+                                                {item.default_tax}{" "}
+                                                <LinkIcon
+                                                    size={15}
+                                                    className="inline"
+                                                />
+                                            </NavLink>
+                                        ) : (
+                                            "N/A"
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {item.currency_code ? (

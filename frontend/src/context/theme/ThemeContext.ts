@@ -17,27 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Badge } from "@/components/ui/badge";
+import { createContext } from "react";
 
-interface TypeProps {
-    type: string;
-}
+export type Theme = "light" | "dark" | "system";
 
-export default function Type({ type }: TypeProps) {
-    switch (type) {
-        case "natural":
-            return (
-                <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                    Természetes személy
-                </Badge>
-            );
-        case "legal":
-            return (
-                <Badge className="bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-                    Jogi személy
-                </Badge>
-            );
-        default:
-            return <Badge variant="destructive">Ismeretlen típus</Badge>;
-    }
-}
+export type ThemeContextType = {
+    theme: Theme;
+    resolvedTheme: "light" | "dark";
+    setTheme: (theme: Theme) => void;
+    toggleTheme: () => void;
+};
+
+export const ThemeContext = createContext<ThemeContextType | undefined>(
+    undefined,
+);

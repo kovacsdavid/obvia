@@ -26,15 +26,18 @@ import App from "./App";
 import "./index.css";
 import { PersistGate } from "redux-persist/integration/react";
 import { AuthProvider } from "@/context/auth/AuthProvider";
+import { ThemeProvider } from "./context/theme/ThemeProvider";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
                 <BrowserRouter>
-                    <AuthProvider>
-                        <App />
-                    </AuthProvider>
+                    <ThemeProvider>
+                        <AuthProvider>
+                            <App />
+                        </AuthProvider>
+                    </ThemeProvider>
                 </BrowserRouter>
             </PersistGate>
         </Provider>

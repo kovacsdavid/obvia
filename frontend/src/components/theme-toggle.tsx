@@ -17,27 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Badge } from "@/components/ui/badge";
+import { Moon, Sun } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useTheme } from "@/hooks/use_theme";
 
-interface TypeProps {
-    type: string;
-}
+export function ThemeToggle() {
+    const { resolvedTheme, toggleTheme } = useTheme();
 
-export default function Type({ type }: TypeProps) {
-    switch (type) {
-        case "natural":
-            return (
-                <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-                    Természetes személy
-                </Badge>
-            );
-        case "legal":
-            return (
-                <Badge className="bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
-                    Jogi személy
-                </Badge>
-            );
-        default:
-            return <Badge variant="destructive">Ismeretlen típus</Badge>;
-    }
+    return (
+        <Button className="w-full" size="icon" onClick={toggleTheme}>
+            {resolvedTheme === "dark" ? (
+                <Sun className="h-4 w-4" />
+            ) : (
+                <Moon className="h-4 w-4" />
+            )}
+            <span className="sr-only">Toggle theme</span>
+        </Button>
+    );
 }

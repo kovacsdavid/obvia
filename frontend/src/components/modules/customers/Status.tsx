@@ -26,16 +26,20 @@ interface StatusProps {
 export default function Status({ status }: StatusProps) {
     switch (status) {
         case "active":
-            return <Badge className="bg-green-50 text-green-700">Aktív</Badge>;
+            return (
+                <Badge className="bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
+                    Aktív
+                </Badge>
+            );
         case "lead":
             return (
-                <Badge className="bg-purple-50 text-purple-700">
+                <Badge className="bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
                     Érdeklődő
                 </Badge>
             );
         case "prospect":
             return (
-                <Badge className="bg-sky-50 text-sky-700">
+                <Badge className="bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
                     Lehetséges vevő
                 </Badge>
             );

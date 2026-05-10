@@ -54,6 +54,7 @@ import {
     Warehouse,
     UserRoundCog,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface NavigationItem {
     title: string;
@@ -280,7 +281,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             {...props}
         >
             <SidebarHeader>{isLoggedIn ? <UserData /> : null}</SidebarHeader>
-            <SidebarContent>
+            <SidebarContent className="pb-10">
                 {data.navMain.map((item) => {
                     const filteredItems = item.items.filter(
                         (item) =>
@@ -351,6 +352,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </SidebarGroup>
                     );
                 })}
+                <SidebarGroup className="mb-3">
+                    <SidebarGroupLabel>Téma</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <ThemeToggle />
+                    </SidebarGroupContent>
+                </SidebarGroup>
             </SidebarContent>
             <SidebarRail />
         </Sidebar>

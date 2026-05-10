@@ -48,7 +48,7 @@ import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { deleteItem, list } from "@/components/modules/services/lib/slice.ts";
 import { type ServiceResolvedList } from "@/components/modules/services/lib/interface.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -303,7 +303,9 @@ export default function List() {
                                         {item.description ?? ""}
                                     </TableCell>
                                     <TableCell>
-                                        {item.default_price ?? "N/A"}
+                                        {item.default_price
+                                            ? formatNumber(item.default_price)
+                                            : "N/A"}
                                     </TableCell>
                                     <TableCell>
                                         {item.default_tax ? (

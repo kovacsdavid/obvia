@@ -57,6 +57,8 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
+import Priority from "./Priority";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -333,9 +335,17 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.currency_code}</TableCell>
                                     <TableCell>{item.tax}</TableCell>
-                                    <TableCell>{item.status}</TableCell>
                                     <TableCell>
-                                        {item.priority ? item.priority : "N/A"}
+                                        <Status status={item.status} />
+                                    </TableCell>
+                                    <TableCell>
+                                        {item.priority ? (
+                                            <Priority
+                                                priority={item.priority}
+                                            />
+                                        ) : (
+                                            "N/A"
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {item.due_date

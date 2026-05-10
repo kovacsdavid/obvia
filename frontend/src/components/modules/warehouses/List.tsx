@@ -57,6 +57,7 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -292,7 +293,9 @@ export default function List() {
                                             ? item.contact_phone
                                             : "N/A"}
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

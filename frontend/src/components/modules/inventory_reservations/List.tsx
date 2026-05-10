@@ -56,6 +56,8 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
+import ReferenceType from "./ReferenceType";
 
 export default function InventoryReservationsList() {
     const dispatch = useAppDispatch();
@@ -253,7 +255,9 @@ export default function InventoryReservationsList() {
                                     </TableCell>
                                     <TableCell>{item.quantity}</TableCell>
                                     <TableCell>
-                                        {item.reference_type ?? "N/A"}
+                                        <ReferenceType
+                                            reference_type={item.reference_type}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {item.reference_id ?? "N/A"}
@@ -265,7 +269,9 @@ export default function InventoryReservationsList() {
                                               )
                                             : "N/A"}
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

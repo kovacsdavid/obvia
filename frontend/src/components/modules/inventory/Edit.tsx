@@ -577,7 +577,7 @@ export default function Edit({
 
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
-                                    Állapot
+                                    Státusz
                                 </FieldLabel>
                                 <Select
                                     value={status}
@@ -596,11 +596,11 @@ export default function Edit({
                                         <SelectItem value="active">
                                             Aktív
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
-                                        </SelectItem>
                                         <SelectItem value="discontinued">
                                             Kivezetett
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inaktív
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

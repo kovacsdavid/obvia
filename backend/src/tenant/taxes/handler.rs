@@ -31,7 +31,7 @@ use crate::tenant::taxes::service as taxes_service;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -198,4 +198,25 @@ pub async fn select_list(
         Ok(r) => Ok(r.into_response()),
         Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
     }
+}
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(taxes_module): State<Arc<dyn TaxesModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf = match taxes_service::print(&claims, &payload, taxes_module.taxes_repo()).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err(e.into_friendly_error(taxes_module).await.into_response());
+        }
+    };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="{}""#, payload.uuid)
+            .parse()
+            .unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

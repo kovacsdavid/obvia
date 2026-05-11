@@ -27,7 +27,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::{TaxUserInput, TaxUserInputHelper};
-use crate::tenant::taxes::service::TaxesService;
+use crate::tenant::taxes::service as taxes_service;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,16 +43,12 @@ pub async fn get_resolved(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match TaxesService::get_resolved_by_id(
-        &claims,
-        &payload,
-        taxes_module.taxes_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
+    let result =
+        match taxes_service::get_resolved_by_id(&claims, &payload, taxes_module.taxes_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)
@@ -69,7 +65,7 @@ pub async fn get(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match TaxesService::get(&claims, &payload, taxes_module.taxes_repo()).await {
+    let result = match taxes_service::get(&claims, &payload, taxes_module.taxes_repo()).await {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
     };
@@ -89,7 +85,8 @@ pub async fn create(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let result = match TaxesService::create(&claims, &user_input, taxes_module.taxes_repo()).await {
+    let result = match taxes_service::create(&claims, &user_input, taxes_module.taxes_repo()).await
+    {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
     };
@@ -109,7 +106,8 @@ pub async fn update(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let result = match TaxesService::update(&claims, &user_input, taxes_module.taxes_repo()).await {
+    let result = match taxes_service::update(&claims, &user_input, taxes_module.taxes_repo()).await
+    {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
     };
@@ -129,7 +127,7 @@ pub async fn delete(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match TaxesService::delete(&claims, &payload, taxes_module.taxes_repo()).await {
+    match taxes_service::delete(&claims, &payload, taxes_module.taxes_repo()).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
     };
@@ -152,7 +150,7 @@ pub async fn list(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match TaxesService::get_paged_list(
+    let (meta, data) = match taxes_service::get_paged_list(
         &GetQuery::<TaxOrderBy, TaxFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -185,16 +183,12 @@ pub async fn select_list(
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    let result = match TaxesService::get_select_list_items(
-        &list_type,
-        &claims,
-        taxes_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
+    let result =
+        match taxes_service::get_select_list_items(&list_type, &claims, taxes_module.clone()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
+        };
 
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)

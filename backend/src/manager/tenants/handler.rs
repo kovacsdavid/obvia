@@ -27,7 +27,7 @@ use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, PublicTenantManaged, TenantIdRequest,
 };
-use crate::manager::tenants::service::TenantsService;
+use crate::manager::tenants::service as tenants_service;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -44,7 +44,7 @@ pub async fn create(
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
     let result =
-        match TenantsService::create_managed(&claims, &user_input, tenants_module.clone()).await {
+        match tenants_service::create_managed(&claims, &user_input, tenants_module.clone()).await {
             Ok(r) => r,
             Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
         };
@@ -71,7 +71,7 @@ pub async fn list(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match TenantsService::get_paged_list(
+    let (meta, data) = match tenants_service::get_paged_list(
         &GetQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -99,7 +99,7 @@ pub async fn activate(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let result = match TenantsService::activate(
+    let result = match tenants_service::activate(
         &payload,
         &claims,
         tenants_module.tenants_repo(),
@@ -125,7 +125,7 @@ pub async fn delete(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let result = match TenantsService::delete(
+    let result = match tenants_service::delete(
         payload.uuid,
         claims,
         tenants_module.tenants_repo(),

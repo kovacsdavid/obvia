@@ -58,6 +58,7 @@ import {
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
+import Status from "./Status";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -322,7 +323,9 @@ export default function List() {
                                     <TableCell>{item.tax_category}</TableCell>
                                     <TableCell>{item.legal_text}</TableCell>
                                     <TableCell>{item.reporting_code}</TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

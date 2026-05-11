@@ -27,7 +27,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::dto::{InventoryUserInput, InventoryUserInputHelper};
-use crate::tenant::inventory::service::InventoryService;
+use crate::tenant::inventory::service as inventory_service;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,7 +43,7 @@ pub async fn get_resolved(
     State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match InventoryService::get_resolved_by_id(
+    let result = match inventory_service::get_resolved_by_id(
         &claims,
         &payload,
         inventory_module.inventory_repo(),
@@ -78,7 +78,7 @@ pub async fn get(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let result =
-        match InventoryService::get(&claims, &payload, inventory_module.inventory_repo()).await {
+        match inventory_service::get(&claims, &payload, inventory_module.inventory_repo()).await {
             Ok(r) => r,
             Err(e) => {
                 return Err(e
@@ -107,7 +107,7 @@ pub async fn update(
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match InventoryService::update(&claims, &user_input, inventory_module.inventory_repo())
+        match inventory_service::update(&claims, &user_input, inventory_module.inventory_repo())
             .await
         {
             Ok(r) => r,
@@ -137,7 +137,7 @@ pub async fn delete(
     State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match InventoryService::delete(&claims, &payload, inventory_module.inventory_repo()).await {
+    match inventory_service::delete(&claims, &payload, inventory_module.inventory_repo()).await {
         Ok(_) => (),
         Err(e) => {
             return Err(e
@@ -169,7 +169,7 @@ pub async fn create(
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match InventoryService::create(&claims, &user_input, inventory_module.clone()).await {
+        match inventory_service::create(&claims, &user_input, inventory_module.clone()).await {
             Ok(r) => r,
             Err(e) => {
                 return Err(e
@@ -197,7 +197,7 @@ pub async fn list(
     State(inventory_module): State<Arc<dyn InventoryModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match InventoryService::get_paged_list(
+    let (meta, data) = match inventory_service::get_paged_list(
         &GetQuery::<InventoryOrderBy, InventoryFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -238,7 +238,7 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match InventoryService::get_select_list_items(
+    let result = match inventory_service::get_select_list_items(
         &list_type,
         &claims,
         inventory_module.clone(),

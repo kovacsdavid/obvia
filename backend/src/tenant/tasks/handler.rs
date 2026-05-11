@@ -26,7 +26,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::{TaskUserInput, TaskUserInputHelper};
-use crate::tenant::tasks::service::TasksService;
+use crate::tenant::tasks::service as tasks_service;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -42,16 +42,12 @@ pub async fn get_resolved(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match TasksService::get_resolved_by_id(
-        &claims,
-        &payload,
-        tasks_module.tasks_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
-    };
+    let result =
+        match tasks_service::get_resolved_by_id(&claims, &payload, tasks_module.tasks_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)
@@ -68,7 +64,7 @@ pub async fn get(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match TasksService::get(&claims, &payload, tasks_module.tasks_repo()).await {
+    let result = match tasks_service::get(&claims, &payload, tasks_module.tasks_repo()).await {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
     };
@@ -88,7 +84,8 @@ pub async fn update(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let result = match TasksService::update(&claims, &user_input, tasks_module.tasks_repo()).await {
+    let result = match tasks_service::update(&claims, &user_input, tasks_module.tasks_repo()).await
+    {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
     };
@@ -108,7 +105,7 @@ pub async fn delete(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match TasksService::delete(&claims, &payload, tasks_module.tasks_repo()).await {
+    match tasks_service::delete(&claims, &payload, tasks_module.tasks_repo()).await {
         Ok(_) => (),
         Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
     };
@@ -131,7 +128,7 @@ pub async fn create(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
-    let result = match TasksService::create(&claims, &user_input, tasks_module.clone()).await {
+    let result = match tasks_service::create(&claims, &user_input, tasks_module.clone()).await {
         Ok(r) => r,
         Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
     };
@@ -155,16 +152,12 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match TasksService::get_select_list_items(
-        &list_type,
-        &claims,
-        tasks_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
-    };
+    let result =
+        match tasks_service::get_select_list_items(&list_type, &claims, tasks_module.clone()).await
+        {
+            Ok(r) => r,
+            Err(e) => return Err(e.into_friendly_error(tasks_module).await.into_response()),
+        };
 
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
@@ -182,7 +175,7 @@ pub async fn list(
     State(tasks_module): State<Arc<dyn TasksModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match TasksService::get_paged_list(
+    let (meta, data) = match tasks_service::get_paged_list(
         &GetQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,

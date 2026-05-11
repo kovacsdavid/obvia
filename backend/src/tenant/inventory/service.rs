@@ -104,135 +104,131 @@ impl FromStr for InventorySelectLists {
     }
 }
 
-pub struct InventoryService;
-
-impl InventoryService {
-    pub async fn create(
-        claims: &Claims,
-        payload: &InventoryUserInput,
-        inventory_module: Arc<dyn InventoryModule>,
-    ) -> InventoryServiceResult<Inventory> {
-        inventory_module
-            .inventory_repo()
-            .insert(
-                payload.clone(),
-                claims.sub(),
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await
-            .map_err(|e| {
-                if e.is_unique_violation() {
-                    InventoryServiceError::InventoryExists
-                } else {
-                    e.into()
-                }
-            })
-    }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        inventory_module: Arc<dyn InventoryModule>,
-    ) -> InventoryServiceResult<Vec<SelectOption>> {
-        let active_tenant = claims
-            .active_tenant()
-            .ok_or(InventoryServiceError::Unauthorized)?;
-        Ok(match InventorySelectLists::from_str(select_list)? {
-            InventorySelectLists::Products => {
-                inventory_module
-                    .products_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            InventorySelectLists::Currencies => {
-                inventory_module
-                    .currencies_repo()
-                    .get_all_countries_select_list_items(active_tenant)
-                    .await?
-            }
-            InventorySelectLists::Warehouses => {
-                inventory_module
-                    .warehouses_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            InventorySelectLists::Taxes => {
-                inventory_module
-                    .taxes_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
+pub async fn create(
+    claims: &Claims,
+    payload: &InventoryUserInput,
+    inventory_module: Arc<dyn InventoryModule>,
+) -> InventoryServiceResult<Inventory> {
+    inventory_module
+        .inventory_repo()
+        .insert(
+            payload.clone(),
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await
+        .map_err(|e| {
+            if e.is_unique_violation() {
+                InventoryServiceError::InventoryExists
+            } else {
+                e.into()
             }
         })
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<InventoryResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<Inventory> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &InventoryUserInput,
-        repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<Inventory> {
-        Ok(repo
-            .update(
-                payload.clone(),
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn InventoryRepository>,
-    ) -> InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    inventory_module: Arc<dyn InventoryModule>,
+) -> InventoryServiceResult<Vec<SelectOption>> {
+    let active_tenant = claims
+        .active_tenant()
+        .ok_or(InventoryServiceError::Unauthorized)?;
+    Ok(match InventorySelectLists::from_str(select_list)? {
+        InventorySelectLists::Products => {
+            inventory_module
+                .products_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+        InventorySelectLists::Currencies => {
+            inventory_module
+                .currencies_repo()
+                .get_all_countries_select_list_items(active_tenant)
+                .await?
+        }
+        InventorySelectLists::Warehouses => {
+            inventory_module
+                .warehouses_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+        InventorySelectLists::Taxes => {
+            inventory_module
+                .taxes_repo()
+                .get_select_list_items(active_tenant)
+                .await?
+        }
+    })
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<InventoryResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<Inventory> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &InventoryUserInput,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<Inventory> {
+    Ok(repo
+        .update(
+            payload.clone(),
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(InventoryServiceError::Unauthorized)?,
+        )
+        .await?)
 }

@@ -40,6 +40,7 @@ import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
 
 export default function View() {
     const [data, setData] = React.useState<InventoryResolved | null>(null);
@@ -152,8 +153,10 @@ export default function View() {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Állapot</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>Státusz</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Pénznem</TableCell>

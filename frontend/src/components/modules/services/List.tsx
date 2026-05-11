@@ -23,7 +23,15 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+    Eye,
+    Funnel,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash,
+    Link as LinkIcon,
+} from "lucide-react";
 import {
     SortableTableHead,
     Table,
@@ -33,14 +41,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { deleteItem, list } from "@/components/modules/services/lib/slice.ts";
 import { type ServiceResolvedList } from "@/components/modules/services/lib/interface.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -57,6 +65,8 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
+import { Badge } from "@/components/ui/badge";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -293,15 +303,37 @@ export default function List() {
                                         {item.description ?? ""}
                                     </TableCell>
                                     <TableCell>
-                                        {item.default_price ?? "N/A"}
+                                        {item.default_price
+                                            ? formatNumber(item.default_price)
+                                            : "N/A"}
                                     </TableCell>
                                     <TableCell>
-                                        {item.default_tax ?? "N/A"}
+                                        {item.default_tax ? (
+                                            <NavLink
+                                                to={`/ado/reszletek/${item.default_tax_id}`}
+                                            >
+                                                {item.default_tax}{" "}
+                                                <LinkIcon
+                                                    size={15}
+                                                    className="inline"
+                                                />
+                                            </NavLink>
+                                        ) : (
+                                            "N/A"
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {item.currency_code ?? "N/A"}
+                                        {item.currency_code ? (
+                                            <Badge variant="secondary">
+                                                {item.currency_code}
+                                            </Badge>
+                                        ) : (
+                                            "N/A"
+                                        )}
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

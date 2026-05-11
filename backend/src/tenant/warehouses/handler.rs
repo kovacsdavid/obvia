@@ -27,7 +27,7 @@ use crate::common::query_parser::{CommonRawQuery, GetQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::{WarehouseUserInput, WarehouseUserInputHelper};
-use crate::tenant::warehouses::service::WarehousesService;
+use crate::tenant::warehouses::service as warehouses_service;
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -42,7 +42,7 @@ pub async fn get_resolved(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match WarehousesService::get_resolved_by_id(
+    let result = match warehouses_service::get_resolved_by_id(
         &claims,
         &payload,
         warehouses_module.warehouses_repo(),
@@ -76,21 +76,17 @@ pub async fn get(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match WarehousesService::get(
-        &claims,
-        &payload,
-        warehouses_module.warehouses_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(warehouses_module)
-                .await
-                .into_response());
-        }
-    };
+    let result =
+        match warehouses_service::get(&claims, &payload, warehouses_module.warehouses_repo()).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(result)
@@ -111,7 +107,7 @@ pub async fn update(
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
     let result =
-        match WarehousesService::update(&claims, &user_input, warehouses_module.warehouses_repo())
+        match warehouses_service::update(&claims, &user_input, warehouses_module.warehouses_repo())
             .await
         {
             Ok(r) => r,
@@ -141,7 +137,7 @@ pub async fn delete(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match WarehousesService::delete(&claims, &payload, warehouses_module.warehouses_repo()).await {
+    match warehouses_service::delete(&claims, &payload, warehouses_module.warehouses_repo()).await {
         Ok(_) => (),
         Err(e) => {
             return Err(e
@@ -172,21 +168,17 @@ pub async fn create(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
-    let result = match WarehousesService::try_create(
-        &claims,
-        &user_input,
-        warehouses_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(warehouses_module)
-                .await
-                .into_response());
-        }
-    };
+    let result =
+        match warehouses_service::try_create(&claims, &user_input, warehouses_module.clone()).await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
     match SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::CREATED)
         .data(result)
@@ -206,7 +198,7 @@ pub async fn list(
     State(warehouses_module): State<Arc<dyn WarehousesModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match WarehousesService::get_paged_list(
+    let (meta, data) = match warehouses_service::get_paged_list(
         &GetQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,

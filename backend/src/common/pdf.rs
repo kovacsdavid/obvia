@@ -49,16 +49,16 @@ impl PdfTemplates {
         match &self {
             Self::Test => vec!["test", "name"],
             Self::CustomerView => vec![
-                "id",
-                "name",
-                "contact_name",
-                "email",
-                "phone_number",
-                "status",
-                "customer_type",
-                "created_by",
-                "created_at",
-                "updated_at",
+                "customer_resolved_id",
+                "customer_resolved_name",
+                "customer_resolved_contact_name",
+                "customer_resolved_email",
+                "customer_resolved_phone_number",
+                "customer_resolved_status",
+                "customer_resolved_customer_type",
+                "customer_resolved_created_by",
+                "customer_resolved_created_at",
+                "customer_resolved_updated_at",
             ],
         }
     }
@@ -175,6 +175,16 @@ pub fn gen_pdf_persistent<'a>(
     Ok(path)
 }
 
+pub fn index_map_key_prefix<T>(
+    prefix: &'static str,
+    index_map: IndexMap<String, T>,
+) -> IndexMap<String, T> {
+    index_map
+        .into_iter()
+        .map(|(key, value)| (format!("{prefix}_{key}"), value))
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -258,5 +268,20 @@ mod tests {
         params.insert("extra1".to_owned(), "value3".to_owned());
         let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
         assert_eq!(pdf_gen.typst_compile_args(), expected_args);
+    }
+    #[test]
+    fn index_map_key_prefix_fn() {
+        let mut input = IndexMap::new();
+        input.insert("test".to_owned(), "value1".to_owned());
+        input.insert("name".to_owned(), "value2".to_owned());
+        input.insert("extra1".to_owned(), "value3".to_owned());
+        let mut expected = IndexMap::new();
+        expected.insert("test_prefix_test".to_owned(), "value1".to_owned());
+        expected.insert("test_prefix_name".to_owned(), "value2".to_owned());
+        expected.insert("test_prefix_extra1".to_owned(), "value3".to_owned());
+
+        let output = index_map_key_prefix("test_prefix", input);
+
+        assert_eq!(output, expected);
     }
 }

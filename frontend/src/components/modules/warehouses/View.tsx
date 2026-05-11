@@ -39,6 +39,7 @@ import type { WarehouseResolved } from "@/components/modules/warehouses/lib/inte
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
 
 export default function View() {
     const [data, setData] = React.useState<WarehouseResolved | null>(null);
@@ -110,7 +111,9 @@ export default function View() {
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

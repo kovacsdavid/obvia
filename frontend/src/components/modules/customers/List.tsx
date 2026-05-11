@@ -73,6 +73,8 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import Status from "./Status";
+import Type from "./Type";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -324,7 +326,7 @@ export default function List() {
                                                         handlePrint(item.id)
                                                     }
                                                 >
-                                                    <Printer /> Print
+                                                    <Printer /> Nyomtatás
                                                 </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
@@ -340,9 +342,7 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.name}</TableCell>
                                     <TableCell>
-                                        {item.customer_type === "natural"
-                                            ? "Természetes személy"
-                                            : "Jogi személy"}
+                                        <Type type={item.customer_type} />
                                     </TableCell>
                                     <TableCell>
                                         {item.contact_name
@@ -355,7 +355,9 @@ export default function List() {
                                             ? item.phone_number
                                             : "N/A"}
                                     </TableCell>
-                                    <TableCell>{item.status}</TableCell>
+                                    <TableCell>
+                                        <Status status={item.status} />
+                                    </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
                                         {formatDateToYMDHMS(item.created_at)}

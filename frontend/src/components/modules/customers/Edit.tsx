@@ -388,6 +388,9 @@ export default function Edit({
                                         <SelectItem value="prospect">
                                             Lehetséges vevő
                                         </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inaktív
+                                        </SelectItem>
                                     </SelectContent>
                                 </Select>
                                 <FieldError error={errors} field={"status"} />

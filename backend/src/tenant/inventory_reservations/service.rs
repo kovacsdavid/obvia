@@ -100,110 +100,105 @@ impl FromStr for InventoryReservationsSelectLists {
     }
 }
 
-pub struct InventoryReservationsService;
-
-impl InventoryReservationsService {
-    pub async fn create(
-        claims: &Claims,
-        payload: &InventoryReservationUserInput,
-        repo: Arc<dyn InventoryReservationsRepository>,
-    ) -> InventoryReservationsServiceResult<InventoryReservation> {
-        Ok(repo
-            .insert(
-                payload.clone(),
-                claims.sub(),
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryReservationsRepository>,
-    ) -> InventoryReservationsServiceResult<InventoryReservation> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-
-    pub async fn get_resolved(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryReservationsRepository>,
-    ) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn InventoryReservationsRepository>,
-    ) -> InventoryReservationsServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-
-    pub async fn get_paged_list(
-        get_query: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn InventoryReservationsRepository>,
-        inventory_id: Uuid,
-    ) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>
-    {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-                inventory_id,
-            )
-            .await?)
-    }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        inventory_reservations_module: Arc<dyn InventoryReservationsModule>,
-    ) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
-        let active_tenant = claims
-            .active_tenant()
-            .ok_or(InventoryReservationsServiceError::Unauthorized)?;
-        Ok(
-            match InventoryReservationsSelectLists::from_str(select_list)? {
-                InventoryReservationsSelectLists::Worksheets => {
-                    inventory_reservations_module
-                        .worksheets_repo()
-                        .get_select_list_items(active_tenant)
-                        .await?
-                }
-                InventoryReservationsSelectLists::Inventory => {
-                    inventory_reservations_module
-                        .inventory_repo()
-                        .get_select_list_items(active_tenant)
-                        .await?
-                }
-            },
+pub async fn create(
+    claims: &Claims,
+    payload: &InventoryReservationUserInput,
+    repo: Arc<dyn InventoryReservationsRepository>,
+) -> InventoryReservationsServiceResult<InventoryReservation> {
+    Ok(repo
+        .insert(
+            payload.clone(),
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
         )
-    }
+        .await?)
+}
+
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryReservationsRepository>,
+) -> InventoryReservationsServiceResult<InventoryReservation> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+
+pub async fn get_resolved(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryReservationsRepository>,
+) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryReservationsRepository>,
+) -> InventoryReservationsServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+
+pub async fn get_paged_list(
+    get_query: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn InventoryReservationsRepository>,
+    inventory_id: Uuid,
+) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            inventory_id,
+        )
+        .await?)
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    inventory_reservations_module: Arc<dyn InventoryReservationsModule>,
+) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
+    let active_tenant = claims
+        .active_tenant()
+        .ok_or(InventoryReservationsServiceError::Unauthorized)?;
+    Ok(
+        match InventoryReservationsSelectLists::from_str(select_list)? {
+            InventoryReservationsSelectLists::Worksheets => {
+                inventory_reservations_module
+                    .worksheets_repo()
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+            InventoryReservationsSelectLists::Inventory => {
+                inventory_reservations_module
+                    .inventory_repo()
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+        },
+    )
 }

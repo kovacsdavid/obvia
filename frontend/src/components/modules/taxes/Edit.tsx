@@ -512,11 +512,11 @@ export default function Edit({
                                         <SelectItem value="active">
                                             Aktív
                                         </SelectItem>
-                                        <SelectItem value="inactive">
-                                            Inaktív
-                                        </SelectItem>
                                         <SelectItem value="draft">
                                             Vázlat
+                                        </SelectItem>
+                                        <SelectItem value="inactive">
+                                            Inaktív
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>

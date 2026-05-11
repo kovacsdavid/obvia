@@ -42,8 +42,7 @@ impl ValueObjectData for Status {
         match self.0.as_str() {
             "active" => Ok(()),
             "inactive" => Ok(()),
-            "suspended" => Ok(()),
-            "closed" => Ok(()),
+            "lead" => Ok(()),
             "prospect" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }

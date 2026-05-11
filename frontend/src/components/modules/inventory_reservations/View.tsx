@@ -40,6 +40,9 @@ import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import Status from "./Status";
+import ReferenceType from "./ReferenceType";
+import ReferenceId from "./ReferenceId";
 
 export default function View() {
     const [data, setData] = React.useState<InventoryReservationResolved | null>(
@@ -115,7 +118,11 @@ export default function View() {
                                                 Hivatkozás típusa
                                             </TableCell>
                                             <TableCell>
-                                                {data.reference_type}
+                                                <ReferenceType
+                                                    reference_type={
+                                                        data.reference_type
+                                                    }
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -125,7 +132,14 @@ export default function View() {
                                                 Hivatkozás azonosító
                                             </TableCell>
                                             <TableCell>
-                                                {data.reference_id}
+                                                <ReferenceId
+                                                    reference_id={
+                                                        data.reference_id
+                                                    }
+                                                    reference_type={
+                                                        data.reference_type
+                                                    }
+                                                />
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -143,7 +157,9 @@ export default function View() {
                                     )}
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>
-                                        <TableCell>{data.status}</TableCell>
+                                        <TableCell>
+                                            <Status status={data.status} />
+                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Létrehozta</TableCell>

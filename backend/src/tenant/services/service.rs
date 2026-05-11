@@ -98,124 +98,120 @@ impl FromStr for ServicesSelectLists {
     }
 }
 
-pub struct ServicesService;
-
 type ServicesServiceResult<T> = Result<T, ServicesServiceError>;
 
-impl ServicesService {
-    pub async fn create(
-        claims: &Claims,
-        payload: &ServiceUserInput,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<Service> {
-        repo.insert(
-            payload,
-            claims.sub(),
+pub async fn create(
+    claims: &Claims,
+    payload: &ServiceUserInput,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<Service> {
+    repo.insert(
+        payload,
+        claims.sub(),
+        claims
+            .active_tenant()
+            .ok_or(ServicesServiceError::Unauthorized)?,
+    )
+    .await
+    .map_err(|e| {
+        if e.is_unique_violation() {
+            ServicesServiceError::ServiceExists
+        } else {
+            e.into()
+        }
+    })
+}
+pub async fn get_resolved_by_id(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<ServiceResolved> {
+    Ok(repo
+        .get_resolved_by_id(
+            payload.uuid,
             claims
                 .active_tenant()
                 .ok_or(ServicesServiceError::Unauthorized)?,
         )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                ServicesServiceError::ServiceExists
-            } else {
-                e.into()
-            }
-        })
-    }
-    pub async fn get_resolved_by_id(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<ServiceResolved> {
-        Ok(repo
-            .get_resolved_by_id(
-                payload.uuid,
+        .await?)
+}
+pub async fn get(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<Service> {
+    Ok(repo
+        .get_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn update(
+    claims: &Claims,
+    payload: &ServiceUserInput,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<Service> {
+    Ok(repo
+        .update(
+            payload,
+            claims
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn delete(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<()> {
+    Ok(repo
+        .delete_by_id(
+            payload.uuid,
+            claims
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_paged_list(
+    get_query: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
+    claims: &Claims,
+    repo: Arc<dyn ServicesRepository>,
+) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
+    Ok(repo
+        .get_all_paged(
+            get_query,
+            claims
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
+}
+pub async fn get_select_list_items(
+    select_list: &str,
+    claims: &Claims,
+    services_module: Arc<dyn ServicesModule>,
+) -> ServicesServiceResult<Vec<SelectOption>> {
+    match ServicesSelectLists::from_str(select_list)? {
+        ServicesSelectLists::Currencies => Ok(services_module
+            .currencies_repo()
+            .get_all_countries_select_list_items(
                 claims
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,
             )
-            .await?)
-    }
-    pub async fn get(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<Service> {
-        Ok(repo
-            .get_by_id(
-                payload.uuid,
+            .await?),
+        ServicesSelectLists::Taxes => Ok(services_module
+            .taxes_repo()
+            .get_select_list_items(
                 claims
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,
             )
-            .await?)
-    }
-    pub async fn update(
-        claims: &Claims,
-        payload: &ServiceUserInput,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<Service> {
-        Ok(repo
-            .update(
-                payload,
-                claims
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn delete(
-        claims: &Claims,
-        payload: &UuidParam,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<()> {
-        Ok(repo
-            .delete_by_id(
-                payload.uuid,
-                claims
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_paged_list(
-        get_query: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
-        claims: &Claims,
-        repo: Arc<dyn ServicesRepository>,
-    ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
-        Ok(repo
-            .get_all_paged(
-                get_query,
-                claims
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
-    pub async fn get_select_list_items(
-        select_list: &str,
-        claims: &Claims,
-        services_module: Arc<dyn ServicesModule>,
-    ) -> ServicesServiceResult<Vec<SelectOption>> {
-        match ServicesSelectLists::from_str(select_list)? {
-            ServicesSelectLists::Currencies => Ok(services_module
-                .currencies_repo()
-                .get_all_countries_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(ServicesServiceError::Unauthorized)?,
-                )
-                .await?),
-            ServicesSelectLists::Taxes => Ok(services_module
-                .taxes_repo()
-                .get_select_list_items(
-                    claims
-                        .active_tenant()
-                        .ok_or(ServicesServiceError::Unauthorized)?,
-                )
-                .await?),
-        }
+            .await?),
     }
 }

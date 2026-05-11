@@ -68,24 +68,20 @@ impl IntoFriendlyError<GeneralError> for CommentsServiceError {
     }
 }
 
-pub struct CommentsService;
-
 type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
 
-impl CommentsService {
-    pub async fn post(
-        claims: &Claims,
-        payload: &CommentUserInput,
-        repo: Arc<dyn CommentsRepository>,
-    ) -> CommentsServiceResult<Comment> {
-        Ok(repo
-            .post(
-                payload,
-                claims.sub(),
-                claims
-                    .active_tenant()
-                    .ok_or(CommentsServiceError::Unauthorized)?,
-            )
-            .await?)
-    }
+pub async fn post(
+    claims: &Claims,
+    payload: &CommentUserInput,
+    repo: Arc<dyn CommentsRepository>,
+) -> CommentsServiceResult<Comment> {
+    Ok(repo
+        .post(
+            payload,
+            claims.sub(),
+            claims
+                .active_tenant()
+                .ok_or(CommentsServiceError::Unauthorized)?,
+        )
+        .await?)
 }

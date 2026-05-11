@@ -29,7 +29,7 @@ use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::{
     InventoryMovementUserInput, InventoryMovementUserInputHelper, InventoryMovementsRawQuery,
 };
-use crate::tenant::inventory_movements::service::InventoryMovementsService;
+use crate::tenant::inventory_movements::service as inventory_movements_service;
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
@@ -47,7 +47,7 @@ pub async fn get(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match InventoryMovementsService::get(
+    let result = match inventory_movements_service::get(
         &claims,
         &payload,
         inventory_movements_module.inventory_movements_repo(),
@@ -81,7 +81,7 @@ pub async fn get_resolved(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match InventoryMovementsService::get_resolved(
+    let result = match inventory_movements_service::get_resolved(
         &claims,
         &payload,
         inventory_movements_module.inventory_movements_repo(),
@@ -118,7 +118,7 @@ pub async fn create(
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let result = match InventoryMovementsService::create(
+    let result = match inventory_movements_service::create(
         &claims,
         &user_input,
         inventory_movements_module.inventory_movements_repo(),
@@ -152,7 +152,7 @@ pub async fn delete(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match InventoryMovementsService::delete(
+    match inventory_movements_service::delete(
         &claims,
         &payload,
         inventory_movements_module.inventory_movements_repo(),
@@ -189,7 +189,7 @@ pub async fn list(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match InventoryMovementsService::get_paged_list(
+    let (meta, data) = match inventory_movements_service::get_paged_list(
         &GetQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
@@ -231,7 +231,7 @@ pub async fn select_list(
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = match InventoryMovementsService::get_select_list_items(
+    let result = match inventory_movements_service::get_select_list_items(
         &list_type,
         &claims,
         inventory_movements_module.clone(),

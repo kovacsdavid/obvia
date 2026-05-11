@@ -250,7 +250,9 @@ pub async fn print(
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
         header::CONTENT_DISPOSITION,
-        format!(r#"inline; filename="{}""#, payload.uuid).parse().unwrap(),
+        format!(r#"inline; filename="{}""#, payload.uuid)
+            .parse()
+            .unwrap(),
     );
     Ok((StatusCode::OK, headers, pdf).into_response())
 }

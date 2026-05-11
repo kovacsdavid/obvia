@@ -31,7 +31,7 @@ use crate::tenant::warehouses::service as warehouses_service;
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -227,4 +227,30 @@ pub async fn list(
             .await
             .into_response()),
     }
+}
+
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(warehouses_module): State<Arc<dyn WarehousesModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf =
+        match warehouses_service::print(&claims, &payload, warehouses_module.warehouses_repo())
+            .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(warehouses_module)
+                    .await
+                    .into_response());
+            }
+        };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="{}""#, payload.uuid).parse().unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

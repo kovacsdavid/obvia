@@ -23,7 +23,15 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+    Eye,
+    Funnel,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash,
+    Link as LinkIcon,
+} from "lucide-react";
 import {
     SortableTableHead,
     Table,
@@ -33,14 +41,14 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Link } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { deleteItem, list } from "@/components/modules/tasks/lib/slice.ts";
 import { type TaskResolvedList } from "@/components/modules/tasks/lib/interface.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -328,13 +336,27 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.worksheet}</TableCell>
                                     <TableCell>
-                                        {item.quantity ? item.quantity : "N/A"}
+                                        {item.quantity
+                                            ? formatNumber(item.quantity)
+                                            : "N/A"}
                                     </TableCell>
                                     <TableCell>
-                                        {item.price ? item.price : "N/A"}
+                                        {item.price
+                                            ? formatNumber(item.price)
+                                            : "N/A"}
                                     </TableCell>
                                     <TableCell>{item.currency_code}</TableCell>
-                                    <TableCell>{item.tax}</TableCell>
+                                    <TableCell>
+                                        <NavLink
+                                            to={`/ado/reszletek/${item.tax_id}`}
+                                        >
+                                            {item.tax}{" "}
+                                            <LinkIcon
+                                                size={15}
+                                                className="inline"
+                                            />
+                                        </NavLink>
+                                    </TableCell>
                                     <TableCell>
                                         <Status status={item.status} />
                                     </TableCell>

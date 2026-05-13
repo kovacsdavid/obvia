@@ -30,7 +30,7 @@ use crate::tenant::products::service as products_service;
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -204,4 +204,27 @@ pub async fn select_list(
         Ok(r) => Ok(r.into_response()),
         Err(e) => Err(e.into_friendly_error(products_module).await.into_response()),
     }
+}
+
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(products_module): State<Arc<dyn ProductsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf =
+        match products_service::print(&claims, &payload, products_module.products_repo()).await {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e.into_friendly_error(products_module).await.into_response());
+            }
+        };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="{}""#, payload.uuid)
+            .parse()
+            .unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

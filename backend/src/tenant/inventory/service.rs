@@ -21,6 +21,8 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::pdf::index_map_key_prefix;
+use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::inventory::InventoryModule;
@@ -29,7 +31,9 @@ use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use async_trait::async_trait;
+use axum::body::Bytes;
 use axum::http::StatusCode;
+use indexmap::IndexMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -48,6 +52,9 @@ pub enum InventoryServiceError {
 
     #[error("A megadott termékhez már létezik raktárkészlet ebben a raktárban!")]
     InventoryExists,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
 }
 
 #[async_trait]
@@ -231,4 +238,16 @@ pub async fn get_paged_list(
                 .ok_or(InventoryServiceError::Unauthorized)?,
         )
         .await?)
+}
+pub async fn print(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryRepository>,
+) -> InventoryServiceResult<Bytes> {
+    let params: IndexMap<String, String> = get_resolved_by_id(claims, payload, repo).await?.into();
+    let params = index_map_key_prefix("invnetory_resolved", params);
+    Ok(Bytes::from(gen_pdf_temporary(
+        &PdfTemplates::CustomerView,
+        &params,
+    )?))
 }

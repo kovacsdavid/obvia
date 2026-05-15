@@ -35,6 +35,7 @@ pub fn routes(inventory_reservations_module: Arc<dyn InventoryReservationsModule
             .route("/select_list", get(handler::select_list))
             .route("/create", post(handler::create))
             .route("/delete", delete(handler::delete))
+            .route("/print", get(handler::print))
             .layer(from_fn_with_state(
                 inventory_reservations_module.config(),
                 require_auth,

@@ -101,6 +101,16 @@ export const select_list = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "products/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await productsApi.print(uuid, token);
+    },
+);
+
 const productsSlice = createSlice({
     name: "products",
     initialState,

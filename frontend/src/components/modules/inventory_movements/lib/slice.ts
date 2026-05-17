@@ -97,6 +97,16 @@ export const list = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "inventory_movements/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await inventoryMovementsApi.print(uuid, token);
+    },
+);
+
 const inventoryMovementsSlice = createSlice({
     name: "inventory_movements",
     initialState,

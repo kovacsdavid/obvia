@@ -23,6 +23,7 @@ import { useAppDispatch } from "@/store/hooks.ts";
 import {
     deleteItem,
     list,
+    print,
 } from "@/components/modules/inventory_movements/lib/slice.ts";
 import type { InventoryMovementResolvedList } from "@/components/modules/inventory_movements/lib/interface.ts";
 import {
@@ -44,8 +45,13 @@ import {
 import { Button, GlobalError } from "@/components/ui";
 import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
-import { Eye, MoreHorizontal, Plus, Trash } from "lucide-react";
-import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
+import { Eye, MoreHorizontal, Plus, Trash, Printer } from "lucide-react";
+import {
+    formatDateToYMDHMS,
+    formatNumber,
+    openPopup,
+    updateWindowWithPdfData,
+} from "@/lib/utils.ts";
 import { useParams } from "react-router";
 import { Link } from "react-router-dom";
 import { Link as LinkIcon } from "lucide-react";
@@ -143,6 +149,31 @@ export default function InventoryMovementsList() {
             default:
                 return "N/A";
         }
+    };
+
+    const handlePrint = (id: string) => {
+        const handler = openPopup();
+
+        if (!handler) {
+            return;
+        }
+
+        dispatch(print(id)).then((response: unknown) => {
+            if (!print.fulfilled.match(response)) {
+                handler.close();
+                return;
+            }
+
+            if (
+                response.payload.statusCode !== 200 ||
+                !response.payload?.data
+            ) {
+                handler.close();
+                return;
+            }
+
+            updateWindowWithPdfData(handler, response.payload.data);
+        });
     };
 
     useEffect(() => {
@@ -255,6 +286,14 @@ export default function InventoryMovementsList() {
                                                         <Eye /> Részletek
                                                     </DropdownMenuItem>
                                                 </Link>
+                                                <DropdownMenuItem
+                                                    className={"cursor-pointer"}
+                                                    onClick={() =>
+                                                        handlePrint(item.id)
+                                                    }
+                                                >
+                                                    <Printer /> Nyomtatás
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     className={"cursor-pointer"}

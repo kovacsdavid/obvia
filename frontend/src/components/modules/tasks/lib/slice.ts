@@ -101,6 +101,16 @@ export const deleteItem = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "tasks/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await tasksApi.print(uuid, token);
+    },
+);
+
 const tasksSlice = createSlice({
     name: "tasks",
     initialState,

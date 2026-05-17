@@ -36,6 +36,8 @@ import {
     type ProcessedJsonResponse,
     ProcessJsonResponse,
     type SelectOptionListResponse,
+    type ProcessedBytesResponse,
+    ProcessBytesResponse,
 } from "@/lib/interface.ts";
 import {
     isCreateInventoryResponse,
@@ -218,5 +220,21 @@ export async function deleteItem(
             (await ProcessJsonResponse(response, isDeleteInventoryResponse)) ??
             unexpectedError
         );
+    });
+}
+
+export async function print(
+    uuid: string,
+    token: string | null,
+): Promise<ProcessedBytesResponse> {
+    return await fetch(`/api/inventory/print?uuid=${uuid}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return ProcessBytesResponse(response);
     });
 }

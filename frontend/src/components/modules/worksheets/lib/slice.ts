@@ -101,6 +101,16 @@ export const deleteItem = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "worksheets/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await worksheetsApi.print(uuid, token);
+    },
+);
+
 const worksheetsSlice = createSlice({
     name: "worksheets",
     initialState,

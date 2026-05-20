@@ -42,6 +42,7 @@ pub type PdfGenResult<T> = Result<T, PdfGenError>;
 pub enum PdfTemplates {
     Test,
     CustomerView,
+    WarehouseView,
 }
 
 impl Display for PdfTemplates {
@@ -49,6 +50,7 @@ impl Display for PdfTemplates {
         let template = match &self {
             Self::Test => "test",
             Self::CustomerView => "customer_view",
+            Self::WarehouseView => "warehouse_view",
         };
         write!(f, "templates/{template}.typ")
     }

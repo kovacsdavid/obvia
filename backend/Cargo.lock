@@ -1663,7 +1663,6 @@ dependencies = [
  "config",
  "handlebars",
  "headers",
- "indexmap",
  "ipnetwork",
  "jsonwebtoken",
  "lettre",

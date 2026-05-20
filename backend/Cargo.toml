@@ -32,7 +32,6 @@ time = "0.3.44"
 ipnetwork = { version = "0.20.0", features = ["serde"] }
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 tempfile = "3.27.0"
-indexmap = "2.14.0"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

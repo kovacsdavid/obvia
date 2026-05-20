@@ -26,32 +26,45 @@
   numbering: "1/1",
 )
 
-#let customer_resolved_id = sys.inputs.at("customer_resolved_id")
-#let customer_resolved_name = sys.inputs.at("customer_resolved_name")
-#let customer_resolved_contact_name = sys.inputs.at("customer_resolved_contact_name")
-#let customer_resolved_email = sys.inputs.at("customer_resolved_email")
-#let customer_resolved_phone_number = sys.inputs.at("customer_resolved_phone_number")
-#let customer_resolved_status = sys.inputs.at("customer_resolved_status")
-#let customer_resolved_customer_type = sys.inputs.at("customer_resolved_customer_type")
-#let customer_resolved_created_by = sys.inputs.at("customer_resolved_created_by")
-#let customer_resolved_created_at = sys.inputs.at("customer_resolved_created_at")
-#let customer_resolved_updated_at = sys.inputs.at("customer_resolved_updated_at")
+#let row(label, value) = ([*#label*], [#value])
+
+#let field(obj, key, default: "-") = {
+  let value = obj.at(key, default: none)
+  if value == none or value == "" { default } else { value }
+}
+
+#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
-  fill: (_, y) => if calc.odd(y) { rgb("D9D9D9") },
+  fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
   stroke: none,
+  inset: 8pt,
 )
 
-#table(
-  columns: (1fr, 2fr),
-  [*Azonosító*], [#customer_resolved_id],
-  [*Név*], [#customer_resolved_name],
-  [*Típus*], [#customer_resolved_customer_type],
-  [*Kapcsolattartó neve*], [#customer_resolved_contact_name],
-  [*E-mail cím*], [#customer_resolved_email],
-  [*Telefonszám*], [#customer_resolved_phone_number],
-  [*Státusz*], [#customer_resolved_status],
-  [*Létrehozta*], [#customer_resolved_created_by],
-  [*Létrehozva*], [#customer_resolved_created_at],
-  [*Frissítve*], [#customer_resolved_updated_at],
-)
+#for customer in customers [
+  #v(0.5cm)
+
+  #align(center)[
+    #text(size: 16pt, weight: "bold")[Vevő adatai]
+  ]
+
+  #v(0.5cm)
+
+  #table(
+    columns: (1fr, 2fr),
+    table.header([*Mező*], [*Érték*]),
+
+    ..row("Azonosító", field(customer, "id")),
+    ..row("Név", field(customer, "name")),
+    ..row("Típus", field(customer, "customer_type")),
+    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
+    ..row("E-mail cím", field(customer, "email")),
+    ..row("Telefonszám", field(customer, "phone_number")),
+    ..row("Státusz", field(customer, "status")),
+    ..row("Létrehozta", field(customer, "created_by")),
+    ..row("Létrehozva", field(customer, "created_at")),
+    ..row("Frissítve", field(customer, "updated_at")),
+  )
+
+  #pagebreak(weak: true)
+]

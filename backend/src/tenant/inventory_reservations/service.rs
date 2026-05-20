@@ -21,7 +21,6 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::index_map_key_prefix;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
@@ -37,7 +36,6 @@ use crate::tenant::inventory_reservations::types::{
 use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
-use indexmap::IndexMap;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -214,10 +212,8 @@ pub async fn print(
     payload: &UuidParam,
     repo: Arc<dyn InventoryReservationsRepository>,
 ) -> InventoryReservationsServiceResult<Bytes> {
-    let params: IndexMap<String, String> = get_resolved(claims, payload, repo).await?.into();
-    let params = index_map_key_prefix("invnetory_movements_resolved", params);
     Ok(Bytes::from(gen_pdf_temporary(
         &PdfTemplates::CustomerView,
-        &params,
+        &vec![get_resolved(claims, payload, repo).await?],
     )?))
 }

@@ -43,6 +43,7 @@ pub enum PdfTemplates {
     Test,
     CustomerView,
     WarehouseView,
+    TaxView,
 }
 
 impl Display for PdfTemplates {
@@ -51,6 +52,7 @@ impl Display for PdfTemplates {
             Self::Test => "test",
             Self::CustomerView => "customer_view",
             Self::WarehouseView => "warehouse_view",
+            Self::TaxView => "tax_view",
         };
         write!(f, "templates/{template}.typ")
     }

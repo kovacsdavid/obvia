@@ -220,7 +220,7 @@ pub async fn print(
     repo: Arc<dyn InventoryMovementsRepository>,
 ) -> InventoryMovementsServiceResult<Bytes> {
     Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::CustomerView,
+        &PdfTemplates::InventoryMovementView,
         &vec![get_resolved_by_id(claims, payload, repo).await?],
     )?))
 }

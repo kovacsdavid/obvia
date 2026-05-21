@@ -227,7 +227,7 @@ pub async fn print(
     repo: Arc<dyn ServicesRepository>,
 ) -> ServicesServiceResult<Bytes> {
     Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::CustomerView,
+        &PdfTemplates::ServiceView,
         &vec![get_resolved_by_id(claims, payload, repo).await?],
     )?))
 }

@@ -48,6 +48,7 @@ pub enum PdfTemplates {
     InventoryView,
     InventoryMovementView,
     InventoryReservationView,
+    ServiceView,
 }
 
 impl Display for PdfTemplates {
@@ -61,6 +62,7 @@ impl Display for PdfTemplates {
             Self::InventoryView => "inventory_view",
             Self::InventoryMovementView => "inventory_movement_view",
             Self::InventoryReservationView => "inventory_reservation_view",
+            Self::ServiceView => "service_view",
         };
         write!(f, "templates/{template}.typ")
     }

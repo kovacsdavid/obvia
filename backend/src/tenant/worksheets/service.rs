@@ -208,7 +208,7 @@ pub async fn print(
     repo: Arc<dyn WorksheetsRepository>,
 ) -> WorksheetsServiceResult<Bytes> {
     Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::CustomerView,
+        &PdfTemplates::WorksheetView,
         &vec![get_resolved_by_id(claims, payload, repo).await?],
     )?))
 }

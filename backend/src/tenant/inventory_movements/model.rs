@@ -18,7 +18,7 @@
  */
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -34,9 +34,9 @@ pub struct InventoryMovement {
     pub unit_price: Option<BigDecimal>,
     pub total_price: Option<BigDecimal>,
     pub tax_id: Uuid,
-    pub movement_date: DateTime<Local>,
+    pub movement_date: DateTime<Utc>,
     pub created_by_id: Uuid,
-    pub created_at: DateTime<Local>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -51,8 +51,8 @@ pub struct InventoryMovementResolved {
     pub total_price: Option<BigDecimal>,
     pub tax_id: Uuid,
     pub tax: Option<String>,
-    pub movement_date: DateTime<Local>,
+    pub movement_date: DateTime<Utc>,
     pub created_by_id: Uuid,
     pub created_by: String,
-    pub created_at: DateTime<Local>,
+    pub created_at: DateTime<Utc>,
 }

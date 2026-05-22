@@ -276,7 +276,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
-    use chrono::Local;
+    use chrono::Utc;
     use ipnetwork::IpNetwork;
     use lettre::transport::smtp::response::Category;
     use lettre::transport::smtp::response::Code;
@@ -329,13 +329,13 @@ mod tests {
                 last_name: Some("User".to_string()),
                 phone: Some("+123456789".to_string()),
                 status: "active".to_string(),
-                last_login_at: Some(Local::now()),
+                last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
                 locale: Some("hu-HU".to_string()),
                 invited_by: None,
-                email_verified_at: Some(Local::now()),
-                created_at: Local::now(),
-                updated_at: Local::now(),
+                email_verified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
@@ -353,8 +353,8 @@ mod tests {
                 user_id: Uuid::new_v4(),
                 family_id: Uuid::new_v4(),
                 jti: Uuid::new_v4(),
-                iat: Local::now(),
-                exp: Local::now(),
+                iat: Utc::now(),
+                exp: Utc::now(),
                 replaced_by: None,
                 consumed_at: None,
                 revoked_at: None,
@@ -379,7 +379,7 @@ mod tests {
                     ),
                     user_agent: None,
                     metadata: None,
-                    created_at: Local::now(),
+                    created_at: Utc::now(),
                 })
             });
 
@@ -451,13 +451,13 @@ mod tests {
                 last_name: Some("User".to_string()),
                 phone: Some("+123456789".to_string()),
                 status: "active".to_string(),
-                last_login_at: Some(Local::now()),
+                last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
                 locale: Some("hu-HU".to_string()),
                 invited_by: None,
-                email_verified_at: Some(Local::now()),
-                created_at: Local::now(),
-                updated_at: Local::now(),
+                email_verified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
@@ -484,7 +484,7 @@ mod tests {
                     ),
                     user_agent: None,
                     metadata: None,
-                    created_at: Local::now(),
+                    created_at: Utc::now(),
                 })
             });
 
@@ -561,13 +561,13 @@ mod tests {
                     last_name: Some("User".to_string()),
                     phone: Some("+123456789".to_string()),
                     status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
+                    last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
                     locale: Some("hu-HU".to_string()),
                     invited_by: None,
-                    email_verified_at: Some(Local::now()),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
@@ -579,8 +579,8 @@ mod tests {
                 Ok(EmailVerification {
                     id: Uuid::new_v4(),
                     user_id,
-                    valid_until: chrono::Local::now() + chrono::Duration::days(1),
-                    created_at: chrono::Local::now(),
+                    valid_until: chrono::Utc::now() + chrono::Duration::days(1),
+                    created_at: chrono::Utc::now(),
                     deleted_at: None,
                 })
             });
@@ -721,13 +721,13 @@ mod tests {
                 last_name: Some("User".to_string()),
                 phone: Some("+123456789".to_string()),
                 status: "active".to_string(),
-                last_login_at: Some(Local::now()),
+                last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
                 locale: Some("hu-HU".to_string()),
                 invited_by: None,
-                email_verified_at: Some(Local::now()),
-                created_at: Local::now(),
-                updated_at: Local::now(),
+                email_verified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
@@ -741,9 +741,9 @@ mod tests {
                     tenant_id: active_tenant_id1,
                     role: "owner".to_string(),
                     invited_by: None,
-                    last_activated: Local::now(),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    last_activated: Utc::now(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     deleted_at: None,
                 }))
             });
@@ -758,8 +758,8 @@ mod tests {
                 user_id: Uuid::new_v4(),
                 family_id: Uuid::new_v4(),
                 jti: Uuid::new_v4(),
-                iat: Local::now(),
-                exp: Local::now(),
+                iat: Utc::now(),
+                exp: Utc::now(),
                 replaced_by: None,
                 consumed_at: None,
                 revoked_at: None,
@@ -784,7 +784,7 @@ mod tests {
                     ),
                     user_agent: None,
                     metadata: None,
-                    created_at: Local::now(),
+                    created_at: Utc::now(),
                 })
             });
 

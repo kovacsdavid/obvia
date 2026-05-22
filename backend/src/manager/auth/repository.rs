@@ -30,7 +30,7 @@ use crate::manager::auth::model::{
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
-use chrono::{DateTime, Local, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 #[cfg(test)]
 use mockall::automock;
 use sqlx::Error;
@@ -434,7 +434,7 @@ impl AuthRepository for PgPoolManager {
     }
 }
 
-pub fn usize_epoch_seconds_to_local(secs: usize) -> RepositoryResult<DateTime<Local>> {
+pub fn usize_epoch_seconds_to_local(secs: usize) -> RepositoryResult<DateTime<Utc>> {
     let secs_i64: i64 = secs
         .try_into()
         .map_err(|_| RepositoryError::Custom("timestamp too large for i64".to_string()))?;
@@ -442,5 +442,5 @@ pub fn usize_epoch_seconds_to_local(secs: usize) -> RepositoryResult<DateTime<Lo
         .timestamp_opt(secs_i64, 0)
         .single()
         .ok_or_else(|| RepositoryError::Custom("usize_epoch_seconds_to_local: utc".to_string()))?;
-    Ok(utc.with_timezone(&Local))
+    Ok(utc.with_timezone(&Utc))
 }

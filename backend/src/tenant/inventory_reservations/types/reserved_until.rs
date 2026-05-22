@@ -18,7 +18,7 @@
  */
 
 use crate::common::value_object::*;
-use chrono::{Local, NaiveDate};
+use chrono::{NaiveDate, Utc};
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -45,7 +45,7 @@ impl ValueObjectData for ReservedUntil {
     }
 
     fn validate(&self) -> Result<(), ValueObjectError> {
-        let today = Local::now().date_naive();
+        let today = Utc::now().date_naive();
         if self.0 > today {
             Ok(())
         } else {
@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_tomorrow() {
-        let valid_date = Local::now()
+        let valid_date = Utc::now()
             .checked_add_days(Days::new(1))
             .unwrap()
             .date_naive()
@@ -85,14 +85,14 @@ mod tests {
 
     #[test]
     fn test_today() {
-        let valid_date = Local::now().date_naive().to_string();
+        let valid_date = Utc::now().date_naive().to_string();
         let date = valid_date.parse::<ValueObjectRequired<ReservedUntil>>();
         assert!(date.is_err());
     }
 
     #[test]
     fn test_yesterday() {
-        let valid_date = Local::now()
+        let valid_date = Utc::now()
             .checked_sub_days(Days::new(1))
             .unwrap()
             .date_naive()

@@ -18,7 +18,7 @@
  */
 
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -36,9 +36,9 @@ pub struct Tax {
     pub is_default: bool,
     pub status: String,
     pub created_by_id: Uuid,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -56,7 +56,7 @@ pub struct TaxResolved {
     pub status: String,
     pub created_by_id: Uuid,
     pub created_by: String,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

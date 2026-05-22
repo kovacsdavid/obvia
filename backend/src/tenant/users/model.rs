@@ -18,7 +18,7 @@
  */
 
 use crate::manager::users::model::User as ManagerUser;
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -34,10 +34,10 @@ pub struct User {
     pub profile_picture_url: Option<String>,
     pub locale: Option<String>,
     pub invited_by: Option<Uuid>,
-    pub email_verified_at: Option<DateTime<Local>>,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub email_verified_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 impl From<ManagerUser> for User {

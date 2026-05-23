@@ -22,6 +22,7 @@ use crate::common::dto::GeneralError;
 use crate::common::dto::{PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
@@ -32,6 +33,7 @@ use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
 use async_trait::async_trait;
+use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -49,6 +51,9 @@ pub enum InventoryMovementsServiceError {
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
 }
 
 #[async_trait]
@@ -132,7 +137,7 @@ pub async fn get(
         .await?)
 }
 
-pub async fn get_resolved(
+pub async fn get_resolved_by_id(
     claims: &Claims,
     payload: &UuidParam,
     repo: Arc<dyn InventoryMovementsRepository>,
@@ -208,4 +213,14 @@ pub async fn get_select_list_items(
             }
         },
     )
+}
+pub async fn print(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn InventoryMovementsRepository>,
+) -> InventoryMovementsServiceResult<Bytes> {
+    Ok(Bytes::from(gen_pdf_temporary(
+        &PdfTemplates::InventoryMovementView,
+        &vec![get_resolved_by_id(claims, payload, repo).await?],
+    )?))
 }

@@ -164,7 +164,7 @@ mod tests {
     use axum::Router;
     use axum::body::Body;
     use axum::http::Request;
-    use chrono::Local;
+    use chrono::Utc;
     use std::ops::{Add, Sub};
     use std::time::Duration;
     use tower::ServiceExt;
@@ -173,7 +173,7 @@ mod tests {
     #[tokio::test]
     async fn test_create_managed_success() {
         let new_tenant_id = Uuid::new_v4();
-        let now = Local::now();
+        let now = Utc::now();
 
         let mut tenants_repo = MockTenantsRepository::new();
         tenants_repo
@@ -212,13 +212,13 @@ mod tests {
                     last_name: Some("User".to_string()),
                     phone: Some("+123456789".to_string()),
                     status: "active".to_string(),
-                    last_login_at: Some(Local::now()),
+                    last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
                     locale: Some("hu-HU".to_string()),
                     invited_by: None,
-                    email_verified_at: Some(Local::now()),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
@@ -246,9 +246,9 @@ mod tests {
         })
         .unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let bearer = Claims::new(
             Uuid::new_v4(),
@@ -359,8 +359,8 @@ mod tests {
                     db_password: "password".to_string(),
                     db_max_pool_size: 5,
                     db_ssl_mode: "disable".to_string(),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     deleted_at: None,
                 })
             });
@@ -380,9 +380,9 @@ mod tests {
         })
         .unwrap();
 
-        let exp = Local::now().sub(Duration::from_secs(61)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().sub(Duration::from_secs(61)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let bearer = Claims::new(
             Uuid::new_v4(),
@@ -453,9 +453,9 @@ mod tests {
                     tenant_id,
                     role: "owner".to_string(),
                     invited_by: None,
-                    last_activated: Local::now(),
-                    created_at: Local::now(),
-                    updated_at: Local::now(),
+                    last_activated: Utc::now(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
                     deleted_at: None,
                 }))
             });
@@ -471,9 +471,9 @@ mod tests {
         })
         .unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let jti = Uuid::new_v4();
 

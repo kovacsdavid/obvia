@@ -249,7 +249,7 @@ impl Claims {
 mod tests {
     use super::*;
     use crate::common::config::tests::AppConfigBuilder;
-    use chrono::Local;
+    use chrono::Utc;
     use std::ops::{Add, Sub};
     use std::time::Duration;
     use uuid::Uuid;
@@ -258,9 +258,9 @@ mod tests {
     fn test_valid_claims() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -295,9 +295,9 @@ mod tests {
     fn test_expired_claims() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().sub(Duration::from_secs(61)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().sub(Duration::from_secs(61)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -327,9 +327,9 @@ mod tests {
     fn test_invalid_not_before_claims() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().add(Duration::from_secs(61)).timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().add(Duration::from_secs(61)).timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -359,9 +359,9 @@ mod tests {
     fn test_invalid_issuer_claims() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -392,9 +392,9 @@ mod tests {
     fn test_invalid_audience_claims() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -425,9 +425,9 @@ mod tests {
     fn test_empty_active_tenant() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
             Uuid::new_v4(),
@@ -460,9 +460,9 @@ mod tests {
     fn test_valid_active_tenant() {
         let config = AppConfigBuilder::default().build().unwrap();
 
-        let exp = Local::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Local::now().timestamp();
-        let nbf = Local::now().timestamp();
+        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
         let active_tenant_uuid = Uuid::new_v4();
         let claims = Claims::new(
             Uuid::new_v4(),

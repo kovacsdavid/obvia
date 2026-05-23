@@ -110,12 +110,6 @@ export default function View() {
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
-                                        <TableCell>Adó kategória</TableCell>
-                                        <TableCell>
-                                            {data.tax_category}
-                                        </TableCell>
-                                    </TableRow>
-                                    <TableRow>
                                         <TableCell>Jogi szöveg</TableCell>
                                         <TableCell>{data.legal_text}</TableCell>
                                     </TableRow>

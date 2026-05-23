@@ -193,13 +193,13 @@ impl InventoryReservationsRawQuery {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{Days, Local};
+    use chrono::{Days, Utc};
 
     #[test]
     fn valid_inventory_reservations_user_input() {
         let inventory_id = Uuid::new_v4();
         let reference_id = Uuid::new_v4();
-        let valid_date = Local::now()
+        let valid_date = Utc::now()
             .checked_add_days(Days::new(1))
             .unwrap()
             .date_naive();
@@ -226,7 +226,7 @@ mod tests {
     #[test]
     fn invalid_inventory_reservations_user_input() {
         let reference_id = Uuid::new_v4();
-        let invalid_date = Local::now()
+        let invalid_date = Utc::now()
             .checked_sub_days(Days::new(1))
             .unwrap()
             .date_naive();

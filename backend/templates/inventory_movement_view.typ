@@ -20,7 +20,7 @@
 #set page(
   header: grid(
     columns: (1fr, 1fr),
-    align(left)[*Vevő*],
+    align(left)[*Készletmozgás*],
     align(right)[https://obvia.hu],
   ),
   numbering: "1/1",
@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let inventory_movements = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,11 +41,11 @@
   inset: 8pt,
 )
 
-#for customer in customers [
+#for item in inventory_movements [
   #v(0.5cm)
 
   #align(center)[
-    #text(size: 16pt, weight: "bold")[Vevő adatai]
+    #text(size: 16pt, weight: "bold")[Készletmozgás adatai]
   ]
 
   #v(0.5cm)
@@ -54,16 +54,18 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(customer, "id")),
-    ..row("Név", field(customer, "name")),
-    ..row("Típus", field(customer, "customer_type")),
-    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
-    ..row("E-mail cím", field(customer, "email")),
-    ..row("Telefonszám", field(customer, "phone_number")),
-    ..row("Státusz", field(customer, "status")),
-    ..row("Létrehozta", field(customer, "created_by")),
-    ..row("Létrehozva", field(customer, "created_at")),
-    ..row("Frissítve", field(customer, "updated_at")),
+    ..row("Azonosító", field(item, "id")),
+    ..row("Raktárkészlet", field(item, "inventory_id")),
+    ..row("Típus", field(item, "movement_type")),
+    ..row("Mennyiség", field(item, "quantity")),
+    ..row("Egységár", field(item, "unit_price")),
+    ..row("Összeg", field(item, "total_price")),
+    ..row("Adó", field(item, "tax")),
+    ..row("Mozgás dátuma", field(item, "movement_date")),
+    ..row("Létrehozta", field(item, "created_by")),
+    ..row("Létrehozva", field(item, "created_at")),
+    ..row("Hivatkozás típusa", field(item, "reference_type")),
+    ..row("Hivatkozás azonosító", field(item, "reference_id")),
   )
 
   #pagebreak(weak: true)

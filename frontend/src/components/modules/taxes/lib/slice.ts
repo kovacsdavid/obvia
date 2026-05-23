@@ -101,6 +101,16 @@ export const select_list = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "taxes/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await taxesApi.print(uuid, token);
+    },
+);
+
 const taxesSlice = createSlice({
     name: "taxes",
     initialState,

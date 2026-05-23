@@ -100,6 +100,16 @@ export const list = createAsyncThunk(
     },
 );
 
+export const print = createAsyncThunk(
+    "inventory_reservations/print",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await InventoryReservationsApi.print(uuid, token);
+    },
+);
+
 const InventoryReservationsSlice = createSlice({
     name: "inventory_reservations",
     initialState,

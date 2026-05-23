@@ -30,7 +30,7 @@ use crate::tenant::tasks::service as tasks_service;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -196,4 +196,26 @@ pub async fn list(
         Ok(r) => Ok(r.into_response()),
         Err(e) => Err(e.into_friendly_error(tasks_module).await.into_response()),
     }
+}
+
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(tasks_module): State<Arc<dyn TasksModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf = match tasks_service::print(&claims, &payload, tasks_module.tasks_repo()).await {
+        Ok(p) => p,
+        Err(e) => {
+            return Err(e.into_friendly_error(tasks_module).await.into_response());
+        }
+    };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="{}""#, payload.uuid)
+            .parse()
+            .unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

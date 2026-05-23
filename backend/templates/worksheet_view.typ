@@ -20,7 +20,7 @@
 #set page(
   header: grid(
     columns: (1fr, 1fr),
-    align(left)[*Vevő*],
+    align(left)[*Munkalap*],
     align(right)[https://obvia.hu],
   ),
   numbering: "1/1",
@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let worksheets = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,11 +41,11 @@
   inset: 8pt,
 )
 
-#for customer in customers [
+#for worksheet in worksheets [
   #v(0.5cm)
 
   #align(center)[
-    #text(size: 16pt, weight: "bold")[Vevő adatai]
+    #text(size: 16pt, weight: "bold")[Munkalap adatai]
   ]
 
   #v(0.5cm)
@@ -54,16 +54,18 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(customer, "id")),
-    ..row("Név", field(customer, "name")),
-    ..row("Típus", field(customer, "customer_type")),
-    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
-    ..row("E-mail cím", field(customer, "email")),
-    ..row("Telefonszám", field(customer, "phone_number")),
-    ..row("Státusz", field(customer, "status")),
-    ..row("Létrehozta", field(customer, "created_by")),
-    ..row("Létrehozva", field(customer, "created_at")),
-    ..row("Frissítve", field(customer, "updated_at")),
+    ..row("Azonosító", field(worksheet, "id")),
+    ..row("Név", field(worksheet, "name")),
+    ..row("Leírás", field(worksheet, "description")),
+    ..row("Vevő", field(worksheet, "customer")),
+    ..row("Nettó anyagköltség", field(worksheet, "net_material_cost")),
+    ..row("Bruttó anyagköltség", field(worksheet, "gross_material_cost")),
+    ..row("Nettó munkadíj", field(worksheet, "net_work_cost")),
+    ..row("Bruttó munkadíj", field(worksheet, "gross_work_cost")),
+    ..row("Státusz", field(worksheet, "status")),
+    ..row("Létrehozta", field(worksheet, "created_by")),
+    ..row("Létrehozva", field(worksheet, "created_at")),
+    ..row("Frissítve", field(worksheet, "updated_at")),
   )
 
   #pagebreak(weak: true)

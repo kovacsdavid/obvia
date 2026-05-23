@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Utc};
 use ipnetwork::IpNetwork;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
@@ -28,18 +28,18 @@ use uuid::Uuid;
 pub struct EmailVerification {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub valid_until: DateTime<Local>,
-    pub created_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub valid_until: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct ForgottenPassword {
     pub id: Uuid,
     pub user_id: Uuid,
-    pub valid_until: DateTime<Local>,
-    pub created_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub valid_until: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -48,11 +48,11 @@ pub struct RefreshToken {
     pub user_id: Uuid,
     pub family_id: Uuid,
     pub jti: Uuid,
-    pub iat: DateTime<Local>,
-    pub exp: DateTime<Local>,
+    pub iat: DateTime<Utc>,
+    pub exp: DateTime<Utc>,
     pub replaced_by: Option<Uuid>,
-    pub consumed_at: Option<DateTime<Local>>,
-    pub revoked_at: Option<DateTime<Local>>,
+    pub consumed_at: Option<DateTime<Utc>>,
+    pub revoked_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
@@ -90,5 +90,5 @@ pub struct AccountEventLogEntry {
     pub ip_address: Option<IpNetwork>,
     pub user_agent: Option<String>,
     pub metadata: Option<JsonValue>,
-    pub created_at: DateTime<Local>,
+    pub created_at: DateTime<Utc>,
 }

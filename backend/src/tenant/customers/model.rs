@@ -17,8 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use chrono::{DateTime, Local};
-use indexmap::IndexMap;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -33,9 +32,9 @@ pub struct Customer {
     pub status: String,
     pub customer_type: String,
     pub created_by_id: Uuid,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
@@ -49,40 +48,7 @@ pub struct CustomerResolved {
     pub customer_type: String,
     pub created_by_id: Uuid,
     pub created_by: String,
-    pub created_at: DateTime<Local>,
-    pub updated_at: DateTime<Local>,
-    pub deleted_at: Option<DateTime<Local>>,
-}
-
-impl From<CustomerResolved> for IndexMap<String, String> {
-    fn from(value: CustomerResolved) -> Self {
-        let mut map = IndexMap::new();
-
-        map.insert("id".to_string(), value.id.to_string());
-        map.insert("name".to_string(), value.name);
-        map.insert(
-            "contact_name".to_string(),
-            value.contact_name.unwrap_or_default(),
-        );
-        map.insert("email".to_string(), value.email);
-        map.insert(
-            "phone_number".to_string(),
-            value.phone_number.unwrap_or_default(),
-        );
-        map.insert("status".to_string(), value.status);
-        map.insert("customer_type".to_string(), value.customer_type);
-        map.insert("created_by_id".to_string(), value.created_by_id.to_string());
-        map.insert("created_by".to_string(), value.created_by);
-        map.insert("created_at".to_string(), value.created_at.to_rfc3339());
-        map.insert("updated_at".to_string(), value.updated_at.to_rfc3339());
-        map.insert(
-            "deleted_at".to_string(),
-            value
-                .deleted_at
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_default(),
-        );
-
-        map
-    }
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
 }

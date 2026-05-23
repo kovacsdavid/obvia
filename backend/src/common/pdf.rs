@@ -20,14 +20,14 @@
 #![allow(dead_code)]
 use std::{fmt::Display, fs, path::Path, process::Command};
 
-use indexmap::IndexMap;
+use serde::Serialize;
 use tempfile::NamedTempFile;
 use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum PdfGenError {
-    #[error("Missing key required by template: {0}")]
-    MissingParam(String),
+    #[error("Payload could not be converted to JSON: {0}")]
+    PayloadJson(String),
 
     #[error("IOError: {0}")]
     IOError(String),
@@ -42,26 +42,15 @@ pub type PdfGenResult<T> = Result<T, PdfGenError>;
 pub enum PdfTemplates {
     Test,
     CustomerView,
-}
-
-impl PdfTemplates {
-    pub fn input_keys(&self) -> Vec<&'static str> {
-        match &self {
-            Self::Test => vec!["test", "name"],
-            Self::CustomerView => vec![
-                "customer_resolved_id",
-                "customer_resolved_name",
-                "customer_resolved_contact_name",
-                "customer_resolved_email",
-                "customer_resolved_phone_number",
-                "customer_resolved_status",
-                "customer_resolved_customer_type",
-                "customer_resolved_created_by",
-                "customer_resolved_created_at",
-                "customer_resolved_updated_at",
-            ],
-        }
-    }
+    WarehouseView,
+    TaxView,
+    ProductView,
+    InventoryView,
+    InventoryMovementView,
+    InventoryReservationView,
+    ServiceView,
+    TaskView,
+    WorksheetView,
 }
 
 impl Display for PdfTemplates {
@@ -69,35 +58,39 @@ impl Display for PdfTemplates {
         let template = match &self {
             Self::Test => "test",
             Self::CustomerView => "customer_view",
+            Self::WarehouseView => "warehouse_view",
+            Self::TaxView => "tax_view",
+            Self::ProductView => "product_view",
+            Self::InventoryView => "inventory_view",
+            Self::InventoryMovementView => "inventory_movement_view",
+            Self::InventoryReservationView => "inventory_reservation_view",
+            Self::ServiceView => "service_view",
+            Self::TaskView => "task_view",
+            Self::WorksheetView => "worksheet_view",
         };
         write!(f, "templates/{template}.typ")
     }
 }
 
 #[derive(Debug)]
-struct PdfGen<'a> {
+struct PdfGen<'a, T>
+where
+    T: Serialize,
+{
     path: &'a Path,
     template: &'a PdfTemplates,
-    params: IndexMap<String, String>,
+    payload: &'a T,
 }
 
-impl<'a> PdfGen<'a> {
-    pub fn new(
-        path: &'a Path,
-        template: &'a PdfTemplates,
-        params: &IndexMap<String, String>,
-    ) -> PdfGenResult<Self> {
-        let mut params_filtered: IndexMap<String, String> = IndexMap::new();
-        for key in template.input_keys() {
-            if !params.contains_key(key) {
-                return Err(PdfGenError::MissingParam(key.to_owned()));
-            }
-            params_filtered.insert(key.to_owned(), params[key].to_owned());
-        }
+impl<'a, T> PdfGen<'a, T>
+where
+    T: Serialize,
+{
+    pub fn new(path: &'a Path, template: &'a PdfTemplates, payload: &'a T) -> PdfGenResult<Self> {
         Ok(PdfGen {
             path,
             template,
-            params: params_filtered,
+            payload,
         })
     }
     pub fn path(&self) -> &Path {
@@ -106,34 +99,36 @@ impl<'a> PdfGen<'a> {
     pub fn template(&self) -> &PdfTemplates {
         self.template
     }
-    pub fn params(&self) -> &IndexMap<String, String> {
-        &self.params
+    pub fn payload(&self) -> &T {
+        self.payload
     }
-    pub fn typst_compile_args(&self) -> Vec<String> {
-        let mut args = vec![
+    pub fn typst_compile_args(&self) -> PdfGenResult<Vec<String>> {
+        let args = vec![
             "compile".to_owned(),
             "-f".to_owned(),
             "pdf".to_owned(),
             self.template().to_string(),
             self.path().to_string_lossy().into_owned(),
+            "--input".to_owned(),
+            format!(
+                "payload={}",
+                serde_json::to_string(self.payload())
+                    .map_err(|e| PdfGenError::PayloadJson(e.to_string()))?
+            ),
         ];
-        for (k, v) in self.params() {
-            args.push("--input".to_owned());
-            args.push(format!("{k}={v}"));
-        }
-        args
+        Ok(args)
     }
 }
 
-pub fn gen_pdf_temporary(
-    template: &PdfTemplates,
-    params: &IndexMap<String, String>,
-) -> PdfGenResult<Vec<u8>> {
+pub fn gen_pdf_temporary<T>(template: &PdfTemplates, payload: &T) -> PdfGenResult<Vec<u8>>
+where
+    T: Serialize,
+{
     let tmp_file = NamedTempFile::new().map_err(|e| PdfGenError::IOError(e.to_string()))?;
-    let pdf_gen = PdfGen::new(tmp_file.path(), template, params)?;
+    let pdf_gen = PdfGen::new(tmp_file.path(), template, payload)?;
     let mut output = Command::new("typst");
 
-    for arg in pdf_gen.typst_compile_args() {
+    for arg in pdf_gen.typst_compile_args()? {
         output.arg(arg);
     }
 
@@ -150,16 +145,19 @@ pub fn gen_pdf_temporary(
     fs::read(pdf_gen.path()).map_err(|e| PdfGenError::IOError(e.to_string()))
 }
 
-pub fn gen_pdf_persistent<'a>(
+pub fn gen_pdf_persistent<'a, T>(
     path: &'a Path,
     template: &PdfTemplates,
-    params: &IndexMap<String, String>,
-) -> PdfGenResult<&'a Path> {
+    params: &T,
+) -> PdfGenResult<&'a Path>
+where
+    T: Serialize,
+{
     let pdf_gen = PdfGen::new(path, template, params)?;
 
     let mut output = Command::new("typst");
 
-    for arg in pdf_gen.typst_compile_args() {
+    for arg in pdf_gen.typst_compile_args()? {
         output.arg(arg);
     }
 
@@ -175,113 +173,5 @@ pub fn gen_pdf_persistent<'a>(
     Ok(path)
 }
 
-pub fn index_map_key_prefix<T>(
-    prefix: &'static str,
-    index_map: IndexMap<String, T>,
-) -> IndexMap<String, T> {
-    index_map
-        .into_iter()
-        .map(|(key, value)| (format!("{prefix}_{key}"), value))
-        .collect()
-}
-
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pdf_gen_struct_params() {
-        let path = Path::new("/home/test");
-        let template = PdfTemplates::Test;
-        let mut params = IndexMap::new();
-        params.insert("test".to_owned(), "value1".to_owned());
-        params.insert("name".to_owned(), "value2".to_owned());
-        let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
-        assert_eq!(pdf_gen.path(), path);
-        assert_eq!(&pdf_gen.template().to_string(), "templates/test.typ");
-        assert_eq!(pdf_gen.params(), &params);
-    }
-    #[test]
-    fn pdf_gen_struct_too_many_params() {
-        let path = Path::new("/home/test");
-        let template = PdfTemplates::Test;
-        let mut params = IndexMap::new();
-        params.insert("test".to_owned(), "value1".to_owned());
-        params.insert("name".to_owned(), "value2".to_owned());
-        params.insert("extra1".to_owned(), "value3".to_owned());
-        let mut expected_params = IndexMap::new();
-        expected_params.insert("test".to_owned(), "value1".to_owned());
-        expected_params.insert("name".to_owned(), "value2".to_owned());
-        let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
-        assert_eq!(pdf_gen.path(), path);
-        assert_eq!(&pdf_gen.template().to_string(), "templates/test.typ");
-        assert_eq!(pdf_gen.params(), &expected_params);
-    }
-    #[test]
-    fn pdf_gen_struct_missing_param() {
-        let path = Path::new("/home/test");
-        let template = PdfTemplates::Test;
-        let mut params = IndexMap::new();
-        params.insert("test".to_owned(), "value1".to_owned());
-        let pdf_gen_error = PdfGen::new(path, &template, &params).unwrap_err();
-        assert_eq!(pdf_gen_error, PdfGenError::MissingParam("name".to_owned()));
-    }
-    #[test]
-    fn gen_pdf_typst_compile_args() {
-        let expected_args = vec![
-            "compile".to_owned(),
-            "-f".to_owned(),
-            "pdf".to_owned(),
-            "templates/test.typ".to_owned(),
-            "/var/obvia/docs/test.pdf".to_owned(),
-            "--input".to_owned(),
-            "test=value1".to_owned(),
-            "--input".to_owned(),
-            "name=value2".to_owned(),
-        ];
-        let path = Path::new("/var/obvia/docs/test.pdf");
-        let template = PdfTemplates::Test;
-        let mut params = IndexMap::new();
-        params.insert("name".to_owned(), "value2".to_owned());
-        params.insert("test".to_owned(), "value1".to_owned());
-        let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
-        assert_eq!(pdf_gen.typst_compile_args(), expected_args);
-    }
-    #[test]
-    fn gen_pdf_typst_compile_args_too_many_params() {
-        let expected_args = vec![
-            "compile".to_owned(),
-            "-f".to_owned(),
-            "pdf".to_owned(),
-            "templates/test.typ".to_owned(),
-            "/var/obvia/docs/test.pdf".to_owned(),
-            "--input".to_owned(),
-            "test=value1".to_owned(),
-            "--input".to_owned(),
-            "name=value2".to_owned(),
-        ];
-        let path = Path::new("/var/obvia/docs/test.pdf");
-        let template = PdfTemplates::Test;
-        let mut params = IndexMap::new();
-        params.insert("test".to_owned(), "value1".to_owned());
-        params.insert("name".to_owned(), "value2".to_owned());
-        params.insert("extra1".to_owned(), "value3".to_owned());
-        let pdf_gen = PdfGen::new(path, &template, &params).unwrap();
-        assert_eq!(pdf_gen.typst_compile_args(), expected_args);
-    }
-    #[test]
-    fn index_map_key_prefix_fn() {
-        let mut input = IndexMap::new();
-        input.insert("test".to_owned(), "value1".to_owned());
-        input.insert("name".to_owned(), "value2".to_owned());
-        input.insert("extra1".to_owned(), "value3".to_owned());
-        let mut expected = IndexMap::new();
-        expected.insert("test_prefix_test".to_owned(), "value1".to_owned());
-        expected.insert("test_prefix_name".to_owned(), "value2".to_owned());
-        expected.insert("test_prefix_extra1".to_owned(), "value3".to_owned());
-
-        let output = index_map_key_prefix("test_prefix", input);
-
-        assert_eq!(output, expected);
-    }
-}
+mod tests {}

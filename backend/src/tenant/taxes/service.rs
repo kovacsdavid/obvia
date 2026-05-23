@@ -21,6 +21,7 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::taxes::TaxesModule;
@@ -29,6 +30,7 @@ use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use async_trait::async_trait;
+use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -48,6 +50,9 @@ pub enum TaxesServiceError {
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
 }
 
 #[async_trait]
@@ -204,4 +209,15 @@ pub async fn get_select_list_items(
             )
             .await?),
     }
+}
+
+pub async fn print(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn TaxesRepository>,
+) -> TaxesServiceResult<Bytes> {
+    Ok(Bytes::from(gen_pdf_temporary(
+        &PdfTemplates::TaxView,
+        &vec![get_resolved_by_id(claims, payload, repo).await?],
+    )?))
 }

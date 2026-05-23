@@ -20,7 +20,7 @@
 #set page(
   header: grid(
     columns: (1fr, 1fr),
-    align(left)[*Vevő*],
+    align(left)[*Raktárkészlet*],
     align(right)[https://obvia.hu],
   ),
   numbering: "1/1",
@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let inventory = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,11 +41,11 @@
   inset: 8pt,
 )
 
-#for customer in customers [
+#for item in inventory [
   #v(0.5cm)
 
   #align(center)[
-    #text(size: 16pt, weight: "bold")[Vevő adatai]
+    #text(size: 16pt, weight: "bold")[Raktárkészlet adatai]
   ]
 
   #v(0.5cm)
@@ -54,16 +54,19 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(customer, "id")),
-    ..row("Név", field(customer, "name")),
-    ..row("Típus", field(customer, "customer_type")),
-    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
-    ..row("E-mail cím", field(customer, "email")),
-    ..row("Telefonszám", field(customer, "phone_number")),
-    ..row("Státusz", field(customer, "status")),
-    ..row("Létrehozta", field(customer, "created_by")),
-    ..row("Létrehozva", field(customer, "created_at")),
-    ..row("Frissítve", field(customer, "updated_at")),
+    ..row("Azonosító", field(item, "id")),
+    ..row("Termék", field(item, "product")),
+    ..row("Raktár", field(item, "warehouse")),
+    ..row("Készlet (raktáron)", field(item, "quantity_on_hand")),
+    ..row("Foglalt", field(item, "quantity_reserved")),
+    ..row("Rendelkezésre álló", field(item, "quantity_available")),
+    ..row("Minimum készlet", field(item, "minimum_stock")),
+    ..row("Maximum készlet", field(item, "maximum_stock")),
+    ..row("Státusz", field(item, "status")),
+    ..row("Pénznem", field(item, "currency")),
+    ..row("Létrehozta", field(item, "created_by")),
+    ..row("Létrehozva", field(item, "created_at")),
+    ..row("Frissítve", field(item, "updated_at")),
   )
 
   #pagebreak(weak: true)

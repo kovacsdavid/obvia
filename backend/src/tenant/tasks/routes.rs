@@ -36,6 +36,7 @@ pub fn routes(tasks_module: Arc<dyn TasksModule>) -> Router {
             .route("/create", post(handler::create))
             .route("/update", put(handler::update))
             .route("/delete", delete(handler::delete))
+            .route("/print", get(handler::print))
             .layer(from_fn_with_state(tasks_module.config(), require_auth))
             .with_state(tasks_module),
     )

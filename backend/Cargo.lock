@@ -1651,7 +1651,7 @@ dependencies = [
 
 [[package]]
 name = "obvia_backend"
-version = "0.27.2"
+version = "0.27.3"
 dependencies = [
  "anyhow",
  "argon2",
@@ -1663,7 +1663,6 @@ dependencies = [
  "config",
  "handlebars",
  "headers",
- "indexmap",
  "ipnetwork",
  "jsonwebtoken",
  "lettre",

@@ -20,7 +20,7 @@
 #set page(
   header: grid(
     columns: (1fr, 1fr),
-    align(left)[*Vevő*],
+    align(left)[*Adó*],
     align(right)[https://obvia.hu],
   ),
   numbering: "1/1",
@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let taxes = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,11 +41,11 @@
   inset: 8pt,
 )
 
-#for customer in customers [
+#for tax in taxes [
   #v(0.5cm)
 
   #align(center)[
-    #text(size: 16pt, weight: "bold")[Vevő adatai]
+    #text(size: 16pt, weight: "bold")[Adó adatai]
   ]
 
   #v(0.5cm)
@@ -54,16 +54,17 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(customer, "id")),
-    ..row("Név", field(customer, "name")),
-    ..row("Típus", field(customer, "customer_type")),
-    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
-    ..row("E-mail cím", field(customer, "email")),
-    ..row("Telefonszám", field(customer, "phone_number")),
-    ..row("Státusz", field(customer, "status")),
-    ..row("Létrehozta", field(customer, "created_by")),
-    ..row("Létrehozva", field(customer, "created_at")),
-    ..row("Frissítve", field(customer, "updated_at")),
+    ..row("Azonosító", field(tax, "id")),
+    ..row("Adókulcs (%)", field(tax, "rate")),
+    ..row("Leírás", field(tax, "description")),
+    ..row("Ország", field(tax, "country")),
+    ..row("Adó kategória", field(tax, "tax_category")),
+    ..row("Jogi szöveg", field(tax, "legal_text")),
+    ..row("Jelentési kód (NAV)", field(tax, "reporting_code")),
+    ..row("Státusz", field(tax, "status")),
+    ..row("Létrehozta", field(tax, "created_by")),
+    ..row("Létrehozva", field(tax, "created_at")),
+    ..row("Frissítve", field(tax, "updated_at")),
   )
 
   #pagebreak(weak: true)

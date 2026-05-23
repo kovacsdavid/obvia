@@ -23,7 +23,15 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover.tsx";
 import { Button, GlobalError, Input, Label } from "@/components/ui";
-import { Eye, Funnel, MoreHorizontal, Pencil, Plus, Trash } from "lucide-react";
+import {
+    Eye,
+    Funnel,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Trash,
+    Printer,
+} from "lucide-react";
 import {
     SortableTableHead,
     Table,
@@ -38,9 +46,17 @@ import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Paginator } from "@/components/ui/pagination.tsx";
-import { deleteItem, list } from "@/components/modules/products/lib/slice.ts";
+import {
+    deleteItem,
+    list,
+    print,
+} from "@/components/modules/products/lib/slice.ts";
 import { type ProductResolvedList } from "@/components/modules/products/lib/interface.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import {
+    formatDateToYMDHMS,
+    openPopup,
+    updateWindowWithPdfData,
+} from "@/lib/utils.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -125,6 +141,31 @@ export default function List() {
                     refresh();
                 }
             }
+        });
+    };
+
+    const handlePrint = (id: string) => {
+        const handler = openPopup();
+
+        if (!handler) {
+            return;
+        }
+
+        dispatch(print(id)).then((response: unknown) => {
+            if (!print.fulfilled.match(response)) {
+                handler.close();
+                return;
+            }
+
+            if (
+                response.payload.statusCode !== 200 ||
+                !response.payload?.data
+            ) {
+                handler.close();
+                return;
+            }
+
+            updateWindowWithPdfData(handler, response.payload.data);
         });
     };
 
@@ -280,6 +321,14 @@ export default function List() {
                                                         <Pencil /> Szerkesztés
                                                     </DropdownMenuItem>
                                                 </Link>
+                                                <DropdownMenuItem
+                                                    className={"cursor-pointer"}
+                                                    onClick={() =>
+                                                        handlePrint(item.id)
+                                                    }
+                                                >
+                                                    <Printer /> Nyomtatás
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem
                                                     className={"cursor-pointer"}

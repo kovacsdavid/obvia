@@ -20,7 +20,7 @@
 #set page(
   header: grid(
     columns: (1fr, 1fr),
-    align(left)[*Vevő*],
+    align(left)[*Termék*],
     align(right)[https://obvia.hu],
   ),
   numbering: "1/1",
@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let customers = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let products = json(bytes(sys.inputs.at("payload", default: "[]")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,11 +41,11 @@
   inset: 8pt,
 )
 
-#for customer in customers [
+#for product in products [
   #v(0.5cm)
 
   #align(center)[
-    #text(size: 16pt, weight: "bold")[Vevő adatai]
+    #text(size: 16pt, weight: "bold")[Termék adatai]
   ]
 
   #v(0.5cm)
@@ -54,16 +54,14 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(customer, "id")),
-    ..row("Név", field(customer, "name")),
-    ..row("Típus", field(customer, "customer_type")),
-    ..row("Kapcsolattartó neve", field(customer, "contact_name")),
-    ..row("E-mail cím", field(customer, "email")),
-    ..row("Telefonszám", field(customer, "phone_number")),
-    ..row("Státusz", field(customer, "status")),
-    ..row("Létrehozta", field(customer, "created_by")),
-    ..row("Létrehozva", field(customer, "created_at")),
-    ..row("Frissítve", field(customer, "updated_at")),
+    ..row("Azonosító", field(product, "id")),
+    ..row("Név", field(product, "name")),
+    ..row("Leírás", field(product, "description")),
+    ..row("Mértékegység", field(product, "unit_of_measure")),
+    ..row("Státusz", field(product, "status")),
+    ..row("Létrehozta", field(product, "created_by")),
+    ..row("Létrehozva", field(product, "created_at")),
+    ..row("Frissítve", field(product, "updated_at")),
   )
 
   #pagebreak(weak: true)

@@ -21,6 +21,7 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
+use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::GetQuery;
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
@@ -31,6 +32,7 @@ use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use async_trait::async_trait;
+use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -53,6 +55,9 @@ pub enum ProductsServiceError {
 
     #[error("ValueObjectError: {0}")]
     ValueObjectError(#[from] ValueObjectError),
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
 }
 
 #[async_trait]
@@ -219,4 +224,15 @@ pub async fn get_paged_list(
                 .ok_or(ProductsServiceError::Unauthorized)?,
         )
         .await?)
+}
+
+pub async fn print(
+    claims: &Claims,
+    payload: &UuidParam,
+    repo: Arc<dyn ProductsRepository>,
+) -> ProductsServiceResult<Bytes> {
+    Ok(Bytes::from(gen_pdf_temporary(
+        &PdfTemplates::ProductView,
+        &vec![get_resolved_by_id(claims, payload, repo).await?],
+    )?))
 }

@@ -36,6 +36,7 @@ pub fn routes(services_module: Arc<dyn ServicesModule>) -> Router {
             .route("/create", post(handler::create))
             .route("/update", put(handler::update))
             .route("/delete", delete(handler::delete))
+            .route("/print", get(handler::print))
             .layer(from_fn_with_state(services_module.config(), require_auth))
             .with_state(services_module),
     )

@@ -219,7 +219,7 @@ impl TryFrom<TaskUserInputHelper> for TaskUserInput {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Days, Local};
+    use chrono::{Days, Utc};
     use uuid::Uuid;
 
     use super::*;
@@ -229,7 +229,7 @@ mod tests {
         let worksheet_id = Uuid::new_v4();
         let service_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
-        let due_date = Local::now()
+        let due_date = Utc::now()
             .checked_add_days(Days::new(1))
             .unwrap()
             .date_naive();

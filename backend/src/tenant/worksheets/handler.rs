@@ -31,7 +31,7 @@ use crate::tenant::worksheets::service as worksheets_service;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -266,4 +266,31 @@ pub async fn list(
             .await
             .into_response()),
     }
+}
+pub async fn print(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(worksheets_module): State<Arc<dyn WorksheetsModule>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let pdf =
+        match worksheets_service::print(&claims, &payload, worksheets_module.worksheets_repo())
+            .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                return Err(e
+                    .into_friendly_error(worksheets_module)
+                    .await
+                    .into_response());
+            }
+        };
+    let mut headers = HeaderMap::new();
+    headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        format!(r#"inline; filename="{}""#, payload.uuid)
+            .parse()
+            .unwrap(),
+    );
+    Ok((StatusCode::OK, headers, pdf).into_response())
 }

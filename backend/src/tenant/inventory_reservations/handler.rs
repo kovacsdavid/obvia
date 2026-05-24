@@ -23,7 +23,7 @@ use crate::common::dto::{
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::{
@@ -191,7 +191,7 @@ pub async fn list(
     Query(payload): Query<InventoryReservationsRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match inventory_reservations_service::get_paged_list(
-        &GetQuery::<InventoryReservationOrderBy, InventoryReservationFilterBy>::from_str(
+        &ResourceQuery::<InventoryReservationOrderBy, InventoryReservationFilterBy>::from_str(
             payload.q(),
         )
         .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,

@@ -21,7 +21,7 @@ use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
@@ -151,7 +151,7 @@ pub async fn delete(
         .await?)
 }
 pub async fn get_paged_list(
-    get_query: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
+    get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     claims: &Claims,
     repo: Arc<dyn WarehousesRepository>,
 ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {

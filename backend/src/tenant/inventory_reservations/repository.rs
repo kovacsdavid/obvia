@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
@@ -48,7 +48,7 @@ pub trait InventoryReservationsRepository: Send + Sync {
     ) -> RepositoryResult<InventoryReservationResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+        query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>;
@@ -111,7 +111,7 @@ impl InventoryReservationsRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+        query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)> {

@@ -814,7 +814,7 @@ pub async fn refresh(
         }
     };
 
-    let current_refresh_token_record = match auth_module
+    let _ = match auth_module
         .auth_repo()
         .get_refresh_token(current_refresh_token_claims.jti())
         .await

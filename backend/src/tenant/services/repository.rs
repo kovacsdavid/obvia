@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
@@ -45,7 +45,7 @@ pub trait ServicesRepository: Send + Sync + 'static {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
+        query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>;
     async fn insert(
@@ -129,7 +129,7 @@ impl ServicesRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
+        query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)> {
         let total: (i64,) = match (

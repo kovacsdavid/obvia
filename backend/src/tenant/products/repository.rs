@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
@@ -45,7 +45,7 @@ pub trait ProductsRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ProductOrderBy, ProductFilterBy>,
+        query_params: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
     async fn insert(
@@ -130,7 +130,7 @@ impl ProductsRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ProductOrderBy, ProductFilterBy>,
+        query_params: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)> {
         let total: (i64,) = match (

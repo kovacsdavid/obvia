@@ -20,12 +20,12 @@
 use crate::common::config::{
     AppConfig, BasicDatabaseConfig, database_config::DatabasePoolSizeProvider,
 };
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::DdlParameter;
 use crate::common::value_object::ValueObjectRequired;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::{Tenant, UserTenant};
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
@@ -55,7 +55,7 @@ pub trait TenantsRepository: Send + Sync {
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
+        query_params: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)>;
     async fn get_all(&self) -> RepositoryResult<Vec<Tenant>>;
 
@@ -114,7 +114,7 @@ impl TenantsRepository for PgPoolManager {
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
+        query_params: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject

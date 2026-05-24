@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::types::{
@@ -43,7 +43,7 @@ pub trait InventoryMovementsRepository: Send + Sync {
     ) -> RepositoryResult<InventoryMovementResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
+        query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
@@ -110,7 +110,7 @@ impl InventoryMovementsRepository for PgPoolManager {
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
+        query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {

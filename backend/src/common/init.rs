@@ -18,8 +18,8 @@
  */
 
 use crate::common::config::AppConfig;
+use crate::common::database::DatabaseMigrator;
 use crate::common::{ConfigProvider, DefaultAppState};
-use crate::manager::app::database::DatabaseMigrator;
 use anyhow::Result;
 use axum::Router;
 use std::sync::Arc;

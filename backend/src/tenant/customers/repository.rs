@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
@@ -39,9 +39,9 @@ pub trait CustomersRepository: Send + Sync {
         id: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<CustomerResolved>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
-        query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
+        query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn get_select_list_items(
@@ -109,9 +109,9 @@ impl CustomersRepository for PgPoolManager {
         .await?)
     }
 
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
-        query_params: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
+        query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         let total: (i64,) = match (

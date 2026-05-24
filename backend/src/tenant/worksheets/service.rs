@@ -22,7 +22,7 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
@@ -188,7 +188,7 @@ pub async fn delete(
         .await?)
 }
 pub async fn get_paged_list(
-    get_query: &GetQuery<WorksheetOrderBy, WorksheetFilterBy>,
+    get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
     claims: &Claims,
     repo: Arc<dyn WorksheetsRepository>,
 ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {

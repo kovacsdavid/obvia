@@ -20,7 +20,7 @@
 use crate::common::MailTransporter;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::manager::auth::dto::claims::Claims;
@@ -75,7 +75,7 @@ impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
 pub async fn get_all_paged(
-    get_query: &GetQuery<Empty, Empty>,
+    get_query: &ResourceQuery<Empty, Empty>,
     claims: &Claims,
     resource_id: Uuid,
     resource_type: &ValueObjectRequired<ResourceType>,

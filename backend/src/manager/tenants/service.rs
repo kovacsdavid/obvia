@@ -21,8 +21,8 @@ use crate::common::MailTransporter;
 use crate::common::config::{AppConfig, database_config::BasicDatabaseConfig};
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::query_parser::GetQuery;
-use crate::common::services::generate_string_csprng;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::utils::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
@@ -145,7 +145,7 @@ pub async fn create_managed(
 }
 
 pub async fn get_paged_list(
-    get_query: &GetQuery<TenantOrderBy, TenantFilterBy>,
+    get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     claims: &Claims,
     repo: Arc<dyn TenantsRepository>,
 ) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {

@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::register::RegisterRequest;
 use crate::manager::users::model::User;
 use async_trait::async_trait;

@@ -17,10 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
@@ -40,7 +40,7 @@ pub trait TasksRepository: Send + Sync {
     ) -> RepositoryResult<TaskResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
+        query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
     async fn insert(
@@ -111,7 +111,7 @@ impl TasksRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
+        query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
         let total: (i64,) = match (

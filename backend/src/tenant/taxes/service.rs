@@ -22,7 +22,7 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::TaxUserInput;
@@ -181,7 +181,7 @@ pub async fn delete(
         .await?)
 }
 pub async fn get_paged_list(
-    get_query: &GetQuery<TaxOrderBy, TaxFilterBy>,
+    get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     claims: &Claims,
     repo: Arc<dyn TaxesRepository>,
 ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {

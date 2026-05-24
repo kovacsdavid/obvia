@@ -17,12 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use async_trait::async_trait;
@@ -35,7 +35,7 @@ use uuid::Uuid;
 pub trait ActivityFeedRepository: Send + Sync {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<Empty, Empty>,
+        query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
         active_tenant: Uuid,
@@ -46,7 +46,7 @@ pub trait ActivityFeedRepository: Send + Sync {
 impl ActivityFeedRepository for PgPoolManager {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<Empty, Empty>,
+        query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
         active_tenant: Uuid,

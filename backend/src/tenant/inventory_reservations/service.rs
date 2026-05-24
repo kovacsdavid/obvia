@@ -22,7 +22,7 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
@@ -167,7 +167,7 @@ pub async fn delete(
 }
 
 pub async fn get_paged_list(
-    get_query: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+    get_query: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
     claims: &Claims,
     repo: Arc<dyn InventoryReservationsRepository>,
     inventory_id: Uuid,

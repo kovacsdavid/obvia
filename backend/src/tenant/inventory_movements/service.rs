@@ -23,7 +23,7 @@ use crate::common::dto::{PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::dto::claims::Claims;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
@@ -168,7 +168,7 @@ pub async fn delete(
 }
 
 pub async fn get_paged_list(
-    get_query: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
+    get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
     claims: &Claims,
     repo: Arc<dyn InventoryMovementsRepository>,
     inventory_id: Uuid,

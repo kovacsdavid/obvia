@@ -163,7 +163,7 @@ impl Display for ResendEmailValidationError {
 }
 
 impl From<ValueObjectError> for ResendEmailValidationError {
-    fn from(value: ValueObjectError) -> Self {
+    fn from(_: ValueObjectError) -> Self {
         Self::default()
     }
 }

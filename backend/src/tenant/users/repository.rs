@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::error::RepositoryError;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]

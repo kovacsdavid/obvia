@@ -22,7 +22,7 @@ use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::manager::auth::dto::claims::Claims;
@@ -212,7 +212,7 @@ pub async fn delete(
         .await?)
 }
 pub async fn get_paged_list(
-    get_query: &GetQuery<ProductOrderBy, ProductFilterBy>,
+    get_query: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
     claims: &Claims,
     repo: Arc<dyn ProductsRepository>,
 ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {

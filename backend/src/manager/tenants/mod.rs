@@ -17,8 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{ConnectionTester, DatabaseMigrator, PoolManager};
 use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
-use crate::manager::app::database::{ConnectionTester, DatabaseMigrator, PoolManager};
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
 use crate::tenant::users::repository::UsersRepository as TenantUserRepository;

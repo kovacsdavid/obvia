@@ -19,7 +19,7 @@
 
 use crate::common::dto::{HandlerResult, SuccessResponseBuilder};
 use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
@@ -39,7 +39,7 @@ pub async fn list(
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match activity_feed_service::get_all_paged(
-        &GetQuery::<Empty, Empty>::from_str(payload.q())
+        &ResourceQuery::<Empty, Empty>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         payload.resource_id(),

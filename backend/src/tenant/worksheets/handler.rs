@@ -23,7 +23,7 @@ use crate::common::dto::{
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::{WorksheetUserInput, WorksheetUserInputHelper};
@@ -238,7 +238,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match worksheets_service::get_paged_list(
-        &GetQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q())
+        &ResourceQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         worksheets_module.worksheets_repo(),

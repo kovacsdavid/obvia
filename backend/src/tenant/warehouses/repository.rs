@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
@@ -45,7 +45,7 @@ pub trait WarehousesRepository: Send + Sync {
     ) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
+        query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
     async fn insert(
@@ -118,7 +118,7 @@ impl WarehousesRepository for PgPoolManager {
     }
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<WarehouseOrderBy, WarehouseFilterBy>,
+        query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
         active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         let total: (i64,) = match (

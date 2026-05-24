@@ -23,7 +23,7 @@ use crate::common::dto::{
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::UserInput;
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::{WarehouseUserInput, WarehouseUserInputHelper};
@@ -199,7 +199,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match warehouses_service::get_paged_list(
-        &GetQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.q())
+        &ResourceQuery::<WarehouseOrderBy, WarehouseFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         warehouses_module.warehouses_repo(),

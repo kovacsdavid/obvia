@@ -21,7 +21,7 @@ use crate::common::dto::{EmptyType, HandlerResult, SuccessResponseBuilder};
 use crate::common::error::FriendlyError;
 use crate::common::error::IntoFriendlyError;
 use crate::common::extractors::{UserInput, ValidJson};
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
@@ -72,7 +72,7 @@ pub async fn list(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let (meta, data) = match tenants_service::get_paged_list(
-        &GetQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q())
+        &ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q())
             .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
         &claims,
         tenants_module.tenants_repo(),
@@ -151,7 +151,7 @@ pub async fn delete(
 mod tests {
     use super::*;
     use crate::common::config::tests::AppConfigBuilder;
-    use crate::manager::app::database::{MockConnectionTester, MockDatabaseMigrator};
+    use crate::common::database::{MockConnectionTester, MockDatabaseMigrator};
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
     use crate::manager::tenants::dto::NewTokenResponse;

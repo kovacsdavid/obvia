@@ -235,7 +235,7 @@ fn extract_field<'a>(s: &'a str, field: &str) -> &'a str {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct GetQuery<O, F>
+pub struct ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
@@ -245,7 +245,7 @@ where
     filtering: Filtering<F>,
 }
 
-impl<O, F> GetQuery<O, F>
+impl<O, F> ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
@@ -261,14 +261,14 @@ where
     }
 }
 
-impl<O, F> FromStr for GetQuery<O, F>
+impl<O, F> FromStr for ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
 {
     type Err = GetQueryError;
-    fn from_str(s: &str) -> Result<GetQuery<O, F>, Self::Err> {
-        Ok(GetQuery {
+    fn from_str(s: &str) -> Result<ResourceQuery<O, F>, Self::Err> {
+        Ok(ResourceQuery {
             ordering: Ordering::from_str(extract_field(s, "ordering:"))?,
             paging: Paging::from_str(extract_field(s, "paging:"))?,
             filtering: Filtering::from_str(extract_field(s, "filtering:"))?,
@@ -372,7 +372,7 @@ mod tests {
         }
     }
 
-    impl<O, F> GetQuery<O, F>
+    impl<O, F> ResourceQuery<O, F>
     where
         O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
         F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
@@ -419,8 +419,9 @@ mod tests {
     #[test]
     fn test_query_from_str() {
         let test_str = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "test".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Ascending),
@@ -437,8 +438,9 @@ mod tests {
     #[test]
     fn test_query_from_str_different_data() {
         let test_str = "ordering:name-desc paging:3-30 filtering:type-|some type|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -455,8 +457,9 @@ mod tests {
     #[test]
     fn test_query_from_str_different_order() {
         let test_str = "filtering:type-|some type| paging:3-30 ordering:name-desc";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -473,8 +476,9 @@ mod tests {
     #[test]
     fn test_query_from_str_trailing_spaces() {
         let test_str = "     filtering:type-|some type| paging:3-30 ordering:name-desc    ";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -491,9 +495,10 @@ mod tests {
     #[test]
     fn test_query_from_str_defaults() {
         let test_str = "";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,
@@ -510,9 +515,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_1() {
         let test_str = "ordering:name-desc";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -529,9 +535,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_2() {
         let test_str = "paging:3-30";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,
@@ -548,9 +555,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_3() {
         let test_str = "filtering:type-|some type|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,

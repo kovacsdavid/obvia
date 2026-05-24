@@ -22,14 +22,12 @@ use std::sync::Arc;
 use crate::{
     common::{
         config::{AppConfig, BasicDatabaseConfig},
-        error::RepositoryResult,
-    },
-    manager::{
-        app::database::{
+        database::{
             ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
         },
-        tenants::repository::TenantsRepository,
+        error::RepositoryResult,
     },
+    manager::tenants::repository::TenantsRepository,
 };
 use async_trait::async_trait;
 use lettre::message::header::{Subject, To};
@@ -42,15 +40,18 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 pub(crate) mod config;
+pub(crate) mod database;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;
+pub(crate) mod init;
 pub(crate) mod macros;
 pub(crate) mod model;
 pub(crate) mod pdf;
 pub(crate) mod query_parser;
-pub(crate) mod services;
+pub(crate) mod service;
 pub(crate) mod types;
+pub(crate) mod utils;
 pub(crate) mod value_object;
 
 pub trait ConfigProvider: Send + Sync {

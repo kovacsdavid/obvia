@@ -16,7 +16,6 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#![allow(clippy::module_inception)]
 
 pub(crate) mod activity_feed;
 pub(crate) mod address;

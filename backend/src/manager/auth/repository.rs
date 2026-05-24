@@ -19,8 +19,8 @@
 
 use std::net::IpAddr;
 
+use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
 use crate::manager::auth::model::{

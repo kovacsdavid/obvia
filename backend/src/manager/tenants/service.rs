@@ -51,9 +51,6 @@ pub enum TenantsServiceError {
     #[error("Token error: {0}")]
     Token(String),
 
-    #[error("Jelenleg nem elérhető")]
-    CurrentlyNotAvailable,
-
     #[error("rng error")]
     RngError,
 
@@ -68,16 +65,14 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            TenantsServiceError::AccessDenied | TenantsServiceError::CurrentlyNotAvailable => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: TenantsServiceError::AccessDenied.to_string(),
-                    },
-                )
-            }
+            TenantsServiceError::AccessDenied => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: TenantsServiceError::AccessDenied.to_string(),
+                },
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),

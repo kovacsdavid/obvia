@@ -19,7 +19,6 @@
 
 use crate::common::database::{PgPoolManager, PoolManager};
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::auth::dto::register::RegisterRequest;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
@@ -30,12 +29,6 @@ use uuid::Uuid;
 #[async_trait]
 pub trait UsersRepository: Send + Sync {
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError>;
-    async fn insert_user(
-        &self,
-        payload: &RegisterRequest,
-        password_hash: &str,
-    ) -> RepositoryResult<User>;
-    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User>;
     async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
     async fn update_user(&self, user: User) -> RepositoryResult<User>;
 }
@@ -48,35 +41,6 @@ impl UsersRepository for PgPoolManager {
                 .bind(uuid)
                 .fetch_one(&self.get_main_pool())
                 .await?,
-        )
-    }
-    async fn insert_user(
-        &self,
-        payload: &RegisterRequest,
-        password_hash: &str,
-    ) -> RepositoryResult<User> {
-        Ok(sqlx::query_as::<_, User>(
-            "INSERT INTO users (
-                    id, email, password_hash, first_name, last_name, status
-            ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
-        )
-        .bind(Uuid::new_v4())
-        .bind(payload.email.as_str()?)
-        .bind(password_hash)
-        .bind(payload.first_name.as_str()?)
-        .bind(payload.last_name.as_str()?)
-        .fetch_one(&self.get_main_pool())
-        .await?)
-    }
-
-    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User> {
-        Ok(
-            sqlx::query_as::<_, User>(
-                "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
-            )
-            .bind(email)
-            .fetch_one(&self.get_main_pool())
-            .await?,
         )
     }
 

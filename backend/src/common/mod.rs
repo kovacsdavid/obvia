@@ -22,9 +22,7 @@ use std::sync::Arc;
 use crate::{
     common::{
         config::{AppConfig, BasicDatabaseConfig},
-        database::{
-            ConnectionTester, DatabaseMigrator, PgConnectionTester, PgPoolManager, PoolManager,
-        },
+        database::{DatabaseMigrator, PgPoolManager, PoolManager},
         error::RepositoryResult,
     },
     manager::tenants::repository::TenantsRepository,
@@ -72,7 +70,6 @@ where
     pub default_smtp_transport: Arc<T>,
     pub pool_manager: Arc<P>,
     pub migrator: Arc<dyn DatabaseMigrator>,
-    pub connection_tester: Arc<dyn ConnectionTester>,
 }
 
 pub type DefaultSmtpTransport = AsyncSmtpTransport<Tokio1Executor>;
@@ -99,7 +96,6 @@ impl DefaultAppState {
             default_smtp_transport: Arc::new(Self::init_smpt_transport(config.clone())?),
             pool_manager: pool_manager.clone(),
             migrator: pool_manager.clone(),
-            connection_tester: Arc::new(PgConnectionTester),
         })
     }
     pub async fn init_tenant_pools(&self) -> anyhow::Result<()> {

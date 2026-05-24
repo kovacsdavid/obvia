@@ -151,7 +151,7 @@ pub async fn delete(
 mod tests {
     use super::*;
     use crate::common::config::tests::AppConfigBuilder;
-    use crate::common::database::{MockConnectionTester, MockDatabaseMigrator};
+    use crate::common::database::MockDatabaseMigrator;
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
     use crate::manager::tenants::dto::NewTokenResponse;
@@ -237,8 +237,6 @@ mod tests {
             .times(1)
             .returning(|_| Ok(()));
 
-        let connection_tester = MockConnectionTester::new();
-
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
@@ -276,7 +274,6 @@ mod tests {
         let tenant_user_repo = Arc::new(tenant_user_repo);
         let manager_user_repo = Arc::new(manager_user_repo);
         let migrator = Arc::new(migrator);
-        let connection_tester = Arc::new(connection_tester);
 
         let mut tenants_module = MockTenantsModule::new();
         tenants_module
@@ -294,9 +291,6 @@ mod tests {
         tenants_module
             .expect_migrator()
             .returning(move || migrator.clone());
-        tenants_module
-            .expect_connection_tester()
-            .returning(move || connection_tester.clone());
         tenants_module
             .expect_add_tenant_pool()
             .times(1)
@@ -371,8 +365,6 @@ mod tests {
             .times(0)
             .returning(|_| Ok(()));
 
-        let connection_tester = MockConnectionTester::new();
-
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
         let payload = serde_json::to_string(&CreateTenantHelper {
@@ -408,7 +400,6 @@ mod tests {
 
         let repo = Arc::new(repo);
         let migrator = Arc::new(migrator);
-        let connection_tester = Arc::new(connection_tester);
 
         let mut tenants_module = MockTenantsModule::new();
         tenants_module
@@ -420,9 +411,6 @@ mod tests {
         tenants_module
             .expect_migrator()
             .returning(move || migrator.clone());
-        tenants_module
-            .expect_connection_tester()
-            .returning(move || connection_tester.clone());
 
         let app = Router::new().nest(
             "/api",
@@ -461,8 +449,6 @@ mod tests {
             });
 
         let migrator = MockDatabaseMigrator::new();
-
-        let connection_tester = MockConnectionTester::new();
 
         let config = Arc::new(AppConfigBuilder::default().build().unwrap());
 
@@ -503,7 +489,6 @@ mod tests {
 
         let repo = Arc::new(repo);
         let migrator = Arc::new(migrator);
-        let connection_tester = Arc::new(connection_tester);
         let config_clone = config.clone();
 
         let mut tenants_module = MockTenantsModule::new();
@@ -516,9 +501,6 @@ mod tests {
         tenants_module
             .expect_migrator()
             .returning(move || migrator.clone());
-        tenants_module
-            .expect_connection_tester()
-            .returning(move || connection_tester.clone());
 
         let app = Router::new().nest(
             "/api",

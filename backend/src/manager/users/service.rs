@@ -39,9 +39,6 @@ pub enum UsersServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
 
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
     #[error("MfaToken error: {0}")]
     MfaToken(String),
 
@@ -65,8 +62,7 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
         module: Arc<dyn MailTransporter>,
     ) -> FriendlyError<GeneralError> {
         match self {
-            UsersServiceError::Unauthorized
-            | UsersServiceError::InvalidMfaToken
+            UsersServiceError::InvalidMfaToken
             | UsersServiceError::TooManyAttempts(_)
             | UsersServiceError::MfaAlreadyActive => FriendlyError::user_facing(
                 Level::DEBUG,

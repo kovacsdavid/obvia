@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{ConnectionTester, DatabaseMigrator, PoolManager};
+use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
@@ -37,7 +37,6 @@ pub trait TenantsModule: PoolManager + ConfigProvider + MailTransporter + Send +
     fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository>;
     fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository>;
     fn migrator(&self) -> Arc<dyn DatabaseMigrator>;
-    fn connection_tester(&self) -> Arc<dyn ConnectionTester>;
 }
 
 impl TenantsModule for DefaultAppState {
@@ -52,9 +51,6 @@ impl TenantsModule for DefaultAppState {
     }
     fn migrator(&self) -> Arc<dyn DatabaseMigrator> {
         self.migrator.clone()
-    }
-    fn connection_tester(&self) -> Arc<dyn ConnectionTester> {
-        self.connection_tester.clone()
     }
 }
 #[cfg(test)]
@@ -101,7 +97,6 @@ pub mod tests {
             fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository>;
             fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository>;
             fn migrator(&self) -> Arc<dyn DatabaseMigrator>;
-            fn connection_tester(&self) -> Arc<dyn ConnectionTester>;
         }
     );
 }

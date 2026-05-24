@@ -76,7 +76,6 @@ pub trait AuthRepository: Send + Sync {
     async fn insert_refresh_token(&self, claims: &Claims) -> RepositoryResult<RefreshToken>;
     async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken>;
     async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()>;
-    async fn revoke_refresh_token_by_jti(&self, jti: Uuid) -> RepositoryResult<()>;
     async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()>;
     async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()>;
     #[allow(clippy::too_many_arguments)]
@@ -327,15 +326,6 @@ impl AuthRepository for PgPoolManager {
             "UPDATE refresh_tokens SET consumed_at = NOW(), replaced_by = $1 WHERE jti = $2 AND consumed_at IS NULL",
         )
         .bind(new_jti)
-        .bind(jti)
-        .execute(&self.get_main_pool())
-        .await?;
-        Ok(())
-    }
-    async fn revoke_refresh_token_by_jti(&self, jti: Uuid) -> RepositoryResult<()> {
-        sqlx::query(
-            "UPDATE refresh_tokens SET revoked_at = NOW() WHERE jti = $1 AND revoked_at IS NULL",
-        )
         .bind(jti)
         .execute(&self.get_main_pool())
         .await?;

@@ -17,14 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{HandlerResult, SuccessResponseBuilder};
-use crate::common::error::{FriendlyError, IntoFriendlyError};
+use crate::common::dto::SuccessResponseBuilder;
+use crate::common::error::FriendlyError;
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
-use crate::tenant::activity_feed::service as activity_feed_service;
+use crate::tenant::activity_feed::service::ActivityFeedService;
 use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
@@ -38,37 +39,32 @@ pub async fn list(
     State(activity_feed_module): State<Arc<dyn ActivityFeedModule>>,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match activity_feed_service::get_all_paged(
-        &ResourceQuery::<Empty, Empty>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        payload.resource_id(),
-        &payload
-            .resource_type()
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        activity_feed_module.activity_feed_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(activity_feed_module)
-                .await
-                .into_response());
-        }
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), activity_feed_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<Empty, Empty>::from_str(payload.q()))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(
+            service
+                .get_all_paged(
+                    &resource_query,
+                    payload.resource_id(),
+                    &payload.resource_type().map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                )
+                .await,
+        )
+        .await?;
 
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(activity_feed_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }

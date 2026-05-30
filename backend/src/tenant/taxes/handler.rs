@@ -17,17 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{
-    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
-};
-use crate::common::error::FriendlyError;
-use crate::common::error::IntoFriendlyError;
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::{TaxUserInput, TaxUserInputHelper};
-use crate::tenant::taxes::service as taxes_service;
+use crate::tenant::taxes::service::TaxService;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,20 +40,19 @@ pub async fn get_resolved(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result =
-        match taxes_service::get_resolved_by_id(&claims, &payload, taxes_module.taxes_repo()).await
-        {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let result = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -65,18 +61,19 @@ pub async fn get(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match taxes_service::get(&claims, &payload, taxes_module.taxes_repo()).await {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let result = error_mapper
+        .or_handler_error(service.get(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -85,19 +82,19 @@ pub async fn create(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let result = match taxes_service::create(&claims, &user_input, taxes_module.taxes_repo()).await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let result = error_mapper
+        .or_handler_error(service.insert(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -106,19 +103,19 @@ pub async fn update(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
-    let result = match taxes_service::update(&claims, &user_input, taxes_module.taxes_repo()).await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let result = error_mapper
+        .or_handler_error(service.update(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -127,21 +124,21 @@ pub async fn delete(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match taxes_service::delete(&claims, &payload, taxes_module.taxes_repo()).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "Az adó törlése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    error_mapper
+        .or_handler_error(service.delete(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "Az adó törlése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -150,27 +147,25 @@ pub async fn list(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match taxes_service::get_paged_list(
-        &ResourceQuery::<TaxOrderBy, TaxFilterBy>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        taxes_module.taxes_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-    };
-
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<TaxOrderBy, TaxFilterBy>::from_str(
+            payload.q(),
+        ))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(service.get_paged(&resource_query).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -179,37 +174,37 @@ pub async fn select_list(
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
-    let result =
-        match taxes_service::get_select_list_items(&list_type, &claims, taxes_module.clone()).await
-        {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(taxes_module).await.into_response()),
-        };
+    let result = error_mapper
+        .or_handler_error(service.get_select_list_items(&list_type).await)
+        .await?;
 
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(taxes_module).await.into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 pub async fn print(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<dyn TaxesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let pdf = match taxes_service::print(&claims, &payload, taxes_module.taxes_repo()).await {
-        Ok(p) => p,
-        Err(e) => {
-            return Err(e.into_friendly_error(taxes_module).await.into_response());
-        }
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), taxes_module);
+    let tax_resolved = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    let pdf = error_mapper
+        .or_handler_error(service.print(&[tax_resolved]).await)
+        .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

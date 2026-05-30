@@ -42,6 +42,7 @@ pub(crate) mod database;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;
+pub(crate) mod handler;
 pub(crate) mod init;
 pub(crate) mod macros;
 pub(crate) mod model;

@@ -25,7 +25,6 @@ use crate::common::{
     dto::{ErrorResponse, FormError, GeneralError},
     value_object::ValueObjectError,
 };
-use async_trait::async_trait;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -65,11 +64,10 @@ where
     pub fn internal(loc: &str, body: T) -> Self {
         Self::Internal(loc.to_string(), body).trace(Level::ERROR)
     }
-    pub async fn internal_with_admin_notify(
-        loc: &str,
-        body: T,
-        mailer: Arc<dyn MailTransporter>,
-    ) -> Self {
+    pub async fn internal_with_admin_notify<H>(loc: &str, body: T, mailer: Arc<H>) -> Self
+    where
+        H: MailTransporter + ?Sized,
+    {
         let fe = Self::Internal(loc.to_string(), body).trace(Level::ERROR);
 
         if let Err(e) = fe.notify_admin(mailer).await {
@@ -145,7 +143,10 @@ where
         }
         self
     }
-    async fn notify_admin(&self, module: Arc<dyn MailTransporter>) -> Result<(), String> {
+    async fn notify_admin<H>(&self, module: Arc<H>) -> Result<(), String>
+    where
+        H: MailTransporter + ?Sized,
+    {
         if let FriendlyError::Internal(loc, body) = &self {
             let handlebars = Handlebars::new();
             let email = Message::builder()
@@ -239,12 +240,12 @@ pub trait FormErrorResponse: Serialize + Display {
     }
 }
 
-#[async_trait]
-pub trait IntoFriendlyError<T>
+pub trait IntoFriendlyError<T, H>
 where
     T: Serialize + Display,
+    H: ?Sized + MailTransporter,
 {
-    async fn into_friendly_error(self, mailer: Arc<dyn MailTransporter>) -> FriendlyError<T>;
+    async fn into_friendly_error(self, mailer: Arc<H>) -> FriendlyError<T>;
 }
 
 #[derive(Debug, Error)]
@@ -306,12 +307,11 @@ pub enum BuilderError {
     MissingRequired(&'static str),
 }
 
-#[async_trait]
-impl IntoFriendlyError<BuilderError> for BuilderError {
-    async fn into_friendly_error(
-        self,
-        mailer: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<BuilderError> {
+impl<H> IntoFriendlyError<BuilderError, H> for BuilderError
+where
+    H: ?Sized + MailTransporter,
+{
+    async fn into_friendly_error(self, mailer: Arc<H>) -> FriendlyError<BuilderError> {
         FriendlyError::internal_with_admin_notify(file!(), self, mailer).await
     }
 }

@@ -19,25 +19,52 @@
 
 #![allow(dead_code)]
 use serde::Deserialize;
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr, sync::Arc};
 use thiserror::Error;
 
-use crate::common::value_object::*;
+use crate::common::{
+    MailTransporter,
+    dto::GeneralError,
+    error::{FriendlyError, IntoFriendlyError},
+    value_object::*,
+};
 
 #[derive(Error, Debug, PartialEq)]
-pub enum GetQueryError {
+pub enum ResourceQueryError {
     #[error("{0}")]
-    InvalidInput(String),
+    InvalidInput(&'static str),
 
     #[error("Unexpected QueryError: {0}")]
     Custom(String),
 }
 
-impl From<ValueObjectError> for GetQueryError {
+impl From<ValueObjectError> for ResourceQueryError {
     fn from(value: ValueObjectError) -> Self {
         match value {
-            ValueObjectError::InvalidInput(e) => GetQueryError::InvalidInput(e.to_string()),
-            _ => GetQueryError::Custom(value.to_string()),
+            ValueObjectError::InvalidInput(e) => ResourceQueryError::InvalidInput(e),
+            _ => ResourceQueryError::Custom(value.to_string()),
+        }
+    }
+}
+
+impl<H> IntoFriendlyError<GeneralError, H> for ResourceQueryError
+where
+    H: MailTransporter + ?Sized,
+{
+    async fn into_friendly_error(self, _: Arc<H>) -> FriendlyError<GeneralError> {
+        match self {
+            ResourceQueryError::InvalidInput(e) => FriendlyError::internal(
+                file!(),
+                GeneralError {
+                    message: e.to_string(),
+                },
+            ),
+            ResourceQueryError::Custom(e) => FriendlyError::internal(
+                file!(),
+                GeneralError {
+                    message: e.to_string(),
+                },
+            ),
         }
     }
 }
@@ -49,12 +76,12 @@ pub enum Order {
 }
 
 impl FromStr for Order {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "asc" => Order::Ascending,
             "desc" => Order::Descending,
-            _ => return Err(GetQueryError::InvalidInput("ordering".to_string())),
+            _ => return Err(ResourceQueryError::InvalidInput("ordering")),
         })
     }
 }
@@ -95,7 +122,7 @@ impl<T> FromStr for Ordering<T>
 where
     T: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Ordering<T>, Self::Err> {
         let collection: Vec<String> = s
             .replace("ordering:", "")
@@ -135,7 +162,7 @@ impl Paging {
 }
 
 impl FromStr for Paging {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let collection: Vec<String> = s
             .replace("paging:", "")
@@ -145,10 +172,10 @@ impl FromStr for Paging {
         if collection.len() == 2 {
             let page = collection[0]
                 .parse::<u64>()
-                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| ResourceQueryError::InvalidInput("paging"))?;
             let limit = collection[1]
                 .parse::<u64>()
-                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| ResourceQueryError::InvalidInput("paging"))?;
             Ok(Self {
                 page: Some(page),
                 limit: Some(limit),
@@ -189,7 +216,7 @@ impl<F> FromStr for Filtering<F>
 where
     F: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Filtering<F>, Self::Err> {
         let collection: Vec<String> = s
             .replace("filtering:", "")
@@ -266,7 +293,7 @@ where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<ResourceQuery<O, F>, Self::Err> {
         Ok(ResourceQuery {
             ordering: Ordering::from_str(extract_field(s, "ordering:"))?,

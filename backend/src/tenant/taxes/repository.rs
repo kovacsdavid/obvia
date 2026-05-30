@@ -50,11 +50,11 @@ pub trait TaxesRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)>;
     async fn insert(
         &self,
-        tax: TaxUserInput,
+        tax: &TaxUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Tax>;
-    async fn update(&self, tax: TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax>;
+    async fn update(&self, tax: &TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax>;
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
 }
 
@@ -252,7 +252,7 @@ impl TaxesRepository for PgPoolManager {
     }
     async fn insert(
         &self,
-        tax: TaxUserInput,
+        tax: &TaxUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<Tax> {
@@ -289,7 +289,7 @@ impl TaxesRepository for PgPoolManager {
         .await?)
     }
 
-    async fn update(&self, tax: TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax> {
+    async fn update(&self, tax: &TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax> {
         let id = tax
             .id
             .as_uuid()

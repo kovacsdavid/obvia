@@ -18,10 +18,10 @@
  */
 
 use super::UsersModule;
-use super::service as users_service;
-use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
-use crate::common::error::IntoFriendlyError;
+use super::service::UserService;
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use axum::{debug_handler, extract::State, http::StatusCode, response::IntoResponse};
@@ -32,14 +32,16 @@ pub async fn get_claims(
     State(users_module): State<Arc<dyn UsersModule>>,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(claims)
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(service.claims().expect("invalid state"))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -48,20 +50,19 @@ pub async fn otp_enable(
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
-    let response =
-        match users_service::otp_enable(users_module.clone(), &claims, &client_context).await {
-            Ok(v) => v,
-            Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
-        };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(response)
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    let response = error_mapper
+        .or_handler_error(service.otp_enable(&client_context).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(response)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -71,23 +72,22 @@ pub async fn otp_verify(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    match users_service::otp_verify(users_module.clone(), &claims, &user_input, &client_context)
-        .await
-    {
-        Ok(v) => v,
-        Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    error_mapper
+        .or_handler_error(service.otp_verify(&user_input, &client_context).await)
+        .await?;
 
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A kétlépcsős azonosítás aktiválása megtörtént!",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A kétlépcsős azonosítás aktiválása megtörtént!",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -97,21 +97,20 @@ pub async fn otp_disable(
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    match users_service::otp_disable(users_module.clone(), &claims, &user_input, &client_context)
-        .await
-    {
-        Ok(v) => v,
-        Err(e) => return Err(e.into_friendly_error(users_module).await.into_response()),
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    error_mapper
+        .or_handler_error(service.otp_disable(&user_input, &client_context).await)
+        .await?;
 
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A kétlépcsős azonosítás kikapcsolása megtörtént!",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(users_module).await.into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A kétlépcsős azonosítás kikapcsolása megtörtént!",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }

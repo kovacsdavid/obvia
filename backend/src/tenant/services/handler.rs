@@ -17,17 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{
-    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
-};
-use crate::common::error::FriendlyError;
-use crate::common::error::IntoFriendlyError;
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::{ServiceUserInput, ServiceUserInputHelper};
-use crate::tenant::services::service as services_service;
+use crate::tenant::services::service::ServiceService;
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,24 +40,19 @@ pub async fn get_resolved(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match services_service::get_resolved_by_id(
-        &claims,
-        &payload,
-        services_module.services_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let result = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -69,19 +61,19 @@ pub async fn get(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result =
-        match services_service::get(&claims, &payload, services_module.services_repo()).await {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let result = error_mapper
+        .or_handler_error(service.get(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -90,20 +82,19 @@ pub async fn create(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result =
-        match services_service::create(&claims, &user_input, services_module.services_repo()).await
-        {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let result = error_mapper
+        .or_handler_error(service.insert(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -112,20 +103,19 @@ pub async fn update(
     State(services_module): State<Arc<dyn ServicesModule>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let result =
-        match services_service::update(&claims, &user_input, services_module.services_repo()).await
-        {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let result = error_mapper
+        .or_handler_error(service.update(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -134,21 +124,21 @@ pub async fn delete(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match services_service::delete(&claims, &payload, services_module.services_repo()).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-    };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A szolgáltatás törlése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    error_mapper
+        .or_handler_error(service.delete(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A szolgáltatás törlése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -157,27 +147,25 @@ pub async fn list(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match services_service::get_paged_list(
-        &ResourceQuery::<ServiceOrderBy, ServiceFilterBy>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        services_module.services_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-    };
-
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<ServiceOrderBy, ServiceFilterBy>::from_str(
+            payload.q(),
+        ))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(service.get_paged(&resource_query).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -186,27 +174,24 @@ pub async fn select_list(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result =
-        match services_service::get_select_list_items(&list_type, &claims, services_module.clone())
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(services_module).await.into_response()),
-        };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(services_module).await.into_response()),
-    }
+    let result = error_mapper
+        .or_handler_error(service.get_select_list_items(&list_type).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 pub async fn print(
@@ -214,13 +199,13 @@ pub async fn print(
     State(services_module): State<Arc<dyn ServicesModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let pdf =
-        match services_service::print(&claims, &payload, services_module.services_repo()).await {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(e.into_friendly_error(services_module).await.into_response());
-            }
-        };
+    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service_resolved = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    let pdf = error_mapper
+        .or_handler_error(service.print(&[service_resolved]).await)
+        .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

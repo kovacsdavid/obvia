@@ -18,24 +18,23 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::ServiceUserInput;
-use crate::tenant::services::model::{Service, ServiceResolved};
-use crate::tenant::services::repository::ServicesRepository;
+use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum ServicesServiceError {
@@ -55,12 +54,19 @@ pub enum ServicesServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for ServicesServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for ServicesServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => ServicesServiceError::Unauthorized,
+        }
+    }
+}
+
+impl<H> IntoFriendlyError<GeneralError, H> for ServicesServiceError
+where
+    H: MailTransporter + ?Sized,
+{
+    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
         match self {
             ServicesServiceError::Unauthorized | ServicesServiceError::ServiceExists => {
                 FriendlyError::user_facing(
@@ -105,129 +111,144 @@ impl FromStr for ServicesSelectLists {
 
 type ServicesServiceResult<T> = Result<T, ServicesServiceError>;
 
-pub async fn create(
-    claims: &Claims,
-    payload: &ServiceUserInput,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<Service> {
-    repo.insert(
-        payload,
-        claims.sub(),
-        claims
-            .active_tenant()
-            .ok_or(ServicesServiceError::Unauthorized)?,
-    )
-    .await
-    .map_err(|e| {
-        if e.is_unique_violation() {
-            ServicesServiceError::ServiceExists
-        } else {
-            e.into()
-        }
-    })
-}
-pub async fn get_resolved_by_id(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<ServiceResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<Service> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn update(
-    claims: &Claims,
-    payload: &ServiceUserInput,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<Service> {
-    Ok(repo
-        .update(
-            payload,
-            claims
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_paged_list(
-    get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_select_list_items(
-    select_list: &str,
-    claims: &Claims,
-    services_module: Arc<dyn ServicesModule>,
-) -> ServicesServiceResult<Vec<SelectOption>> {
-    match ServicesSelectLists::from_str(select_list)? {
-        ServicesSelectLists::Currencies => Ok(services_module
-            .currencies_repo()
-            .get_all_countries_select_list_items(
-                claims
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?),
-        ServicesSelectLists::Taxes => Ok(services_module
-            .taxes_repo()
-            .get_select_list_items(
-                claims
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?),
-    }
+pub trait ServiceService {
+    async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel>;
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> ServicesServiceResult<Vec<SelectOption>>;
+    async fn get_resolved(&self, payload: Uuid) -> ServicesServiceResult<ServiceResolved>;
+    async fn get(&self, payload: Uuid) -> ServicesServiceResult<ServiceModel>;
+    async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel>;
+    async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()>;
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
+    ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)>;
+    async fn print(&self, payload: &[ServiceResolved]) -> ServicesServiceResult<Bytes>;
 }
 
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn ServicesRepository>,
-) -> ServicesServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::ServiceView,
-        &vec![get_resolved_by_id(claims, payload, repo).await?],
-    )?))
+impl<'a, T> ServiceService for Service<'a, T>
+where
+    T: ServicesModule + ?Sized,
+{
+    async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
+        self.module()
+            .services_repo()
+            .insert(
+                payload,
+                self.claims()?.sub(),
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    ServicesServiceError::ServiceExists
+                } else {
+                    e.into()
+                }
+            })
+    }
+
+    async fn get_resolved(&self, payload: Uuid) -> ServicesServiceResult<ServiceResolved> {
+        Ok(self
+            .module()
+            .services_repo()
+            .get_resolved_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get(&self, payload: Uuid) -> ServicesServiceResult<ServiceModel> {
+        Ok(self
+            .module()
+            .services_repo()
+            .get_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
+        Ok(self
+            .module()
+            .services_repo()
+            .update(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()> {
+        Ok(self
+            .module()
+            .services_repo()
+            .delete_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
+    ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
+        Ok(self
+            .module()
+            .services_repo()
+            .get_all_paged(
+                get_query,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> ServicesServiceResult<Vec<SelectOption>> {
+        match ServicesSelectLists::from_str(select_list)? {
+            ServicesSelectLists::Currencies => Ok(self
+                .module()
+                .currencies_repo()
+                .get_all_countries_select_list_items(
+                    self.claims()?
+                        .active_tenant()
+                        .ok_or(ServicesServiceError::Unauthorized)?,
+                )
+                .await?),
+            ServicesSelectLists::Taxes => Ok(self
+                .module()
+                .taxes_repo()
+                .get_select_list_items(
+                    self.claims()?
+                        .active_tenant()
+                        .ok_or(ServicesServiceError::Unauthorized)?,
+                )
+                .await?),
+        }
+    }
+
+    async fn print(&self, payload: &[ServiceResolved]) -> ServicesServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::ServiceView,
+            &payload,
+        )?))
+    }
 }

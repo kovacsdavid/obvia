@@ -17,13 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{EmptyType, HandlerResult, SuccessResponseBuilder};
-use crate::common::error::IntoFriendlyError;
+use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::UserInput;
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
-use crate::tenant::comments::service as comments_service;
+use crate::tenant::comments::service::CommentService;
 use axum::debug_handler;
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -36,19 +36,17 @@ pub async fn post(
     State(comments_module): State<Arc<dyn CommentsModule>>,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
-    let result =
-        match comments_service::post(&claims, &user_input, comments_module.comments_repo()).await {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(e.into_friendly_error(comments_module).await.into_response());
-            }
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(comments_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), comments_module);
+    let result = error_mapper
+        .or_handler_error(service.post(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }

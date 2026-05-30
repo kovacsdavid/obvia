@@ -27,7 +27,6 @@ use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -58,12 +57,11 @@ impl From<ServiceError> for CustomersServiceError {
     }
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for CustomersServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl<H> IntoFriendlyError<GeneralError, H> for CustomersServiceError
+where
+    H: MailTransporter + ?Sized,
+{
+    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
         match self {
             CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
                 FriendlyError::user_facing(
@@ -156,7 +154,7 @@ where
             .module()
             .customers_repo()
             .update(
-                payload.clone(),
+                payload,
                 self.claims()?
                     .active_tenant()
                     .ok_or(CustomersServiceError::Unauthorized)?,

@@ -18,24 +18,23 @@
  */
 
 use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
-use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum WorksheetsServiceError {
@@ -52,12 +51,19 @@ pub enum WorksheetsServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for WorksheetsServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for WorksheetsServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => WorksheetsServiceError::Unauthorized,
+        }
+    }
+}
+
+impl<H> IntoFriendlyError<GeneralError, H> for WorksheetsServiceError
+where
+    H: MailTransporter + ?Sized,
+{
+    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
         match self {
             WorksheetsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -98,117 +104,129 @@ impl FromStr for WorksheetsSelectLists {
     }
 }
 
-pub async fn create(
-    claims: &Claims,
-    payload: &WorksheetUserInput,
-    worksheets_module: Arc<dyn WorksheetsModule>,
-) -> WorksheetsServiceResult<Worksheet> {
-    Ok(worksheets_module
-        .worksheets_repo()
-        .insert(
-            payload.clone(),
-            claims.sub(),
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_select_list_items(
-    select_list: &str,
-    claims: &Claims,
-    worksheets_module: Arc<dyn WorksheetsModule>,
-) -> WorksheetsServiceResult<Vec<SelectOption>> {
-    let active_tenant = claims
-        .active_tenant()
-        .ok_or(WorksheetsServiceError::Unauthorized)?;
-    Ok(match WorksheetsSelectLists::from_str(select_list)? {
-        WorksheetsSelectLists::Customers => {
-            worksheets_module
-                .customers_repo()
-                .get_select_list_items(active_tenant)
-                .await?
-        }
-    })
-}
-pub async fn get_resolved_by_id(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<WorksheetResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<Worksheet> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn update(
-    claims: &Claims,
-    payload: &WorksheetUserInput,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<Worksheet> {
-    Ok(repo
-        .update(
-            payload.clone(),
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_paged_list(
-    get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(WorksheetsServiceError::Unauthorized)?,
-        )
-        .await?)
+pub trait WorksheetService {
+    async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet>;
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> WorksheetsServiceResult<Vec<SelectOption>>;
+    async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved>;
+    async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet>;
+    async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet>;
+    async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()>;
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
+    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
+    async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes>;
 }
 
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn WorksheetsRepository>,
-) -> WorksheetsServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::WorksheetView,
-        &vec![get_resolved_by_id(claims, payload, repo).await?],
-    )?))
+impl<'a, T> WorksheetService for Service<'a, T>
+where
+    T: WorksheetsModule + ?Sized,
+{
+    async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .insert(
+                payload.clone(),
+                self.claims()?.sub(),
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> WorksheetsServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(WorksheetsServiceError::Unauthorized)?;
+        Ok(match WorksheetsSelectLists::from_str(select_list)? {
+            WorksheetsSelectLists::Customers => {
+                self.module()
+                    .customers_repo()
+                    .get_select_list_items(active_tenant)
+                    .await?
+            }
+        })
+    }
+    async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .get_resolved_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .get_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .update(
+                payload.clone(),
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+    async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .delete_by_id(
+                payload,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
+    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
+        Ok(self
+            .module()
+            .worksheets_repo()
+            .get_all_paged(
+                get_query,
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+            )
+            .await?)
+    }
+
+    async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::WorksheetView,
+            &payload,
+        )?))
+    }
 }

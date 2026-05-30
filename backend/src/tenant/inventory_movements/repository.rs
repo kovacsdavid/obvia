@@ -49,7 +49,7 @@ pub trait InventoryMovementsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
     async fn insert(
         &self,
-        input: InventoryMovementUserInput,
+        input: &InventoryMovementUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement>;
@@ -242,7 +242,7 @@ impl InventoryMovementsRepository for PgPoolManager {
 
     async fn insert(
         &self,
-        input: InventoryMovementUserInput,
+        input: &InventoryMovementUserInput,
         sub: Uuid,
         active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement> {

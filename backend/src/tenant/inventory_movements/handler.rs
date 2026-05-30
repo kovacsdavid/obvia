@@ -17,19 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{
-    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
-};
-use crate::common::error::FriendlyError;
-use crate::common::error::IntoFriendlyError;
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::common::query_parser::ResourceQuery;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::{
     InventoryMovementUserInput, InventoryMovementUserInputHelper, InventoryMovementsRawQuery,
 };
-use crate::tenant::inventory_movements::service as inventory_movements_service;
+use crate::tenant::inventory_movements::service::InventoryMovementService;
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
@@ -47,32 +44,19 @@ pub async fn get(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match inventory_movements_service::get(
-        &claims,
-        &payload,
-        inventory_movements_module.inventory_movements_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    let result = error_mapper
+        .or_handler_error(service.get(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -81,32 +65,19 @@ pub async fn get_resolved(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match inventory_movements_service::get_resolved_by_id(
-        &claims,
-        &payload,
-        inventory_movements_module.inventory_movements_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    let result = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -118,32 +89,19 @@ pub async fn create(
         InventoryMovementUserInputHelper,
     >,
 ) -> HandlerResult {
-    let result = match inventory_movements_service::create(
-        &claims,
-        &user_input,
-        inventory_movements_module.inventory_movements_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    let result = error_mapper
+        .or_handler_error(service.insert(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -152,35 +110,22 @@ pub async fn delete(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match inventory_movements_service::delete(
-        &claims,
-        &payload,
-        inventory_movements_module.inventory_movements_repo(),
-    )
-    .await
-    {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    error_mapper
+        .or_handler_error(service.delete(payload.uuid).await)
+        .await?;
 
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A készletmozgás törlése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A készletmozgás törlése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[debug_handler]
@@ -189,38 +134,31 @@ pub async fn list(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match inventory_movements_service::get_paged_list(
-        &ResourceQuery::<InventoryMovementOrderBy, InventoryMovementFilterBy>::from_str(
-            payload.q(),
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<
+            InventoryMovementOrderBy,
+            InventoryMovementFilterBy,
+        >::from_str(payload.q()))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(
+            service
+                .get_paged(&resource_query, payload.inventory_id())
+                .await,
         )
-        .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        inventory_movements_module.inventory_movements_repo(),
-        payload.inventory_id(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
+        .await?;
 
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 pub async fn select_list(
@@ -228,59 +166,37 @@ pub async fn select_list(
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
+    let result = error_mapper
+        .or_handler_error(service.get_select_list_items(&list_type).await)
+        .await?;
 
-    let result = match inventory_movements_service::get_select_list_items(
-        &list_type,
-        &claims,
-        inventory_movements_module.clone(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(inventory_movements_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 pub async fn print(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<dyn InventoryMovementsModule>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let pdf = match inventory_movements_service::print(
-        &claims,
-        &payload,
-        inventory_movements_module.inventory_movements_repo(),
-    )
-    .await
-    {
-        Ok(p) => p,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(inventory_movements_module)
-                .await
-                .into_response());
-        }
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), inventory_movements_module);
+    let inventory_movements_resolved = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    let pdf = error_mapper
+        .or_handler_error(service.print(&[inventory_movements_resolved]).await)
+        .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

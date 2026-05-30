@@ -56,7 +56,7 @@ pub trait CustomersRepository: Send + Sync {
     ) -> RepositoryResult<Customer>;
     async fn update(
         &self,
-        customer: CustomerUserInput,
+        customer: &CustomerUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer>;
     async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
@@ -268,7 +268,7 @@ impl CustomersRepository for PgPoolManager {
 
     async fn update(
         &self,
-        customer: CustomerUserInput,
+        customer: &CustomerUserInput,
         active_tenant: Uuid,
     ) -> RepositoryResult<Customer> {
         let contact_name = match &customer.contact_name {

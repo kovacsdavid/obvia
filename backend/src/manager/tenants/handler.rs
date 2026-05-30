@@ -17,17 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{EmptyType, HandlerResult, SuccessResponseBuilder};
-use crate::common::error::FriendlyError;
-use crate::common::error::IntoFriendlyError;
+use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{UserInput, ValidJson};
+use crate::common::handler::{HandlerResult, init_handler};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
     CreateTenant, CreateTenantHelper, PublicTenantManaged, TenantIdRequest,
 };
-use crate::manager::tenants::service as tenants_service;
+use crate::manager::tenants::service::TenantService;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use axum::debug_handler;
 use axum::extract::{Query, State};
@@ -43,20 +42,19 @@ pub async fn create(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    let result =
-        match tenants_service::create_managed(&claims, &user_input, tenants_module.clone()).await {
-            Ok(r) => r,
-            Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
-        };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(PublicTenantManaged::from(result))
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let result = error_mapper
+        .or_handler_error(service.create_managed(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(PublicTenantManaged::from(result))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 pub async fn get(
@@ -71,27 +69,26 @@ pub async fn list(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match tenants_service::get_paged_list(
-        &ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        tenants_module.tenants_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
-    };
+    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(
+            payload.q(),
+        ))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(service.get_paged(&resource_query).await)
+        .await?;
 
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 pub async fn activate(
@@ -99,25 +96,19 @@ pub async fn activate(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let result = match tenants_service::activate(
-        &payload,
-        &claims,
-        tenants_module.tenants_repo(),
-        tenants_module.config(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let result = error_mapper
+        .or_handler_error(service.activate(&payload).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 pub async fn delete(
@@ -125,26 +116,19 @@ pub async fn delete(
     State(tenants_module): State<Arc<dyn TenantsModule>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let result = match tenants_service::delete(
-        payload.uuid,
-        claims,
-        tenants_module.tenants_repo(),
-        tenants_module.config(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => return Err(e.into_friendly_error(tenants_module).await.into_response()),
-    };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(tenants_module).await.into_response()),
-    }
+    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let result = error_mapper
+        .or_handler_error(service.delete(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[cfg(test)]

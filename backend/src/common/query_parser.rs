@@ -23,7 +23,8 @@ use std::{fmt::Display, str::FromStr, sync::Arc};
 use thiserror::Error;
 
 use crate::common::{
-    MailTransporter,
+    ConfigProvider, MailTransporter,
+    config::AppConfig,
     dto::GeneralError,
     error::{FriendlyError, IntoFriendlyError},
     value_object::*,
@@ -47,23 +48,25 @@ impl From<ValueObjectError> for ResourceQueryError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for ResourceQueryError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, _: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for ResourceQueryError {
+    async fn into_friendly_error<M>(self, _: Arc<M>) -> FriendlyError
+    where
+        M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
+    {
         match self {
             ResourceQueryError::InvalidInput(e) => FriendlyError::internal(
                 file!(),
                 GeneralError {
                     message: e.to_string(),
-                },
+                }
+                .to_string(),
             ),
             ResourceQueryError::Custom(e) => FriendlyError::internal(
                 file!(),
                 GeneralError {
                     message: e.to_string(),
-                },
+                }
+                .to_string(),
             ),
         }
     }

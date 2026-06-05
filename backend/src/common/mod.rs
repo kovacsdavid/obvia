@@ -17,25 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
+#[cfg(test)]
+use mockall::automock;
+use sqlx::PgPool;
+use std::fmt::Debug;
+use uuid::Uuid;
 
 use crate::{
     common::{
         config::{AppConfig, BasicDatabaseConfig},
-        database::{DatabaseMigrator, PgPoolManager, PoolManager},
-        error::RepositoryResult,
+        database::{DatabaseMigrator, PoolManager},
+        error::{RepositoryError, RepositoryResult},
     },
-    manager::tenants::repository::TenantsRepository,
+    manager::tenants::model::Tenant,
 };
-use async_trait::async_trait;
-use lettre::message::header::{Subject, To};
 use lettre::{
-    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor,
-    transport::smtp::{Error, authentication::Credentials, response::Response},
+    AsyncTransport, Message,
+    message::header::{Subject, To},
+    transport::smtp::{Error, response::Response},
 };
-use sqlx::PgPool;
 use tracing::{error, info};
-use uuid::Uuid;
 
 pub(crate) mod config;
 pub(crate) mod database;
@@ -53,72 +54,53 @@ pub(crate) mod types;
 pub(crate) mod utils;
 pub(crate) mod value_object;
 
-pub trait ConfigProvider: Send + Sync {
-    fn config(&self) -> Arc<AppConfig>;
+pub trait BaseModule:
+    ConfigProvider<Cfg = AppConfig> + MailTransporter + Send + Sync + 'static
+{
 }
 
-#[async_trait]
-pub trait MailTransporter: ConfigProvider + Send + Sync {
-    async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
+pub trait ConfigProvider {
+    type Cfg;
+    fn config(&self) -> &Self::Cfg;
+}
+
+pub trait MailTransporter {
+    fn send(
+        &self,
+        message: Message,
+    ) -> impl Future<Output = Result<Option<Response>, Error>> + Send;
 }
 
 pub struct AppState<P, T>
 where
+    P: Send + Sync + 'static,
+    T: Send + Sync + 'static,
+{
+    config: AppConfig,
+    pool_manager: P,
+    smtp_transport: T,
+}
+
+impl<P, T> AppState<P, T>
+where
     P: Send + Sync,
     T: Send + Sync,
 {
-    pub config: Arc<AppConfig>,
-    pub default_smtp_transport: Arc<T>,
-    pub pool_manager: Arc<P>,
-    pub migrator: Arc<dyn DatabaseMigrator>,
-}
-
-pub type DefaultSmtpTransport = AsyncSmtpTransport<Tokio1Executor>;
-pub type DefaultAppState = AppState<PgPoolManager, DefaultSmtpTransport>;
-
-impl DefaultAppState {
-    async fn init_pool_manager(config: Arc<AppConfig>) -> anyhow::Result<PgPoolManager> {
-        Ok(PgPoolManager::new(config.main_database()).await?)
-    }
-    fn init_smpt_transport(config: Arc<AppConfig>) -> anyhow::Result<DefaultSmtpTransport> {
-        Ok(
-            AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(config.mail().smtp_host())?
-                .credentials(Credentials::new(
-                    config.mail().smtp_user().to_owned(),
-                    config.mail().smtp_passwd().to_owned(),
-                ))
-                .build(),
-        )
-    }
-    pub async fn new(config: Arc<AppConfig>) -> anyhow::Result<DefaultAppState> {
-        let pool_manager = Arc::new(Self::init_pool_manager(config.clone()).await?);
+    pub async fn new(
+        config: AppConfig,
+        pool_manager: P,
+        smtp_transport: T,
+    ) -> anyhow::Result<Self> {
+        // let pool_manager = Self::init_pool_manager(&config).await?;
+        // let smtp_transport = Self::init_smpt_transport(&config)?;
         Ok(Self {
-            config: config.clone(),
-            default_smtp_transport: Arc::new(Self::init_smpt_transport(config.clone())?),
-            pool_manager: pool_manager.clone(),
-            migrator: pool_manager.clone(),
+            config,
+            pool_manager,
+            smtp_transport,
         })
     }
-    pub async fn init_tenant_pools(&self) -> anyhow::Result<()> {
-        for tenant in TenantsRepository::get_all(self.pool_manager.as_ref()).await? {
-            match BasicDatabaseConfig::try_from(&tenant) {
-                Ok(db_config) => {
-                    match self
-                        .pool_manager
-                        .add_tenant_pool(tenant.id, &db_config)
-                        .await
-                    {
-                        Ok(tenant_id) => {
-                            info!("Tenant pool initialization is successful: {}", &tenant_id)
-                        }
-                        // TODO: Notify the administrator about the failed tenant pool initialization
-                        Err(e) => error!("Tenant pool initialization failed: {}", e),
-                    }
-                }
-                Err(e) => error!("Error parsing tenant: {}", e),
-            }
-        }
-        Ok(())
+    pub fn pool_manager(&self) -> &P {
+        &self.pool_manager
     }
 }
 
@@ -127,21 +109,24 @@ where
     P: Send + Sync,
     T: Send + Sync,
 {
-    fn config(&self) -> Arc<AppConfig> {
-        self.config.clone()
+    type Cfg = AppConfig;
+    fn config(&self) -> &Self::Cfg {
+        &self.config
     }
 }
 
-#[async_trait]
-impl<P> MailTransporter for AppState<P, DefaultSmtpTransport>
+#[cfg_attr(test, automock)]
+impl<P, T> MailTransporter for AppState<P, T>
 where
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    T::Error: Debug + Send + Sync,
     P: Send + Sync,
 {
     async fn send(&self, message: Message) -> Result<Option<Response>, Error> {
         let subject = message.headers().get::<Subject>();
         let to = message.headers().get::<To>();
-        if self.config().mail().mail_enabled() {
-            match self.default_smtp_transport.send(message).await {
+        if self.config.mail().mail_enabled() {
+            match self.smtp_transport.send(message).await {
                 Ok(r) => {
                     info!("Mail sent: subject={:?} to={:?}", subject, to);
                     Ok(Some(r))
@@ -164,41 +149,49 @@ where
     }
 }
 
-#[async_trait]
-impl<T> DatabaseMigrator for AppState<PgPoolManager, T>
+impl<P, T> DatabaseMigrator for AppState<P, T>
 where
+    P: DatabaseMigrator + Send + Sync,
     T: Send + Sync,
 {
-    async fn migrate_main_db(&self) -> RepositoryResult<()> {
-        self.migrator.migrate_main_db().await
+    async fn migrate_main_db(&self) -> error::RepositoryResult<()> {
+        self.pool_manager().migrate_main_db().await
     }
-    async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()> {
-        self.migrator.migrate_tenant_db(tenant_id).await
+    async fn migrate_tenant_db(&self, tenant_id: uuid::Uuid) -> RepositoryResult<()> {
+        self.pool_manager().migrate_tenant_db(tenant_id).await
     }
-    async fn migrate_all_tenant_dbs(&self) -> RepositoryResult<()> {
-        self.migrator.migrate_all_tenant_dbs().await
+    async fn migrate_all_tenant_dbs(&self, tenants: &[Tenant]) -> error::RepositoryResult<()> {
+        self.pool_manager().migrate_all_tenant_dbs(tenants).await
     }
 }
 
-#[async_trait]
-impl<T> PoolManager for AppState<PgPoolManager, T>
+impl<P, T> PoolManager for AppState<P, T>
 where
-    T: Send + Sync,
+    P: PoolManager + Send + Sync + 'static,
+    T: Send + Sync + 'static,
 {
-    fn get_main_pool(&self) -> PgPool {
-        self.pool_manager.get_main_pool()
+    fn get_main_pool(&self) -> &PgPool {
+        self.pool_manager().get_main_pool()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<PgPool> {
-        self.pool_manager.get_tenant_pool(tenant_id)
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError> {
+        self.pool_manager().get_tenant_pool(tenant_id)
     }
     async fn add_tenant_pool(
         &self,
         tenant_id: Uuid,
         config: &BasicDatabaseConfig,
-    ) -> RepositoryResult<Uuid> {
-        self.pool_manager.add_tenant_pool(tenant_id, config).await
+    ) -> Result<Uuid, RepositoryError> {
+        self.pool_manager().add_tenant_pool(tenant_id, config).await
     }
-    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<()> {
-        self.pool_manager.delete_tenant_pool(tenant_id).await
+    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> Result<(), RepositoryError> {
+        self.pool_manager().delete_tenant_pool(tenant_id).await
     }
+}
+
+impl<P, T> BaseModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }

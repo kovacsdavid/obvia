@@ -40,7 +40,7 @@ where
                 Level::DEBUG,
                 StatusCode::BAD_REQUEST,
                 file!(),
-                "Invalid JSON",
+                "Invalid JSON".to_string(),
             )
             .into_response()
         })?;

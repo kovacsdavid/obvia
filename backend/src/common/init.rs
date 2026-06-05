@@ -17,12 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::sync::Arc;
+
+use crate::common::AppState;
 use crate::common::config::AppConfig;
-use crate::common::database::DatabaseMigrator;
-use crate::common::{ConfigProvider, DefaultAppState};
+use crate::common::database::{DatabaseMigrator, PgPoolManager};
+use crate::manager::tenants::repository::TenantsRepository;
 use anyhow::Result;
 use axum::Router;
-use std::sync::Arc;
+use lettre::transport::smtp::authentication::Credentials;
+use lettre::{AsyncSmtpTransport, Tokio1Executor};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::FmtSubscriber;
 
@@ -35,38 +39,51 @@ pub fn init_subscriber(config: &AppConfig) {
     .expect("setting default subscriber failed");
 }
 
-pub async fn init_default_app(config: AppConfig) -> Result<(Arc<AppConfig>, Router)> {
-    let app_state = Arc::new(DefaultAppState::new(Arc::new(config)).await?);
-    app_state.migrate_main_db().await?;
-    app_state.init_tenant_pools().await?;
-    app_state.migrate_all_tenant_dbs().await?;
-    Ok((
-        app_state.config(),
-        Router::new().nest(
-            "/api",
-            Router::new()
-                .merge(crate::manager::auth::routes::routes(app_state.clone()))
-                .merge(crate::manager::users::routes::routes(app_state.clone()))
-                .merge(crate::manager::tenants::routes::routes(app_state.clone()))
-                .merge(crate::tenant::activity_feed::routes::routes(
-                    app_state.clone(),
-                ))
-                .merge(crate::tenant::comments::routes::routes(app_state.clone()))
-                .merge(crate::tenant::customers::routes::routes(app_state.clone()))
-                .merge(crate::tenant::inventory::routes::routes(app_state.clone()))
-                .merge(crate::tenant::inventory_movements::routes::routes(
-                    app_state.clone(),
-                ))
-                .merge(crate::tenant::inventory_reservations::routes::routes(
-                    app_state.clone(),
-                ))
-                .merge(crate::tenant::products::routes::routes(app_state.clone()))
-                .merge(crate::tenant::services::routes::routes(app_state.clone()))
-                .merge(crate::tenant::tasks::routes::routes(app_state.clone()))
-                .merge(crate::tenant::taxes::routes::routes(app_state.clone()))
-                .merge(crate::tenant::warehouses::routes::routes(app_state.clone()))
-                .merge(crate::tenant::worksheets::routes::routes(app_state.clone()))
-                .layer(TraceLayer::new_for_http()),
-        ),
+pub async fn init_default_app(config: AppConfig) -> Result<Router> {
+    let pg_pool_manager = PgPoolManager::new(config.main_database()).await?;
+    let smtp_transport =
+        AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(config.mail().smtp_host())?
+            .credentials(Credentials::new(
+                config.mail().smtp_user().to_owned(),
+                config.mail().smtp_passwd().to_owned(),
+            ))
+            .build();
+    let app_state = AppState::new(config, pg_pool_manager, smtp_transport).await?;
+
+    let tenants = TenantsRepository::get_all(&app_state).await?;
+    app_state.pool_manager().migrate_main_db().await?;
+    app_state.pool_manager().init_tenant_pools(&tenants).await?;
+    app_state
+        .pool_manager()
+        .migrate_all_tenant_dbs(&tenants)
+        .await?;
+
+    let app_state = Arc::new(app_state);
+
+    Ok(Router::new().nest(
+        "/api",
+        Router::new()
+            .merge(crate::manager::auth::routes::routes(app_state.clone()))
+            .merge(crate::manager::users::routes::routes(app_state.clone()))
+            .merge(crate::manager::tenants::routes::routes(app_state.clone()))
+            .merge(crate::tenant::activity_feed::routes::routes(
+                app_state.clone(),
+            ))
+            .merge(crate::tenant::comments::routes::routes(app_state.clone()))
+            .merge(crate::tenant::customers::routes::routes(app_state.clone()))
+            .merge(crate::tenant::inventory::routes::routes(app_state.clone()))
+            .merge(crate::tenant::inventory_movements::routes::routes(
+                app_state.clone(),
+            ))
+            .merge(crate::tenant::inventory_reservations::routes::routes(
+                app_state.clone(),
+            ))
+            .merge(crate::tenant::products::routes::routes(app_state.clone()))
+            .merge(crate::tenant::services::routes::routes(app_state.clone()))
+            .merge(crate::tenant::tasks::routes::routes(app_state.clone()))
+            .merge(crate::tenant::taxes::routes::routes(app_state.clone()))
+            .merge(crate::tenant::warehouses::routes::routes(app_state.clone()))
+            .merge(crate::tenant::worksheets::routes::routes(app_state.clone()))
+            .layer(TraceLayer::new_for_http()),
     ))
 }

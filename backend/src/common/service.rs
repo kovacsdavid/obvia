@@ -32,7 +32,7 @@ type ServiceResult<T> = Result<T, ServiceError>;
 
 pub struct Service<'a, T>
 where
-    T: ?Sized,
+    T: Send + Sync,
 {
     claims: Option<&'a Claims>,
     module: Arc<T>,
@@ -40,7 +40,7 @@ where
 
 impl<'a, T> Service<'a, T>
 where
-    T: ?Sized,
+    T: Send + Sync,
 {
     pub fn new(claims: Option<&'a Claims>, module: Arc<T>) -> Self {
         Service { claims, module }
@@ -48,7 +48,7 @@ where
     pub fn claims(&self) -> ServiceResult<&Claims> {
         self.claims.ok_or(ServiceError::Unauthorized)
     }
-    pub fn module(&self) -> Arc<T> {
-        self.module.clone()
+    pub fn module(&self) -> &T {
+        &self.module
     }
 }

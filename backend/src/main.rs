@@ -24,16 +24,7 @@ mod tenant;
 
 use crate::common::config::AppConfig;
 use crate::common::init::{init_default_app, init_subscriber};
-use axum::Router;
-use std::sync::Arc;
 use tokio::signal;
-
-async fn init() -> anyhow::Result<(Arc<AppConfig>, Router)> {
-    let config = AppConfig::from_env()?;
-    init_subscriber(&config);
-    let app = init_default_app(config).await?;
-    Ok(app)
-}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -41,10 +32,12 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn serve() -> anyhow::Result<()> {
-    let (config, app) = init().await?;
-
-    let addr =
-        config.server().bind_address().to_string() + ":" + &config.server().bind_port().to_string();
+    let config = AppConfig::from_env()?;
+    init_subscriber(&config);
+    let bind_address = config.server().bind_address();
+    let bind_port = config.server().bind_port();
+    let addr = format!("{bind_address}:{bind_port}");
+    let app = init_default_app(config).await?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
     axum::serve(listener, app)

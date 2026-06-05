@@ -19,7 +19,8 @@
 
 use std::net::IpAddr;
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
@@ -29,7 +30,6 @@ use crate::manager::auth::model::{
 };
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
-use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 #[cfg(test)]
 use mockall::automock;
@@ -37,49 +37,75 @@ use sqlx::Error;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait AuthRepository: Send + Sync {
-    async fn insert_user(
+    fn insert_user(
         &self,
         payload: &RegisterRequest,
         password_hash: &str,
-    ) -> RepositoryResult<User>;
-    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User>;
+    ) -> impl Future<Output = RepositoryResult<User>> + Send;
+    fn get_user_by_email(&self, email: &str)
+    -> impl Future<Output = RepositoryResult<User>> + Send;
 
-    async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
+    fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = RepositoryResult<User>> + Send;
 
-    async fn update_user(&self, user: User) -> RepositoryResult<User>;
+    fn update_user(&self, user: User) -> impl Future<Output = RepositoryResult<User>> + Send;
 
-    async fn update_user_last_login_at(&self, user_id: Uuid) -> RepositoryResult<()>;
+    fn update_user_last_login_at(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 
-    async fn get_user_active_tenant(&self, user_id: Uuid) -> RepositoryResult<Option<UserTenant>>;
-    async fn insert_email_verification(&self, user_id: Uuid)
-    -> RepositoryResult<EmailVerification>;
-    async fn get_email_verification(
+    fn get_user_active_tenant(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<Option<UserTenant>>> + Send;
+    fn insert_email_verification(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<EmailVerification>> + Send;
+    fn get_email_verification(
         &self,
         email_verification_id: Uuid,
-    ) -> RepositoryResult<EmailVerification>;
-    async fn invalidate_email_verification(
+    ) -> impl Future<Output = RepositoryResult<EmailVerification>> + Send;
+    fn invalidate_email_verification(
         &self,
         email_verification_id: Uuid,
-    ) -> RepositoryResult<()>;
-    async fn insert_forgotten_password(&self, user_id: Uuid)
-    -> RepositoryResult<ForgottenPassword>;
-    async fn get_forgotten_password(
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn insert_forgotten_password(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<ForgottenPassword>> + Send;
+    fn get_forgotten_password(
         &self,
         forgotten_password_id: Uuid,
-    ) -> RepositoryResult<ForgottenPassword>;
-    async fn invalidate_forgotten_password(
+    ) -> impl Future<Output = RepositoryResult<ForgottenPassword>> + Send;
+    fn invalidate_forgotten_password(
         &self,
         forgotten_password_id: Uuid,
-    ) -> RepositoryResult<()>;
-    async fn insert_refresh_token(&self, claims: &Claims) -> RepositoryResult<RefreshToken>;
-    async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken>;
-    async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()>;
-    async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()>;
-    async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn insert_refresh_token(
+        &self,
+        claims: &Claims,
+    ) -> impl Future<Output = RepositoryResult<RefreshToken>> + Send;
+    fn get_refresh_token(
+        &self,
+        jti: Uuid,
+    ) -> impl Future<Output = RepositoryResult<RefreshToken>> + Send;
+    fn consume_refresh_token(
+        &self,
+        jti: Uuid,
+        new_jti: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn revoke_refresh_tokens_by_user_id(
+        &self,
+        user_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn revoke_refresh_tokens_by_family_id(
+        &self,
+        family_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
     #[allow(clippy::too_many_arguments)]
-    async fn insert_account_event_log(
+    fn insert_account_event_log(
         &self,
         user_id: Option<Uuid>,
         identifier: Option<String>,
@@ -88,23 +114,26 @@ pub trait AuthRepository: Send + Sync {
         ip_address: Option<IpAddr>,
         user_agent: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> RepositoryResult<AccountEventLogEntry>;
-    async fn account_event_log_ip_and_event_status_count(
+    ) -> impl Future<Output = RepositoryResult<AccountEventLogEntry>> + Send;
+    fn account_event_log_ip_and_event_status_count(
         &self,
         ip_address: IpAddr,
         event_status: AccountEventStatus,
         interval_mins: i64,
-    ) -> RepositoryResult<i64>;
-    async fn account_event_log_by_ip_and_event_type_count(
+    ) -> impl Future<Output = RepositoryResult<i64>> + Send;
+    fn account_event_log_by_ip_and_event_type_count(
         &self,
         ip_address: IpAddr,
         event_type: AccountEventType,
         interval_mins: i64,
-    ) -> RepositoryResult<i64>;
+    ) -> impl Future<Output = RepositoryResult<i64>> + Send;
 }
 
-#[async_trait]
-impl AuthRepository for PgPoolManager {
+impl<P, T> AuthRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn insert_user(
         &self,
         payload: &RegisterRequest,
@@ -120,7 +149,7 @@ impl AuthRepository for PgPoolManager {
         .bind(password_hash)
         .bind(payload.first_name.as_str()?)
         .bind(payload.last_name.as_str()?)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
 
@@ -130,7 +159,7 @@ impl AuthRepository for PgPoolManager {
                 "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
             )
             .bind(email)
-            .fetch_one(&self.get_main_pool())
+            .fetch_one(self.get_main_pool())
             .await?,
         )
     }
@@ -139,7 +168,7 @@ impl AuthRepository for PgPoolManager {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_id)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self.get_main_pool())
                 .await?,
         )
     }
@@ -180,7 +209,7 @@ impl AuthRepository for PgPoolManager {
         .bind(user.is_mfa_enabled)
         .bind(user.mfa_secret)
         .bind(user.id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
 
@@ -193,7 +222,7 @@ impl AuthRepository for PgPoolManager {
             "#,
         )
         .bind(user_id)
-        .execute(&self.get_main_pool())
+        .execute(self.get_main_pool())
         .await?;
         Ok(())
     }
@@ -212,7 +241,7 @@ impl AuthRepository for PgPoolManager {
             "#,
         )
         .bind(user_id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -226,7 +255,7 @@ impl AuthRepository for PgPoolManager {
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(&self.get_main_pool())
+                .execute(self.get_main_pool())
                 .await?;
         }
         user_tenant_result
@@ -241,7 +270,7 @@ impl AuthRepository for PgPoolManager {
             ) VALUES ($1, NOW() + '1 day'::interval) RETURNING *",
         )
         .bind(user_id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn get_email_verification(
@@ -252,7 +281,7 @@ impl AuthRepository for PgPoolManager {
             "SELECT * FROM email_verifications WHERE id = $1 AND valid_until > NOW() AND deleted_at IS NULL",
         )
         .bind(email_verification_id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn invalidate_email_verification(
@@ -261,7 +290,7 @@ impl AuthRepository for PgPoolManager {
     ) -> RepositoryResult<()> {
         let _ = sqlx::query("UPDATE email_verifications SET deleted_at = NOW() WHERE id = $1")
             .bind(email_verification_id)
-            .execute(&self.get_main_pool())
+            .execute(self.get_main_pool())
             .await?;
         Ok(())
     }
@@ -275,7 +304,7 @@ impl AuthRepository for PgPoolManager {
             ) VALUES ($1, NOW() + '1 hour'::interval) RETURNING *",
         )
         .bind(user_id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn get_forgotten_password(
@@ -286,7 +315,7 @@ impl AuthRepository for PgPoolManager {
             "SELECT * FROM forgotten_passwords WHERE id = $1 AND valid_until > NOW() AND deleted_at IS NULL",
         )
         .bind(forgotten_password_id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn invalidate_forgotten_password(
@@ -295,7 +324,7 @@ impl AuthRepository for PgPoolManager {
     ) -> RepositoryResult<()> {
         let _ = sqlx::query("UPDATE forgotten_passwords SET deleted_at = NOW() WHERE id = $1")
             .bind(forgotten_password_id)
-            .execute(&self.get_main_pool())
+            .execute(self.get_main_pool())
             .await?;
         Ok(())
     }
@@ -310,7 +339,7 @@ impl AuthRepository for PgPoolManager {
         .bind(claims.jti())
         .bind(usize_epoch_seconds_to_local(claims.iat())?)
         .bind(usize_epoch_seconds_to_local(claims.exp())?)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken> {
@@ -318,7 +347,7 @@ impl AuthRepository for PgPoolManager {
             "SELECT * FROM refresh_tokens WHERE jti = $1 AND consumed_at IS NULL AND revoked_at IS NULL",
         )
         .bind(jti)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()> {
@@ -327,7 +356,7 @@ impl AuthRepository for PgPoolManager {
         )
         .bind(new_jti)
         .bind(jti)
-        .execute(&self.get_main_pool())
+        .execute(self.get_main_pool())
         .await?;
         Ok(())
     }
@@ -336,7 +365,7 @@ impl AuthRepository for PgPoolManager {
             "UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL",
         )
         .bind(user_id)
-        .execute(&self.get_main_pool())
+        .execute(self.get_main_pool())
         .await?;
         Ok(())
     }
@@ -345,7 +374,7 @@ impl AuthRepository for PgPoolManager {
             "UPDATE refresh_tokens SET revoked_at = NOW() WHERE family_id = $1 AND revoked_at IS NULL",
         )
         .bind(family_id)
-        .execute(&self.get_main_pool())
+        .execute(self.get_main_pool())
         .await?;
         Ok(())
     }
@@ -371,7 +400,7 @@ impl AuthRepository for PgPoolManager {
         .bind(ip_address)
         .bind(user_agent)
         .bind(metadata)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
     async fn account_event_log_ip_and_event_status_count(
@@ -380,7 +409,7 @@ impl AuthRepository for PgPoolManager {
         event_status: AccountEventStatus,
         interval_mins: i64,
     ) -> RepositoryResult<i64> {
-        Ok(sqlx::query_scalar(
+        sqlx::query_scalar(
             r#"SELECT count(id)
                FROM account_event_log
                WHERE status = $1
@@ -390,13 +419,13 @@ impl AuthRepository for PgPoolManager {
         .bind(event_status)
         .bind(ip_address)
         .bind(format!("{interval_mins} minutes"))
-        .fetch_optional(&self.get_main_pool())
+        .fetch_optional(self.get_main_pool())
         .await?
         .ok_or_else(|| {
             RepositoryError::Custom(
                 "account_event_log_ip_and_event_status_count: invalid value".to_string(),
             )
-        })?)
+        })
     }
     async fn account_event_log_by_ip_and_event_type_count(
         &self,
@@ -404,7 +433,7 @@ impl AuthRepository for PgPoolManager {
         event_type: AccountEventType,
         interval_mins: i64,
     ) -> RepositoryResult<i64> {
-        Ok(sqlx::query_scalar(
+        sqlx::query_scalar(
             r#"SELECT count(id)
                FROM account_event_log
                WHERE event_type = $1
@@ -414,13 +443,13 @@ impl AuthRepository for PgPoolManager {
         .bind(event_type)
         .bind(ip_address)
         .bind(format!("{interval_mins} minutes"))
-        .fetch_optional(&self.get_main_pool())
+        .fetch_optional(self.get_main_pool())
         .await?
         .ok_or_else(|| {
             RepositoryError::Custom(
                 "account_event_log_by_ip_and_event_type_count: invalid value".to_string(),
             )
-        })?)
+        })
     }
 }
 

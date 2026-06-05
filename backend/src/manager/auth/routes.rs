@@ -25,21 +25,24 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes(auth_module: Arc<dyn AuthModule>) -> Router {
+pub fn routes<M: AuthModule>(auth_module: Arc<M>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()
-            .route("/register", post(handler::register))
-            .route("/login", post(handler::login))
-            .route("/verify_email", get(handler::verify_email))
+            .route("/register", post(handler::register::<M>))
+            .route("/login", post(handler::login::<M>))
+            .route("/verify_email", get(handler::verify_email::<M>))
             .route(
                 "/resend_email_verification",
-                get(handler::resend_email_verification),
+                get(handler::resend_email_verification::<M>),
             )
-            .route("/forgotten_password", post(handler::forgotten_password))
-            .route("/new_password", post(handler::new_password))
-            .route("/t/refresh", post(handler::refresh)) // "[t]oken" nest is for cookie path restriction
-            .route("/t/logout", post(handler::logout)) // "[t]oken" nest is for cookie path restriction
+            .route(
+                "/forgotten_password",
+                post(handler::forgotten_password::<M>),
+            )
+            .route("/new_password", post(handler::new_password::<M>))
+            .route("/t/refresh", post(handler::refresh::<M>)) // "[t]oken" nest is for cookie path restriction
+            .route("/t/logout", post(handler::logout::<M>)) // "[t]oken" nest is for cookie path restriction
             .with_state(auth_module),
     )
 }

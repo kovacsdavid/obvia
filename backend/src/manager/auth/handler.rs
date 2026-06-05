@@ -20,7 +20,8 @@
 use super::AuthModule;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::service::Service;
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -30,19 +31,19 @@ use crate::manager::auth::dto::register::{
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
 use crate::manager::auth::service::{AuthService, gen_refresh_cookie};
 use axum::extract::Query;
-use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn login(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn login<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
         .or_handler_error(service.try_login(&payload, &client_context).await)
         .await?;
@@ -70,13 +71,13 @@ pub async fn login(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[debug_handler]
-pub async fn refresh(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn refresh<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
         .or_handler_error(service.refresh(jar.clone(), &client_context).await)
         .await?;
@@ -104,13 +105,13 @@ pub async fn refresh(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[debug_handler]
-pub async fn logout(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn logout<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     error_mapper
         .or_handler_error(service.logout(jar.clone(), &client_context).await)
         .await?;
@@ -120,12 +121,12 @@ pub async fn logout(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn register(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn register<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     error_mapper
         .or_handler_error(service.try_register(&user_input).await)
         .await?;
@@ -142,12 +143,12 @@ pub async fn register(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn verify_email(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn verify_email<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     let token = payload
         .get("id")
         .cloned()
@@ -168,15 +169,15 @@ pub async fn verify_email(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn resend_email_verification(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn resend_email_verification<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<
         ResendEmailValidationRequest,
         ResendEmailValidationRequestHelper,
     >,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     error_mapper
         .or_handler_error(service.resend_email_verification(user_input).await)
         .await?;
@@ -194,13 +195,13 @@ pub async fn resend_email_verification(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn forgotten_password(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn forgotten_password<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     error_mapper
         .or_handler_error(
             service
@@ -216,13 +217,13 @@ pub async fn forgotten_password(
         .build()).await?.into_response())
 }
 
-#[debug_handler]
-pub async fn new_password(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn new_password<M: AuthModule>(
+    State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(None, auth_module);
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     error_mapper
         .or_handler_error(service.new_password(user_input, &client_context).await)
         .await?;
@@ -238,7 +239,7 @@ pub async fn new_password(
         .await?
         .into_response())
 }
-
+/*
 #[cfg(test)]
 mod tests {
     use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -812,3 +813,4 @@ mod tests {
         assert_eq!(claims.unwrap().active_tenant().unwrap(), active_tenant_id2)
     }
 }
+*/

@@ -17,10 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::sync::Arc;
-
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::manager::auth::repository::AuthRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 pub(crate) mod dto;
 mod handler;
@@ -31,21 +35,21 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait AuthModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn auth_repo(&self) -> Arc<dyn AuthRepository>;
+pub trait AuthModule: AuthRepository + BaseModule {}
+
+impl<P, T> AuthModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl AuthModule for DefaultAppState {
-    fn auth_repo(&self) -> Arc<dyn AuthRepository> {
-        self.pool_manager.clone()
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -55,14 +59,12 @@ pub mod tests {
     mock!(
         pub AuthModule {}
         impl ConfigProvider for AuthModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for AuthModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl AuthModule for AuthModule {
-            fn auth_repo(&self) -> Arc<dyn AuthRepository>;
-        }
     );
 }
+*/

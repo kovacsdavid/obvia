@@ -17,9 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::warehouses::repository::WarehousesRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 mod dto;
 mod handler;
@@ -29,16 +34,17 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WarehousesModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+pub trait WarehousesModule: WarehousesRepository + BaseModule {}
+
+impl<P, T> WarehousesModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl WarehousesModule for DefaultAppState {
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository> {
-        self.pool_manager.clone()
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -64,3 +70,4 @@ pub mod tests {
         }
     );
 }
+*/

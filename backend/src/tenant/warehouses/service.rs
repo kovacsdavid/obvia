@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
@@ -26,6 +26,7 @@ use crate::common::service::{Service, ServiceError};
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
+use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -54,11 +55,11 @@ impl From<ServiceError> for WarehousesServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for WarehousesServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for WarehousesServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -66,14 +67,16 @@ where
                 file!(),
                 GeneralError {
                     message: WarehousesServiceError::Unauthorized.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -99,84 +102,72 @@ pub trait WarehouseService {
 
 impl<'a, T> WarehouseService for Service<'a, T>
 where
-    T: WarehousesModule + ?Sized,
+    T: WarehousesModule,
 {
     async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .insert(
-                payload.clone(),
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::insert(
+            self.module(),
+            payload.clone(),
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get_resolved(&self, payload: Uuid) -> WarehousesServiceResult<WarehouseResolved> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .get_resolved_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::get_resolved_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get(&self, payload: Uuid) -> WarehousesServiceResult<Warehouse> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .get_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::get_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .update(
-                payload.clone(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::update(
+            self.module(),
+            payload.clone(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn delete(&self, payload: Uuid) -> WarehousesServiceResult<()> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .delete_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::delete_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
-        Ok(self
-            .module()
-            .warehouses_repo()
-            .get_all_paged(
-                get_query,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WarehousesRepository::get_all_paged(
+            self.module(),
+            get_query,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WarehousesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(

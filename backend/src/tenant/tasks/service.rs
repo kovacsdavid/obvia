@@ -17,17 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::tenant::currencies::repository::CurrenciesRepository;
+use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
+use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
+use crate::tenant::taxes::repository::TaxesRepository;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -59,11 +64,11 @@ impl From<ServiceError> for TasksServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for TasksServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for TasksServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             TasksServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -71,14 +76,16 @@ where
                 file!(),
                 GeneralError {
                     message: TasksServiceError::Unauthorized.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -111,38 +118,48 @@ impl FromStr for TasksSelectLists {
 }
 
 pub trait TaskService {
-    async fn insert(&self, payload: &TaskUserInput) -> TasksServiceResult<Task>;
-    async fn get_select_list_items(
+    fn insert(
+        &self,
+        payload: &TaskUserInput,
+    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> TasksServiceResult<Vec<SelectOption>>;
-    async fn get_resolved(&self, payload: Uuid) -> TasksServiceResult<TaskResolved>;
-    async fn get(&self, payload: Uuid) -> TasksServiceResult<Task>;
-    async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task>;
-    async fn delete(&self, payload: Uuid) -> TasksServiceResult<()>;
-    async fn get_paged(
+    ) -> impl Future<Output = TasksServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = TasksServiceResult<TaskResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn update(
+        &self,
+        payload: &TaskUserInput,
+    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
-    ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)>;
-    async fn print(&self, payload: &[TaskResolved]) -> TasksServiceResult<Bytes>;
+    ) -> impl Future<Output = TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[TaskResolved],
+    ) -> impl Future<Output = TasksServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> TaskService for Service<'a, T>
 where
-    T: TasksModule + ?Sized,
+    T: TasksModule,
 {
     async fn insert(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .insert(
-                payload,
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::insert(
+            self.module(),
+            payload,
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get_select_list_items(
         &self,
@@ -154,94 +171,76 @@ where
             .ok_or(TasksServiceError::Unauthorized)?;
         Ok(match TasksSelectLists::from_str(select_list)? {
             TasksSelectLists::Worksheets => {
-                self.module()
-                    .worksheets_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
+                WorksheetsRepository::get_select_list_items(self.module(), active_tenant).await?
             }
             TasksSelectLists::Services => {
-                self.module()
-                    .services_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
+                ServicesRepository::get_select_list_items(self.module(), active_tenant).await?
             }
             TasksSelectLists::Taxes => {
-                self.module()
-                    .taxes_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
+                TaxesRepository::get_select_list_items(self.module(), active_tenant).await?
             }
             TasksSelectLists::Currencies => {
-                self.module()
-                    .currencies_repo()
-                    .get_all_countries_select_list_items(active_tenant)
-                    .await?
+                CurrenciesRepository::get_all_countries_select_list_items(
+                    self.module(),
+                    active_tenant,
+                )
+                .await?
             }
         })
     }
     async fn get_resolved(&self, payload: Uuid) -> TasksServiceResult<TaskResolved> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .get_resolved_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::get_resolved_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get(&self, payload: Uuid) -> TasksServiceResult<Task> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .get_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::get_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .update(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::update(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn delete(&self, payload: Uuid) -> TasksServiceResult<()> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .delete_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::delete_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
-        Ok(self
-            .module()
-            .tasks_repo()
-            .get_all_paged(
-                get_query,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(TasksRepository::get_all_paged(
+            self.module(),
+            get_query,
+            self.claims()?
+                .active_tenant()
+                .ok_or(TasksServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn print(&self, payload: &[TaskResolved]) -> TasksServiceResult<Bytes> {

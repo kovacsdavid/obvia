@@ -17,44 +17,58 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait TasksRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task>;
-    async fn get_resolved_by_id(
+    fn get_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<TaskResolved>;
-    async fn get_all_paged(
+    ) -> impl Future<Output = RepositoryResult<Task>> + Send;
+    fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<TaskResolved>> + Send;
+    fn get_all_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
-    async fn insert(
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
+    fn insert(
         &self,
         task: &TaskUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Task>;
-    async fn update(&self, task: &TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<Task>> + Send;
+    fn update(
+        &self,
+        task: &TaskUserInput,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<Task>> + Send;
+    fn delete_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
-impl TasksRepository for PgPoolManager {
+impl<P, T> TasksRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task> {
         Ok(sqlx::query_as::<_, Task>(
             r#"

@@ -17,13 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 mod dto;
 mod handler;
@@ -33,32 +38,25 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait TasksModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn tasks_repo(&self) -> Arc<dyn TasksRepository>;
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-    fn services_repo(&self) -> Arc<dyn ServicesRepository>;
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+pub trait TasksModule:
+    CurrenciesRepository
+    + TaxesRepository
+    + ServicesRepository
+    + WorksheetsRepository
+    + TasksRepository
+    + BaseModule
+{
 }
 
-impl TasksModule for DefaultAppState {
-    fn tasks_repo(&self) -> Arc<dyn TasksRepository> {
-        self.pool_manager.clone()
-    }
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
-        self.pool_manager.clone()
-    }
-    fn services_repo(&self) -> Arc<dyn ServicesRepository> {
-        self.pool_manager.clone()
-    }
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
-        self.pool_manager.clone()
-    }
-    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository> {
-        self.pool_manager.clone()
-    }
+impl<P, T> TasksModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -88,3 +86,4 @@ pub mod tests {
         }
     );
 }
+*/

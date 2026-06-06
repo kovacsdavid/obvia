@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
@@ -25,12 +25,16 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
+use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
+use crate::tenant::taxes::repository::TaxesRepository;
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -62,11 +66,11 @@ impl From<ServiceError> for InventoryMovementsServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for InventoryMovementsServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for InventoryMovementsServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             InventoryMovementsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -74,14 +78,16 @@ where
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -112,91 +118,91 @@ impl FromStr for InventoryMovementsSelectLists {
 }
 
 pub trait InventoryMovementService {
-    async fn insert(
+    fn insert(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> InventoryMovementsServiceResult<InventoryMovement>;
-    async fn get_select_list_items(
+    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> InventoryMovementsServiceResult<Vec<SelectOption>>;
-    async fn get_resolved(
+    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> InventoryMovementsServiceResult<InventoryMovementResolved>;
-    async fn get(&self, payload: Uuid) -> InventoryMovementsServiceResult<InventoryMovement>;
-    async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()>;
-    async fn get_paged(
+    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovementResolved>> + Send;
+    fn get(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    fn delete(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
-    ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
-    async fn print(
+    ) -> impl Future<
+        Output = InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>,
+    > + Send;
+    fn print(
         &self,
         payload: &[InventoryMovementResolved],
-    ) -> InventoryMovementsServiceResult<Bytes>;
+    ) -> impl Future<Output = InventoryMovementsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> InventoryMovementService for Service<'a, T>
 where
-    T: InventoryMovementsModule + ?Sized,
+    T: InventoryMovementsModule,
 {
     async fn insert(
         &self,
         payload: &InventoryMovementUserInput,
     ) -> InventoryMovementsServiceResult<InventoryMovement> {
-        Ok(self
-            .module()
-            .inventory_movements_repo()
-            .insert(
-                payload,
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(InventoryMovementsRepository::insert(
+            self.module(),
+            payload,
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn get(&self, payload: Uuid) -> InventoryMovementsServiceResult<InventoryMovement> {
-        Ok(self
-            .module()
-            .inventory_movements_repo()
-            .get_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(InventoryMovementsRepository::get_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_resolved(
         &self,
         payload: Uuid,
     ) -> InventoryMovementsServiceResult<InventoryMovementResolved> {
-        Ok(self
-            .module()
-            .inventory_movements_repo()
-            .get_resolved_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(InventoryMovementsRepository::get_resolved_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()> {
-        Ok(self
-            .module()
-            .inventory_movements_repo()
-            .delete_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(InventoryMovementsRepository::delete_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_paged(
@@ -204,17 +210,15 @@ where
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
     ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
-        Ok(self
-            .module()
-            .inventory_movements_repo()
-            .get_all_paged(
-                get_query,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-                inventory_id,
-            )
-            .await?)
+        Ok(InventoryMovementsRepository::get_all_paged(
+            self.module(),
+            get_query,
+            self.claims()?
+                .active_tenant()
+                .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+            inventory_id,
+        )
+        .await?)
     }
     async fn get_select_list_items(
         &self,
@@ -227,22 +231,14 @@ where
         Ok(
             match InventoryMovementsSelectLists::from_str(select_list)? {
                 InventoryMovementsSelectLists::Worksheets => {
-                    self.module()
-                        .worksheets_repo()
-                        .get_select_list_items(active_tenant)
+                    WorksheetsRepository::get_select_list_items(self.module(), active_tenant)
                         .await?
                 }
                 InventoryMovementsSelectLists::Taxes => {
-                    self.module()
-                        .taxes_repo()
-                        .get_select_list_items(active_tenant)
-                        .await?
+                    TaxesRepository::get_select_list_items(self.module(), active_tenant).await?
                 }
                 InventoryMovementsSelectLists::Inventory => {
-                    self.module()
-                        .inventory_repo()
-                        .get_select_list_items(active_tenant)
-                        .await?
+                    InventoryRepository::get_select_list_items(self.module(), active_tenant).await?
                 }
             },
         )

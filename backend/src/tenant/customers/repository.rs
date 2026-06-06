@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -25,49 +26,58 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait CustomersRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer>;
-    async fn get_resolved_by_id(
+    fn get_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<CustomerResolved>;
-    async fn get_paged(
+    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
+    fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<CustomerResolved>> + Send;
+    fn get_paged(
         &self,
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
-    async fn get_select_list_items(
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    fn get_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
-    async fn insert(
+    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
+    fn insert(
         &self,
         customer: &CustomerUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Customer>;
-    async fn update(
+    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
+    fn update(
         &self,
         customer: &CustomerUserInput,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Customer>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
+    fn delete_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
-impl CustomersRepository for PgPoolManager {
+impl<P, T> CustomersRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer> {
         Ok(sqlx::query_as::<_, Customer>(
             r#"
-            SELECT * 
+            SELECT *
             FROM customers
             WHERE customers.deleted_at IS NULL
                 AND customers.id = $1

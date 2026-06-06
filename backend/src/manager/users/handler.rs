@@ -21,36 +21,36 @@ use super::UsersModule;
 use super::service::UserService;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::service::Service;
 use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
-use axum::{debug_handler, extract::State, http::StatusCode, response::IntoResponse};
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn get_claims(
-    State(users_module): State<Arc<dyn UsersModule>>,
+pub async fn get_claims<M: UsersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
+    State(users_module): State<Arc<M>>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    let error_mapper = ErrorMapper::new(users_module);
     Ok(error_mapper
         .or_handler_error(
             SuccessResponseBuilder::<EmptyType, _>::new()
                 .status_code(StatusCode::OK)
-                .data(service.claims().expect("invalid state"))
+                .data(claims)
                 .build(),
         )
         .await?
         .into_response())
 }
 
-#[debug_handler]
-pub async fn otp_enable(
-    State(users_module): State<Arc<dyn UsersModule>>,
+pub async fn otp_enable<M: UsersModule>(
+    State(users_module): State<Arc<M>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    let service = Service::new(Some(&claims), users_module.clone());
+    let error_mapper = ErrorMapper::new(users_module);
     let response = error_mapper
         .or_handler_error(service.otp_enable(&client_context).await)
         .await?;
@@ -65,14 +65,14 @@ pub async fn otp_enable(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn otp_verify(
-    State(users_module): State<Arc<dyn UsersModule>>,
+pub async fn otp_verify<M: UsersModule>(
+    State(users_module): State<Arc<M>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    let service = Service::new(Some(&claims), users_module.clone());
+    let error_mapper = ErrorMapper::new(users_module);
     error_mapper
         .or_handler_error(service.otp_verify(&user_input, &client_context).await)
         .await?;
@@ -90,14 +90,14 @@ pub async fn otp_verify(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn otp_disable(
-    State(users_module): State<Arc<dyn UsersModule>>,
+pub async fn otp_disable<M: UsersModule>(
+    State(users_module): State<Arc<M>>,
     client_context: ClientContext,
     AuthenticatedUser(claims): AuthenticatedUser,
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), users_module);
+    let service = Service::new(Some(&claims), users_module.clone());
+    let error_mapper = ErrorMapper::new(users_module);
     error_mapper
         .or_handler_error(service.otp_disable(&user_input, &client_context).await)
         .await?;

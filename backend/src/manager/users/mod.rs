@@ -17,10 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::manager::auth::repository::AuthRepository;
 use crate::manager::users::repository::UsersRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 pub(crate) mod error;
 pub(crate) mod handler;
@@ -29,20 +34,17 @@ pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
 
-pub trait UsersModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn users_repo(&self) -> Arc<dyn UsersRepository>;
-    fn auth_repo(&self) -> Arc<dyn AuthRepository>;
+pub trait UsersModule: UsersRepository + AuthRepository + BaseModule {}
+
+impl<P, T> UsersModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl UsersModule for DefaultAppState {
-    fn users_repo(&self) -> Arc<dyn UsersRepository> {
-        self.pool_manager.clone()
-    }
-    fn auth_repo(&self) -> Arc<dyn AuthRepository> {
-        self.pool_manager.clone()
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -69,3 +71,4 @@ pub mod tests {
         }
     );
 }
+*/

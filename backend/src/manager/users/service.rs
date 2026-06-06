@@ -18,7 +18,7 @@
  */
 
 use super::UsersModule;
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::extractors::ClientContext;
@@ -26,6 +26,8 @@ use crate::common::service::{Service, ServiceError};
 use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
+use crate::manager::auth::repository::AuthRepository;
+use crate::manager::users::repository::UsersRepository;
 use axum::http::StatusCode;
 use serde_json::json;
 use std::sync::Arc;
@@ -65,11 +67,11 @@ impl From<ServiceError> for UsersServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for UsersServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for UsersServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             UsersServiceError::InvalidMfaToken
             | UsersServiceError::TooManyAttempts(_)
@@ -79,14 +81,16 @@ where
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -98,65 +102,62 @@ where
 pub type UsersServiceResult<T> = Result<T, UsersServiceError>;
 
 pub trait UserService {
-    async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String>;
-    async fn otp_verify(
+    fn otp_enable(
+        &self,
+        client_context: &ClientContext,
+    ) -> impl Future<Output = UsersServiceResult<String>> + Send;
+    fn otp_verify(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> UsersServiceResult<()>;
-    async fn otp_disable(
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
+    fn otp_disable(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> UsersServiceResult<()>;
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
 }
 
 impl<'a, T> UserService for Service<'a, T>
 where
-    T: UsersModule + ?Sized,
+    T: UsersModule,
 {
     async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
-        let user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
+        let user = match UsersRepository::get_user_by_id(self.module(), self.claims()?.sub()).await
         {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(self.claims()?.sub().to_string()),
-                        AccountEventType::MfaEnable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
-                return Err(e.into());
-            }
-        };
-
-        if user.is_mfa_enabled() {
-            self.module()
-                .auth_repo()
-                .insert_account_event_log(
+                AuthRepository::insert_account_event_log(
+                    self.module(),
                     Some(self.claims()?.sub()),
-                    Some(user.email),
+                    Some(self.claims()?.sub().to_string()),
                     AccountEventType::MfaEnable,
                     AccountEventStatus::Error,
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
                     Some(json!({
-                        "error": UsersServiceError::MfaAlreadyActive.to_string()
+                        "error": e.to_string()
                     })),
                 )
                 .await?;
+                return Err(e.into());
+            }
+        };
+
+        if user.is_mfa_enabled() {
+            AuthRepository::insert_account_event_log(
+                self.module(),
+                Some(self.claims()?.sub()),
+                Some(user.email),
+                AccountEventType::MfaEnable,
+                AccountEventStatus::Error,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                Some(json!({
+                    "error": UsersServiceError::MfaAlreadyActive.to_string()
+                })),
+            )
+            .await?;
             return Err(UsersServiceError::MfaAlreadyActive);
         }
 
@@ -169,41 +170,39 @@ where
         {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaEnable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaEnable,
+                    AccountEventStatus::Error,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": e.to_string()
+                    })),
+                )
+                .await?;
                 return Err(e);
             }
         };
 
-        match self.module().users_repo().update_user(user.clone()).await {
+        match UsersRepository::update_user(self.module(), user.clone()).await {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaEnable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaEnable,
+                    AccountEventStatus::Error,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": e.to_string()
+                    })),
+                )
+                .await?;
                 return Err(e.into());
             }
         };
@@ -216,17 +215,12 @@ where
         payload: &OtpUserInput,
         client_context: &ClientContext,
     ) -> UsersServiceResult<()> {
-        let mut user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
+        let mut user =
+            match UsersRepository::get_user_by_id(self.module(), self.claims()?.sub()).await {
+                Ok(v) => v,
+                Err(e) => {
+                    AuthRepository::insert_account_event_log(
+                        self.module(),
                         Some(self.claims()?.sub()),
                         Some(self.claims()?.sub().to_string()),
                         AccountEventType::MfaEnable,
@@ -238,25 +232,24 @@ where
                         })),
                     )
                     .await?;
-                return Err(e.into());
-            }
-        };
+                    return Err(e.into());
+                }
+            };
 
         if user.is_mfa_enabled() {
-            self.module()
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(self.claims()?.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaEnable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": UsersServiceError::MfaAlreadyActive.to_string()
-                    })),
-                )
-                .await?;
+            AuthRepository::insert_account_event_log(
+                self.module(),
+                Some(self.claims()?.sub()),
+                Some(user.email),
+                AccountEventType::MfaEnable,
+                AccountEventStatus::Error,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                Some(json!({
+                    "error": UsersServiceError::MfaAlreadyActive.to_string()
+                })),
+            )
+            .await?;
             return Err(UsersServiceError::MfaAlreadyActive);
         }
 
@@ -266,59 +259,56 @@ where
         {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaEnable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaEnable,
+                    AccountEventStatus::Error,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": e.to_string()
+                    })),
+                )
+                .await?;
                 return Err(e);
             }
         };
 
         user.is_mfa_enabled = true;
 
-        match self.module().users_repo().update_user(user.clone()).await {
+        match UsersRepository::update_user(self.module(), user.clone()).await {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaEnable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaEnable,
+                    AccountEventStatus::Error,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": e.to_string()
+                    })),
+                )
+                .await?;
                 return Err(e.into());
             }
         };
 
-        self.module()
-            .auth_repo()
-            .insert_account_event_log(
-                Some(self.claims()?.sub()),
-                Some(user.email),
-                AccountEventType::MfaEnable,
-                AccountEventStatus::Success,
-                Some(client_context.ip),
-                client_context.user_agent.clone(),
-                None,
-            )
-            .await?;
+        AuthRepository::insert_account_event_log(
+            self.module(),
+            Some(self.claims()?.sub()),
+            Some(user.email),
+            AccountEventType::MfaEnable,
+            AccountEventStatus::Success,
+            Some(client_context.ip),
+            client_context.user_agent.clone(),
+            None,
+        )
+        .await?;
 
         Ok(())
     }
@@ -338,17 +328,12 @@ where
             AccountEventType::MfaDisable,
         )
         .await?;
-        let mut user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
-        {
-            Ok(v) => v,
-            Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
+        let mut user =
+            match UsersRepository::get_user_by_id(self.module(), self.claims()?.sub()).await {
+                Ok(v) => v,
+                Err(e) => {
+                    AuthRepository::insert_account_event_log(
+                        self.module(),
                         Some(self.claims()?.sub()),
                         Some(self.claims()?.sub().to_string()),
                         AccountEventType::MfaDisable,
@@ -360,9 +345,9 @@ where
                         })),
                     )
                     .await?;
-                return Err(e.into());
-            }
-        };
+                    return Err(e.into());
+                }
+            };
 
         match user
             .check_mfa_token(payload.otp.as_str()?)
@@ -370,94 +355,11 @@ where
         {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaDisable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
-                return Err(e);
-            }
-        };
-
-        user.is_mfa_enabled = false;
-        user.mfa_secret = None;
-
-        match self.module().users_repo().update_user(user.clone()).await {
-            Ok(_) => (),
-            Err(e) => {
-                self.module()
-                    .auth_repo()
-                    .insert_account_event_log(
-                        Some(self.claims()?.sub()),
-                        Some(user.email),
-                        AccountEventType::MfaDisable,
-                        AccountEventStatus::Error,
-                        Some(client_context.ip),
-                        client_context.user_agent.clone(),
-                        Some(json!({
-                            "error": e.to_string()
-                        })),
-                    )
-                    .await?;
-                return Err(e.into());
-            }
-        };
-
-        self.module()
-            .auth_repo()
-            .insert_account_event_log(
-                Some(self.claims()?.sub()),
-                Some(user.email),
-                AccountEventType::MfaDisable,
-                AccountEventStatus::Success,
-                Some(client_context.ip),
-                client_context.user_agent.clone(),
-                None,
-            )
-            .await?;
-
-        Ok(())
-    }
-}
-
-async fn rate_limit_by_event_type<T>(
-    attempt_interval_mins: i64,
-    max_attempts: i64,
-    users_module: Arc<T>,
-    user_id: Option<Uuid>,
-    identifier: Option<String>,
-    client_context: &ClientContext,
-    event_type: AccountEventType,
-) -> UsersServiceResult<()>
-where
-    T: UsersModule + ?Sized,
-{
-    let event_log_entries = match users_module
-        .auth_repo()
-        .account_event_log_by_ip_and_event_type_count(
-            client_context.ip,
-            event_type.clone(),
-            attempt_interval_mins,
-        )
-        .await
-    {
-        Ok(val) => val,
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    user_id,
-                    identifier,
-                    event_type,
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaDisable,
                     AccountEventStatus::Error,
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
@@ -466,26 +368,103 @@ where
                     })),
                 )
                 .await?;
+                return Err(e);
+            }
+        };
+
+        user.is_mfa_enabled = false;
+        user.mfa_secret = None;
+
+        match UsersRepository::update_user(self.module(), user.clone()).await {
+            Ok(_) => (),
+            Err(e) => {
+                AuthRepository::insert_account_event_log(
+                    self.module(),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
+                    AccountEventType::MfaDisable,
+                    AccountEventStatus::Error,
+                    Some(client_context.ip),
+                    client_context.user_agent.clone(),
+                    Some(json!({
+                        "error": e.to_string()
+                    })),
+                )
+                .await?;
+                return Err(e.into());
+            }
+        };
+
+        AuthRepository::insert_account_event_log(
+            self.module(),
+            Some(self.claims()?.sub()),
+            Some(user.email),
+            AccountEventType::MfaDisable,
+            AccountEventStatus::Success,
+            Some(client_context.ip),
+            client_context.user_agent.clone(),
+            None,
+        )
+        .await?;
+
+        Ok(())
+    }
+}
+
+async fn rate_limit_by_event_type<T>(
+    attempt_interval_mins: i64,
+    max_attempts: i64,
+    users_module: &T,
+    user_id: Option<Uuid>,
+    identifier: Option<String>,
+    client_context: &ClientContext,
+    event_type: AccountEventType,
+) -> UsersServiceResult<()>
+where
+    T: UsersModule + ?Sized,
+{
+    let event_log_entries = match AuthRepository::account_event_log_by_ip_and_event_type_count(
+        users_module,
+        client_context.ip,
+        event_type.clone(),
+        attempt_interval_mins,
+    )
+    .await
+    {
+        Ok(val) => val,
+        Err(e) => {
+            AuthRepository::insert_account_event_log(
+                users_module,
+                user_id,
+                identifier,
+                event_type,
+                AccountEventStatus::Error,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                Some(json!({
+                    "error": e.to_string()
+                })),
+            )
+            .await?;
             return Err(UsersServiceError::TooManyAttempts(attempt_interval_mins));
         }
     };
 
     if event_log_entries >= max_attempts {
-        users_module
-            .auth_repo()
-            .insert_account_event_log(
-                user_id,
-                identifier,
-                event_type,
-                AccountEventStatus::Blocked,
-                Some(client_context.ip),
-                client_context.user_agent.clone(),
-                Some(json!({
-                    "error":
-                        UsersServiceError::TooManyAttempts(attempt_interval_mins).to_string()
-                })),
-            )
-            .await?;
+        AuthRepository::insert_account_event_log(
+            users_module,
+            user_id,
+            identifier,
+            event_type,
+            AccountEventStatus::Blocked,
+            Some(client_context.ip),
+            client_context.user_agent.clone(),
+            Some(json!({
+                "error":
+                    UsersServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+            })),
+        )
+        .await?;
         return Err(UsersServiceError::TooManyAttempts(attempt_interval_mins));
     }
     Ok(())

@@ -17,29 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::manager::users::model::User;
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait UsersRepository: Send + Sync {
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError>;
-    async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
-    async fn update_user(&self, user: User) -> RepositoryResult<User>;
+    fn get_by_uuid(&self, uuid: Uuid) -> impl Future<Output = RepositoryResult<User>> + Send;
+    fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = RepositoryResult<User>> + Send;
+    fn update_user(&self, user: User) -> impl Future<Output = RepositoryResult<User>> + Send;
 }
 
-#[async_trait]
-impl UsersRepository for PgPoolManager {
+impl<P, T> UsersRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(uuid)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self.get_main_pool())
                 .await?,
         )
     }
@@ -48,7 +50,7 @@ impl UsersRepository for PgPoolManager {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_id)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self.get_main_pool())
                 .await?,
         )
     }
@@ -89,7 +91,7 @@ impl UsersRepository for PgPoolManager {
         .bind(user.is_mfa_enabled)
         .bind(user.mfa_secret)
         .bind(user.id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self.get_main_pool())
         .await?)
     }
 }

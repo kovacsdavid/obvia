@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -25,55 +26,64 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait ProductsRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Product>;
-    async fn get_resolved_by_id(
+    fn get_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<ProductResolved>;
-    async fn get_select_list_items(
+    ) -> impl Future<Output = RepositoryResult<Product>> + Send;
+    fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<ProductResolved>> + Send;
+    fn get_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
+    fn get_all_paged(
         &self,
         query_params: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>;
-    async fn insert(
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<ProductResolved>)>> + Send;
+    fn insert(
         &self,
         product: &ProductUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Product>;
-    async fn update(
+    ) -> impl Future<Output = RepositoryResult<Product>> + Send;
+    fn update(
         &self,
         product: ProductUserInput,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Product>;
-    async fn insert_unit_of_measure(
+    ) -> impl Future<Output = RepositoryResult<Product>> + Send;
+    fn insert_unit_of_measure(
         &self,
         unit_of_measure: &str,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<UnitOfMeasure>;
-    async fn get_units_of_measure_select_list(
+    ) -> impl Future<Output = RepositoryResult<UnitOfMeasure>> + Send;
+    fn get_units_of_measure_select_list(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
+    fn delete_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
-impl ProductsRepository for PgPoolManager {
+impl<P, T> ProductsRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Product> {
         Ok(sqlx::query_as::<_, Product>(
             r#"

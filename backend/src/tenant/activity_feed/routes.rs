@@ -25,13 +25,13 @@ use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::get};
 
-pub fn routes(activity_feed_module: Arc<dyn ActivityFeedModule>) -> Router {
+pub fn routes<M: ActivityFeedModule>(activity_feed_module: Arc<M>) -> Router {
     Router::new().nest(
         "/activity_feed",
         Router::new()
-            .route("/list", get(handler::list))
+            .route("/list", get(handler::list::<M>))
             .layer(from_fn_with_state(
-                activity_feed_module.config(),
+                activity_feed_module.clone(),
                 require_auth,
             ))
             .with_state(activity_feed_module),

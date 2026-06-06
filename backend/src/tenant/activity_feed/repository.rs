@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::ResourceQuery;
@@ -25,25 +26,26 @@ use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait ActivityFeedRepository: Send + Sync {
-    async fn get_all_paged(
+    fn get_all_paged(
         &self,
         query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
 }
 
-#[async_trait]
-impl ActivityFeedRepository for PgPoolManager {
+impl<P, T> ActivityFeedRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<Empty, Empty>,

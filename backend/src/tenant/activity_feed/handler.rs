@@ -19,27 +19,27 @@
 
 use crate::common::dto::SuccessResponseBuilder;
 use crate::common::error::FriendlyError;
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
 use crate::common::query_parser::ResourceQuery;
+use crate::common::service::Service;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
 use crate::tenant::activity_feed::service::ActivityFeedService;
-use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn list(
+pub async fn list<M: ActivityFeedModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(activity_feed_module): State<Arc<dyn ActivityFeedModule>>,
+    State(activity_feed_module): State<Arc<M>>,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), activity_feed_module);
+    let service = Service::new(Some(&claims), activity_feed_module.clone());
+    let error_mapper = ErrorMapper::new(activity_feed_module);
     let resource_query = error_mapper
         .or_handler_error(ResourceQuery::<Empty, Empty>::from_str(payload.q()))
         .await?;

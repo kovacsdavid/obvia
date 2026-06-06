@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::ResourceQuery;
@@ -26,6 +26,7 @@ use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
+use crate::tenant::activity_feed::repository::ActivityFeedRepository;
 use crate::tenant::activity_feed::types::ResourceType;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -50,11 +51,11 @@ impl From<ServiceError> for ActivityFeedServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for ActivityFeedServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for ActivityFeedServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             ActivityFeedServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -62,14 +63,16 @@ where
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -81,17 +84,17 @@ where
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
 pub trait ActivityFeedService {
-    async fn get_all_paged(
+    fn get_all_paged(
         &self,
         get_query: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-    ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
+    ) -> impl Future<Output = ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
 }
 
 impl<'a, T> ActivityFeedService for Service<'a, T>
 where
-    T: ActivityFeedModule + ?Sized,
+    T: ActivityFeedModule,
 {
     async fn get_all_paged(
         &self,
@@ -99,17 +102,15 @@ where
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
     ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
-        Ok(self
-            .module()
-            .activity_feed_repo()
-            .get_all_paged(
-                get_query,
-                resource_id,
-                resource_type,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ActivityFeedServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ActivityFeedRepository::get_all_paged(
+            self.module(),
+            get_query,
+            resource_id,
+            resource_type,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ActivityFeedServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 }

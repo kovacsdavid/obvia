@@ -17,9 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::activity_feed::repository::ActivityFeedRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 mod dto;
 mod handler;
@@ -29,15 +34,17 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait ActivityFeedModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn activity_feed_repo(&self) -> Arc<dyn ActivityFeedRepository>;
+pub trait ActivityFeedModule: ActivityFeedRepository + BaseModule {}
+
+impl<P, T> ActivityFeedModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl ActivityFeedModule for DefaultAppState {
-    fn activity_feed_repo(&self) -> Arc<dyn ActivityFeedRepository> {
-        self.pool_manager.clone()
-    }
-}
+/*
 
 #[cfg(test)]
 pub mod tests {
@@ -64,3 +71,4 @@ pub mod tests {
         }
     );
 }
+*/

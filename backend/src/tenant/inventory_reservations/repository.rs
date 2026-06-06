@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::ResourceQuery;
@@ -28,41 +29,46 @@ use crate::tenant::inventory_reservations::model::{
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait InventoryReservationsRepository: Send + Sync {
-    async fn get_by_id(
+    fn get_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservation>;
-    async fn get_resolved_by_id(
+    ) -> impl Future<Output = RepositoryResult<InventoryReservation>> + Send;
+    fn get_resolved_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservationResolved>;
-    async fn get_all_paged(
+    ) -> impl Future<Output = RepositoryResult<InventoryReservationResolved>> + Send;
+    fn get_all_paged(
         &self,
         query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         active_tenant: Uuid,
         inventory_id: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>;
-    async fn insert(
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>> + Send;
+    fn insert(
         &self,
         input: InventoryReservationUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservation>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<InventoryReservation>> + Send;
+    fn delete_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
-impl InventoryReservationsRepository for PgPoolManager {
+impl<P, T> InventoryReservationsRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_id(
         &self,
         id: Uuid,

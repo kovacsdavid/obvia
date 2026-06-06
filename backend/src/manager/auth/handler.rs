@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::AuthModule;
+use super::AuthModuleInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
@@ -36,7 +36,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub async fn login<M: AuthModule>(
+pub async fn login<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
@@ -71,7 +71,7 @@ pub async fn login<M: AuthModule>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-pub async fn refresh<M: AuthModule>(
+pub async fn refresh<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
@@ -105,7 +105,7 @@ pub async fn refresh<M: AuthModule>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-pub async fn logout<M: AuthModule>(
+pub async fn logout<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
@@ -121,7 +121,7 @@ pub async fn logout<M: AuthModule>(
         .into_response())
 }
 
-pub async fn register<M: AuthModule>(
+pub async fn register<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
@@ -143,7 +143,7 @@ pub async fn register<M: AuthModule>(
         .into_response())
 }
 
-pub async fn verify_email<M: AuthModule>(
+pub async fn verify_email<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
@@ -169,7 +169,7 @@ pub async fn verify_email<M: AuthModule>(
         .into_response())
 }
 
-pub async fn resend_email_verification<M: AuthModule>(
+pub async fn resend_email_verification<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<
         ResendEmailValidationRequest,
@@ -195,7 +195,7 @@ pub async fn resend_email_verification<M: AuthModule>(
         .into_response())
 }
 
-pub async fn forgotten_password<M: AuthModule>(
+pub async fn forgotten_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
@@ -217,7 +217,7 @@ pub async fn forgotten_password<M: AuthModule>(
         .build()).await?.into_response())
 }
 
-pub async fn new_password<M: AuthModule>(
+pub async fn new_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,

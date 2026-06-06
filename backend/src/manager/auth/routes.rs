@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::AuthModule;
+use super::AuthModuleInterface;
 use super::handler;
 use axum::{
     Router,
@@ -25,7 +25,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes<M: AuthModule>(auth_module: Arc<M>) -> Router {
+pub fn routes<M: AuthModuleInterface>(auth_module: Arc<M>) -> Router {
     Router::new().nest(
         "/auth",
         Router::new()

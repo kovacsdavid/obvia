@@ -18,7 +18,7 @@
  */
 
 use super::{
-    AuthModule,
+    AuthModuleInterface,
     dto::{claims::Claims, login::UserPublic},
 };
 use crate::{
@@ -228,7 +228,7 @@ pub trait AuthService {
 
 impl<'a, T> AuthService for Service<'a, T>
 where
-    T: AuthModule,
+    T: AuthModuleInterface,
 {
     async fn try_login(
         &self,
@@ -1309,7 +1309,7 @@ async fn rate_limit_by_event_status<T>(
     event_type: AccountEventType,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModule,
+    T: AuthModuleInterface,
 {
     let event_log_entries = match AuthRepository::account_event_log_ip_and_event_status_count(
         auth_module,
@@ -1367,7 +1367,7 @@ async fn rate_limit_by_event_type<T>(
     event_type: AccountEventType,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModule,
+    T: AuthModuleInterface,
 {
     let event_log_entries = match AuthRepository::account_event_log_by_ip_and_event_type_count(
         auth_module,
@@ -1476,7 +1476,7 @@ async fn send_email_verification<T>(
     email_verification: EmailVerification,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModule,
+    T: AuthModuleInterface,
 {
     let handlebars = Handlebars::new();
     let hostname = auth_module.config().server().public_base_url().to_owned();
@@ -1534,7 +1534,7 @@ async fn send_forgotten_password_email<T>(
     forgotten_password: ForgottenPassword,
 ) -> AuthServiceResult<()>
 where
-    T: AuthModule,
+    T: AuthModuleInterface,
 {
     let handlebars = Handlebars::new();
     let hostname = auth_module.config().server().public_base_url().to_owned();

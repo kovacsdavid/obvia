@@ -17,25 +17,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait AddressRepository: Send + Sync {
-    async fn get_all_countries_select_list_items(
+    fn get_all_countries_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
+    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
 }
 
-#[async_trait]
-impl AddressRepository for PgPoolManager {
+impl<P, T> AddressRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_all_countries_select_list_items(
         &self,
         active_tenant: Uuid,

@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -25,45 +26,54 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait ServicesRepository: Send + Sync + 'static {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Service>;
-    async fn get_resolved_by_id(
+    fn get_by_id(
         &self,
         id: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<ServiceResolved>;
-    async fn get_select_list_items(
+    ) -> impl Future<Output = RepositoryResult<Service>> + Send;
+    fn get_resolved_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<ServiceResolved>> + Send;
+    fn get_select_list_items(
         &self,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
+    fn get_all_paged(
         &self,
         query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
         active_tenant: Uuid,
-    ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>;
-    async fn insert(
+    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>> + Send;
+    fn insert(
         &self,
         service: &ServiceUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Service>;
-    async fn update(
+    ) -> impl Future<Output = RepositoryResult<Service>> + Send;
+    fn update(
         &self,
         service: &ServiceUserInput,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Service>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    ) -> impl Future<Output = RepositoryResult<Service>> + Send;
+    fn delete_by_id(
+        &self,
+        id: Uuid,
+        active_tenant: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
-impl ServicesRepository for PgPoolManager {
+impl<P, T> ServicesRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Service> {
         let service = sqlx::query_as::<_, Service>(
             r#"SELECT * FROM services WHERE id = $1 AND deleted_at IS NULL"#,

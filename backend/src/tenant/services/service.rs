@@ -17,17 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
+use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
+use crate::tenant::taxes::repository::TaxesRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -62,11 +65,11 @@ impl From<ServiceError> for ServicesServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for ServicesServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for ServicesServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             ServicesServiceError::Unauthorized | ServicesServiceError::ServiceExists => {
                 FriendlyError::user_facing(
@@ -75,7 +78,8 @@ where
                     file!(),
                     GeneralError {
                         message: self.to_string(),
-                    },
+                    }
+                    .to_string(),
                 )
             }
             e => {
@@ -83,7 +87,8 @@ where
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -112,111 +117,115 @@ impl FromStr for ServicesSelectLists {
 type ServicesServiceResult<T> = Result<T, ServicesServiceError>;
 
 pub trait ServiceService {
-    async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel>;
-    async fn get_select_list_items(
+    fn insert(
+        &self,
+        payload: &ServiceUserInput,
+    ) -> impl Future<Output = ServicesServiceResult<ServiceModel>> + Send;
+    fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> ServicesServiceResult<Vec<SelectOption>>;
-    async fn get_resolved(&self, payload: Uuid) -> ServicesServiceResult<ServiceResolved>;
-    async fn get(&self, payload: Uuid) -> ServicesServiceResult<ServiceModel>;
-    async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel>;
-    async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()>;
-    async fn get_paged(
+    ) -> impl Future<Output = ServicesServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = ServicesServiceResult<ServiceResolved>> + Send;
+    fn get(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = ServicesServiceResult<ServiceModel>> + Send;
+    fn update(
+        &self,
+        payload: &ServiceUserInput,
+    ) -> impl Future<Output = ServicesServiceResult<ServiceModel>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServicesServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
-    ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)>;
-    async fn print(&self, payload: &[ServiceResolved]) -> ServicesServiceResult<Bytes>;
+    ) -> impl Future<Output = ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[ServiceResolved],
+    ) -> impl Future<Output = ServicesServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> ServiceService for Service<'a, T>
 where
-    T: ServicesModule + ?Sized,
+    T: ServicesModule,
 {
     async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
-        self.module()
-            .services_repo()
-            .insert(
-                payload,
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await
-            .map_err(|e| {
-                if e.is_unique_violation() {
-                    ServicesServiceError::ServiceExists
-                } else {
-                    e.into()
-                }
-            })
+        ServicesRepository::insert(
+            self.module(),
+            payload,
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await
+        .map_err(|e| {
+            if e.is_unique_violation() {
+                ServicesServiceError::ServiceExists
+            } else {
+                e.into()
+            }
+        })
     }
 
     async fn get_resolved(&self, payload: Uuid) -> ServicesServiceResult<ServiceResolved> {
-        Ok(self
-            .module()
-            .services_repo()
-            .get_resolved_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ServicesRepository::get_resolved_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get(&self, payload: Uuid) -> ServicesServiceResult<ServiceModel> {
-        Ok(self
-            .module()
-            .services_repo()
-            .get_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ServicesRepository::get_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
-        Ok(self
-            .module()
-            .services_repo()
-            .update(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ServicesRepository::update(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()> {
-        Ok(self
-            .module()
-            .services_repo()
-            .delete_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ServicesRepository::delete_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
     ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
-        Ok(self
-            .module()
-            .services_repo()
-            .get_all_paged(
-                get_query,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(ServicesRepository::get_all_paged(
+            self.module(),
+            get_query,
+            self.claims()?
+                .active_tenant()
+                .ok_or(ServicesServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_select_list_items(
@@ -224,24 +233,22 @@ where
         select_list: &str,
     ) -> ServicesServiceResult<Vec<SelectOption>> {
         match ServicesSelectLists::from_str(select_list)? {
-            ServicesSelectLists::Currencies => Ok(self
-                .module()
-                .currencies_repo()
-                .get_all_countries_select_list_items(
+            ServicesSelectLists::Currencies => {
+                Ok(CurrenciesRepository::get_all_countries_select_list_items(
+                    self.module(),
                     self.claims()?
                         .active_tenant()
                         .ok_or(ServicesServiceError::Unauthorized)?,
                 )
-                .await?),
-            ServicesSelectLists::Taxes => Ok(self
-                .module()
-                .taxes_repo()
-                .get_select_list_items(
-                    self.claims()?
-                        .active_tenant()
-                        .ok_or(ServicesServiceError::Unauthorized)?,
-                )
-                .await?),
+                .await?)
+            }
+            ServicesSelectLists::Taxes => Ok(TaxesRepository::get_select_list_items(
+                self.module(),
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )
+            .await?),
         }
     }
 

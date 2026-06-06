@@ -19,14 +19,14 @@
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::{ServiceUserInput, ServiceUserInputHelper};
 use crate::tenant::services::service::ServiceService;
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
-use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
@@ -34,13 +34,13 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn get_resolved(
+pub async fn get_resolved<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let result = error_mapper
         .or_handler_error(service.get_resolved(payload.uuid).await)
         .await?;
@@ -55,13 +55,13 @@ pub async fn get_resolved(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn get(
+pub async fn get<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let result = error_mapper
         .or_handler_error(service.get(payload.uuid).await)
         .await?;
@@ -76,13 +76,13 @@ pub async fn get(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn create(
+pub async fn create<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let result = error_mapper
         .or_handler_error(service.insert(&user_input).await)
         .await?;
@@ -97,13 +97,13 @@ pub async fn create(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn update(
+pub async fn update<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let result = error_mapper
         .or_handler_error(service.update(&user_input).await)
         .await?;
@@ -118,13 +118,13 @@ pub async fn update(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn delete(
+pub async fn delete<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     error_mapper
         .or_handler_error(service.delete(payload.uuid).await)
         .await?;
@@ -141,13 +141,13 @@ pub async fn delete(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn list(
+pub async fn list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let resource_query = error_mapper
         .or_handler_error(ResourceQuery::<ServiceOrderBy, ServiceFilterBy>::from_str(
             payload.q(),
@@ -168,13 +168,13 @@ pub async fn list(
         .into_response())
 }
 
-#[debug_handler]
-pub async fn select_list(
+pub async fn select_list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let list_type = payload
         .get("list")
         .cloned()
@@ -194,12 +194,13 @@ pub async fn select_list(
         .into_response())
 }
 
-pub async fn print(
+pub async fn print<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(services_module): State<Arc<dyn ServicesModule>>,
+    State(services_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), services_module);
+    let service = Service::new(Some(&claims), services_module.clone());
+    let error_mapper = ErrorMapper::new(services_module);
     let service_resolved = error_mapper
         .or_handler_error(service.get_resolved(payload.uuid).await)
         .await?;

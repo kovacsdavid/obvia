@@ -17,16 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::worksheets::WorksheetsModule;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
+use crate::tenant::worksheets::repository::WorksheetsRepository;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -59,11 +61,11 @@ impl From<ServiceError> for WorksheetsServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for WorksheetsServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for WorksheetsServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             WorksheetsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -71,14 +73,16 @@ where
                 file!(),
                 GeneralError {
                     message: WorksheetsServiceError::Unauthorized.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -105,38 +109,49 @@ impl FromStr for WorksheetsSelectLists {
 }
 
 pub trait WorksheetService {
-    async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet>;
-    async fn get_select_list_items(
+    fn insert(
+        &self,
+        payload: &WorksheetUserInput,
+    ) -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
+    fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> WorksheetsServiceResult<Vec<SelectOption>>;
-    async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved>;
-    async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet>;
-    async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet>;
-    async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()>;
-    async fn get_paged(
+    ) -> impl Future<Output = WorksheetsServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = WorksheetsServiceResult<WorksheetResolved>> + Send;
+    fn get(&self, payload: Uuid)
+    -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
+    fn update(
+        &self,
+        payload: &WorksheetUserInput,
+    ) -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = WorksheetsServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
-    async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes>;
+    ) -> impl Future<Output = WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[WorksheetResolved],
+    ) -> impl Future<Output = WorksheetsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> WorksheetService for Service<'a, T>
 where
-    T: WorksheetsModule + ?Sized,
+    T: WorksheetsModule,
 {
     async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .insert(
-                payload.clone(),
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::insert(
+            self.module(),
+            payload.clone(),
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_select_list_items(
@@ -149,78 +164,65 @@ where
             .ok_or(WorksheetsServiceError::Unauthorized)?;
         Ok(match WorksheetsSelectLists::from_str(select_list)? {
             WorksheetsSelectLists::Customers => {
-                self.module()
-                    .customers_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
+                CustomersRepository::get_select_list_items(self.module(), active_tenant).await?
             }
         })
     }
     async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .get_resolved_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::get_resolved_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .get_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::get_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .update(
-                payload.clone(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::update(
+            self.module(),
+            payload.clone(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
     async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .delete_by_id(
-                payload,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::delete_by_id(
+            self.module(),
+            payload,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
     ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
-        Ok(self
-            .module()
-            .worksheets_repo()
-            .get_all_paged(
-                get_query,
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(WorksheetsRepository::get_all_paged(
+            self.module(),
+            get_query,
+            self.claims()?
+                .active_tenant()
+                .ok_or(WorksheetsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 
     async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes> {

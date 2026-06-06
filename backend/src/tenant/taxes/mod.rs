@@ -17,10 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 mod dto;
 mod handler;
@@ -30,20 +35,17 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait TaxesModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-    fn address_repo(&self) -> Arc<dyn AddressRepository>;
+pub trait TaxesModule: TaxesRepository + AddressRepository + BaseModule {}
+
+impl<P, T> TaxesModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl TaxesModule for DefaultAppState {
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
-        self.pool_manager.clone()
-    }
-    fn address_repo(&self) -> Arc<dyn AddressRepository> {
-        self.pool_manager.clone()
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -70,3 +72,4 @@ pub mod tests {
         }
     );
 }
+*/

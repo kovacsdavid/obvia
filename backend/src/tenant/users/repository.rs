@@ -16,31 +16,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::database::{PgPoolManager, PoolManager};
-use crate::common::error::RepositoryError;
+
+use crate::common::AppState;
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::tenant::users::model::User;
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait UsersRepository: Send + Sync {
-    async fn insert_from_manager(
+    fn insert_from_manager(
         &self,
         user: User,
         active_tenant: Uuid,
-    ) -> Result<User, RepositoryError>;
+    ) -> impl Future<Output = RepositoryResult<User>> + Send;
 }
 
-#[async_trait]
-impl UsersRepository for PgPoolManager {
-    async fn insert_from_manager(
-        &self,
-        user: User,
-        active_tenant: Uuid,
-    ) -> Result<User, RepositoryError> {
+impl<P, T> UsersRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
+    async fn insert_from_manager(&self, user: User, active_tenant: Uuid) -> RepositoryResult<User> {
         Ok(sqlx::query_as::<_, User>(
             "INSERT INTO users (
                     id,

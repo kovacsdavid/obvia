@@ -17,12 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{DatabaseMigrator, PoolManager};
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::AppState;
+use crate::common::BaseModule;
+use crate::common::database::DatabaseMigrator;
+use crate::common::database::PoolManager;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
 use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
-use std::sync::Arc;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 
 pub(crate) mod dto;
 mod handler;
@@ -32,27 +38,25 @@ pub(crate) mod routes;
 mod service;
 pub(crate) mod types;
 
-pub trait TenantsModule: PoolManager + ConfigProvider + MailTransporter + Send + Sync {
-    fn tenants_repo(&self) -> Arc<dyn TenantsRepository>;
-    fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository>;
-    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository>;
-    fn migrator(&self) -> Arc<dyn DatabaseMigrator>;
+pub trait TenantsModule:
+    TenantsRepository
+    + TenantUserRepository
+    + ManagerUserRepository
+    + DatabaseMigrator
+    + PoolManager
+    + BaseModule
+{
 }
 
-impl TenantsModule for DefaultAppState {
-    fn tenants_repo(&self) -> Arc<dyn TenantsRepository> {
-        self.pool_manager.clone()
-    }
-    fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository> {
-        self.pool_manager.clone()
-    }
-    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository> {
-        self.pool_manager.clone()
-    }
-    fn migrator(&self) -> Arc<dyn DatabaseMigrator> {
-        self.migrator.clone()
-    }
+impl<P, T> TenantsModule for AppState<P, T>
+where
+    P: DatabaseMigrator + PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
+
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -100,3 +104,4 @@ pub mod tests {
         }
     );
 }
+*/

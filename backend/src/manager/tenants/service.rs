@@ -17,8 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::config::database_config::BasicDatabaseConfig;
+use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::query_parser::ResourceQuery;
@@ -28,7 +29,10 @@ use crate::common::value_object::ValueObjectError;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
+use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
+use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
+use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -64,11 +68,11 @@ impl From<ServiceError> for TenantsServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for TenantsServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for TenantsServiceError {
+    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             TenantsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -76,15 +80,17 @@ where
                 file!(),
                 GeneralError {
                     message: TenantsServiceError::Unauthorized.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
-                    module,
+                    }
+                    .to_string(),
+                    mailer,
                 )
                 .await
             }
@@ -95,18 +101,27 @@ where
 type TenantsServiceResult<T> = Result<T, TenantsServiceError>;
 
 pub trait TenantService {
-    async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant>;
-    async fn get_paged(
+    fn create_managed(
+        &self,
+        payload: &CreateTenant,
+    ) -> impl Future<Output = TenantsServiceResult<Tenant>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
-    ) -> TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)>;
-    async fn activate(&self, payload: &TenantIdRequest) -> TenantsServiceResult<NewTokenResponse>;
-    async fn delete(&self, uuid: Uuid) -> TenantsServiceResult<NewTokenResponse>;
+    ) -> impl Future<Output = TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)>> + Send;
+    fn activate(
+        &self,
+        payload: &TenantIdRequest,
+    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
+    fn delete(
+        &self,
+        uuid: Uuid,
+    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
 }
 
 impl<'a, T> TenantService for Service<'a, T>
 where
-    T: TenantsModule + ?Sized,
+    T: TenantsModule,
 {
     async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
         let uuid = Uuid::new_v4();
@@ -120,39 +135,29 @@ where
             ssl_mode: Some(String::from("disable")),
         };
 
-        let tenant = self
-            .module()
-            .tenants_repo()
-            .setup_managed(
-                uuid,
-                payload.name.as_str()?,
-                &db_config,
-                self.claims()?,
-                self.module().config().clone(),
-            )
-            .await?;
+        let tenant = TenantsRepository::setup_managed(
+            self.module(),
+            uuid,
+            payload.name.as_str()?,
+            &db_config,
+            self.claims()?,
+            self.module().config(),
+        )
+        .await?;
 
-        self.module()
-            .add_tenant_pool(
-                tenant.id,
-                &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
-            )
-            .await?;
+        PoolManager::add_tenant_pool(
+            self.module(),
+            tenant.id,
+            &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
+        )
+        .await?;
 
-        self.module()
-            .migrator()
-            .migrate_tenant_db(tenant.id)
-            .await?;
+        DatabaseMigrator::migrate_tenant_db(self.module(), tenant.id).await?;
 
-        let manager_user = self
-            .module()
-            .manager_user_repo()
-            .get_by_uuid(self.claims()?.sub())
-            .await?;
+        let manager_user =
+            ManagerUserRepository::get_by_uuid(self.module(), self.claims()?.sub()).await?;
 
-        self.module()
-            .tenant_user_repo()
-            .insert_from_manager(manager_user.into(), tenant.id)
+        TenantUserRepository::insert_from_manager(self.module(), manager_user.into(), tenant.id)
             .await?;
 
         Ok(tenant)
@@ -162,11 +167,9 @@ where
         &self,
         get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)> {
-        let (meta, data) = self
-            .module()
-            .tenants_repo()
-            .get_all_by_user_id(self.claims()?.sub(), get_query)
-            .await?;
+        let (meta, data) =
+            TenantsRepository::get_all_by_user_id(self.module(), self.claims()?.sub(), get_query)
+                .await?;
         let mut public_tenants = vec![];
         for tenant in data {
             public_tenants.push(PublicTenant::from(tenant))
@@ -175,12 +178,13 @@ where
     }
 
     async fn activate(&self, payload: &TenantIdRequest) -> TenantsServiceResult<NewTokenResponse> {
-        let user_tenant = self
-            .module()
-            .tenants_repo()
-            .get_user_active_tenant_by_id(self.claims()?.sub(), payload.uuid)
-            .await?
-            .ok_or(TenantsServiceError::Unauthorized)?;
+        let user_tenant = TenantsRepository::get_user_active_tenant_by_id(
+            self.module(),
+            self.claims()?.sub(),
+            payload.uuid,
+        )
+        .await?
+        .ok_or(TenantsServiceError::Unauthorized)?;
         let claims = self
             .claims()?
             .clone()
@@ -196,10 +200,7 @@ where
 
     async fn delete(&self, uuid: Uuid) -> TenantsServiceResult<NewTokenResponse> {
         let claims = self.claims()?.clone();
-        self.module()
-            .tenants_repo()
-            .delete(uuid, claims.sub())
-            .await?;
+        TenantsRepository::delete(self.module(), uuid, claims.sub()).await?;
         let claims = if let Some(active_tenant) = claims.active_tenant()
             && active_tenant == uuid
         {

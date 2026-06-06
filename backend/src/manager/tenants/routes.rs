@@ -25,16 +25,16 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use std::sync::Arc;
 
-pub fn routes(tenants_module: Arc<dyn TenantsModule>) -> Router {
+pub fn routes<M: TenantsModule>(tenants_module: Arc<M>) -> Router {
     Router::new().nest(
         "/tenants",
         Router::new()
-            .route("/create", post(handler::create))
-            .route("/get", get(handler::get))
-            .route("/list", get(handler::list))
-            .route("/activate", post(handler::activate))
-            .route("/delete", post(handler::delete))
-            .layer(from_fn_with_state(tenants_module.config(), require_auth))
+            .route("/create", post(handler::create::<M>))
+            .route("/get", get(handler::get::<M>))
+            .route("/list", get(handler::list::<M>))
+            .route("/activate", post(handler::activate::<M>))
+            .route("/delete", post(handler::delete::<M>))
+            .layer(from_fn_with_state(tenants_module.clone(), require_auth))
             .with_state(tenants_module),
     )
 }

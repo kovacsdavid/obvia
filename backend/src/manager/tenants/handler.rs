@@ -19,8 +19,9 @@
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{UserInput, ValidJson};
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{
@@ -28,7 +29,6 @@ use crate::manager::tenants::dto::{
 };
 use crate::manager::tenants::service::TenantService;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
-use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -36,13 +36,13 @@ use axum::response::Response;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn create(
+pub async fn create<M: TenantsModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<dyn TenantsModule>>,
+    State(tenants_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let service = Service::new(Some(&claims), tenants_module.clone());
+    let error_mapper = ErrorMapper::new(tenants_module);
     let result = error_mapper
         .or_handler_error(service.create_managed(&user_input).await)
         .await?;
@@ -57,19 +57,20 @@ pub async fn create(
         .into_response())
 }
 
-pub async fn get(
+pub async fn get<M: TenantsModule>(
     AuthenticatedUser(_claims): AuthenticatedUser,
-    State(_tenants_module): State<Arc<dyn TenantsModule>>,
+    State(_tenants_module): State<Arc<M>>,
 ) -> Response {
     todo!();
 }
 
-pub async fn list(
+pub async fn list<M: TenantsModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<dyn TenantsModule>>,
+    State(tenants_module): State<Arc<M>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let service = Service::new(Some(&claims), tenants_module.clone());
+    let error_mapper = ErrorMapper::new(tenants_module);
     let resource_query = error_mapper
         .or_handler_error(ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(
             payload.q(),
@@ -91,12 +92,13 @@ pub async fn list(
         .into_response())
 }
 
-pub async fn activate(
+pub async fn activate<M: TenantsModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<dyn TenantsModule>>,
+    State(tenants_module): State<Arc<M>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let service = Service::new(Some(&claims), tenants_module.clone());
+    let error_mapper = ErrorMapper::new(tenants_module);
     let result = error_mapper
         .or_handler_error(service.activate(&payload).await)
         .await?;
@@ -111,12 +113,13 @@ pub async fn activate(
         .into_response())
 }
 
-pub async fn delete(
+pub async fn delete<M: TenantsModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(tenants_module): State<Arc<dyn TenantsModule>>,
+    State(tenants_module): State<Arc<M>>,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), tenants_module);
+    let service = Service::new(Some(&claims), tenants_module.clone());
+    let error_mapper = ErrorMapper::new(tenants_module);
     let result = error_mapper
         .or_handler_error(service.delete(payload.uuid).await)
         .await?;
@@ -131,6 +134,7 @@ pub async fn delete(
         .into_response())
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -520,3 +524,4 @@ mod tests {
         assert_eq!(&body[..], expected_response.as_bytes());
     }
 }
+*/

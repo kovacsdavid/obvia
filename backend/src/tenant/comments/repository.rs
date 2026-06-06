@@ -17,28 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::database::{PgPoolManager, PoolManager};
+use crate::common::AppState;
+use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
-use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait CommentsRepository: Send + Sync {
-    async fn post(
+    fn post(
         &self,
         payload: &CommentUserInput,
         sub: Uuid,
         active_tenant: Uuid,
-    ) -> RepositoryResult<Comment>;
+    ) -> impl Future<Output = RepositoryResult<Comment>> + Send;
 }
 
-#[async_trait]
-impl CommentsRepository for PgPoolManager {
+impl<P, T> CommentsRepository for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: Send + Sync,
+{
     async fn post(
         &self,
         payload: &CommentUserInput,

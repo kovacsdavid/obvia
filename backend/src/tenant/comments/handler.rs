@@ -19,24 +19,24 @@
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{HandlerResult, init_handler};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
 use crate::tenant::comments::service::CommentService;
-use axum::debug_handler;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn post(
+pub async fn post<M: CommentsModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(comments_module): State<Arc<dyn CommentsModule>>,
+    State(comments_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
-    let (service, error_mapper) = init_handler(Some(&claims), comments_module);
+    let service = Service::new(Some(&claims), comments_module.clone());
+    let error_mapper = ErrorMapper::new(comments_module);
     let result = error_mapper
         .or_handler_error(service.post(&user_input).await)
         .await?;

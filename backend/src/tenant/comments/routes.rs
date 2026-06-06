@@ -25,12 +25,12 @@ use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::post};
 
-pub fn routes(comments_module: Arc<dyn CommentsModule>) -> Router {
+pub fn routes<M: CommentsModule>(comments_module: Arc<M>) -> Router {
     Router::new().nest(
         "/comments",
         Router::new()
-            .route("/post", post(handler::post))
-            .layer(from_fn_with_state(comments_module.config(), require_auth))
+            .route("/post", post(handler::post::<M>))
+            .layer(from_fn_with_state(comments_module.clone(), require_auth))
             .with_state(comments_module),
     )
 }

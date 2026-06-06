@@ -17,13 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
+use crate::tenant::comments::repository::CommentsRepository;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -46,11 +47,11 @@ impl From<ServiceError> for CommentsServiceError {
     }
 }
 
-impl<H> IntoFriendlyError<GeneralError, H> for CommentsServiceError
-where
-    H: MailTransporter + ?Sized,
-{
-    async fn into_friendly_error(self, module: Arc<H>) -> FriendlyError<GeneralError> {
+impl IntoFriendlyError for CommentsServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             CommentsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -58,14 +59,16 @@ where
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -77,24 +80,25 @@ where
 type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
 
 pub trait CommentService {
-    async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment>;
+    fn post(
+        &self,
+        payload: &CommentUserInput,
+    ) -> impl Future<Output = CommentsServiceResult<Comment>> + Send;
 }
 
 impl<'a, T> CommentService for Service<'a, T>
 where
-    T: CommentsModule + ?Sized,
+    T: CommentsModule,
 {
     async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
-        Ok(self
-            .module()
-            .comments_repo()
-            .post(
-                payload,
-                self.claims()?.sub(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CommentsServiceError::Unauthorized)?,
-            )
-            .await?)
+        Ok(CommentsRepository::post(
+            self.module(),
+            payload,
+            self.claims()?.sub(),
+            self.claims()?
+                .active_tenant()
+                .ok_or(CommentsServiceError::Unauthorized)?,
+        )
+        .await?)
     }
 }

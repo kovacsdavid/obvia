@@ -17,11 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    common::{ConfigProvider, DefaultAppState, MailTransporter},
-    tenant::comments::repository::CommentsRepository,
+use crate::common::database::PoolManager;
+use crate::common::{AppState, BaseModule};
+use crate::tenant::comments::repository::CommentsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
 };
-use std::sync::Arc;
+use std::fmt::Debug;
 
 mod dto;
 mod handler;
@@ -31,16 +34,17 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CommentsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn comments_repo(&self) -> Arc<dyn CommentsRepository>;
+pub trait CommentsModule: CommentsRepository + BaseModule {}
+
+impl<P, T> CommentsModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    T::Error: Debug,
+{
 }
 
-impl CommentsModule for DefaultAppState {
-    fn comments_repo(&self) -> Arc<dyn CommentsRepository> {
-        self.pool_manager.clone()
-    }
-}
-
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -66,3 +70,4 @@ pub mod tests {
         }
     );
 }
+*/

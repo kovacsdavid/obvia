@@ -21,7 +21,7 @@ use std::sync::Arc;
 
 use crate::common::AppState;
 use crate::common::config::AppConfig;
-use crate::common::database::{DatabaseMigrator, PgPoolManager};
+use crate::common::database::{DatabaseMigrator, PgPoolManager, PoolManager};
 use crate::manager::tenants::repository::TenantsRepository;
 use anyhow::Result;
 use axum::Router;
@@ -50,7 +50,7 @@ pub async fn init_default_app(config: AppConfig) -> Result<Router> {
             .build();
     let app_state = AppState::new(config, pg_pool_manager, smtp_transport).await?;
 
-    let tenants = TenantsRepository::get_all(&app_state).await?;
+    let tenants = TenantsRepository::get_all(&app_state.pool_manager().get_main_pool()).await?;
     app_state.pool_manager().migrate_main_db().await?;
     app_state.pool_manager().init_tenant_pools(&tenants).await?;
     app_state

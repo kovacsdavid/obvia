@@ -29,10 +29,7 @@ use crate::common::value_object::ValueObjectError;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
-use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
-use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
-use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -135,15 +132,17 @@ where
             ssl_mode: Some(String::from("disable")),
         };
 
-        let tenant = TenantsRepository::setup_managed(
-            self.module(),
-            uuid,
-            payload.name.as_str()?,
-            &db_config,
-            self.claims()?,
-            self.module().config(),
-        )
-        .await?;
+        let tenant = self
+            .module()
+            .tenants_repo()
+            .setup_managed(
+                uuid,
+                payload.name.as_str()?,
+                &db_config,
+                self.claims()?,
+                self.module().config(),
+            )
+            .await?;
 
         PoolManager::add_tenant_pool(
             self.module(),
@@ -154,10 +153,15 @@ where
 
         DatabaseMigrator::migrate_tenant_db(self.module(), tenant.id).await?;
 
-        let manager_user =
-            ManagerUserRepository::get_by_uuid(self.module(), self.claims()?.sub()).await?;
+        let manager_user = self
+            .module()
+            .manager_user_repo()
+            .get_by_uuid(self.claims()?.sub())
+            .await?;
 
-        TenantUserRepository::insert_from_manager(self.module(), manager_user.into(), tenant.id)
+        self.module()
+            .tenant_user_repo(tenant.id)?
+            .insert_from_manager(manager_user.into())
             .await?;
 
         Ok(tenant)
@@ -167,9 +171,11 @@ where
         &self,
         get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)> {
-        let (meta, data) =
-            TenantsRepository::get_all_by_user_id(self.module(), self.claims()?.sub(), get_query)
-                .await?;
+        let (meta, data) = self
+            .module()
+            .tenants_repo()
+            .get_all_by_user_id(self.claims()?.sub(), get_query)
+            .await?;
         let mut public_tenants = vec![];
         for tenant in data {
             public_tenants.push(PublicTenant::from(tenant))
@@ -178,13 +184,12 @@ where
     }
 
     async fn activate(&self, payload: &TenantIdRequest) -> TenantsServiceResult<NewTokenResponse> {
-        let user_tenant = TenantsRepository::get_user_active_tenant_by_id(
-            self.module(),
-            self.claims()?.sub(),
-            payload.uuid,
-        )
-        .await?
-        .ok_or(TenantsServiceError::Unauthorized)?;
+        let user_tenant = self
+            .module()
+            .tenants_repo()
+            .get_user_active_tenant_by_id(self.claims()?.sub(), payload.uuid)
+            .await?
+            .ok_or(TenantsServiceError::Unauthorized)?;
         let claims = self
             .claims()?
             .clone()
@@ -200,7 +205,10 @@ where
 
     async fn delete(&self, uuid: Uuid) -> TenantsServiceResult<NewTokenResponse> {
         let claims = self.claims()?.clone();
-        TenantsRepository::delete(self.module(), uuid, claims.sub()).await?;
+        self.module()
+            .tenants_repo()
+            .delete(uuid, claims.sub())
+            .await?;
         let claims = if let Some(active_tenant) = claims.active_tenant()
             && active_tenant == uuid
         {
@@ -208,6 +216,9 @@ where
         } else {
             claims
         };
+
+        self.module().delete_tenant_pool(uuid).await?;
+
         Ok(NewTokenResponse {
             token: claims
                 .to_token(self.module().config().auth().jwt_secret().as_bytes())

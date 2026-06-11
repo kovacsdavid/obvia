@@ -17,29 +17,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::tenant::users::model::User;
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use uuid::Uuid;
+use sqlx::PgPool;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait UsersRepository: Send + Sync {
-    fn insert_from_manager(
-        &self,
-        user: User,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<User>> + Send;
+    async fn insert_from_manager(&self, user: User) -> RepositoryResult<User>;
 }
 
-impl<P, T> UsersRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn insert_from_manager(&self, user: User, active_tenant: Uuid) -> RepositoryResult<User> {
+#[async_trait]
+impl UsersRepository for PgPool {
+    async fn insert_from_manager(&self, user: User) -> RepositoryResult<User> {
         Ok(sqlx::query_as::<_, User>(
             "INSERT INTO users (
                     id,
@@ -64,7 +57,7 @@ where
         .bind(user.locale)
         .bind(user.invited_by)
         .bind(user.email_verified_at)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 }

@@ -17,11 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
 use crate::common::config::{
     AppConfig, BasicDatabaseConfig, database_config::DatabasePoolSizeProvider,
 };
-use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
@@ -30,52 +28,51 @@ use crate::common::value_object::ValueObjectRequired;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::{Tenant, UserTenant};
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::Error;
 use sqlx::PgConnection;
+use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait TenantsRepository: Send + Sync {
     #[allow(dead_code)]
-    fn get_by_uuid(&self, uuid: Uuid) -> impl Future<Output = RepositoryResult<Tenant>> + Send;
+    async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant>;
 
-    fn setup_managed(
+    async fn setup_managed(
         &self,
         uuid: Uuid,
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
         app_config: &AppConfig,
-    ) -> impl Future<Output = RepositoryResult<Tenant>> + Send;
+    ) -> RepositoryResult<Tenant>;
     #[allow(dead_code)]
-    fn get_all_by_user_id(
+    async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
         query_params: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
-    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<Tenant>)>> + Send;
-    fn get_all(&self) -> impl Future<Output = RepositoryResult<Vec<Tenant>>> + Send;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)>;
+    async fn get_all(&self) -> RepositoryResult<Vec<Tenant>>;
 
-    fn get_user_active_tenant_by_id(
+    async fn get_user_active_tenant_by_id(
         &self,
         user_id: Uuid,
         tenant_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Option<UserTenant>>> + Send;
-    fn delete(&self, id: Uuid, sub: Uuid) -> impl Future<Output = RepositoryResult<Tenant>> + Send;
+    ) -> RepositoryResult<Option<UserTenant>>;
+    async fn delete(&self, id: Uuid, sub: Uuid) -> RepositoryResult<Tenant>;
 }
 
-impl<P, T> TenantsRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
+#[async_trait]
+impl TenantsRepository for PgPool {
     async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant> {
         Ok(sqlx::query_as::<_, Tenant>(
             "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn setup_managed(
@@ -86,10 +83,10 @@ where
         claims: &Claims,
         app_config: &AppConfig,
     ) -> RepositoryResult<Tenant> {
-        let mut tx = self.get_main_pool().begin().await?;
+        let mut tx = self.begin().await?;
         let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims).await?;
 
-        let mut main_pool = self.get_main_pool().acquire().await?;
+        let mut main_pool = self.acquire().await?;
         create_database_user_for_managed(&mut main_pool, &tenant, app_config).await?;
         tx.commit().await?;
 
@@ -106,9 +103,7 @@ where
             tenant_name.as_str()?,
         );
 
-        let _create_db = sqlx::query(&create_db_sql)
-            .execute(self.get_main_pool())
-            .await?;
+        let _create_db = sqlx::query(&create_db_sql).execute(self).await?;
         Ok(tenant)
     }
 
@@ -134,7 +129,7 @@ where
                 ))
                 .bind(user_uuid)
                 .bind(value_unchecked)
-                .fetch_one(self.get_main_pool())
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
@@ -146,7 +141,7 @@ where
                             AND user_tenants.deleted_at IS NULL"#,
                 )
                 .bind(user_uuid)
-                .fetch_one(self.get_main_pool())
+                .fetch_one(self)
                 .await?
             }
         };
@@ -187,7 +182,7 @@ where
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(self.get_main_pool())
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -210,7 +205,7 @@ where
                     .bind(user_uuid)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(self.get_main_pool())
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -228,7 +223,7 @@ where
     async fn get_all(&self) -> RepositoryResult<Vec<Tenant>> {
         Ok(
             sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
-                .fetch_all(self.get_main_pool())
+                .fetch_all(self)
                 .await?,
         )
     }
@@ -243,7 +238,7 @@ where
         )
             .bind(user_id)
             .bind(tenant_id)
-            .fetch_one(self.get_main_pool())
+            .fetch_one(self)
             .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -257,7 +252,7 @@ where
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(self.get_main_pool())
+                .execute(self)
                 .await?;
         }
 
@@ -277,10 +272,8 @@ where
         )
         .bind(id)
         .bind(sub)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?;
-
-        self.delete_tenant_pool(tenant.id).await?;
 
         let _ = sqlx::query(&format!(
             r#"
@@ -293,7 +286,7 @@ where
                 .parse::<ValueObjectRequired<DdlParameter>>()?
                 .as_str()?
         ))
-        .execute(self.get_main_pool())
+        .execute(self)
         .await?;
 
         Ok(tenant)

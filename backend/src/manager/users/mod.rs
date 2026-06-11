@@ -26,6 +26,7 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
 
 pub(crate) mod error;
 pub(crate) mod handler;
@@ -34,7 +35,10 @@ pub(crate) mod repository;
 pub(crate) mod routes;
 pub(crate) mod service;
 
-pub trait UsersModule: UsersRepository + AuthRepository + BaseModule {}
+pub trait UsersModule: BaseModule {
+    fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync>;
+    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync>;
+}
 
 impl<P, T> UsersModule for AppState<P, T>
 where
@@ -42,6 +46,12 @@ where
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
     T::Error: Debug,
 {
+    fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync> {
+        Arc::new(self.get_main_pool())
+    }
+    fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
+        Arc::new(self.get_main_pool())
+    }
 }
 
 /*

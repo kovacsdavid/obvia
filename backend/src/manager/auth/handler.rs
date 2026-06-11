@@ -274,6 +274,7 @@ mod tests {
     use crate::manager::auth::model::AccountEventType;
     use crate::manager::auth::model::EmailVerification;
     use crate::manager::auth::model::RefreshToken;
+    use crate::manager::auth::repository::MockAuthRepository;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
@@ -288,10 +289,10 @@ mod tests {
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
 
-        let mut app_state = MockAuthModule::new();
-        app_state.expect_get_user_by_email()
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
-            .returning(move |_| Box::pin(ready(Ok(User {
+            .returning(move |_| Ok(User {
                 id: user_id1,
                 email: "testuser@example.com".to_string(),
                 password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -309,40 +310,33 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
-            }))));
-        app_state
-            .expect_get_user_active_tenant()
+            }));
+        repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
-            .returning(|_| Box::pin(ready(Ok(None))));
-        app_state
-            .expect_update_user_last_login_at()
+            .returning(|_| Ok(None));
+        repo.expect_update_user_last_login_at()
             .with(eq(user_id2))
-            .returning(|_| Box::pin(ready(Ok(()))));
-        app_state
-            .expect_insert_refresh_token()
+            .returning(|_| Ok(()));
+        repo.expect_insert_refresh_token().times(1).returning(|_| {
+            Ok(RefreshToken {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                family_id: Uuid::new_v4(),
+                jti: Uuid::new_v4(),
+                iat: Utc::now(),
+                exp: Utc::now(),
+                replaced_by: None,
+                consumed_at: None,
+                revoked_at: None,
+            })
+        });
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_| {
-                Box::pin(ready(Ok(RefreshToken {
-                    id: Uuid::new_v4(),
-                    user_id: Uuid::new_v4(),
-                    family_id: Uuid::new_v4(),
-                    jti: Uuid::new_v4(),
-                    iat: Utc::now(),
-                    exp: Utc::now(),
-                    replaced_by: None,
-                    consumed_at: None,
-                    revoked_at: None,
-                })))
-            });
-        app_state
-            .expect_account_event_log_ip_and_event_status_count()
-            .times(1)
-            .returning(|_, _, _| Box::pin(ready(Ok(0))));
-        app_state
-            .expect_insert_account_event_log()
+            .returning(|_, _, _| Ok(0));
+        repo.expect_insert_account_event_log()
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
-                Box::pin(ready(Ok(AccountEventLogEntry {
+                Ok(AccountEventLogEntry {
                     id: Uuid::new_v4(),
                     user_id: Some(Uuid::new_v4()),
                     identifier: Some("test@example.com".to_string()),
@@ -354,10 +348,13 @@ mod tests {
                     user_agent: None,
                     metadata: None,
                     created_at: Utc::now(),
-                })))
+                })
             });
 
         let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {
@@ -405,12 +402,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_failure() {
-        let mut app_state = MockAuthModule::new();
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
-        app_state.expect_get_user_by_email()
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
-            .returning(move |_| Box::pin(ready(Ok(User {
+            .returning(move |_| Ok(User {
                 id: user_id1,
                 email: "testuser@example.com".to_string(),
                 password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -428,22 +425,19 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
-            }))));
-        app_state
-            .expect_get_user_active_tenant()
+            }));
+        repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
-            .returning(|_| Box::pin(ready(Ok(None))));
+            .returning(|_| Ok(None));
 
-        app_state
-            .expect_account_event_log_ip_and_event_status_count()
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_, _, _| Box::pin(ready(Ok(0))));
+            .returning(|_, _, _| Ok(0));
 
-        app_state
-            .expect_insert_account_event_log()
+        repo.expect_insert_account_event_log()
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
-                Box::pin(ready(Ok(AccountEventLogEntry {
+                Ok(AccountEventLogEntry {
                     id: Uuid::new_v4(),
                     user_id: Some(Uuid::new_v4()),
                     identifier: Some("test@example.com".to_string()),
@@ -455,10 +449,13 @@ mod tests {
                     user_agent: None,
                     metadata: None,
                     created_at: Utc::now(),
-                })))
+                })
             });
 
         let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {
@@ -500,8 +497,8 @@ mod tests {
         let test_user_uuid = Uuid::new_v4();
         let test_user_uuid_copy = test_user_uuid;
 
-        let mut app_state = MockAuthModule::new();
-        app_state.expect_insert_user()
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user()
             .withf(move |payload_param, hashed_password| {
                 *payload_param
                     == RegisterRequest {
@@ -517,7 +514,7 @@ mod tests {
                         )
                         .is_ok()
             })
-            .returning(move |_, _| Box::pin(ready(Ok(User {
+            .returning(move |_, _| Ok(User {
                     id: test_user_uuid,
                     email: "testuser@example.com".to_string(),
                     password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -535,22 +532,24 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
-                }))));
-        app_state
-            .expect_insert_email_verification()
+                }));
+        repo.expect_insert_email_verification()
             .times(1)
             .withf(move |user_id| *user_id == test_user_uuid_copy)
             .returning(|user_id| {
-                Box::pin(ready(Ok(EmailVerification {
+                Ok(EmailVerification {
                     id: Uuid::new_v4(),
                     user_id,
                     valid_until: chrono::Utc::now() + chrono::Duration::days(1),
                     created_at: chrono::Utc::now(),
                     deleted_at: None,
-                })))
+                })
             });
 
         let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         app_state.expect_send().times(1).returning(|_| {
@@ -630,14 +629,17 @@ mod tests {
             }
         }
 
-        let mut app_state = MockAuthModule::new();
-        app_state.expect_insert_user().returning(|_, _| {
-            Box::pin(ready(Err(RepositoryError::Database(
-                sqlx::Error::Database(Box::new(DummyDatabaseError) as Box<dyn DatabaseError>),
-            ))))
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_user().returning(|_, _| {
+            Err(RepositoryError::Database(sqlx::Error::Database(
+                Box::new(DummyDatabaseError) as Box<dyn DatabaseError>,
+            )))
         });
 
         let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         let request = Request::builder()
@@ -663,10 +665,10 @@ mod tests {
         let active_tenant_id2 = active_tenant_id1;
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
-        let mut app_state = MockAuthModule::new();
-        app_state.expect_get_user_by_email()
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
-            .returning(move |_| Box::pin(ready(Ok(User {
+            .returning(move |_| Ok(User {
                 id: user_id1,
                 email: "testuser@example.com".to_string(),
                 password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -684,12 +686,11 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
-            }))));
-        app_state
-            .expect_get_user_active_tenant()
+            }));
+        repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(move |user_id| {
-                Box::pin(ready(Ok(Some(UserTenant {
+                Ok(Some(UserTenant {
                     id: Uuid::new_v4(),
                     user_id,
                     tenant_id: active_tenant_id1,
@@ -699,41 +700,35 @@ mod tests {
                     created_at: Utc::now(),
                     updated_at: Utc::now(),
                     deleted_at: None,
-                }))))
+                }))
             });
 
-        app_state
-            .expect_update_user_last_login_at()
+        repo.expect_update_user_last_login_at()
             .with(eq(user_id2))
-            .returning(|_| Box::pin(ready(Ok(()))));
+            .returning(|_| Ok(()));
 
-        app_state
-            .expect_insert_refresh_token()
+        repo.expect_insert_refresh_token().times(1).returning(|_| {
+            Ok(RefreshToken {
+                id: Uuid::new_v4(),
+                user_id: Uuid::new_v4(),
+                family_id: Uuid::new_v4(),
+                jti: Uuid::new_v4(),
+                iat: Utc::now(),
+                exp: Utc::now(),
+                replaced_by: None,
+                consumed_at: None,
+                revoked_at: None,
+            })
+        });
+
+        repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
-            .returning(|_| {
-                Box::pin(ready(Ok(RefreshToken {
-                    id: Uuid::new_v4(),
-                    user_id: Uuid::new_v4(),
-                    family_id: Uuid::new_v4(),
-                    jti: Uuid::new_v4(),
-                    iat: Utc::now(),
-                    exp: Utc::now(),
-                    replaced_by: None,
-                    consumed_at: None,
-                    revoked_at: None,
-                })))
-            });
+            .returning(|_, _, _| Ok(0));
 
-        app_state
-            .expect_account_event_log_ip_and_event_status_count()
-            .times(1)
-            .returning(|_, _, _| Box::pin(ready(Ok(0))));
-
-        app_state
-            .expect_insert_account_event_log()
+        repo.expect_insert_account_event_log()
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
-                Box::pin(ready(Ok(AccountEventLogEntry {
+                Ok(AccountEventLogEntry {
                     id: Uuid::new_v4(),
                     user_id: Some(Uuid::new_v4()),
                     identifier: Some("test@example.com".to_string()),
@@ -745,10 +740,13 @@ mod tests {
                     user_agent: None,
                     metadata: None,
                     created_at: Utc::now(),
-                })))
+                })
             });
 
         let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
         app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {

@@ -21,6 +21,7 @@ use crate::common::AppState;
 use crate::common::BaseModule;
 use crate::common::database::DatabaseMigrator;
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
 use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
@@ -29,6 +30,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 mod handler;
@@ -38,14 +41,13 @@ pub(crate) mod routes;
 mod service;
 pub(crate) mod types;
 
-pub trait TenantsModule:
-    TenantsRepository
-    + TenantUserRepository
-    + ManagerUserRepository
-    + DatabaseMigrator
-    + PoolManager
-    + BaseModule
-{
+pub trait TenantsModule: DatabaseMigrator + PoolManager + BaseModule {
+    fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync>;
+    fn tenant_user_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantUserRepository + Send + Sync>>;
+    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository + Send + Sync>;
 }
 
 impl<P, T> TenantsModule for AppState<P, T>
@@ -54,6 +56,18 @@ where
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
     T::Error: Debug,
 {
+    fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync> {
+        Arc::new(self.get_main_pool())
+    }
+    fn tenant_user_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantUserRepository + Send + Sync>> {
+        Ok(Arc::new(self.get_tenant_pool(tenant_id)?))
+    }
+    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository + Send + Sync> {
+        Arc::new(self.get_main_pool())
+    }
 }
 
 /*

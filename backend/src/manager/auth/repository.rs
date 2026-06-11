@@ -19,8 +19,6 @@
 
 use std::net::IpAddr;
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::register::RegisterRequest;
@@ -30,82 +28,57 @@ use crate::manager::auth::model::{
 };
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
+use async_trait::async_trait;
 use chrono::{DateTime, TimeZone, Utc};
 #[cfg(test)]
 use mockall::automock;
-use sqlx::Error;
+use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait AuthRepository: Send + Sync {
-    fn insert_user(
+    async fn insert_user(
         &self,
         payload: &RegisterRequest,
         password_hash: &str,
-    ) -> impl Future<Output = RepositoryResult<User>> + Send;
-    fn get_user_by_email(&self, email: &str)
-    -> impl Future<Output = RepositoryResult<User>> + Send;
+    ) -> RepositoryResult<User>;
+    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User>;
 
-    fn get_user_by_id(&self, user_id: Uuid) -> impl Future<Output = RepositoryResult<User>> + Send;
+    async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
 
-    fn update_user(&self, user: User) -> impl Future<Output = RepositoryResult<User>> + Send;
+    async fn update_user(&self, user: User) -> RepositoryResult<User>;
 
-    fn update_user_last_login_at(
-        &self,
-        user_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    async fn update_user_last_login_at(&self, user_id: Uuid) -> RepositoryResult<()>;
 
-    fn get_user_active_tenant(
-        &self,
-        user_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Option<UserTenant>>> + Send;
-    fn insert_email_verification(
-        &self,
-        user_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<EmailVerification>> + Send;
-    fn get_email_verification(
+    async fn get_user_active_tenant(&self, user_id: Uuid) -> RepositoryResult<Option<UserTenant>>;
+    async fn insert_email_verification(&self, user_id: Uuid)
+    -> RepositoryResult<EmailVerification>;
+    async fn get_email_verification(
         &self,
         email_verification_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<EmailVerification>> + Send;
-    fn invalidate_email_verification(
+    ) -> RepositoryResult<EmailVerification>;
+    async fn invalidate_email_verification(
         &self,
         email_verification_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
-    fn insert_forgotten_password(
-        &self,
-        user_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<ForgottenPassword>> + Send;
-    fn get_forgotten_password(
+    ) -> RepositoryResult<()>;
+    async fn insert_forgotten_password(&self, user_id: Uuid)
+    -> RepositoryResult<ForgottenPassword>;
+    async fn get_forgotten_password(
         &self,
         forgotten_password_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<ForgottenPassword>> + Send;
-    fn invalidate_forgotten_password(
+    ) -> RepositoryResult<ForgottenPassword>;
+    async fn invalidate_forgotten_password(
         &self,
         forgotten_password_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
-    fn insert_refresh_token(
-        &self,
-        claims: &Claims,
-    ) -> impl Future<Output = RepositoryResult<RefreshToken>> + Send;
-    fn get_refresh_token(
-        &self,
-        jti: Uuid,
-    ) -> impl Future<Output = RepositoryResult<RefreshToken>> + Send;
-    fn consume_refresh_token(
-        &self,
-        jti: Uuid,
-        new_jti: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
-    fn revoke_refresh_tokens_by_user_id(
-        &self,
-        user_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
-    fn revoke_refresh_tokens_by_family_id(
-        &self,
-        family_id: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    ) -> RepositoryResult<()>;
+    async fn insert_refresh_token(&self, claims: &Claims) -> RepositoryResult<RefreshToken>;
+    async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken>;
+    async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()>;
+    async fn revoke_refresh_tokens_by_user_id(&self, user_id: Uuid) -> RepositoryResult<()>;
+    async fn revoke_refresh_tokens_by_family_id(&self, family_id: Uuid) -> RepositoryResult<()>;
     #[allow(clippy::too_many_arguments)]
-    fn insert_account_event_log(
+    async fn insert_account_event_log(
         &self,
         user_id: Option<Uuid>,
         identifier: Option<String>,
@@ -114,26 +87,23 @@ pub trait AuthRepository: Send + Sync {
         ip_address: Option<IpAddr>,
         user_agent: Option<String>,
         metadata: Option<serde_json::Value>,
-    ) -> impl Future<Output = RepositoryResult<AccountEventLogEntry>> + Send;
-    fn account_event_log_ip_and_event_status_count(
+    ) -> RepositoryResult<AccountEventLogEntry>;
+    async fn account_event_log_ip_and_event_status_count(
         &self,
         ip_address: IpAddr,
         event_status: AccountEventStatus,
         interval_mins: i64,
-    ) -> impl Future<Output = RepositoryResult<i64>> + Send;
-    fn account_event_log_by_ip_and_event_type_count(
+    ) -> RepositoryResult<i64>;
+    async fn account_event_log_by_ip_and_event_type_count(
         &self,
         ip_address: IpAddr,
         event_type: AccountEventType,
         interval_mins: i64,
-    ) -> impl Future<Output = RepositoryResult<i64>> + Send;
+    ) -> RepositoryResult<i64>;
 }
 
-impl<P, T> AuthRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
+#[async_trait]
+impl AuthRepository for PgPool {
     async fn insert_user(
         &self,
         payload: &RegisterRequest,
@@ -149,7 +119,7 @@ where
         .bind(password_hash)
         .bind(payload.first_name.as_str()?)
         .bind(payload.last_name.as_str()?)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
 
@@ -159,7 +129,7 @@ where
                 "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
             )
             .bind(email)
-            .fetch_one(self.get_main_pool())
+            .fetch_one(self)
             .await?,
         )
     }
@@ -168,7 +138,7 @@ where
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_id)
-                .fetch_one(self.get_main_pool())
+                .fetch_one(self)
                 .await?,
         )
     }
@@ -209,7 +179,7 @@ where
         .bind(user.is_mfa_enabled)
         .bind(user.mfa_secret)
         .bind(user.id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
 
@@ -222,7 +192,7 @@ where
             "#,
         )
         .bind(user_id)
-        .execute(self.get_main_pool())
+        .execute(self)
         .await?;
         Ok(())
     }
@@ -241,7 +211,7 @@ where
             "#,
         )
         .bind(user_id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -255,7 +225,7 @@ where
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(self.get_main_pool())
+                .execute(self)
                 .await?;
         }
         user_tenant_result
@@ -270,7 +240,7 @@ where
             ) VALUES ($1, NOW() + '1 day'::interval) RETURNING *",
         )
         .bind(user_id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn get_email_verification(
@@ -281,7 +251,7 @@ where
             "SELECT * FROM email_verifications WHERE id = $1 AND valid_until > NOW() AND deleted_at IS NULL",
         )
         .bind(email_verification_id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn invalidate_email_verification(
@@ -290,7 +260,7 @@ where
     ) -> RepositoryResult<()> {
         let _ = sqlx::query("UPDATE email_verifications SET deleted_at = NOW() WHERE id = $1")
             .bind(email_verification_id)
-            .execute(self.get_main_pool())
+            .execute(self)
             .await?;
         Ok(())
     }
@@ -304,7 +274,7 @@ where
             ) VALUES ($1, NOW() + '1 hour'::interval) RETURNING *",
         )
         .bind(user_id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn get_forgotten_password(
@@ -315,7 +285,7 @@ where
             "SELECT * FROM forgotten_passwords WHERE id = $1 AND valid_until > NOW() AND deleted_at IS NULL",
         )
         .bind(forgotten_password_id)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn invalidate_forgotten_password(
@@ -324,7 +294,7 @@ where
     ) -> RepositoryResult<()> {
         let _ = sqlx::query("UPDATE forgotten_passwords SET deleted_at = NOW() WHERE id = $1")
             .bind(forgotten_password_id)
-            .execute(self.get_main_pool())
+            .execute(self)
             .await?;
         Ok(())
     }
@@ -339,7 +309,7 @@ where
         .bind(claims.jti())
         .bind(usize_epoch_seconds_to_local(claims.iat())?)
         .bind(usize_epoch_seconds_to_local(claims.exp())?)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken> {
@@ -347,7 +317,7 @@ where
             "SELECT * FROM refresh_tokens WHERE jti = $1 AND consumed_at IS NULL AND revoked_at IS NULL",
         )
         .bind(jti)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()> {
@@ -356,7 +326,7 @@ where
         )
         .bind(new_jti)
         .bind(jti)
-        .execute(self.get_main_pool())
+        .execute(self)
         .await?;
         Ok(())
     }
@@ -365,7 +335,7 @@ where
             "UPDATE refresh_tokens SET revoked_at = NOW() WHERE user_id = $1 AND revoked_at IS NULL",
         )
         .bind(user_id)
-        .execute(self.get_main_pool())
+        .execute(self)
         .await?;
         Ok(())
     }
@@ -374,7 +344,7 @@ where
             "UPDATE refresh_tokens SET revoked_at = NOW() WHERE family_id = $1 AND revoked_at IS NULL",
         )
         .bind(family_id)
-        .execute(self.get_main_pool())
+        .execute(self)
         .await?;
         Ok(())
     }
@@ -400,7 +370,7 @@ where
         .bind(ip_address)
         .bind(user_agent)
         .bind(metadata)
-        .fetch_one(self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn account_event_log_ip_and_event_status_count(
@@ -419,7 +389,7 @@ where
         .bind(event_status)
         .bind(ip_address)
         .bind(format!("{interval_mins} minutes"))
-        .fetch_optional(self.get_main_pool())
+        .fetch_optional(self)
         .await?
         .ok_or_else(|| {
             RepositoryError::Custom(
@@ -443,7 +413,7 @@ where
         .bind(event_type)
         .bind(ip_address)
         .bind(format!("{interval_mins} minutes"))
-        .fetch_optional(self.get_main_pool())
+        .fetch_optional(self)
         .await?
         .ok_or_else(|| {
             RepositoryError::Custom(

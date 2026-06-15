@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -26,55 +24,31 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::worksheets::dto::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait WorksheetsRepository: Send + Sync {
-    fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Worksheet>> + Send;
-    fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<WorksheetResolved>> + Send;
-    fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
-    fn get_all_paged(
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Worksheet>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WorksheetResolved>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
-    fn insert(
-        &self,
-        worksheet: WorksheetUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Worksheet>> + Send;
-    fn update(
-        &self,
-        worksheet: WorksheetUserInput,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Worksheet>> + Send;
-    fn delete_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
+    async fn insert(&self, worksheet: WorksheetUserInput, sub: Uuid)
+    -> RepositoryResult<Worksheet>;
+    async fn update(&self, worksheet: WorksheetUserInput) -> RepositoryResult<Worksheet>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
-impl<P, T> WorksheetsRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Worksheet> {
+#[async_trait]
+impl WorksheetsRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Worksheet> {
         Ok(sqlx::query_as::<_, Worksheet>(
             r#"
             SELECT *
@@ -84,15 +58,11 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<WorksheetResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WorksheetResolved> {
         Ok(sqlx::query_as::<_, WorksheetResolved>(
             r#"
             WITH material_costs AS (SELECT reference_id                                                                         as worksheet_id,
@@ -147,23 +117,19 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT worksheets.id::VARCHAR as value, worksheets.name as title FROM worksheets WHERE deleted_at IS NULL ORDER BY name",
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
     async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-        active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -176,12 +142,12 @@ where
                         AND ($1::TEXT IS NULL OR worksheets.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM worksheets WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -261,7 +227,7 @@ where
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -323,7 +289,7 @@ where
                 sqlx::query_as::<_, WorksheetResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -341,7 +307,6 @@ where
         &self,
         worksheet: WorksheetUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
         Ok(sqlx::query_as::<_, Worksheet>(
             "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
@@ -357,15 +322,11 @@ where
         .bind(worksheet.project_id.as_uuid())
         .bind(sub)
         .bind(worksheet.status.as_str()?)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn update(
-        &self,
-        worksheet: WorksheetUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Worksheet> {
+    async fn update(&self, worksheet: WorksheetUserInput) -> RepositoryResult<Worksheet> {
         let id = worksheet
             .id
             .as_uuid()
@@ -389,11 +350,11 @@ where
         .bind(worksheet.project_id.as_uuid())
         .bind(worksheet.status.as_str()?)
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE worksheets
@@ -403,7 +364,7 @@ where
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
@@ -26,6 +27,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -35,14 +38,35 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WorksheetsModule: WorksheetsRepository + CustomersRepository + BaseModule {}
+pub trait WorksheetsModule: BaseModule {
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+}
 
 impl<P, T> WorksheetsModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
     T::Error: Debug,
 {
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

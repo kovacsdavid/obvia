@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::ResourceQuery;
@@ -26,32 +24,30 @@ use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait ActivityFeedRepository: Send + Sync {
-    fn get_all_paged(
-        &self,
-        query_params: &ResourceQuery<Empty, Empty>,
-        resource_id: Uuid,
-        resource_type: &ValueObjectRequired<ResourceType>,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
-}
-
-impl<P, T> ActivityFeedRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
     async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-        active_tenant: Uuid,
+    ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
+}
+
+#[async_trait]
+impl ActivityFeedRepository for PgPool {
+    async fn get_all_paged(
+        &self,
+        query_params: &ResourceQuery<Empty, Empty>,
+        resource_id: Uuid,
+        resource_type: &ValueObjectRequired<ResourceType>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         let total: (i64,) = sqlx::query_as(
             r#"
@@ -64,7 +60,7 @@ where
         )
         .bind(resource_id)
         .bind(resource_type.as_str()?)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?;
 
         let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
@@ -96,7 +92,7 @@ where
         let activity_feed = sqlx::query_as::<_, ActivityFeedResolved>(sql)
             .bind(resource_id)
             .bind(resource_type.as_str()?)
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
+            .fetch_all(self)
             .await?;
 
         Ok((

@@ -26,7 +26,6 @@ use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
-use crate::tenant::activity_feed::repository::ActivityFeedRepository;
 use crate::tenant::activity_feed::types::ResourceType;
 use axum::http::StatusCode;
 use std::sync::Arc;
@@ -102,15 +101,14 @@ where
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
     ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
-        Ok(ActivityFeedRepository::get_all_paged(
-            self.module(),
-            get_query,
-            resource_id,
-            resource_type,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ActivityFeedServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .activity_feed_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ActivityFeedServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query, resource_id, resource_type)
+            .await?)
     }
 }

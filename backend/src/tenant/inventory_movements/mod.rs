@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
@@ -28,6 +29,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 pub(crate) mod handler;
@@ -37,21 +40,55 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryMovementsModule:
-    InventoryMovementsRepository
-    + TaxesRepository
-    + WorksheetsRepository
-    + InventoryRepository
-    + BaseModule
-{
+pub trait InventoryMovementsModule: BaseModule {
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
 impl<P, T> InventoryMovementsModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
+    P: PoolManager,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
     T::Error: Debug,
 {
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

@@ -20,65 +20,44 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ServicesRepository: Send + Sync + 'static {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Service>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<ServiceResolved>;
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Service>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<ServiceResolved>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>;
-    async fn insert(
-        &self,
-        service: &ServiceUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Service>;
-    async fn update(
-        &self,
-        service: &ServiceUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Service>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn insert(&self, service: &ServiceUserInput, sub: Uuid) -> RepositoryResult<Service>;
+    async fn update(&self, service: &ServiceUserInput) -> RepositoryResult<Service>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl ServicesRepository for PgPoolManager {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Service> {
+impl ServicesRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Service> {
         let service = sqlx::query_as::<_, Service>(
             r#"SELECT * FROM services WHERE id = $1 AND deleted_at IS NULL"#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?;
         Ok(service)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<ServiceResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<ServiceResolved> {
         let service = sqlx::query_as::<_, ServiceResolved>(
             r#"
             SELECT 
@@ -104,15 +83,12 @@ impl ServicesRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?;
         Ok(service)
     }
 
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"
             SELECT
@@ -123,14 +99,13 @@ impl ServicesRepository for PgPoolManager {
                 ORDER BY services.description
                 "#,
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<ServiceOrderBy, ServiceFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -143,12 +118,12 @@ impl ServicesRepository for PgPoolManager {
                             AND ($1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM services WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -201,7 +176,7 @@ impl ServicesRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -236,7 +211,7 @@ impl ServicesRepository for PgPoolManager {
                 sqlx::query_as::<_, ServiceResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -251,12 +226,7 @@ impl ServicesRepository for PgPoolManager {
         ))
     }
 
-    async fn insert(
-        &self,
-        input: &ServiceUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Service> {
+    async fn insert(&self, input: &ServiceUserInput, sub: Uuid) -> RepositoryResult<Service> {
         Ok(sqlx::query_as::<_, Service>(
             r#"
             INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
@@ -271,15 +241,11 @@ impl ServicesRepository for PgPoolManager {
             .bind(input.currency_code.as_str())
             .bind(input.status.as_str()?)
             .bind(sub)
-            .fetch_one(&self.get_tenant_pool(active_tenant)?)
+            .fetch_one(self)
             .await?)
     }
 
-    async fn update(
-        &self,
-        input: &ServiceUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Service> {
+    async fn update(&self, input: &ServiceUserInput) -> RepositoryResult<Service> {
         let id = input
             .id
             .as_uuid()
@@ -304,11 +270,11 @@ impl ServicesRepository for PgPoolManager {
         .bind(input.currency_code.as_str())
         .bind(input.status.as_str()?)
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE services
@@ -318,7 +284,7 @@ impl ServicesRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

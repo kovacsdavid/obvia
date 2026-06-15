@@ -17,14 +17,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::service::{Service, ServiceError};
+use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
-use crate::tenant::comments::repository::CommentsRepository;
-use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -39,12 +38,19 @@ pub enum CommentsServiceError {
     Unauthorized,
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for CommentsServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for CommentsServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => CommentsServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for CommentsServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             CommentsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -52,14 +58,16 @@ impl IntoFriendlyError<GeneralError> for CommentsServiceError {
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -70,18 +78,26 @@ impl IntoFriendlyError<GeneralError> for CommentsServiceError {
 
 type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
 
-pub async fn post(
-    claims: &Claims,
-    payload: &CommentUserInput,
-    repo: Arc<dyn CommentsRepository>,
-) -> CommentsServiceResult<Comment> {
-    Ok(repo
-        .post(
-            payload,
-            claims.sub(),
-            claims
-                .active_tenant()
-                .ok_or(CommentsServiceError::Unauthorized)?,
-        )
-        .await?)
+pub trait CommentService {
+    fn post(
+        &self,
+        payload: &CommentUserInput,
+    ) -> impl Future<Output = CommentsServiceResult<Comment>> + Send;
+}
+
+impl<'a, T> CommentService for Service<'a, T>
+where
+    T: CommentsModule,
+{
+    async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
+        Ok(self
+            .module()
+            .comments_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CommentsServiceError::Unauthorized)?,
+            )?
+            .post(payload, self.claims()?.sub())
+            .await?)
+    }
 }

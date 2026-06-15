@@ -17,15 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{fmt::Display, num::TryFromIntError};
+use std::{fmt::Display, num::TryFromIntError, sync::Arc};
 use thiserror::Error;
 
 use crate::common::{
-    MailTransporter,
+    BaseModule, ConfigProvider, MailTransporter,
+    config::AppConfig,
     dto::{ErrorResponse, FormError, GeneralError},
     value_object::ValueObjectError,
 };
-use async_trait::async_trait;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -40,36 +40,28 @@ use serde::Serialize;
 use serde_json::json;
 use sqlx::Error;
 use sqlx::migrate::MigrateError;
-use std::sync::Arc;
 use tracing::Level;
 use tracing::event;
 
 #[derive(Debug, Error, Clone)]
-pub enum FriendlyError<T>
-where
-    T: Serialize + Display,
-{
+pub enum FriendlyError {
     #[error("{0}")]
-    UserFacing(StatusCode, String, T),
+    UserFacing(StatusCode, String, String),
     #[error("Váratlan hiba történt a feldolgozás során!")]
-    Internal(String, T),
+    Internal(String, String),
 }
 
-impl<T> FriendlyError<T>
-where
-    T: Serialize + Display,
-{
-    pub fn user_facing(severity: Level, status: StatusCode, loc: &str, body: T) -> Self {
+impl FriendlyError {
+    pub fn user_facing(severity: Level, status: StatusCode, loc: &str, body: String) -> Self {
         Self::UserFacing(status, loc.to_string(), body).trace(severity)
     }
-    pub fn internal(loc: &str, body: T) -> Self {
+    pub fn internal(loc: &str, body: String) -> Self {
         Self::Internal(loc.to_string(), body).trace(Level::ERROR)
     }
-    pub async fn internal_with_admin_notify(
-        loc: &str,
-        body: T,
-        mailer: Arc<dyn MailTransporter>,
-    ) -> Self {
+    pub async fn internal_with_admin_notify<M>(loc: &str, body: String, mailer: Arc<M>) -> Self
+    where
+        M: MailTransporter + ConfigProvider<Cfg = AppConfig> + Send + Sync,
+    {
         let fe = Self::Internal(loc.to_string(), body).trace(Level::ERROR);
 
         if let Err(e) = fe.notify_admin(mailer).await {
@@ -145,24 +137,24 @@ where
         }
         self
     }
-    async fn notify_admin(&self, module: Arc<dyn MailTransporter>) -> Result<(), String> {
+    async fn notify_admin<M>(&self, mailer: Arc<M>) -> Result<(), String>
+    where
+        M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
+    {
         if let FriendlyError::Internal(loc, body) = &self {
+            let config = mailer.config().mail();
             let handlebars = Handlebars::new();
             let email = Message::builder()
                 .from(Mailbox::new(
-                    Some(module.config().mail().default_from_name().to_owned()),
-                    module
-                        .config()
-                        .mail()
+                    Some(config.default_from_name().to_owned()),
+                    config
                         .default_from()
                         .parse()
                         .map_err(|e: AddressError| e.to_string())?,
                 ))
                 .to(Mailbox::new(
                     None,
-                    module
-                        .config()
-                        .mail()
+                    config
                         .default_notification_email()
                         .parse()
                         .map_err(|e: AddressError| e.to_string())?,
@@ -183,7 +175,7 @@ where
                 )
                 .map_err(|e| e.to_string())?;
 
-            match module.send(email).await {
+            match mailer.send(email).await {
                 Ok(_) => Ok(()),
                 Err(e) => Err(e.to_string()),
             }
@@ -193,10 +185,7 @@ where
     }
 }
 
-impl<T> IntoResponse for FriendlyError<T>
-where
-    T: Serialize + Display,
-{
+impl IntoResponse for FriendlyError {
     fn into_response(self) -> Response {
         match self {
             FriendlyError::UserFacing(status, _, body) => ErrorResponse {
@@ -233,18 +222,17 @@ pub trait FormErrorResponse: Serialize + Display {
             FormError {
                 message: self.global_message(),
                 fields: self,
-            },
+            }
+            .to_string(),
         )
         .into_response()
     }
 }
 
-#[async_trait]
-pub trait IntoFriendlyError<T>
-where
-    T: Serialize + Display,
-{
-    async fn into_friendly_error(self, mailer: Arc<dyn MailTransporter>) -> FriendlyError<T>;
+pub trait IntoFriendlyError {
+    fn into_friendly_error<M>(self, mailer: Arc<M>) -> impl Future<Output = FriendlyError> + Send
+    where
+        M: BaseModule;
 }
 
 #[derive(Debug, Error)]
@@ -306,13 +294,12 @@ pub enum BuilderError {
     MissingRequired(&'static str),
 }
 
-#[async_trait]
-impl IntoFriendlyError<BuilderError> for BuilderError {
-    async fn into_friendly_error(
-        self,
-        mailer: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<BuilderError> {
-        FriendlyError::internal_with_admin_notify(file!(), self, mailer).await
+impl IntoFriendlyError for BuilderError {
+    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
+    where
+        M: MailTransporter + ConfigProvider<Cfg = AppConfig> + Send + Sync,
+    {
+        FriendlyError::internal_with_admin_notify(file!(), self.to_string(), mailer).await
     }
 }
 

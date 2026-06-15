@@ -25,7 +25,6 @@ use crate::manager::tenants::types::Name;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use thiserror::Error;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
@@ -62,18 +61,9 @@ impl IntoResponse for CreateTenantError {
 }
 
 impl From<ValueObjectError> for CreateTenantError {
-    fn from(value: ValueObjectError) -> Self {
+    fn from(_: ValueObjectError) -> Self {
         Self::default()
     }
-}
-
-#[derive(Debug, Error)]
-pub enum DatabaseConfigError {
-    #[error("{0} is missing")]
-    MissingField(&'static str),
-
-    #[error("ValueObjectError: {0}")]
-    ValueObejctError(#[from] ValueObjectError),
 }
 
 #[derive(Debug, Clone)]

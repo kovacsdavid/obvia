@@ -19,8 +19,7 @@
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::types::{
@@ -29,40 +28,30 @@ use crate::tenant::inventory_movements::types::{
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait InventoryMovementsRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid)
-    -> RepositoryResult<InventoryMovement>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryMovementResolved>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovement>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovementResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
     async fn insert(
         &self,
-        input: InventoryMovementUserInput,
+        input: &InventoryMovementUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl InventoryMovementsRepository for PgPoolManager {
-    async fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryMovement> {
+impl InventoryMovementsRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovement> {
         Ok(sqlx::query_as::<_, InventoryMovement>(
             r#"
             SELECT *
@@ -71,15 +60,11 @@ impl InventoryMovementsRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryMovementResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovementResolved> {
         Ok(sqlx::query_as::<_, InventoryMovementResolved>(
             r#"
             SELECT
@@ -104,14 +89,13 @@ impl InventoryMovementsRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
         let total: (i64,) = match (
@@ -126,7 +110,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                 ))
                     .bind(inventory_id)
                     .bind(value_unchecked)
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             },
             (_, _) => {
@@ -135,7 +119,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                         WHERE inventory_id = $1"#,
                 )
                     .bind(inventory_id)
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -190,7 +174,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -225,7 +209,7 @@ impl InventoryMovementsRepository for PgPoolManager {
                     .bind(inventory_id)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -242,9 +226,8 @@ impl InventoryMovementsRepository for PgPoolManager {
 
     async fn insert(
         &self,
-        input: InventoryMovementUserInput,
+        input: &InventoryMovementUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<InventoryMovement> {
         let reference_type = match &input.reference_type {
             Some(v) => Some(v.as_str()?),
@@ -271,18 +254,18 @@ impl InventoryMovementsRepository for PgPoolManager {
         .bind(input.unit_price.as_f64())
         .bind(input.tax_id.as_uuid()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         let _ = sqlx::query(
             r#"
             DELETE FROM inventory_movements WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
         Ok(())
     }

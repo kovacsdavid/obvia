@@ -17,17 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
-use crate::manager::auth::dto::claims::Claims;
+use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
-use crate::tenant::activity_feed::repository::ActivityFeedRepository;
 use crate::tenant::activity_feed::types::ResourceType;
-use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -43,12 +42,19 @@ pub enum ActivityFeedServiceError {
     Unauthorized,
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for ActivityFeedServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => ActivityFeedServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for ActivityFeedServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             ActivityFeedServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -56,14 +62,16 @@ impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -74,21 +82,33 @@ impl IntoFriendlyError<GeneralError> for ActivityFeedServiceError {
 
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 
-pub async fn get_all_paged(
-    get_query: &GetQuery<Empty, Empty>,
-    claims: &Claims,
-    resource_id: Uuid,
-    resource_type: &ValueObjectRequired<ResourceType>,
-    repo: Arc<dyn ActivityFeedRepository>,
-) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            resource_id,
-            resource_type,
-            claims
-                .active_tenant()
-                .ok_or(ActivityFeedServiceError::Unauthorized)?,
-        )
-        .await?)
+pub trait ActivityFeedService {
+    fn get_all_paged(
+        &self,
+        get_query: &ResourceQuery<Empty, Empty>,
+        resource_id: Uuid,
+        resource_type: &ValueObjectRequired<ResourceType>,
+    ) -> impl Future<Output = ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
+}
+
+impl<'a, T> ActivityFeedService for Service<'a, T>
+where
+    T: ActivityFeedModule,
+{
+    async fn get_all_paged(
+        &self,
+        get_query: &ResourceQuery<Empty, Empty>,
+        resource_id: Uuid,
+        resource_type: &ValueObjectRequired<ResourceType>,
+    ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
+        Ok(self
+            .module()
+            .activity_feed_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ActivityFeedServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query, resource_id, resource_type)
+            .await?)
+    }
 }

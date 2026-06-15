@@ -20,47 +20,34 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::taxes::dto::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TaxesRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Tax>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<TaxResolved>;
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Tax>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaxResolved>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaxOrderBy, TaxFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)>;
-    async fn insert(
-        &self,
-        tax: TaxUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Tax>;
-    async fn update(&self, tax: TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn insert(&self, tax: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax>;
+    async fn update(&self, tax: &TaxUserInput) -> RepositoryResult<Tax>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl TaxesRepository for PgPoolManager {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Tax> {
+impl TaxesRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Tax> {
         Ok(sqlx::query_as::<_, Tax>(
             r#"
             SELECT * 
@@ -70,14 +57,10 @@ impl TaxesRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<TaxResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaxResolved> {
         Ok(sqlx::query_as::<_, TaxResolved>(
             r#"
             SELECT
@@ -105,13 +88,10 @@ impl TaxesRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"
             SELECT
@@ -122,13 +102,12 @@ impl TaxesRepository for PgPoolManager {
                 ORDER BY taxes.description
                 "#,
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaxOrderBy, TaxFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -141,12 +120,12 @@ impl TaxesRepository for PgPoolManager {
                         AND ($1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#,
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM taxes WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -200,7 +179,7 @@ impl TaxesRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -236,7 +215,7 @@ impl TaxesRepository for PgPoolManager {
                 sqlx::query_as::<_, TaxResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -250,12 +229,7 @@ impl TaxesRepository for PgPoolManager {
             taxes,
         ))
     }
-    async fn insert(
-        &self,
-        tax: TaxUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Tax> {
+    async fn insert(&self, tax: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax> {
         let rate = match &tax.rate {
             None => None,
             Some(v) => Some(v.as_f64()?),
@@ -285,11 +259,11 @@ impl TaxesRepository for PgPoolManager {
         .bind(tax.is_default)
         .bind(tax.status.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn update(&self, tax: TaxUserInput, active_tenant: Uuid) -> RepositoryResult<Tax> {
+    async fn update(&self, tax: &TaxUserInput) -> RepositoryResult<Tax> {
         let id = tax
             .id
             .as_uuid()
@@ -325,11 +299,11 @@ impl TaxesRepository for PgPoolManager {
         .bind(tax.is_default)
         .bind(tax.status.as_str()?)
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE taxes
@@ -339,7 +313,7 @@ impl TaxesRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

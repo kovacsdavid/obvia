@@ -20,51 +20,38 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait InventoryRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Inventory>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryResolved>;
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Inventory>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryResolved>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
     async fn insert(
         &self,
-        inventory: InventoryUserInput,
+        inventory: &InventoryUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<Inventory>;
-    async fn update(
-        &self,
-        inventory: InventoryUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Inventory>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn update(&self, inventory: &InventoryUserInput) -> RepositoryResult<Inventory>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl InventoryRepository for PgPoolManager {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Inventory> {
+impl InventoryRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             SELECT *
@@ -74,14 +61,10 @@ impl InventoryRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryResolved> {
         Ok(sqlx::query_as::<_, InventoryResolved>(
             r#"
             SELECT
@@ -113,14 +96,11 @@ impl InventoryRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"
             SELECT
@@ -132,14 +112,13 @@ impl InventoryRepository for PgPoolManager {
                 ORDER BY products.name
                 "#,
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryOrderBy, InventoryFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -158,12 +137,12 @@ impl InventoryRepository for PgPoolManager {
                     "#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM inventory WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -225,7 +204,7 @@ impl InventoryRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -265,7 +244,7 @@ impl InventoryRepository for PgPoolManager {
                 sqlx::query_as::<_, InventoryResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -281,9 +260,8 @@ impl InventoryRepository for PgPoolManager {
     }
     async fn insert(
         &self,
-        inventory: InventoryUserInput,
+        inventory: &InventoryUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             "INSERT INTO inventory (product_id, warehouse_id, minimum_stock, maximum_stock, currency_code, status, created_by_id)\
@@ -296,16 +274,12 @@ impl InventoryRepository for PgPoolManager {
             .bind(inventory.currency_code.as_str()?)
             .bind(inventory.status.as_str()?)
             .bind(sub)
-            .fetch_one(&self.get_tenant_pool(active_tenant)?)
+            .fetch_one(self)
             .await?
         )
     }
 
-    async fn update(
-        &self,
-        inventory: InventoryUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Inventory> {
+    async fn update(&self, inventory: &InventoryUserInput) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             UPDATE inventory
@@ -327,11 +301,11 @@ impl InventoryRepository for PgPoolManager {
         .bind(inventory.currency_code.as_str()?)
         .bind(inventory.status.as_str()?)
         .bind(inventory.id.as_uuid())
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE inventory
@@ -341,7 +315,7 @@ impl InventoryRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

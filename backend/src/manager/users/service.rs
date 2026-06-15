@@ -18,15 +18,14 @@
  */
 
 use super::UsersModule;
-use crate::common::MailTransporter;
+use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::extractors::ClientContext;
+use crate::common::service::{Service, ServiceError};
 use crate::common::value_object::ValueObjectError;
-use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
-use async_trait::async_trait;
 use axum::http::StatusCode;
 use serde_json::json;
 use std::sync::Arc;
@@ -38,9 +37,6 @@ use uuid::Uuid;
 pub enum UsersServiceError {
     #[error("Repository error: {0}")]
     Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
 
     #[error("MfaToken error: {0}")]
     MfaToken(String),
@@ -56,17 +52,26 @@ pub enum UsersServiceError {
 
     #[error("ValueObjectError: {0}")]
     ValueObjectError(#[from] ValueObjectError),
+
+    #[error("Hozzáférés megtagadva!")]
+    Unauthorized,
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for UsersServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for UsersServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => UsersServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for UsersServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
-            UsersServiceError::Unauthorized
-            | UsersServiceError::InvalidMfaToken
+            UsersServiceError::InvalidMfaToken
             | UsersServiceError::TooManyAttempts(_)
             | UsersServiceError::MfaAlreadyActive => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -74,14 +79,16 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -92,218 +99,353 @@ impl IntoFriendlyError<GeneralError> for UsersServiceError {
 
 pub type UsersServiceResult<T> = Result<T, UsersServiceError>;
 
-pub async fn otp_enable(
-    users_module: Arc<dyn UsersModule>,
-    claims: &Claims,
-    client_context: &ClientContext,
-) -> UsersServiceResult<String> {
-    let user = match users_module.users_repo().get_user_by_id(claims.sub()).await {
-        Ok(v) => v,
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(claims.sub().to_string()),
-                    AccountEventType::MfaEnable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e.into());
-        }
-    };
-
-    if user.is_mfa_enabled() {
-        users_module
-            .auth_repo()
-            .insert_account_event_log(
-                Some(claims.sub()),
-                Some(user.email),
-                AccountEventType::MfaEnable,
-                AccountEventStatus::Error,
-                Some(client_context.ip),
-                client_context.user_agent.clone(),
-                Some(json!({
-                    "error": UsersServiceError::MfaAlreadyActive.to_string()
-                })),
-            )
-            .await?;
-        return Err(UsersServiceError::MfaAlreadyActive);
-    }
-
-    let user = user.init_mfa_secret();
-
-    let new_mfa_secret = match user
-        .mfa_secret
-        .clone()
-        .ok_or_else(|| UsersServiceError::MfaToken("missing secret".to_string()))
-    {
-        Ok(v) => v,
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaEnable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e);
-        }
-    };
-
-    match users_module.users_repo().update_user(user.clone()).await {
-        Ok(_) => (),
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaEnable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e.into());
-        }
-    };
-
-    Ok(new_mfa_secret)
+pub trait UserService {
+    fn otp_enable(
+        &self,
+        client_context: &ClientContext,
+    ) -> impl Future<Output = UsersServiceResult<String>> + Send;
+    fn otp_verify(
+        &self,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
+    fn otp_disable(
+        &self,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
 }
 
-pub async fn otp_verify(
-    users_module: Arc<dyn UsersModule>,
-    claims: &Claims,
-    payload: &OtpUserInput,
-    client_context: &ClientContext,
-) -> UsersServiceResult<()> {
-    let mut user = match users_module.users_repo().get_user_by_id(claims.sub()).await {
-        Ok(v) => v,
-        Err(e) => {
-            users_module
+impl<'a, T> UserService for Service<'a, T>
+where
+    T: UsersModule,
+{
+    async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
+        let user = match self
+            .module()
+            .users_repo()
+            .get_user_by_id(self.claims()?.sub())
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(self.claims()?.sub().to_string()),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        if user.is_mfa_enabled() {
+            self.module()
                 .auth_repo()
                 .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(claims.sub().to_string()),
+                    Some(self.claims()?.sub()),
+                    Some(user.email),
                     AccountEventType::MfaEnable,
                     AccountEventStatus::Error,
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
                     Some(json!({
-                        "error": e.to_string()
+                        "error": UsersServiceError::MfaAlreadyActive.to_string()
                     })),
                 )
                 .await?;
-            return Err(e.into());
+            return Err(UsersServiceError::MfaAlreadyActive);
         }
-    };
 
-    if user.is_mfa_enabled() {
-        users_module
-            .auth_repo()
-            .insert_account_event_log(
-                Some(claims.sub()),
-                Some(user.email),
-                AccountEventType::MfaEnable,
-                AccountEventStatus::Error,
-                Some(client_context.ip),
-                client_context.user_agent.clone(),
-                Some(json!({
-                    "error": UsersServiceError::MfaAlreadyActive.to_string()
-                })),
-            )
-            .await?;
-        return Err(UsersServiceError::MfaAlreadyActive);
+        let user = user.init_mfa_secret();
+
+        let new_mfa_secret = match user
+            .mfa_secret
+            .clone()
+            .ok_or_else(|| UsersServiceError::MfaToken("missing secret".to_string()))
+        {
+            Ok(v) => v,
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e);
+            }
+        };
+
+        match self.module().users_repo().update_user(user.clone()).await {
+            Ok(_) => (),
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        Ok(new_mfa_secret)
     }
 
-    match user
-        .check_mfa_token(payload.otp.as_str()?)
-        .map_err(|_| UsersServiceError::InvalidMfaToken)
-    {
-        Ok(_) => (),
-        Err(e) => {
-            users_module
+    async fn otp_verify(
+        &self,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> UsersServiceResult<()> {
+        let mut user = match self
+            .module()
+            .users_repo()
+            .get_user_by_id(self.claims()?.sub())
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(self.claims()?.sub().to_string()),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        if user.is_mfa_enabled() {
+            self.module()
                 .auth_repo()
                 .insert_account_event_log(
-                    Some(claims.sub()),
+                    Some(self.claims()?.sub()),
                     Some(user.email),
                     AccountEventType::MfaEnable,
                     AccountEventStatus::Error,
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
                     Some(json!({
-                        "error": e.to_string()
+                        "error": UsersServiceError::MfaAlreadyActive.to_string()
                     })),
                 )
                 .await?;
-            return Err(e);
+            return Err(UsersServiceError::MfaAlreadyActive);
         }
-    };
 
-    user.is_mfa_enabled = true;
+        match user
+            .check_mfa_token(payload.otp.as_str()?)
+            .map_err(|_| UsersServiceError::InvalidMfaToken)
+        {
+            Ok(_) => (),
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e);
+            }
+        };
 
-    match users_module.users_repo().update_user(user.clone()).await {
-        Ok(_) => (),
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaEnable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e.into());
-        }
-    };
+        user.is_mfa_enabled = true;
 
-    users_module
-        .auth_repo()
-        .insert_account_event_log(
-            Some(claims.sub()),
-            Some(user.email),
-            AccountEventType::MfaEnable,
-            AccountEventStatus::Success,
-            Some(client_context.ip),
-            client_context.user_agent.clone(),
-            None,
+        match self.module().users_repo().update_user(user.clone()).await {
+            Ok(_) => (),
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaEnable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        self.module()
+            .auth_repo()
+            .insert_account_event_log(
+                Some(self.claims()?.sub()),
+                Some(user.email),
+                AccountEventType::MfaEnable,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
+            )
+            .await?;
+
+        Ok(())
+    }
+
+    async fn otp_disable(
+        &self,
+        payload: &OtpUserInput,
+        client_context: &ClientContext,
+    ) -> UsersServiceResult<()> {
+        rate_limit_by_event_type(
+            120,
+            5,
+            self.module(),
+            Some(self.claims()?.sub()),
+            Some(self.claims()?.sub().to_string()),
+            client_context,
+            AccountEventType::MfaDisable,
         )
         .await?;
+        let mut user = match self
+            .module()
+            .users_repo()
+            .get_user_by_id(self.claims()?.sub())
+            .await
+        {
+            Ok(v) => v,
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(self.claims()?.sub().to_string()),
+                        AccountEventType::MfaDisable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
 
-    Ok(())
+        match user
+            .check_mfa_token(payload.otp.as_str()?)
+            .map_err(|_| UsersServiceError::InvalidMfaToken)
+        {
+            Ok(_) => (),
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaDisable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e);
+            }
+        };
+
+        user.is_mfa_enabled = false;
+        user.mfa_secret = None;
+
+        match self.module().users_repo().update_user(user.clone()).await {
+            Ok(_) => (),
+            Err(e) => {
+                self.module()
+                    .auth_repo()
+                    .insert_account_event_log(
+                        Some(self.claims()?.sub()),
+                        Some(user.email),
+                        AccountEventType::MfaDisable,
+                        AccountEventStatus::Error,
+                        Some(client_context.ip),
+                        client_context.user_agent.clone(),
+                        Some(json!({
+                            "error": e.to_string()
+                        })),
+                    )
+                    .await?;
+                return Err(e.into());
+            }
+        };
+
+        self.module()
+            .auth_repo()
+            .insert_account_event_log(
+                Some(self.claims()?.sub()),
+                Some(user.email),
+                AccountEventType::MfaDisable,
+                AccountEventStatus::Success,
+                Some(client_context.ip),
+                client_context.user_agent.clone(),
+                None,
+            )
+            .await?;
+
+        Ok(())
+    }
 }
 
-async fn rate_limit_by_event_type(
+async fn rate_limit_by_event_type<T>(
     attempt_interval_mins: i64,
     max_attempts: i64,
-    users_module: Arc<dyn UsersModule>,
+    users_module: &T,
     user_id: Option<Uuid>,
     identifier: Option<String>,
     client_context: &ClientContext,
     event_type: AccountEventType,
-) -> UsersServiceResult<()> {
+) -> UsersServiceResult<()>
+where
+    T: UsersModule + ?Sized,
+{
     let event_log_entries = match users_module
         .auth_repo()
         .account_event_log_by_ip_and_event_type_count(
@@ -351,106 +493,5 @@ async fn rate_limit_by_event_type(
             .await?;
         return Err(UsersServiceError::TooManyAttempts(attempt_interval_mins));
     }
-    Ok(())
-}
-
-pub async fn otp_disable(
-    users_module: Arc<dyn UsersModule>,
-    claims: &Claims,
-    payload: &OtpUserInput,
-    client_context: &ClientContext,
-) -> UsersServiceResult<()> {
-    rate_limit_by_event_type(
-        120,
-        5,
-        users_module.clone(),
-        Some(claims.sub()),
-        Some(claims.sub().to_string()),
-        client_context,
-        AccountEventType::MfaDisable,
-    )
-    .await?;
-    let mut user = match users_module.users_repo().get_user_by_id(claims.sub()).await {
-        Ok(v) => v,
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(claims.sub().to_string()),
-                    AccountEventType::MfaDisable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e.into());
-        }
-    };
-
-    match user
-        .check_mfa_token(payload.otp.as_str()?)
-        .map_err(|_| UsersServiceError::InvalidMfaToken)
-    {
-        Ok(_) => (),
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaDisable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e);
-        }
-    };
-
-    user.is_mfa_enabled = false;
-    user.mfa_secret = None;
-
-    match users_module.users_repo().update_user(user.clone()).await {
-        Ok(_) => (),
-        Err(e) => {
-            users_module
-                .auth_repo()
-                .insert_account_event_log(
-                    Some(claims.sub()),
-                    Some(user.email),
-                    AccountEventType::MfaDisable,
-                    AccountEventStatus::Error,
-                    Some(client_context.ip),
-                    client_context.user_agent.clone(),
-                    Some(json!({
-                        "error": e.to_string()
-                    })),
-                )
-                .await?;
-            return Err(e.into());
-        }
-    };
-
-    users_module
-        .auth_repo()
-        .insert_account_event_log(
-            Some(claims.sub()),
-            Some(user.email),
-            AccountEventType::MfaDisable,
-            AccountEventStatus::Success,
-            Some(client_context.ip),
-            client_context.user_agent.clone(),
-            None,
-        )
-        .await?;
-
     Ok(())
 }

@@ -25,19 +25,19 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes(tasks_module: Arc<dyn TasksModule>) -> Router {
+pub fn routes<M: TasksModule>(tasks_module: Arc<M>) -> Router {
     Router::new().nest(
         "/tasks",
         Router::new()
-            .route("/get", get(handler::get))
-            .route("/get_resolved", get(handler::get_resolved))
-            .route("/list", get(handler::list))
-            .route("/select_list", get(handler::select_list))
-            .route("/create", post(handler::create))
-            .route("/update", put(handler::update))
-            .route("/delete", delete(handler::delete))
-            .route("/print", get(handler::print))
-            .layer(from_fn_with_state(tasks_module.config(), require_auth))
+            .route("/get", get(handler::get::<M>))
+            .route("/get_resolved", get(handler::get_resolved::<M>))
+            .route("/list", get(handler::list::<M>))
+            .route("/select_list", get(handler::select_list::<M>))
+            .route("/create", post(handler::create::<M>))
+            .route("/update", put(handler::update::<M>))
+            .route("/delete", delete(handler::delete::<M>))
+            .route("/print", get(handler::print::<M>))
+            .layer(from_fn_with_state(tasks_module.clone(), require_auth))
             .with_state(tasks_module),
     )
 }

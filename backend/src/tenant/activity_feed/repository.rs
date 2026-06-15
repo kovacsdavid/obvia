@@ -19,15 +19,15 @@
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -35,21 +35,19 @@ use uuid::Uuid;
 pub trait ActivityFeedRepository: Send + Sync {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<Empty, Empty>,
+        query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-        active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>;
 }
 
 #[async_trait]
-impl ActivityFeedRepository for PgPoolManager {
+impl ActivityFeedRepository for PgPool {
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<Empty, Empty>,
+        query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-        active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         let total: (i64,) = sqlx::query_as(
             r#"
@@ -62,7 +60,7 @@ impl ActivityFeedRepository for PgPoolManager {
         )
         .bind(resource_id)
         .bind(resource_type.as_str()?)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?;
 
         let limit = i32::try_from(query_params.paging().limit().unwrap_or(25))?;
@@ -94,7 +92,7 @@ impl ActivityFeedRepository for PgPoolManager {
         let activity_feed = sqlx::query_as::<_, ActivityFeedResolved>(sql)
             .bind(resource_id)
             .bind(resource_type.as_str()?)
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
+            .fetch_all(self)
             .await?;
 
         Ok((

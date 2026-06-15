@@ -19,8 +19,7 @@
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
@@ -31,43 +30,30 @@ use crate::tenant::inventory_reservations::types::{
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait InventoryReservationsRepository: Send + Sync {
-    async fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservation>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservationResolved>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservation>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservationResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>;
     async fn insert(
         &self,
         input: InventoryReservationUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<InventoryReservation>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl InventoryReservationsRepository for PgPoolManager {
-    async fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservation> {
+impl InventoryReservationsRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservation> {
         Ok(sqlx::query_as::<_, InventoryReservation>(
             r#"
             SELECT *
@@ -76,15 +62,11 @@ impl InventoryReservationsRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<InventoryReservationResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservationResolved> {
         Ok(sqlx::query_as::<_, InventoryReservationResolved>(
             r#"
             SELECT
@@ -105,14 +87,13 @@ impl InventoryReservationsRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)> {
         let total: (i64,) = match (
@@ -130,7 +111,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                 ))
                 .bind(inventory_id)
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
@@ -142,7 +123,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                     "#,
                 )
                 .bind(inventory_id)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
         };
@@ -193,7 +174,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -224,7 +205,7 @@ impl InventoryReservationsRepository for PgPoolManager {
                     .bind(inventory_id)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -243,7 +224,6 @@ impl InventoryReservationsRepository for PgPoolManager {
         &self,
         input: InventoryReservationUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> RepositoryResult<InventoryReservation> {
         let reference_type = match &input.reference_type {
             Some(v) => Some(v.as_str()?),
@@ -265,18 +245,18 @@ impl InventoryReservationsRepository for PgPoolManager {
         .bind(input.reserved_until.as_date_naive()?)
         .bind(input.status.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         let _ = sqlx::query(
             r#"
             DELETE FROM inventory_reservations WHERE id = $1
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
         Ok(())
     }

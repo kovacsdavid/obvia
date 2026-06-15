@@ -17,9 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -29,38 +37,85 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CustomersModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+pub trait CustomersModule: BaseModule {
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
 }
 
-impl CustomersModule for DefaultAppState {
-    fn customers_repo(&self) -> Arc<dyn CustomersRepository> {
-        self.pool_manager.clone()
+impl<P, T> CustomersModule for AppState<P, T>
+where
+    P: PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    T::Error: Debug,
+{
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
+
+/*
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::dto::PaginatorMeta;
+    use crate::common::error::RepositoryResult;
+    use crate::common::model::SelectOption;
+    use crate::common::query_parser::ResourceQuery;
+    use crate::tenant::customers::dto::CustomerUserInput;
+    use crate::tenant::customers::model::{Customer, CustomerResolved};
+    use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
     };
     use mockall::mock;
+    use uuid::Uuid;
 
     mock!(
         pub CustomersModule {}
         impl ConfigProvider for CustomersModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for CustomersModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl CustomersModule for CustomersModule {
-            fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+        impl CustomersRepository for CustomersModule {
+            async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer>;
+            async fn get_resolved_by_id(
+                &self,
+                id: Uuid,
+                active_tenant: Uuid,
+            ) -> RepositoryResult<CustomerResolved>;
+            async fn get_paged(
+                &self,
+                query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
+                active_tenant: Uuid,
+            ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
+            async fn get_select_list_items(
+                &self,
+                active_tenant: Uuid,
+            ) -> RepositoryResult<Vec<SelectOption>>;
+            async fn insert(
+                &self,
+                customer: &CustomerUserInput,
+                sub: Uuid,
+                active_tenant: Uuid,
+            ) -> RepositoryResult<Customer>;
+            async fn update(
+                &self,
+                customer: &CustomerUserInput,
+                active_tenant: Uuid,
+            ) -> RepositoryResult<Customer>;
+            async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
         }
     );
 }
+*/

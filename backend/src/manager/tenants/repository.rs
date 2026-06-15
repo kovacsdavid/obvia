@@ -22,19 +22,17 @@ use crate::common::config::{
 };
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
+use crate::common::query_parser::ResourceQuery;
 use crate::common::types::DdlParameter;
 use crate::common::value_object::ValueObjectRequired;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::{Tenant, UserTenant};
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::Error;
 use sqlx::PgConnection;
-use std::sync::Arc;
+use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -49,13 +47,13 @@ pub trait TenantsRepository: Send + Sync {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-        app_config: Arc<AppConfig>,
+        app_config: &AppConfig,
     ) -> RepositoryResult<Tenant>;
     #[allow(dead_code)]
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
+        query_params: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)>;
     async fn get_all(&self) -> RepositoryResult<Vec<Tenant>>;
 
@@ -68,13 +66,13 @@ pub trait TenantsRepository: Send + Sync {
 }
 
 #[async_trait]
-impl TenantsRepository for PgPoolManager {
+impl TenantsRepository for PgPool {
     async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant> {
         Ok(sqlx::query_as::<_, Tenant>(
             "SELECT * FROM tenants WHERE uuid = $1 AND deleted_at IS NULL",
         )
         .bind(uuid)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
     async fn setup_managed(
@@ -83,12 +81,12 @@ impl TenantsRepository for PgPoolManager {
         name: &str,
         db_config: &BasicDatabaseConfig,
         claims: &Claims,
-        app_config: Arc<AppConfig>,
+        app_config: &AppConfig,
     ) -> RepositoryResult<Tenant> {
-        let mut tx = self.get_main_pool().begin().await?;
+        let mut tx = self.begin().await?;
         let tenant = insert_and_connect_with_user(&mut tx, uuid, name, db_config, claims).await?;
 
-        let mut main_pool = self.get_main_pool().acquire().await?;
+        let mut main_pool = self.acquire().await?;
         create_database_user_for_managed(&mut main_pool, &tenant, app_config).await?;
         tx.commit().await?;
 
@@ -105,16 +103,14 @@ impl TenantsRepository for PgPoolManager {
             tenant_name.as_str()?,
         );
 
-        let _create_db = sqlx::query(&create_db_sql)
-            .execute(&self.get_main_pool())
-            .await?;
+        let _create_db = sqlx::query(&create_db_sql).execute(self).await?;
         Ok(tenant)
     }
 
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,
-        query_params: &GetQuery<TenantOrderBy, TenantFilterBy>,
+        query_params: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<Tenant>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -133,7 +129,7 @@ impl TenantsRepository for PgPoolManager {
                 ))
                 .bind(user_uuid)
                 .bind(value_unchecked)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
@@ -145,7 +141,7 @@ impl TenantsRepository for PgPoolManager {
                             AND user_tenants.deleted_at IS NULL"#,
                 )
                 .bind(user_uuid)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self)
                 .await?
             }
         };
@@ -186,7 +182,7 @@ impl TenantsRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_main_pool())
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -209,7 +205,7 @@ impl TenantsRepository for PgPoolManager {
                     .bind(user_uuid)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_main_pool())
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -227,7 +223,7 @@ impl TenantsRepository for PgPoolManager {
     async fn get_all(&self) -> RepositoryResult<Vec<Tenant>> {
         Ok(
             sqlx::query_as::<_, Tenant>("SELECT * FROM tenants WHERE deleted_at IS NULL")
-                .fetch_all(&self.get_main_pool())
+                .fetch_all(self)
                 .await?,
         )
     }
@@ -242,7 +238,7 @@ impl TenantsRepository for PgPoolManager {
         )
             .bind(user_id)
             .bind(tenant_id)
-            .fetch_one(&self.get_main_pool())
+            .fetch_one(self)
             .await;
         let user_tenant_result = match user_tenant_result {
             Ok(user_tenant) => Ok(Some(user_tenant)),
@@ -256,7 +252,7 @@ impl TenantsRepository for PgPoolManager {
         {
             let _ = sqlx::query("UPDATE user_tenants SET last_activated = NOW() WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_tenant.id)
-                .execute(&self.get_main_pool())
+                .execute(self)
                 .await?;
         }
 
@@ -276,10 +272,8 @@ impl TenantsRepository for PgPoolManager {
         )
         .bind(id)
         .bind(sub)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self)
         .await?;
-
-        self.delete_tenant_pool(tenant.id).await?;
 
         let _ = sqlx::query(&format!(
             r#"
@@ -292,7 +286,7 @@ impl TenantsRepository for PgPoolManager {
                 .parse::<ValueObjectRequired<DdlParameter>>()?
                 .as_str()?
         ))
-        .execute(&self.get_main_pool())
+        .execute(self)
         .await?;
 
         Ok(tenant)
@@ -345,7 +339,7 @@ async fn insert_and_connect_with_user(
 async fn create_database_user_for_managed(
     conn: &mut PgConnection,
     tenant: &Tenant,
-    app_config: Arc<AppConfig>,
+    app_config: &AppConfig,
 ) -> RepositoryResult<()> {
     let tenant_name = tenant
         .id

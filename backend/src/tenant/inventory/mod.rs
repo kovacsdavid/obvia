@@ -16,13 +16,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::warehouses::repository::WarehousesRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -32,32 +41,68 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
-    fn products_repo(&self) -> Arc<dyn ProductsRepository>;
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
-    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+pub trait InventoryModule: BaseModule {
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
 }
 
-impl InventoryModule for DefaultAppState {
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository> {
-        self.pool_manager.clone()
+impl<P, T> InventoryModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn products_repo(&self) -> Arc<dyn ProductsRepository> {
-        self.pool_manager.clone()
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository> {
-        self.pool_manager.clone()
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository> {
-        self.pool_manager.clone()
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
-        self.pool_manager.clone()
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -87,3 +132,4 @@ pub mod tests {
         }
     );
 }
+*/

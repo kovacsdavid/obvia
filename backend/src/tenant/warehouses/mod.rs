@@ -17,9 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::warehouses::repository::WarehousesRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -29,16 +37,28 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WarehousesModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+pub trait WarehousesModule: BaseModule {
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
 }
 
-impl WarehousesModule for DefaultAppState {
-    fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository> {
-        self.pool_manager.clone()
+impl<P, T> WarehousesModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    T::Error: Debug,
+{
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -64,3 +84,4 @@ pub mod tests {
         }
     );
 }
+*/

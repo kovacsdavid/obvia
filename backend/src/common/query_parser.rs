@@ -19,25 +19,55 @@
 
 #![allow(dead_code)]
 use serde::Deserialize;
-use std::{fmt::Display, str::FromStr};
+use std::{fmt::Display, str::FromStr, sync::Arc};
 use thiserror::Error;
 
-use crate::common::value_object::*;
+use crate::common::{
+    ConfigProvider, MailTransporter,
+    config::AppConfig,
+    dto::GeneralError,
+    error::{FriendlyError, IntoFriendlyError},
+    value_object::*,
+};
 
 #[derive(Error, Debug, PartialEq)]
-pub enum GetQueryError {
+pub enum ResourceQueryError {
     #[error("{0}")]
-    InvalidInput(String),
+    InvalidInput(&'static str),
 
     #[error("Unexpected QueryError: {0}")]
     Custom(String),
 }
 
-impl From<ValueObjectError> for GetQueryError {
+impl From<ValueObjectError> for ResourceQueryError {
     fn from(value: ValueObjectError) -> Self {
         match value {
-            ValueObjectError::InvalidInput(e) => GetQueryError::InvalidInput(e.to_string()),
-            _ => GetQueryError::Custom(value.to_string()),
+            ValueObjectError::InvalidInput(e) => ResourceQueryError::InvalidInput(e),
+            _ => ResourceQueryError::Custom(value.to_string()),
+        }
+    }
+}
+
+impl IntoFriendlyError for ResourceQueryError {
+    async fn into_friendly_error<M>(self, _: Arc<M>) -> FriendlyError
+    where
+        M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
+    {
+        match self {
+            ResourceQueryError::InvalidInput(e) => FriendlyError::internal(
+                file!(),
+                GeneralError {
+                    message: e.to_string(),
+                }
+                .to_string(),
+            ),
+            ResourceQueryError::Custom(e) => FriendlyError::internal(
+                file!(),
+                GeneralError {
+                    message: e.to_string(),
+                }
+                .to_string(),
+            ),
         }
     }
 }
@@ -49,12 +79,12 @@ pub enum Order {
 }
 
 impl FromStr for Order {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s {
             "asc" => Order::Ascending,
             "desc" => Order::Descending,
-            _ => return Err(GetQueryError::InvalidInput("ordering".to_string())),
+            _ => return Err(ResourceQueryError::InvalidInput("ordering")),
         })
     }
 }
@@ -95,7 +125,7 @@ impl<T> FromStr for Ordering<T>
 where
     T: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Ordering<T>, Self::Err> {
         let collection: Vec<String> = s
             .replace("ordering:", "")
@@ -135,7 +165,7 @@ impl Paging {
 }
 
 impl FromStr for Paging {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let collection: Vec<String> = s
             .replace("paging:", "")
@@ -145,10 +175,10 @@ impl FromStr for Paging {
         if collection.len() == 2 {
             let page = collection[0]
                 .parse::<u64>()
-                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| ResourceQueryError::InvalidInput("paging"))?;
             let limit = collection[1]
                 .parse::<u64>()
-                .map_err(|_| GetQueryError::InvalidInput("paging".to_string()))?;
+                .map_err(|_| ResourceQueryError::InvalidInput("paging"))?;
             Ok(Self {
                 page: Some(page),
                 limit: Some(limit),
@@ -189,7 +219,7 @@ impl<F> FromStr for Filtering<F>
 where
     F: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
+    type Err = ResourceQueryError;
     fn from_str(s: &str) -> Result<Filtering<F>, Self::Err> {
         let collection: Vec<String> = s
             .replace("filtering:", "")
@@ -235,7 +265,7 @@ fn extract_field<'a>(s: &'a str, field: &str) -> &'a str {
 }
 
 #[derive(PartialEq, Debug)]
-pub struct GetQuery<O, F>
+pub struct ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
@@ -245,7 +275,7 @@ where
     filtering: Filtering<F>,
 }
 
-impl<O, F> GetQuery<O, F>
+impl<O, F> ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
@@ -261,14 +291,14 @@ where
     }
 }
 
-impl<O, F> FromStr for GetQuery<O, F>
+impl<O, F> FromStr for ResourceQuery<O, F>
 where
     O: ValueObjectData<DataType = String>,
     F: ValueObjectData<DataType = String>,
 {
-    type Err = GetQueryError;
-    fn from_str(s: &str) -> Result<GetQuery<O, F>, Self::Err> {
-        Ok(GetQuery {
+    type Err = ResourceQueryError;
+    fn from_str(s: &str) -> Result<ResourceQuery<O, F>, Self::Err> {
+        Ok(ResourceQuery {
             ordering: Ordering::from_str(extract_field(s, "ordering:"))?,
             paging: Paging::from_str(extract_field(s, "paging:"))?,
             filtering: Filtering::from_str(extract_field(s, "filtering:"))?,
@@ -372,7 +402,7 @@ mod tests {
         }
     }
 
-    impl<O, F> GetQuery<O, F>
+    impl<O, F> ResourceQuery<O, F>
     where
         O: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
         F: ValueObjectData<DataType = String> + FromStr<Err = ValueObjectError>,
@@ -419,8 +449,9 @@ mod tests {
     #[test]
     fn test_query_from_str() {
         let test_str = "ordering:test-asc paging:1-25 filtering:test-|warehouse 1|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "test".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Ascending),
@@ -437,8 +468,9 @@ mod tests {
     #[test]
     fn test_query_from_str_different_data() {
         let test_str = "ordering:name-desc paging:3-30 filtering:type-|some type|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -455,8 +487,9 @@ mod tests {
     #[test]
     fn test_query_from_str_different_order() {
         let test_str = "filtering:type-|some type| paging:3-30 ordering:name-desc";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -473,8 +506,9 @@ mod tests {
     #[test]
     fn test_query_from_str_trailing_spaces() {
         let test_str = "     filtering:type-|some type| paging:3-30 ordering:name-desc    ";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
-        let query_constructed = GetQuery::new(
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -491,9 +525,10 @@ mod tests {
     #[test]
     fn test_query_from_str_defaults() {
         let test_str = "";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,
@@ -510,9 +545,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_1() {
         let test_str = "ordering:name-desc";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "name".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 Some(Order::Descending),
@@ -529,9 +565,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_2() {
         let test_str = "paging:3-30";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,
@@ -548,9 +585,10 @@ mod tests {
     #[test]
     fn test_query_from_str_partial_3() {
         let test_str = "filtering:type-|some type|";
-        let query_from_str = GetQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
+        let query_from_str =
+            ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
 
-        let query_constructed = GetQuery::new(
+        let query_constructed = ResourceQuery::new(
             Ordering::new(
                 "".parse::<ValueObjectOptional<TestOrderBy>>().unwrap(),
                 None,

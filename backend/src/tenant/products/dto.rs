@@ -21,7 +21,7 @@ use crate::common::error::FormErrorResponse;
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
-use crate::tenant::products::types::unit_of_measure::unit_of_measure::UnitsOfMeasure;
+use crate::tenant::products::types::unit_of_measure::UnitsOfMeasure;
 use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};

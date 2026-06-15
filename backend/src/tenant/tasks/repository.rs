@@ -19,43 +19,33 @@
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::common::query_parser::GetQuery;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+use crate::common::query_parser::ResourceQuery;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TasksRepository: Send + Sync {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task>;
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<TaskResolved>;
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Task>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved>;
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
-    async fn insert(
-        &self,
-        task: &TaskUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Task>;
-    async fn update(&self, task: &TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task>;
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+    async fn insert(&self, task: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task>;
+    async fn update(&self, task: &TaskUserInput) -> RepositoryResult<Task>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
-impl TasksRepository for PgPoolManager {
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Task> {
+impl TasksRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Task> {
         Ok(sqlx::query_as::<_, Task>(
             r#"
             SELECT *
@@ -65,15 +55,11 @@ impl TasksRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<TaskResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved> {
         Ok(sqlx::query_as::<_, TaskResolved>(
             r#"
             SELECT
@@ -106,13 +92,12 @@ impl TasksRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
     async fn get_all_paged(
         &self,
-        query_params: &GetQuery<TaskOrderBy, TaskFilterBy>,
-        active_tenant: Uuid,
+        query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -130,12 +115,12 @@ impl TasksRepository for PgPoolManager {
                             AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM tasks WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -198,7 +183,7 @@ impl TasksRepository for PgPoolManager {
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -239,7 +224,7 @@ impl TasksRepository for PgPoolManager {
                 sqlx::query_as::<_, TaskResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -253,12 +238,7 @@ impl TasksRepository for PgPoolManager {
             tasks,
         ))
     }
-    async fn insert(
-        &self,
-        task: &TaskUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Task> {
+    async fn insert(&self, task: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task> {
         Ok(sqlx::query_as::<_, Task>(
             "INSERT INTO tasks (worksheet_id, service_id, currency_code, quantity, price, tax_id, created_by_id, status, priority, due_date, description)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *"
@@ -274,12 +254,12 @@ impl TasksRepository for PgPoolManager {
             .bind(task.priority.as_str())
             .bind(task.due_date.as_date_naive())
             .bind(task.description.as_str())
-            .fetch_one(&self.get_tenant_pool(active_tenant)?)
+            .fetch_one(self)
             .await?
         )
     }
 
-    async fn update(&self, task: &TaskUserInput, active_tenant: Uuid) -> RepositoryResult<Task> {
+    async fn update(&self, task: &TaskUserInput) -> RepositoryResult<Task> {
         let id = task
             .id
             .as_uuid()
@@ -313,11 +293,11 @@ impl TasksRepository for PgPoolManager {
         .bind(task.due_date.as_date_naive())
         .bind(task.description.as_str())
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE tasks
@@ -327,7 +307,7 @@ impl TasksRepository for PgPoolManager {
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

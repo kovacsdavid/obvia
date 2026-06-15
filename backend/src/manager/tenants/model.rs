@@ -38,12 +38,6 @@ pub struct Tenant {
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl Tenant {
-    pub fn is_self_hosted(&self) -> bool {
-        self.is_self_hosted
-    }
-}
-
 #[derive(Serialize, FromRow, Debug, Clone, Default)]
 pub struct UserTenant {
     pub id: Uuid,

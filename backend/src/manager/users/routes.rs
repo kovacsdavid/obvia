@@ -27,15 +27,15 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes(users_module: Arc<dyn UsersModule>) -> Router {
+pub fn routes<M: UsersModule>(users_module: Arc<M>) -> Router {
     Router::new().nest(
         "/users",
         Router::new()
-            .route("/get_claims", get(handler::get_claims))
-            .route("/otp/enable", get(handler::otp_enable))
-            .route("/otp/verify", post(handler::otp_verify))
-            .route("/otp/disable", post(handler::otp_disable))
-            .layer(from_fn_with_state(users_module.config(), require_auth))
+            .route("/get_claims", get(handler::get_claims::<M>))
+            .route("/otp/enable", get(handler::otp_enable::<M>))
+            .route("/otp/verify", post(handler::otp_verify::<M>))
+            .route("/otp/disable", post(handler::otp_disable::<M>))
+            .layer(from_fn_with_state(users_module.clone(), require_auth))
             .with_state(users_module),
     )
 }

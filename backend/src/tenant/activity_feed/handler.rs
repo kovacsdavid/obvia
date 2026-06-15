@@ -17,58 +17,54 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{HandlerResult, SuccessResponseBuilder};
-use crate::common::error::{FriendlyError, IntoFriendlyError};
-use crate::common::query_parser::GetQuery;
+use crate::common::dto::SuccessResponseBuilder;
+use crate::common::error::FriendlyError;
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::Service;
 use crate::common::types::Empty;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::activity_feed::ActivityFeedModule;
 use crate::tenant::activity_feed::dto::ActivityFeedRawQuery;
-use crate::tenant::activity_feed::service as activity_feed_service;
-use axum::debug_handler;
+use crate::tenant::activity_feed::service::ActivityFeedService;
 use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn list(
+pub async fn list<M: ActivityFeedModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(activity_feed_module): State<Arc<dyn ActivityFeedModule>>,
+    State(activity_feed_module): State<Arc<M>>,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match activity_feed_service::get_all_paged(
-        &GetQuery::<Empty, Empty>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        payload.resource_id(),
-        &payload
-            .resource_type()
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        activity_feed_module.activity_feed_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(activity_feed_module)
-                .await
-                .into_response());
-        }
-    };
+    let service = Service::new(Some(&claims), activity_feed_module.clone());
+    let error_mapper = ErrorMapper::new(activity_feed_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<Empty, Empty>::from_str(payload.q()))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(
+            service
+                .get_all_paged(
+                    &resource_query,
+                    payload.resource_id(),
+                    &payload.resource_type().map_err(|e| {
+                        FriendlyError::internal(file!(), e.to_string()).into_response()
+                    })?,
+                )
+                .await,
+        )
+        .await?;
 
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(activity_feed_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }

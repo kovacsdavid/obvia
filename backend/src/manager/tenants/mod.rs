@@ -17,12 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
-use crate::manager::app::database::{ConnectionTester, DatabaseMigrator, PoolManager};
+use crate::common::AppState;
+use crate::common::BaseModule;
+use crate::common::database::DatabaseMigrator;
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::users::repository::UsersRepository as ManagerUserRepository;
 use crate::tenant::users::repository::UsersRepository as TenantUserRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 mod handler;
@@ -32,31 +40,35 @@ pub(crate) mod routes;
 mod service;
 pub(crate) mod types;
 
-pub trait TenantsModule: PoolManager + ConfigProvider + MailTransporter + Send + Sync {
-    fn tenants_repo(&self) -> Arc<dyn TenantsRepository>;
-    fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository>;
-    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository>;
-    fn migrator(&self) -> Arc<dyn DatabaseMigrator>;
-    fn connection_tester(&self) -> Arc<dyn ConnectionTester>;
+pub trait TenantsModule: DatabaseMigrator + PoolManager + BaseModule {
+    fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync>;
+    fn tenant_user_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantUserRepository + Send + Sync>>;
+    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository + Send + Sync>;
 }
 
-impl TenantsModule for DefaultAppState {
-    fn tenants_repo(&self) -> Arc<dyn TenantsRepository> {
-        self.pool_manager.clone()
+impl<P, T> TenantsModule for AppState<P, T>
+where
+    P: DatabaseMigrator + PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+{
+    fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync> {
+        self.get_main_pool()
     }
-    fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository> {
-        self.pool_manager.clone()
+    fn tenant_user_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TenantUserRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository> {
-        self.pool_manager.clone()
-    }
-    fn migrator(&self) -> Arc<dyn DatabaseMigrator> {
-        self.migrator.clone()
-    }
-    fn connection_tester(&self) -> Arc<dyn ConnectionTester> {
-        self.connection_tester.clone()
+    fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository + Send + Sync> {
+        self.get_main_pool()
     }
 }
+
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -101,7 +113,7 @@ pub mod tests {
             fn tenant_user_repo(&self) -> Arc<dyn TenantUserRepository>;
             fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository>;
             fn migrator(&self) -> Arc<dyn DatabaseMigrator>;
-            fn connection_tester(&self) -> Arc<dyn ConnectionTester>;
         }
     );
 }
+*/

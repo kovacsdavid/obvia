@@ -17,12 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 pub(crate) mod handler;
@@ -32,28 +40,58 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryMovementsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn inventory_movements_repo(&self) -> Arc<dyn InventoryMovementsRepository>;
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+pub trait InventoryMovementsModule: BaseModule {
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
-impl InventoryMovementsModule for DefaultAppState {
-    fn inventory_movements_repo(&self) -> Arc<dyn InventoryMovementsRepository> {
-        self.pool_manager.clone()
+impl<P, T> InventoryMovementsModule for AppState<P, T>
+where
+    P: PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn taxes_repo(&self) -> Arc<dyn TaxesRepository> {
-        self.pool_manager.clone()
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
-        self.pool_manager.clone()
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository> {
-        self.pool_manager.clone()
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -82,3 +120,4 @@ pub mod tests {
         }
     );
 }
+*/

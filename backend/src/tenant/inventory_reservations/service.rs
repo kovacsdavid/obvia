@@ -17,23 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use crate::common::BaseModule;
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
-use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -57,12 +55,19 @@ pub enum InventoryReservationsServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for InventoryReservationsServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for InventoryReservationsServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => InventoryReservationsServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for InventoryReservationsServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             InventoryReservationsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -70,14 +75,16 @@ impl IntoFriendlyError<GeneralError> for InventoryReservationsServiceError {
                 file!(),
                 GeneralError {
                     message: self.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -105,115 +112,151 @@ impl FromStr for InventoryReservationsSelectLists {
     }
 }
 
-pub async fn create(
-    claims: &Claims,
-    payload: &InventoryReservationUserInput,
-    repo: Arc<dyn InventoryReservationsRepository>,
-) -> InventoryReservationsServiceResult<InventoryReservation> {
-    Ok(repo
-        .insert(
-            payload.clone(),
-            claims.sub(),
-            claims
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
+pub trait InventoryReservationService {
+    fn insert(
+        &self,
+        payload: &InventoryReservationUserInput,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
+    fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservationResolved>> + Send;
+    fn get(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
+    fn delete(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<()>> + Send;
+    fn get_paged(
+        &self,
+        get_query: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+        inventory_id: Uuid,
+    ) -> impl Future<
+        Output = InventoryReservationsServiceResult<(
+            PaginatorMeta,
+            Vec<InventoryReservationResolved>,
+        )>,
+    > + Send;
+    fn print(
+        &self,
+        payload: &[InventoryReservationResolved],
+    ) -> impl Future<Output = InventoryReservationsServiceResult<Bytes>> + Send;
 }
 
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn InventoryReservationsRepository>,
-) -> InventoryReservationsServiceResult<InventoryReservation> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
+impl<'a, T> InventoryReservationService for Service<'a, T>
+where
+    T: InventoryReservationsModule,
+{
+    async fn insert(
+        &self,
+        payload: &InventoryReservationUserInput,
+    ) -> InventoryReservationsServiceResult<InventoryReservation> {
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .insert(payload.clone(), self.claims()?.sub())
+            .await?)
+    }
 
-pub async fn get_resolved(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn InventoryReservationsRepository>,
-) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
+    async fn get(&self, payload: Uuid) -> InventoryReservationsServiceResult<InventoryReservation> {
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
+    }
 
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn InventoryReservationsRepository>,
-) -> InventoryReservationsServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
-}
+    async fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
+    }
 
-pub async fn get_paged_list(
-    get_query: &GetQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn InventoryReservationsRepository>,
-    inventory_id: Uuid,
-) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            inventory_id,
+    async fn delete(&self, payload: Uuid) -> InventoryReservationsServiceResult<()> {
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
+    }
+
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
+        inventory_id: Uuid,
+    ) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>
+    {
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query, inventory_id)
+            .await?)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(InventoryReservationsServiceError::Unauthorized)?;
+        Ok(
+            match InventoryReservationsSelectLists::from_str(select_list)? {
+                InventoryReservationsSelectLists::Worksheets => {
+                    self.module()
+                        .worksheets_repo(active_tenant)?
+                        .get_select_list_items()
+                        .await?
+                }
+                InventoryReservationsSelectLists::Inventory => {
+                    self.module()
+                        .inventory_repo(active_tenant)?
+                        .get_select_list_items()
+                        .await?
+                }
+            },
         )
-        .await?)
-}
-pub async fn get_select_list_items(
-    select_list: &str,
-    claims: &Claims,
-    inventory_reservations_module: Arc<dyn InventoryReservationsModule>,
-) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
-    let active_tenant = claims
-        .active_tenant()
-        .ok_or(InventoryReservationsServiceError::Unauthorized)?;
-    Ok(
-        match InventoryReservationsSelectLists::from_str(select_list)? {
-            InventoryReservationsSelectLists::Worksheets => {
-                inventory_reservations_module
-                    .worksheets_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-            InventoryReservationsSelectLists::Inventory => {
-                inventory_reservations_module
-                    .inventory_repo()
-                    .get_select_list_items(active_tenant)
-                    .await?
-            }
-        },
-    )
-}
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn InventoryReservationsRepository>,
-) -> InventoryReservationsServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::InventoryReservationView,
-        &vec![get_resolved(claims, payload, repo).await?],
-    )?))
+    }
+
+    async fn print(
+        &self,
+        payload: &[InventoryReservationResolved],
+    ) -> InventoryReservationsServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::InventoryReservationView,
+            &payload,
+        )?))
+    }
 }

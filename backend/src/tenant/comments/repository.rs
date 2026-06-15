@@ -18,33 +18,23 @@
  */
 
 use crate::common::error::RepositoryResult;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CommentsRepository: Send + Sync {
-    async fn post(
-        &self,
-        payload: &CommentUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Comment>;
+    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment>;
 }
 
 #[async_trait]
-impl CommentsRepository for PgPoolManager {
-    async fn post(
-        &self,
-        payload: &CommentUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Comment> {
+impl CommentsRepository for PgPool {
+    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment> {
         Ok(sqlx::query_as::<_, Comment>(
             r#"
             INSERT INTO comments (
@@ -67,7 +57,7 @@ impl CommentsRepository for PgPoolManager {
         .bind(payload.commentable_id.as_uuid()?)
         .bind(payload.comment.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 }

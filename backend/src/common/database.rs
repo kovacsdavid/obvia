@@ -22,8 +22,7 @@ use crate::common::config::{
     database_config::DatabaseUrlProvider,
 };
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::tenants::repository::TenantsRepository;
-use async_trait::async_trait;
+use crate::manager::tenants::model::Tenant;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
@@ -36,21 +35,23 @@ use tracing::{error, info};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait PoolManager: Send + Sync {
-    fn get_main_pool(&self) -> PgPool;
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError>;
-    async fn add_tenant_pool(
+    fn get_main_pool(&self) -> Arc<PgPool>;
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError>;
+    fn add_tenant_pool(
         &self,
         tenant_id: Uuid,
         config: &BasicDatabaseConfig,
-    ) -> Result<Uuid, RepositoryError>;
-    async fn delete_tenant_pool(&self, tenant_id: Uuid) -> Result<(), RepositoryError>;
+    ) -> impl Future<Output = Result<Uuid, RepositoryError>> + Send;
+    fn delete_tenant_pool(
+        &self,
+        tenant_id: Uuid,
+    ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
 pub struct PgPoolManager {
-    main_pool: PgPool,
-    tenant_pools: Arc<RwLock<HashMap<String, PgPool>>>,
+    main_pool: Arc<PgPool>,
+    tenant_pools: Arc<RwLock<HashMap<String, Arc<PgPool>>>>,
 }
 
 impl PgPoolManager {
@@ -63,18 +64,34 @@ impl PgPoolManager {
             .connect(&main_database_config.url())
             .await?;
         Ok(Self {
-            main_pool,
+            main_pool: Arc::new(main_pool),
             tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }
+    pub async fn init_tenant_pools(&self, tenants: &[Tenant]) -> anyhow::Result<()> {
+        for tenant in tenants {
+            match BasicDatabaseConfig::try_from(tenant) {
+                Ok(db_config) => {
+                    match self.add_tenant_pool(tenant.id, &db_config).await {
+                        Ok(tenant_id) => {
+                            info!("Tenant pool initialization is successful: {}", &tenant_id)
+                        }
+                        // TODO: Notify the administrator about the failed tenant pool initialization
+                        Err(e) => error!("Tenant pool initialization failed: {}", e),
+                    }
+                }
+                Err(e) => error!("Error parsing tenant: {}", e),
+            }
+        }
+        Ok(())
+    }
 }
 
-#[async_trait]
 impl PoolManager for PgPoolManager {
-    fn get_main_pool(&self) -> PgPool {
+    fn get_main_pool(&self) -> Arc<PgPool> {
         self.main_pool.clone()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError> {
         let _tenant_id_string = tenant_id.to_string();
         let guard = self
             .tenant_pools
@@ -101,7 +118,7 @@ impl PoolManager for PgPoolManager {
                 .tenant_pools
                 .write()
                 .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
-            pools.insert(tenant_id.to_string(), pool);
+            pools.insert(tenant_id.to_string(), Arc::new(pool));
         }
         Ok(tenant_id)
     }
@@ -116,7 +133,7 @@ impl PoolManager for PgPoolManager {
 }
 
 #[cfg_attr(test, automock)]
-#[async_trait]
+#[allow(dead_code)]
 pub trait ConnectionTester: Send + Sync {
     async fn test_connect(
         &self,
@@ -129,7 +146,6 @@ pub trait ConnectionTester: Send + Sync {
 
 pub struct PgConnectionTester;
 
-#[async_trait]
 impl ConnectionTester for PgConnectionTester {
     async fn test_connect(
         &self,
@@ -161,27 +177,31 @@ impl ConnectionTester for PgConnectionTester {
 }
 
 #[cfg_attr(test, automock)]
-#[async_trait]
 pub trait DatabaseMigrator: Send + Sync {
-    async fn migrate_main_db(&self) -> RepositoryResult<()>;
-    async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()>;
-    async fn migrate_all_tenant_dbs(&self) -> RepositoryResult<()>;
+    fn migrate_main_db(&self) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn migrate_tenant_db(
+        &self,
+        tenant_id: Uuid,
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    fn migrate_all_tenant_dbs(
+        &self,
+        tenants: &[Tenant],
+    ) -> impl Future<Output = RepositoryResult<()>> + Send;
 }
 
-#[async_trait]
 impl DatabaseMigrator for PgPoolManager {
     async fn migrate_main_db(&self) -> RepositoryResult<()> {
         Ok(sqlx::migrate!("./migrations/main")
-            .run(&self.get_main_pool())
+            .run(&*self.get_main_pool())
             .await?)
     }
     async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()> {
         Ok(sqlx::migrate!("./migrations/tenant")
-            .run(&self.get_tenant_pool(tenant_id)?)
+            .run(&*self.get_tenant_pool(tenant_id)?)
             .await?)
     }
-    async fn migrate_all_tenant_dbs(&self) -> RepositoryResult<()> {
-        for tenant in TenantsRepository::get_all(self).await? {
+    async fn migrate_all_tenant_dbs(&self, tenants: &[Tenant]) -> RepositoryResult<()> {
+        for tenant in tenants {
             match self.migrate_tenant_db(tenant.id).await {
                 Ok(_) => info!("Tenant database migration successful: {}", tenant.id),
                 Err(e) => error!("Tenant database migration failed: {}", e),

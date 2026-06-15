@@ -17,11 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::{
-    common::{ConfigProvider, DefaultAppState, MailTransporter},
-    tenant::comments::repository::CommentsRepository,
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
+use crate::tenant::comments::repository::CommentsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
 };
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -31,16 +37,28 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CommentsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn comments_repo(&self) -> Arc<dyn CommentsRepository>;
+pub trait CommentsModule: BaseModule {
+    fn comments_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>>;
 }
 
-impl CommentsModule for DefaultAppState {
-    fn comments_repo(&self) -> Arc<dyn CommentsRepository> {
-        self.pool_manager.clone()
+impl<P, T> CommentsModule for AppState<P, T>
+where
+    P: PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    T::Error: Debug,
+{
+    fn comments_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -66,3 +84,4 @@ pub mod tests {
         }
     );
 }
+*/

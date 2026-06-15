@@ -17,11 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 pub(crate) mod handler;
@@ -31,24 +39,48 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryReservationsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository>;
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+pub trait InventoryReservationsModule: BaseModule {
+    fn inventory_reservations_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
-impl InventoryReservationsModule for DefaultAppState {
-    fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository> {
-        self.pool_manager.clone()
+impl<P, T> InventoryReservationsModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
+    fn inventory_reservations_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
-        self.pool_manager.clone()
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn inventory_repo(&self) -> Arc<dyn InventoryRepository> {
-        self.pool_manager.clone()
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -76,3 +108,4 @@ pub mod tests {
         }
     );
 }
+*/

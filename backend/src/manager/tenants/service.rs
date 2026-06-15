@@ -17,20 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
-use crate::common::config::{AppConfig, database_config::BasicDatabaseConfig};
+use crate::common::BaseModule;
+use crate::common::config::database_config::BasicDatabaseConfig;
+use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::query_parser::GetQuery;
-use crate::common::services::generate_string_csprng;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
+use crate::common::utils::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
-use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::TenantsModule;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
-use crate::manager::tenants::repository::TenantsRepository;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
-use async_trait::async_trait;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -46,13 +45,10 @@ pub enum TenantsServiceError {
     Config(String),
 
     #[error("Hozzáférés megtagadva!")]
-    AccessDenied,
+    Unauthorized,
 
     #[error("Token error: {0}")]
     Token(String),
-
-    #[error("Jelenleg nem elérhető")]
-    CurrentlyNotAvailable,
 
     #[error("rng error")]
     RngError,
@@ -61,30 +57,37 @@ pub enum TenantsServiceError {
     ValueObjectError(#[from] ValueObjectError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for TenantsServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for TenantsServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => TenantsServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for TenantsServiceError {
+    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
-            TenantsServiceError::AccessDenied | TenantsServiceError::CurrentlyNotAvailable => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: TenantsServiceError::AccessDenied.to_string(),
-                    },
-                )
-            }
+            TenantsServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: TenantsServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
-                    module,
+                    }
+                    .to_string(),
+                    mailer,
                 )
                 .await
             }
@@ -92,111 +95,135 @@ impl IntoFriendlyError<GeneralError> for TenantsServiceError {
     }
 }
 
-pub async fn create_managed(
-    claims: &Claims,
-    payload: &CreateTenant,
-    tenants_module: Arc<dyn TenantsModule>,
-) -> Result<Tenant, TenantsServiceError> {
-    let uuid = Uuid::new_v4();
-    let db_config = BasicDatabaseConfig {
-        host: tenants_module.config().main_database().host.clone(),
-        port: tenants_module.config().main_database().port,
-        username: format!("tenant_{}", uuid.to_string().replace("-", "")),
-        password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
-        database: format!("tenant_{}", uuid.to_string().replace("-", "")),
-        max_pool_size: None,
-        ssl_mode: Some(String::from("disable")),
-    };
+type TenantsServiceResult<T> = Result<T, TenantsServiceError>;
 
-    let tenant = tenants_module
-        .tenants_repo()
-        .setup_managed(
-            uuid,
-            payload.name.as_str()?,
-            &db_config,
-            claims,
-            tenants_module.config().clone(),
-        )
-        .await?;
+pub trait TenantService {
+    fn create_managed(
+        &self,
+        payload: &CreateTenant,
+    ) -> impl Future<Output = TenantsServiceResult<Tenant>> + Send;
+    fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
+    ) -> impl Future<Output = TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)>> + Send;
+    fn activate(
+        &self,
+        payload: &TenantIdRequest,
+    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
+    fn delete(
+        &self,
+        uuid: Uuid,
+    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
+}
 
-    tenants_module
-        .add_tenant_pool(
+impl<'a, T> TenantService for Service<'a, T>
+where
+    T: TenantsModule,
+{
+    async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
+        let uuid = Uuid::new_v4();
+        let db_config = BasicDatabaseConfig {
+            host: self.module().config().main_database().host.clone(),
+            port: self.module().config().main_database().port,
+            username: format!("tenant_{}", uuid.to_string().replace("-", "")),
+            password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
+            database: format!("tenant_{}", uuid.to_string().replace("-", "")),
+            max_pool_size: None,
+            ssl_mode: Some(String::from("disable")),
+        };
+
+        let tenant = self
+            .module()
+            .tenants_repo()
+            .setup_managed(
+                uuid,
+                payload.name.as_str()?,
+                &db_config,
+                self.claims()?,
+                self.module().config(),
+            )
+            .await?;
+
+        PoolManager::add_tenant_pool(
+            self.module(),
             tenant.id,
             &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
         )
         .await?;
 
-    tenants_module
-        .migrator()
-        .migrate_tenant_db(tenant.id)
-        .await?;
+        DatabaseMigrator::migrate_tenant_db(self.module(), tenant.id).await?;
 
-    let manager_user = tenants_module
-        .manager_user_repo()
-        .get_by_uuid(claims.sub())
-        .await?;
+        let manager_user = self
+            .module()
+            .manager_user_repo()
+            .get_by_uuid(self.claims()?.sub())
+            .await?;
 
-    tenants_module
-        .tenant_user_repo()
-        .insert_from_manager(manager_user.into(), tenant.id)
-        .await?;
+        self.module()
+            .tenant_user_repo(tenant.id)?
+            .insert_from_manager(manager_user.into())
+            .await?;
 
-    Ok(tenant)
-}
-
-pub async fn get_paged_list(
-    get_query: &GetQuery<TenantOrderBy, TenantFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn TenantsRepository>,
-) -> Result<(PaginatorMeta, Vec<PublicTenant>), TenantsServiceError> {
-    let (meta, data) = repo.get_all_by_user_id(claims.sub(), get_query).await?;
-    let mut public_tenants = vec![];
-    for tenant in data {
-        public_tenants.push(PublicTenant::from(tenant))
+        Ok(tenant)
     }
-    Ok((meta, public_tenants))
-}
 
-pub async fn activate(
-    payload: &TenantIdRequest,
-    claims: &Claims,
-    repo: Arc<dyn TenantsRepository>,
-    config: Arc<AppConfig>,
-) -> Result<NewTokenResponse, TenantsServiceError> {
-    let user_tenant = repo
-        .get_user_active_tenant_by_id(claims.sub(), payload.uuid)
-        .await?
-        .ok_or(TenantsServiceError::AccessDenied)?;
-    let claims = claims
-        .clone()
-        .set_active_tenant(Some(user_tenant.tenant_id));
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
+    ) -> TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)> {
+        let (meta, data) = self
+            .module()
+            .tenants_repo()
+            .get_all_by_user_id(self.claims()?.sub(), get_query)
+            .await?;
+        let mut public_tenants = vec![];
+        for tenant in data {
+            public_tenants.push(PublicTenant::from(tenant))
+        }
+        Ok((meta, public_tenants))
+    }
 
-    Ok(NewTokenResponse {
-        token: claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .map_err(TenantsServiceError::Token)?,
-        claims,
-    })
-}
+    async fn activate(&self, payload: &TenantIdRequest) -> TenantsServiceResult<NewTokenResponse> {
+        let user_tenant = self
+            .module()
+            .tenants_repo()
+            .get_user_active_tenant_by_id(self.claims()?.sub(), payload.uuid)
+            .await?
+            .ok_or(TenantsServiceError::Unauthorized)?;
+        let claims = self
+            .claims()?
+            .clone()
+            .set_active_tenant(Some(user_tenant.tenant_id));
 
-pub async fn delete(
-    uuid: Uuid,
-    claims: Claims,
-    repo: Arc<dyn TenantsRepository>,
-    config: Arc<AppConfig>,
-) -> Result<NewTokenResponse, TenantsServiceError> {
-    repo.delete(uuid, claims.sub()).await?;
-    let claims = if let Some(active_tenant) = claims.active_tenant()
-        && active_tenant == uuid
-    {
-        claims.set_active_tenant(None)
-    } else {
-        claims
-    };
-    Ok(NewTokenResponse {
-        token: claims
-            .to_token(config.auth().jwt_secret().as_bytes())
-            .map_err(TenantsServiceError::Token)?,
-        claims,
-    })
+        Ok(NewTokenResponse {
+            token: claims
+                .to_token(self.module().config().auth().jwt_secret().as_bytes())
+                .map_err(TenantsServiceError::Token)?,
+            claims,
+        })
+    }
+
+    async fn delete(&self, uuid: Uuid) -> TenantsServiceResult<NewTokenResponse> {
+        let claims = self.claims()?.clone();
+        self.module()
+            .tenants_repo()
+            .delete(uuid, claims.sub())
+            .await?;
+        let claims = if let Some(active_tenant) = claims.active_tenant()
+            && active_tenant == uuid
+        {
+            claims.set_active_tenant(None)
+        } else {
+            claims
+        };
+
+        self.module().delete_tenant_pool(uuid).await?;
+
+        Ok(NewTokenResponse {
+            token: claims
+                .to_token(self.module().config().auth().jwt_secret().as_bytes())
+                .map_err(TenantsServiceError::Token)?,
+            claims,
+        })
+    }
 }

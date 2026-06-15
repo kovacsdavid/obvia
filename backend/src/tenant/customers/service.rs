@@ -17,22 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use std::sync::Arc;
+
+use crate::common::BaseModule;
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
+use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
-use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
-use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum CustomersServiceError {
@@ -49,12 +50,19 @@ pub enum CustomersServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for CustomersServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for CustomersServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => CustomersServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for CustomersServiceError {
+    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
                 FriendlyError::user_facing(
@@ -63,7 +71,8 @@ impl IntoFriendlyError<GeneralError> for CustomersServiceError {
                     file!(),
                     GeneralError {
                         message: self.to_string(),
-                    },
+                    }
+                    .to_string(),
                 )
             }
             e => {
@@ -71,8 +80,9 @@ impl IntoFriendlyError<GeneralError> for CustomersServiceError {
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
-                    module,
+                    }
+                    .to_string(),
+                    mailer,
                 )
                 .await
             }
@@ -82,104 +92,114 @@ impl IntoFriendlyError<GeneralError> for CustomersServiceError {
 
 type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
 
-pub async fn create(
-    claims: &Claims,
-    payload: &CustomerUserInput,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<Customer> {
-    repo.insert(
-        payload,
-        claims.sub(),
-        claims
-            .active_tenant()
-            .ok_or(CustomersServiceError::Unauthorized)?,
-    )
-    .await
-    .map_err(|e| {
-        if e.is_unique_violation() {
-            CustomersServiceError::CustomerExists
-        } else {
-            e.into()
-        }
-    })
+pub trait CustomerService {
+    fn insert(
+        &self,
+        payload: &CustomerUserInput,
+    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = CustomersServiceResult<CustomerResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    fn update(
+        &self,
+        payload: &CustomerUserInput,
+    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<()>>;
+    fn get_paged(
+        &self,
+        get_query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
+    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[CustomerResolved],
+    ) -> impl Future<Output = CustomersServiceResult<Bytes>> + Sync;
 }
-pub async fn get_resolved_by_id(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<CustomerResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<Customer> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn update(
-    claims: &Claims,
-    payload: &CustomerUserInput,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<Customer> {
-    Ok(repo
-        .update(
-            payload.clone(),
-            claims
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_paged_list(
-    get_query: &GetQuery<CustomerOrderBy, CustomerFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn CustomersRepository>,
-) -> CustomersServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::CustomerView,
-        &vec![get_resolved_by_id(claims, payload, repo).await?],
-    )?))
+
+impl<'a, T> CustomerService for Service<'a, T>
+where
+    T: CustomersModule,
+{
+    async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+        self.module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    CustomersServiceError::CustomerExists
+                } else {
+                    e.into()
+                }
+            })
+    }
+    async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
+    }
+    async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
+    }
+    async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
+    }
+    async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
+    }
+    async fn get_paged(
+        &self,
+        query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
+    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_paged(query)
+            .await?)
+    }
+    async fn print(&self, payload: &[CustomerResolved]) -> CustomersServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::CustomerView,
+            &payload,
+        )?))
+    }
 }

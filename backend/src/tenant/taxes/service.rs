@@ -17,25 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use crate::common::BaseModule;
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
-use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum TaxesServiceError {
@@ -55,12 +54,19 @@ pub enum TaxesServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for TaxesServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for TaxesServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => TaxesServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for TaxesServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             TaxesServiceError::Unauthorized | TaxesServiceError::TaxExists => {
                 FriendlyError::user_facing(
@@ -69,7 +75,8 @@ impl IntoFriendlyError<GeneralError> for TaxesServiceError {
                     file!(),
                     GeneralError {
                         message: self.to_string(),
-                    },
+                    }
+                    .to_string(),
                 )
             }
             e => {
@@ -77,7 +84,8 @@ impl IntoFriendlyError<GeneralError> for TaxesServiceError {
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -103,121 +111,141 @@ impl FromStr for TaxesSelectLists {
 
 type TaxesServiceResult<T> = Result<T, TaxesServiceError>;
 
-pub async fn create(
-    claims: &Claims,
-    payload: &TaxUserInput,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<Tax> {
-    repo.insert(
-        payload.clone(),
-        claims.sub(),
-        claims
-            .active_tenant()
-            .ok_or(TaxesServiceError::Unauthorized)?,
-    )
-    .await
-    .map_err(|e| {
-        if e.is_unique_violation() {
-            TaxesServiceError::TaxExists
-        } else {
-            e.into()
-        }
-    })
-}
-pub async fn get_resolved_by_id(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<TaxResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<Tax> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn update(
-    claims: &Claims,
-    payload: &TaxUserInput,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<Tax> {
-    Ok(repo
-        .update(
-            payload.clone(),
-            claims
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_paged_list(
-    get_query: &GetQuery<TaxOrderBy, TaxFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_select_list_items(
-    select_list: &str,
-    claims: &Claims,
-    taxes_module: Arc<dyn TaxesModule>,
-) -> TaxesServiceResult<Vec<SelectOption>> {
-    match TaxesSelectLists::from_str(select_list)? {
-        TaxesSelectLists::Countries => Ok(taxes_module
-            .address_repo()
-            .get_all_countries_select_list_items(
-                claims
-                    .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
-            )
-            .await?),
-    }
+pub trait TaxService {
+    fn insert(
+        &self,
+        payload: &TaxUserInput,
+    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = TaxesServiceResult<TaxResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn update(
+        &self,
+        payload: &TaxUserInput,
+    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<()>> + Send;
+    fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
+    ) -> impl Future<Output = TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)>> + Send;
+
+    fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> impl Future<Output = TaxesServiceResult<Vec<SelectOption>>> + Send;
+    fn print(
+        &self,
+        payload: &[TaxResolved],
+    ) -> impl Future<Output = TaxesServiceResult<Bytes>> + Send;
 }
 
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TaxesRepository>,
-) -> TaxesServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::TaxView,
-        &vec![get_resolved_by_id(claims, payload, repo).await?],
-    )?))
+impl<'a, T> TaxService for Service<'a, T>
+where
+    T: TaxesModule,
+{
+    async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
+        self.module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    TaxesServiceError::TaxExists
+                } else {
+                    e.into()
+                }
+            })
+    }
+
+    async fn get_resolved(&self, payload: Uuid) -> TaxesServiceResult<TaxResolved> {
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
+    }
+
+    async fn get(&self, payload: Uuid) -> TaxesServiceResult<Tax> {
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
+    }
+
+    async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
+    }
+    async fn delete(&self, payload: Uuid) -> TaxesServiceResult<()> {
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
+    }
+
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
+    ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
+    }
+
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> TaxesServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(TaxesServiceError::Unauthorized)?;
+        match TaxesSelectLists::from_str(select_list)? {
+            TaxesSelectLists::Countries => Ok(self
+                .module()
+                .address_repo(active_tenant)?
+                .get_all_countries_select_list_items()
+                .await?),
+        }
+    }
+
+    async fn print(&self, payload: &[TaxResolved]) -> TaxesServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::TaxView,
+            &payload,
+        )?))
+    }
 }

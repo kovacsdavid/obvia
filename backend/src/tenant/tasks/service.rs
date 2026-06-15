@@ -17,25 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::MailTransporter;
-use crate::common::dto::{GeneralError, PaginatorMeta, UuidParam};
+use crate::common::BaseModule;
+use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
-use crate::common::query_parser::GetQuery;
-use crate::manager::auth::dto::claims::Claims;
+use crate::common::query_parser::ResourceQuery;
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
-use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
-use async_trait::async_trait;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum TasksServiceError {
@@ -52,12 +51,19 @@ pub enum TasksServiceError {
     PdfGenError(#[from] PdfGenError),
 }
 
-#[async_trait]
-impl IntoFriendlyError<GeneralError> for TasksServiceError {
-    async fn into_friendly_error(
-        self,
-        module: Arc<dyn MailTransporter>,
-    ) -> FriendlyError<GeneralError> {
+impl From<ServiceError> for TasksServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => TasksServiceError::Unauthorized,
+        }
+    }
+}
+
+impl IntoFriendlyError for TasksServiceError {
+    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
+    where
+        M: BaseModule,
+    {
         match self {
             TasksServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
@@ -65,14 +71,16 @@ impl IntoFriendlyError<GeneralError> for TasksServiceError {
                 file!(),
                 GeneralError {
                     message: TasksServiceError::Unauthorized.to_string(),
-                },
+                }
+                .to_string(),
             ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
                     GeneralError {
                         message: e.to_string(),
-                    },
+                    }
+                    .to_string(),
                     module,
                 )
                 .await
@@ -104,135 +112,149 @@ impl FromStr for TasksSelectLists {
     }
 }
 
-pub async fn create(
-    claims: &Claims,
-    payload: &TaskUserInput,
-    tasks_module: Arc<dyn TasksModule>,
-) -> TasksServiceResult<Task> {
-    Ok(tasks_module
-        .tasks_repo()
-        .insert(
-            payload,
-            claims.sub(),
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_select_list_items(
-    select_list: &str,
-    claims: &Claims,
-    tasks_module: Arc<dyn TasksModule>,
-) -> TasksServiceResult<Vec<SelectOption>> {
-    let active_tenant = claims
-        .active_tenant()
-        .ok_or(TasksServiceError::Unauthorized)?;
-    Ok(match TasksSelectLists::from_str(select_list)? {
-        TasksSelectLists::Worksheets => {
-            tasks_module
-                .worksheets_repo()
-                .get_select_list_items(active_tenant)
-                .await?
-        }
-        TasksSelectLists::Services => {
-            tasks_module
-                .services_repo()
-                .get_select_list_items(active_tenant)
-                .await?
-        }
-        TasksSelectLists::Taxes => {
-            tasks_module
-                .taxes_repo()
-                .get_select_list_items(active_tenant)
-                .await?
-        }
-        TasksSelectLists::Currencies => {
-            tasks_module
-                .currencies_repo()
-                .get_all_countries_select_list_items(active_tenant)
-                .await?
-        }
-    })
-}
-pub async fn get_resolved_by_id(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<TaskResolved> {
-    Ok(repo
-        .get_resolved_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<Task> {
-    Ok(repo
-        .get_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn update(
-    claims: &Claims,
-    payload: &TaskUserInput,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<Task> {
-    Ok(repo
-        .update(
-            payload,
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn delete(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<()> {
-    Ok(repo
-        .delete_by_id(
-            payload.uuid,
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
-}
-pub async fn get_paged_list(
-    get_query: &GetQuery<TaskOrderBy, TaskFilterBy>,
-    claims: &Claims,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
-    Ok(repo
-        .get_all_paged(
-            get_query,
-            claims
-                .active_tenant()
-                .ok_or(TasksServiceError::Unauthorized)?,
-        )
-        .await?)
+pub trait TaskService {
+    fn insert(
+        &self,
+        payload: &TaskUserInput,
+    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> impl Future<Output = TasksServiceResult<Vec<SelectOption>>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = TasksServiceResult<TaskResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn update(
+        &self,
+        payload: &TaskUserInput,
+    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<()>> + Send;
+    fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
+    ) -> impl Future<Output = TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[TaskResolved],
+    ) -> impl Future<Output = TasksServiceResult<Bytes>> + Send;
 }
 
-pub async fn print(
-    claims: &Claims,
-    payload: &UuidParam,
-    repo: Arc<dyn TasksRepository>,
-) -> TasksServiceResult<Bytes> {
-    Ok(Bytes::from(gen_pdf_temporary(
-        &PdfTemplates::TaskView,
-        &vec![get_resolved_by_id(claims, payload, repo).await?],
-    )?))
+impl<'a, T> TaskService for Service<'a, T>
+where
+    T: TasksModule,
+{
+    async fn insert(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await?)
+    }
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> TasksServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(TasksServiceError::Unauthorized)?;
+        Ok(match TasksSelectLists::from_str(select_list)? {
+            TasksSelectLists::Worksheets => {
+                self.module()
+                    .worksheets_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
+            }
+            TasksSelectLists::Services => {
+                self.module()
+                    .services_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
+            }
+            TasksSelectLists::Taxes => {
+                self.module()
+                    .taxes_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
+            }
+            TasksSelectLists::Currencies => {
+                self.module()
+                    .currencies_repo(active_tenant)?
+                    .get_all_countries_select_list_items()
+                    .await?
+            }
+        })
+    }
+    async fn get_resolved(&self, payload: Uuid) -> TasksServiceResult<TaskResolved> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
+    }
+
+    async fn get(&self, payload: Uuid) -> TasksServiceResult<Task> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
+    }
+    async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
+    }
+    async fn delete(&self, payload: Uuid) -> TasksServiceResult<()> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
+    }
+    async fn get_paged(
+        &self,
+        get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
+    ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
+        Ok(self
+            .module()
+            .tasks_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TasksServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
+    }
+
+    async fn print(&self, payload: &[TaskResolved]) -> TasksServiceResult<Bytes> {
+        Ok(Bytes::from(gen_pdf_temporary(
+            &PdfTemplates::TaskView,
+            &payload,
+        )?))
+    }
 }

@@ -17,10 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![allow(dead_code)] // TODO: Remove this when you are ready!
-#![allow(unused_variables)] // TODO: Remove this when you are ready!
-
-pub mod app;
 pub mod auth;
 pub mod tenants;
 pub mod users;

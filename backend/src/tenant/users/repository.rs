@@ -16,31 +16,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-use crate::common::error::RepositoryError;
-use crate::manager::app::database::{PgPoolManager, PoolManager};
+
+use crate::common::error::RepositoryResult;
 use crate::tenant::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use uuid::Uuid;
+use sqlx::PgPool;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait UsersRepository: Send + Sync {
-    async fn insert_from_manager(
-        &self,
-        user: User,
-        active_tenant: Uuid,
-    ) -> Result<User, RepositoryError>;
+    async fn insert_from_manager(&self, user: User) -> RepositoryResult<User>;
 }
 
 #[async_trait]
-impl UsersRepository for PgPoolManager {
-    async fn insert_from_manager(
-        &self,
-        user: User,
-        active_tenant: Uuid,
-    ) -> Result<User, RepositoryError> {
+impl UsersRepository for PgPool {
+    async fn insert_from_manager(&self, user: User) -> RepositoryResult<User> {
         Ok(sqlx::query_as::<_, User>(
             "INSERT INTO users (
                     id,
@@ -65,7 +57,7 @@ impl UsersRepository for PgPoolManager {
         .bind(user.locale)
         .bind(user.invited_by)
         .bind(user.email_verified_at)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 }

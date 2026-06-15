@@ -21,27 +21,28 @@ use axum::{
     extract::{FromRequestParts, Request, State},
     http::{StatusCode, request::Parts},
     middleware::Next,
-    response::{IntoResponse, Response},
+    response::Response,
 };
 use axum_extra::TypedHeader;
 use headers::{Authorization, authorization::Bearer};
 use std::sync::Arc;
 
 use super::dto::claims::Claims;
-use crate::common::config::AppConfig;
+use crate::common::{ConfigProvider, config::AppConfig};
 
-pub async fn require_auth(
-    State(config): State<Arc<AppConfig>>,
+pub async fn require_auth<M: ConfigProvider<Cfg = AppConfig>>(
+    State(module): State<Arc<M>>,
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    let auth_cfg = module.config().auth();
     req.extensions_mut().insert(
         Claims::from_token(
             bearer.token(),
-            config.auth().jwt_secret().as_bytes(),
-            config.auth().jwt_issuer(),
-            &format!("{}-api", config.auth().jwt_audience()),
+            auth_cfg.jwt_secret().as_bytes(),
+            auth_cfg.jwt_issuer(),
+            &format!("{}-api", auth_cfg.jwt_audience()),
         )
         .map_err(|_| StatusCode::UNAUTHORIZED)?,
     );
@@ -54,7 +55,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUser
 where
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = (StatusCode, &'static str);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         parts
@@ -62,8 +63,6 @@ where
             .get::<Claims>()
             .cloned()
             .map(AuthenticatedUser)
-            .ok_or_else(|| {
-                (StatusCode::UNAUTHORIZED, "Missing authentication claims").into_response()
-            })
+            .ok_or((StatusCode::UNAUTHORIZED, "Missing authentication claims"))
     }
 }

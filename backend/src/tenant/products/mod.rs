@@ -17,9 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::products::repository::ProductsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -29,16 +37,28 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait ProductsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn products_repo(&self) -> Arc<dyn ProductsRepository>;
+pub trait ProductsModule: BaseModule {
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
 }
 
-impl ProductsModule for DefaultAppState {
-    fn products_repo(&self) -> Arc<dyn ProductsRepository> {
-        self.pool_manager.clone()
+impl<P, T> ProductsModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    T::Error: Debug,
+{
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -64,3 +84,4 @@ pub mod tests {
         }
     );
 }
+*/

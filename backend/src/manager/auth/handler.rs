@@ -17,10 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::AuthModule;
-use crate::common::dto::{EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder};
-use crate::common::error::{FriendlyError, IntoFriendlyError};
+use super::AuthModuleInterface;
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::service::Service;
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
     ForgottenPasswordRequest, ForgottenPasswordRequestHelper, NewPasswordRequest,
@@ -28,245 +29,215 @@ use crate::manager::auth::dto::register::{
     ResendEmailValidationRequestHelper,
 };
 use crate::manager::auth::dto::{login::LoginRequest, register::RegisterRequest};
-use crate::manager::auth::service as auth_service;
+use crate::manager::auth::service::{AuthService, gen_refresh_cookie};
 use axum::extract::Query;
-use axum::{Json, debug_handler, extract::State, http::StatusCode, response::IntoResponse};
-use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
+use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::collections::HashMap;
 use std::sync::Arc;
-use time::Duration;
 
-#[debug_handler]
-pub async fn login(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn login<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
-    let (access_token, access_claims, refresh_token, _, user_public) =
-        match auth_service::try_login(auth_module.clone(), &payload, &client_context).await {
-            Ok(u) => u,
-            Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-        };
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
+        .or_handler_error(service.try_login(&payload, &client_context).await)
+        .await?;
+    let response = error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(LoginResponse::new(access_claims, user_public, access_token))
+                .build(),
+        )
+        .await?
+        .into_response();
 
-    let response = match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(LoginResponse::new(access_claims, user_public, access_token))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(auth_module.clone())
-            .await
-            .into_response()),
-    }?;
-
-    let refresh_cookie = match gen_refresh_cookie(
-        refresh_token,
-        !matches!(auth_module.config().server().environment(), "dev"),
-        auth_module.config().auth().refresh_token_expiration_mins(),
-    ) {
-        Ok(val) => val,
-        Err(e) => {
-            return Err(
-                FriendlyError::internal_with_admin_notify(file!(), e, auth_module)
-                    .await
-                    .into_response(),
-            );
-        }
-    };
-
+    let refresh_cookie = error_mapper
+        .or_handler_error(gen_refresh_cookie(
+            refresh_token,
+            !matches!(service.module().config().server().environment(), "dev"),
+            service
+                .module()
+                .config()
+                .auth()
+                .refresh_token_expiration_mins(),
+        ))
+        .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[debug_handler]
-pub async fn refresh(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn refresh<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let (access_token, access_claims, refresh_token, _, user_public) =
-        match auth_service::refresh(auth_module.clone(), jar.clone(), &client_context).await {
-            Ok(u) => u,
-            Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-        };
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
+        .or_handler_error(service.refresh(jar.clone(), &client_context).await)
+        .await?;
+    let response = error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(LoginResponse::new(access_claims, user_public, access_token))
+                .build(),
+        )
+        .await?
+        .into_response();
 
-    let response = match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(LoginResponse::new(access_claims, user_public, access_token))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(auth_module.clone())
-            .await
-            .into_response()),
-    }?;
-
-    let refresh_cookie = match gen_refresh_cookie(
-        refresh_token,
-        !matches!(auth_module.config().server().environment(), "dev"),
-        auth_module.config().auth().refresh_token_expiration_mins(),
-    ) {
-        Ok(val) => val,
-        Err(e) => {
-            return Err(
-                FriendlyError::internal_with_admin_notify(file!(), e, auth_module)
-                    .await
-                    .into_response(),
-            );
-        }
-    };
-
+    let refresh_cookie = error_mapper
+        .or_handler_error(gen_refresh_cookie(
+            refresh_token,
+            !matches!(service.module().config().server().environment(), "dev"),
+            service
+                .module()
+                .config()
+                .auth()
+                .refresh_token_expiration_mins(),
+        ))
+        .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-fn gen_refresh_cookie(
-    refresh_token: String,
-    secure_cookie: bool,
-    refresh_token_expiration_mins: u64,
-) -> Result<Cookie<'static>, String> {
-    let max_age: i64 = refresh_token_expiration_mins
-        .try_into()
-        .map_err(|_| "refresh_token_expiration_mins could not be converted to i64".to_string())?;
-    Ok(Cookie::build(("refresh_token", refresh_token))
-        .http_only(true)
-        .secure(secure_cookie)
-        .same_site(SameSite::Strict)
-        .path("/api/auth/t")
-        .max_age(Duration::minutes(max_age))
-        .build())
-}
-
-#[debug_handler]
-pub async fn logout(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn logout<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     jar: CookieJar,
     client_context: ClientContext,
 ) -> HandlerResult {
-    let _ = auth_service::logout(auth_module.clone(), jar.clone(), &client_context).await;
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    error_mapper
+        .or_handler_error(service.logout(jar.clone(), &client_context).await)
+        .await?;
 
     Ok(jar
         .remove(Cookie::build("refresh_token").path("/api/auth/t"))
         .into_response())
 }
 
-#[debug_handler]
-pub async fn register(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn register<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
-    match auth_service::try_register(auth_module.clone(), &user_input).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(SimpleMessageResponse::new(
-            "A felhasználó sikeresen létrehozva",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    error_mapper
+        .or_handler_error(service.try_register(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(SimpleMessageResponse::new(
+                    "A felhasználó sikeresen létrehozva",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn verify_email(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn verify_email<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
     let token = payload
         .get("id")
         .cloned()
         .unwrap_or(String::from("missing_token"));
-    match auth_service::verify_email(auth_module.clone(), &token).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "Az e-mail cím megerősítése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+    error_mapper
+        .or_handler_error(service.verify_email(&token).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "Az e-mail cím megerősítése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn resend_email_verification(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn resend_email_verification<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<
         ResendEmailValidationRequest,
         ResendEmailValidationRequestHelper,
     >,
 ) -> HandlerResult {
-    match auth_service::resend_email_verification(auth_module.clone(), user_input).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    error_mapper
+        .or_handler_error(service.resend_email_verification(user_input).await)
+        .await?;
 
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A megerősítő e-mail újraküldése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A megerősítő e-mail újraküldése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn forgotten_password(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn forgotten_password<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
-    match auth_service::forgotten_password(auth_module.clone(), user_input, &client_context).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    error_mapper
+        .or_handler_error(
+            service
+                .forgotten_password(user_input, &client_context)
+                .await,
+        )
+        .await?;
+    Ok(error_mapper.or_handler_error(SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
         ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+        .build()).await?.into_response())
 }
 
-#[debug_handler]
-pub async fn new_password(
-    State(auth_module): State<Arc<dyn AuthModule>>,
+pub async fn new_password<M: AuthModuleInterface>(
+    State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
-    match auth_service::new_password(auth_module.clone(), user_input, &client_context).await {
-        Ok(_) => (),
-        Err(e) => return Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A jelszó megváltoztatása sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(success) => Ok(success.into_response()),
-        Err(e) => Err(e.into_friendly_error(auth_module).await.into_response()),
-    }
+    let service = Service::new(None, auth_module.clone());
+    let error_mapper = ErrorMapper::new(auth_module);
+    error_mapper
+        .or_handler_error(service.new_password(user_input, &client_context).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A jelszó megváltoztatása sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
 #[cfg(test)]
@@ -303,22 +274,22 @@ mod tests {
     use crate::manager::auth::model::AccountEventType;
     use crate::manager::auth::model::EmailVerification;
     use crate::manager::auth::model::RefreshToken;
+    use crate::manager::auth::repository::MockAuthRepository;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
         auth,
-        auth::{
-            dto::{login::LoginRequest, register::RegisterRequest},
-            repository::MockAuthRepository,
-        },
+        auth::dto::{login::LoginRequest, register::RegisterRequest},
         users::model::User,
     };
+    use std::future::ready;
 
     #[tokio::test]
     async fn test_login_success() {
-        let mut repo = MockAuthRepository::new();
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
+
+        let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
@@ -343,7 +314,6 @@ mod tests {
         repo.expect_get_user_active_tenant()
             .with(eq(user_id2))
             .returning(|_| Ok(None));
-
         repo.expect_update_user_last_login_at()
             .with(eq(user_id2))
             .returning(|_| Ok(()));
@@ -360,11 +330,9 @@ mod tests {
                 revoked_at: None,
             })
         });
-
         repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
             .returning(|_, _, _| Ok(0));
-
         repo.expect_insert_account_event_log()
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
@@ -383,15 +351,11 @@ mod tests {
                 })
             });
 
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
-
-        let mut auth_module = MockAuthModule::new();
-        auth_module
-            .expect_config()
-            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
-        auth_module
-            .expect_auth_repo()
-            .returning(move || repo.clone());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
@@ -411,7 +375,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -438,9 +402,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_failure() {
-        let mut repo = MockAuthRepository::new();
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
+        let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
@@ -488,15 +452,11 @@ mod tests {
                 })
             });
 
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
-
-        let mut auth_module = MockAuthModule::new();
-        auth_module
-            .expect_config()
-            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
-        auth_module
-            .expect_auth_repo()
-            .returning(move || repo.clone());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
@@ -514,7 +474,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -534,9 +494,10 @@ mod tests {
         })
         .unwrap();
 
-        let mut repo = MockAuthRepository::new();
         let test_user_uuid = Uuid::new_v4();
         let test_user_uuid_copy = test_user_uuid;
+
+        let mut repo = MockAuthRepository::new();
         repo.expect_insert_user()
             .withf(move |payload_param, hashed_password| {
                 *payload_param
@@ -585,24 +546,21 @@ mod tests {
                 })
             });
 
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
 
-        let mut auth_module = MockAuthModule::new();
-        auth_module
-            .expect_config()
-            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
-        auth_module
-            .expect_auth_repo()
-            .returning(move || repo.clone());
-        auth_module.expect_send().times(1).returning(|_| {
-            Ok(Some(Response::new(
+        app_state.expect_send().times(1).returning(|_| {
+            Box::pin(ready(Ok(Some(Response::new(
                 Code::new(
                     Severity::PositiveIntermediate,
                     Category::Connections,
                     Detail::One,
                 ),
                 vec![],
-            )))
+            )))))
         });
 
         let request = Request::builder()
@@ -614,13 +572,14 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
     }
+
     #[tokio::test]
     async fn test_register_user_already_exists() {
         let payload = serde_json::to_string(&RegisterRequestHelper {
@@ -677,15 +636,11 @@ mod tests {
             )))
         });
 
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
-
-        let mut auth_module = MockAuthModule::new();
-        auth_module
-            .expect_config()
-            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
-        auth_module
-            .expect_auth_repo()
-            .returning(move || repo.clone());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -696,7 +651,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();
@@ -708,9 +663,9 @@ mod tests {
     async fn test_active_user_tenant() {
         let active_tenant_id1 = Uuid::new_v4();
         let active_tenant_id2 = active_tenant_id1;
-        let mut repo = MockAuthRepository::new();
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
+        let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
@@ -788,15 +743,11 @@ mod tests {
                 })
             });
 
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
-
-        let mut auth_module = MockAuthModule::new();
-        auth_module
-            .expect_config()
-            .returning(|| Arc::new(AppConfigBuilder::default().build().unwrap()));
-        auth_module
-            .expect_auth_repo()
-            .returning(move || repo.clone());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
 
         let payload = serde_json::to_string(&LoginRequest {
             email: "testuser@example.com".to_string(),
@@ -816,7 +767,7 @@ mod tests {
 
         let app = Router::new().nest(
             "/api",
-            Router::new().merge(auth::routes::routes(Arc::new(auth_module))),
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
         );
 
         let response = app.oneshot(request).await.unwrap();

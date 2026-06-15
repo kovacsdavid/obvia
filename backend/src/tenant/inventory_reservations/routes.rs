@@ -25,19 +25,19 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post};
 use std::sync::Arc;
 
-pub fn routes(inventory_reservations_module: Arc<dyn InventoryReservationsModule>) -> Router {
+pub fn routes<M: InventoryReservationsModule>(inventory_reservations_module: Arc<M>) -> Router {
     Router::new().nest(
         "/inventory_reservations",
         Router::new()
-            .route("/get", get(handler::get))
-            .route("/get_resolved", get(handler::get_resolved))
-            .route("/list", get(handler::list))
-            .route("/select_list", get(handler::select_list))
-            .route("/create", post(handler::create))
-            .route("/delete", delete(handler::delete))
-            .route("/print", get(handler::print))
+            .route("/get", get(handler::get::<M>))
+            .route("/get_resolved", get(handler::get_resolved::<M>))
+            .route("/list", get(handler::list::<M>))
+            .route("/select_list", get(handler::select_list::<M>))
+            .route("/create", post(handler::create::<M>))
+            .route("/delete", delete(handler::delete::<M>))
+            .route("/print", get(handler::print::<M>))
             .layer(from_fn_with_state(
-                inventory_reservations_module.config(),
+                inventory_reservations_module.clone(),
                 require_auth,
             ))
             .with_state(inventory_reservations_module),

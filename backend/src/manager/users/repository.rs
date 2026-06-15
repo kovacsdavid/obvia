@@ -18,65 +18,29 @@
  */
 
 use crate::common::error::{RepositoryError, RepositoryResult};
-use crate::manager::app::database::{PgPoolManager, PoolManager};
-use crate::manager::auth::dto::register::RegisterRequest;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait UsersRepository: Send + Sync {
-    async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError>;
-    async fn insert_user(
-        &self,
-        payload: &RegisterRequest,
-        password_hash: &str,
-    ) -> RepositoryResult<User>;
-    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User>;
+    async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<User>;
     async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
     async fn update_user(&self, user: User) -> RepositoryResult<User>;
 }
 
 #[async_trait]
-impl UsersRepository for PgPoolManager {
+impl UsersRepository for PgPool {
     async fn get_by_uuid(&self, uuid: Uuid) -> Result<User, RepositoryError> {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(uuid)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self)
                 .await?,
-        )
-    }
-    async fn insert_user(
-        &self,
-        payload: &RegisterRequest,
-        password_hash: &str,
-    ) -> RepositoryResult<User> {
-        Ok(sqlx::query_as::<_, User>(
-            "INSERT INTO users (
-                    id, email, password_hash, first_name, last_name, status
-            ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
-        )
-        .bind(Uuid::new_v4())
-        .bind(payload.email.as_str()?)
-        .bind(password_hash)
-        .bind(payload.first_name.as_str()?)
-        .bind(payload.last_name.as_str()?)
-        .fetch_one(&self.get_main_pool())
-        .await?)
-    }
-
-    async fn get_user_by_email(&self, email: &str) -> RepositoryResult<User> {
-        Ok(
-            sqlx::query_as::<_, User>(
-                "SELECT * FROM users WHERE email = $1 AND deleted_at IS NULL",
-            )
-            .bind(email)
-            .fetch_one(&self.get_main_pool())
-            .await?,
         )
     }
 
@@ -84,7 +48,7 @@ impl UsersRepository for PgPoolManager {
         Ok(
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = $1 AND deleted_at IS NULL")
                 .bind(user_id)
-                .fetch_one(&self.get_main_pool())
+                .fetch_one(self)
                 .await?,
         )
     }
@@ -125,7 +89,7 @@ impl UsersRepository for PgPoolManager {
         .bind(user.is_mfa_enabled)
         .bind(user.mfa_secret)
         .bind(user.id)
-        .fetch_one(&self.get_main_pool())
+        .fetch_one(self)
         .await?)
     }
 }

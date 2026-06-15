@@ -18,22 +18,37 @@
  */
 
 use std::sync::Arc;
+use thiserror::Error;
 
-use super::ActivityFeedModule;
-use super::handler;
-use crate::manager::auth::middleware::require_auth;
-use axum::middleware::from_fn_with_state;
-use axum::{Router, routing::get};
+use crate::manager::auth::dto::claims::Claims;
 
-pub fn routes<M: ActivityFeedModule>(activity_feed_module: Arc<M>) -> Router {
-    Router::new().nest(
-        "/activity_feed",
-        Router::new()
-            .route("/list", get(handler::list::<M>))
-            .layer(from_fn_with_state(
-                activity_feed_module.clone(),
-                require_auth,
-            ))
-            .with_state(activity_feed_module),
-    )
+#[derive(Debug, Error)]
+pub enum ServiceError {
+    #[error("Hozzáférés megtagadva!")]
+    Unauthorized,
+}
+
+type ServiceResult<T> = Result<T, ServiceError>;
+
+pub struct Service<'a, T>
+where
+    T: Send + Sync,
+{
+    claims: Option<&'a Claims>,
+    module: Arc<T>,
+}
+
+impl<'a, T> Service<'a, T>
+where
+    T: Send + Sync,
+{
+    pub fn new(claims: Option<&'a Claims>, module: Arc<T>) -> Self {
+        Service { claims, module }
+    }
+    pub fn claims(&self) -> ServiceResult<&Claims> {
+        self.claims.ok_or(ServiceError::Unauthorized)
+    }
+    pub fn module(&self) -> &T {
+        &self.module
+    }
 }

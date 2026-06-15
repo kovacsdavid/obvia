@@ -120,8 +120,6 @@ where
     }
 }
 
-pub type HandlerResult = Result<Response, Response>;
-
 #[derive(Serialize)]
 pub struct FormError<T>
 where

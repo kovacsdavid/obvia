@@ -17,10 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{ConfigProvider, DefaultAppState, MailTransporter};
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
 use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -30,20 +38,38 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WorksheetsModule: ConfigProvider + MailTransporter + Send + Sync {
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-    fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+pub trait WorksheetsModule: BaseModule {
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
 }
 
-impl WorksheetsModule for DefaultAppState {
-    fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository> {
-        self.pool_manager.clone()
+impl<P, T> WorksheetsModule for AppState<P, T>
+where
+    P: PoolManager + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    T::Error: Debug,
+{
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
-    fn customers_repo(&self) -> Arc<dyn CustomersRepository> {
-        self.pool_manager.clone()
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
 
+/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -70,3 +96,4 @@ pub mod tests {
         }
     );
 }
+*/

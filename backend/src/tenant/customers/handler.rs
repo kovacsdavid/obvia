@@ -17,232 +17,168 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{
-    EmptyType, HandlerResult, SimpleMessageResponse, SuccessResponseBuilder, UuidParam,
-};
-use crate::common::error::{FriendlyError, IntoFriendlyError};
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::query_parser::{CommonRawQuery, GetQuery};
+use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
+use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
-use crate::tenant::customers::service as customer_service;
+use crate::tenant::customers::service::CustomerService;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use axum::debug_handler;
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
 
-#[debug_handler]
-pub async fn get_resolved(
+pub async fn get_resolved<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result = match customer_service::get_resolved_by_id(
-        &claims,
-        &payload,
-        customers_module.customers_repo(),
-    )
-    .await
-    {
-        Ok(r) => r,
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(customers_module)
-                .await
-                .into_response());
-        }
-    };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let result = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn get(
+pub async fn get<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let result =
-        match customer_service::get(&claims, &payload, customers_module.customers_repo()).await {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(e
-                    .into_friendly_error(customers_module)
-                    .await
-                    .into_response());
-            }
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let result = error_mapper
+        .or_handler_error(service.get(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn create(
+pub async fn create<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    let result =
-        match customer_service::create(&claims, &user_input, customers_module.customers_repo())
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(e
-                    .into_friendly_error(customers_module)
-                    .await
-                    .into_response());
-            }
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::CREATED)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let result = error_mapper
+        .or_handler_error(service.insert(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::CREATED)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn update(
+pub async fn update<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
-    let result =
-        match customer_service::update(&claims, &user_input, customers_module.customers_repo())
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => {
-                return Err(e
-                    .into_friendly_error(customers_module)
-                    .await
-                    .into_response());
-            }
-        };
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(result)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let result = error_mapper
+        .or_handler_error(service.update(&user_input).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(result)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn delete(
+pub async fn delete<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    match customer_service::delete(&claims, &payload, customers_module.customers_repo()).await {
-        Ok(_) => (),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(customers_module)
-                .await
-                .into_response());
-        }
-    };
-
-    match SuccessResponseBuilder::<EmptyType, _>::new()
-        .status_code(StatusCode::OK)
-        .data(SimpleMessageResponse::new(
-            "A vevő törlése sikeresen megtörtént",
-        ))
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    error_mapper
+        .or_handler_error(service.delete(payload.uuid).await)
+        .await?;
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::<EmptyType, _>::new()
+                .status_code(StatusCode::OK)
+                .data(SimpleMessageResponse::new(
+                    "A vevő törlése sikeresen megtörtént",
+                ))
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-#[debug_handler]
-pub async fn list(
+pub async fn list<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
-    let (meta, data) = match customer_service::get_paged_list(
-        &GetQuery::<CustomerOrderBy, CustomerFilterBy>::from_str(payload.q())
-            .map_err(|e| FriendlyError::internal(file!(), e.to_string()).into_response())?,
-        &claims,
-        customers_module.customers_repo(),
-    )
-    .await
-    {
-        Ok((m, d)) => (m, d),
-        Err(e) => {
-            return Err(e
-                .into_friendly_error(customers_module)
-                .await
-                .into_response());
-        }
-    };
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let resource_query = error_mapper
+        .or_handler_error(ResourceQuery::<CustomerOrderBy, CustomerFilterBy>::from_str(payload.q()))
+        .await?;
+    let (meta, data) = error_mapper
+        .or_handler_error(service.get_paged(&resource_query).await)
+        .await?;
 
-    match SuccessResponseBuilder::new()
-        .status_code(StatusCode::OK)
-        .meta(meta)
-        .data(data)
-        .build()
-    {
-        Ok(r) => Ok(r.into_response()),
-        Err(e) => Err(e
-            .into_friendly_error(customers_module)
-            .await
-            .into_response()),
-    }
+    Ok(error_mapper
+        .or_handler_error(
+            SuccessResponseBuilder::new()
+                .status_code(StatusCode::OK)
+                .meta(meta)
+                .data(data)
+                .build(),
+        )
+        .await?
+        .into_response())
 }
 
-pub async fn print(
+pub async fn print<M: CustomersModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
-    State(customers_module): State<Arc<dyn CustomersModule>>,
+    State(customers_module): State<Arc<M>>,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
-    let pdf =
-        match customer_service::print(&claims, &payload, customers_module.customers_repo()).await {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(e
-                    .into_friendly_error(customers_module)
-                    .await
-                    .into_response());
-            }
-        };
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let error_mapper = ErrorMapper::new(customers_module);
+    let customer_resolved = error_mapper
+        .or_handler_error(service.get_resolved(payload.uuid).await)
+        .await?;
+    let pdf = error_mapper
+        .or_handler_error(service.print(&[customer_resolved]).await)
+        .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -26,55 +24,31 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait WarehousesRepository: Send + Sync {
-    fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Warehouse>> + Send;
-    fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<WarehouseResolved>> + Send;
-    fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
-    fn get_all_paged(
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Warehouse>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WarehouseResolved>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>> + Send;
-    fn insert(
-        &self,
-        warehouse: WarehouseUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = Result<Warehouse, RepositoryError>> + Send;
-    fn update(
-        &self,
-        warehouse: WarehouseUserInput,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Warehouse>> + Send;
-    fn delete_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
+    async fn insert(&self, warehouse: WarehouseUserInput, sub: Uuid)
+    -> RepositoryResult<Warehouse>;
+    async fn update(&self, warehouse: WarehouseUserInput) -> RepositoryResult<Warehouse>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
-impl<P, T> WarehousesRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Warehouse> {
+#[async_trait]
+impl WarehousesRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Warehouse> {
         Ok(sqlx::query_as::<_, Warehouse>(
             r#"
             SELECT *
@@ -84,15 +58,11 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<WarehouseResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WarehouseResolved> {
         Ok(sqlx::query_as::<_, WarehouseResolved>(
             r#"
             SELECT
@@ -113,23 +83,19 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT warehouses.id::VARCHAR as value, warehouses.name as title FROM warehouses WHERE deleted_at IS NULL ORDER BY name",
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
     async fn get_all_paged(
         &self,
         query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-        active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -142,12 +108,12 @@ where
                             AND ($1::TEXT IS NULL OR warehouses.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM warehouses WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -194,7 +160,7 @@ where
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -223,7 +189,7 @@ where
                 sqlx::query_as::<_, WarehouseResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -241,7 +207,6 @@ where
         &self,
         warehouse: WarehouseUserInput,
         sub: Uuid,
-        active_tenant: Uuid,
     ) -> Result<Warehouse, RepositoryError> {
         Ok(sqlx::query_as::<_, Warehouse>(
             r#"
@@ -254,15 +219,11 @@ where
         .bind(warehouse.contact_phone.as_str())
         .bind(warehouse.status.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn update(
-        &self,
-        warehouse: WarehouseUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Warehouse> {
+    async fn update(&self, warehouse: WarehouseUserInput) -> RepositoryResult<Warehouse> {
         let id = warehouse
             .id
             .as_uuid()
@@ -284,11 +245,11 @@ where
         .bind(warehouse.contact_phone.as_str())
         .bind(warehouse.status.as_str()?)
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE warehouses
@@ -298,7 +259,7 @@ where
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

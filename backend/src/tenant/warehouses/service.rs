@@ -26,7 +26,6 @@ use crate::common::service::{Service, ServiceError};
 use crate::tenant::warehouses::WarehousesModule;
 use crate::tenant::warehouses::dto::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
-use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -105,69 +104,74 @@ where
     T: WarehousesModule,
 {
     async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
-        Ok(WarehousesRepository::insert(
-            self.module(),
-            payload.clone(),
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .insert(payload.clone(), self.claims()?.sub())
+            .await?)
     }
     async fn get_resolved(&self, payload: Uuid) -> WarehousesServiceResult<WarehouseResolved> {
-        Ok(WarehousesRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
     async fn get(&self, payload: Uuid) -> WarehousesServiceResult<Warehouse> {
-        Ok(WarehousesRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
-        Ok(WarehousesRepository::update(
-            self.module(),
-            payload.clone(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .update(payload.clone())
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> WarehousesServiceResult<()> {
-        Ok(WarehousesRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
-        Ok(WarehousesRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(WarehousesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .warehouses_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(WarehousesServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
     }
     async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(

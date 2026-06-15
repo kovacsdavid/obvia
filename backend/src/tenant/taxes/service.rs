@@ -24,11 +24,9 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::taxes::TaxesModule;
 use crate::tenant::taxes::dto::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
-use crate::tenant::taxes::repository::TaxesRepository;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -148,95 +146,99 @@ where
     T: TaxesModule,
 {
     async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
-        TaxesRepository::insert(
-            self.module(),
-            payload,
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                TaxesServiceError::TaxExists
-            } else {
-                e.into()
-            }
-        })
+        self.module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    TaxesServiceError::TaxExists
+                } else {
+                    e.into()
+                }
+            })
     }
 
     async fn get_resolved(&self, payload: Uuid) -> TaxesServiceResult<TaxResolved> {
-        Ok(TaxesRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
 
     async fn get(&self, payload: Uuid) -> TaxesServiceResult<Tax> {
-        Ok(TaxesRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
-        Ok(TaxesRepository::update(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> TaxesServiceResult<()> {
-        Ok(TaxesRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
 
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
-        Ok(TaxesRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(TaxesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .taxes_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(TaxesServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
     }
 
     async fn get_select_list_items(
         &self,
         select_list: &str,
     ) -> TaxesServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(TaxesServiceError::Unauthorized)?;
         match TaxesSelectLists::from_str(select_list)? {
-            TaxesSelectLists::Countries => {
-                Ok(AddressRepository::get_all_countries_select_list_items(
-                    self.module(),
-                    self.claims()?
-                        .active_tenant()
-                        .ok_or(TaxesServiceError::Unauthorized)?,
-                )
-                .await?)
-            }
+            TaxesSelectLists::Countries => Ok(self
+                .module()
+                .address_repo(active_tenant)?
+                .get_all_countries_select_list_items()
+                .await?),
         }
     }
 

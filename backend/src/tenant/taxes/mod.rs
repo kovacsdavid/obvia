@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
@@ -26,6 +27,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -35,7 +38,16 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait TaxesModule: TaxesRepository + AddressRepository + BaseModule {}
+pub trait TaxesModule: BaseModule {
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
+}
 
 impl<P, T> TaxesModule for AppState<P, T>
 where
@@ -43,6 +55,18 @@ where
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
     T::Error: Debug,
 {
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

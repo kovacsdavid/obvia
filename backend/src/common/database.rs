@@ -36,8 +36,8 @@ use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 pub trait PoolManager: Send + Sync {
-    fn get_main_pool(&self) -> PgPool;
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError>;
+    fn get_main_pool(&self) -> Arc<PgPool>;
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError>;
     fn add_tenant_pool(
         &self,
         tenant_id: Uuid,
@@ -50,8 +50,8 @@ pub trait PoolManager: Send + Sync {
 }
 
 pub struct PgPoolManager {
-    main_pool: PgPool,
-    tenant_pools: Arc<RwLock<HashMap<String, PgPool>>>,
+    main_pool: Arc<PgPool>,
+    tenant_pools: Arc<RwLock<HashMap<String, Arc<PgPool>>>>,
 }
 
 impl PgPoolManager {
@@ -64,7 +64,7 @@ impl PgPoolManager {
             .connect(&main_database_config.url())
             .await?;
         Ok(Self {
-            main_pool,
+            main_pool: Arc::new(main_pool),
             tenant_pools: Arc::new(RwLock::new(HashMap::new())),
         })
     }
@@ -88,10 +88,10 @@ impl PgPoolManager {
 }
 
 impl PoolManager for PgPoolManager {
-    fn get_main_pool(&self) -> PgPool {
+    fn get_main_pool(&self) -> Arc<PgPool> {
         self.main_pool.clone()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<PgPool, RepositoryError> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError> {
         let _tenant_id_string = tenant_id.to_string();
         let guard = self
             .tenant_pools
@@ -118,7 +118,7 @@ impl PoolManager for PgPoolManager {
                 .tenant_pools
                 .write()
                 .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
-            pools.insert(tenant_id.to_string(), pool);
+            pools.insert(tenant_id.to_string(), Arc::new(pool));
         }
         Ok(tenant_id)
     }
@@ -192,12 +192,12 @@ pub trait DatabaseMigrator: Send + Sync {
 impl DatabaseMigrator for PgPoolManager {
     async fn migrate_main_db(&self) -> RepositoryResult<()> {
         Ok(sqlx::migrate!("./migrations/main")
-            .run(&self.get_main_pool())
+            .run(&*self.get_main_pool())
             .await?)
     }
     async fn migrate_tenant_db(&self, tenant_id: Uuid) -> RepositoryResult<()> {
         Ok(sqlx::migrate!("./migrations/tenant")
-            .run(&self.get_tenant_pool(tenant_id)?)
+            .run(&*self.get_tenant_pool(tenant_id)?)
             .await?)
     }
     async fn migrate_all_tenant_dbs(&self, tenants: &[Tenant]) -> RepositoryResult<()> {

@@ -20,7 +20,7 @@
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 use uuid::Uuid;
 
 use crate::{
@@ -170,10 +170,10 @@ where
     P: PoolManager + Send + Sync + 'static,
     T: Send + Sync + 'static,
 {
-    fn get_main_pool(&self) -> PgPool {
+    fn get_main_pool(&self) -> Arc<PgPool> {
         self.pool_manager().get_main_pool()
     }
-    fn get_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<PgPool> {
+    fn get_tenant_pool(&self, tenant_id: Uuid) -> RepositoryResult<Arc<PgPool>> {
         self.pool_manager().get_tenant_pool(tenant_id)
     }
     async fn add_tenant_pool(

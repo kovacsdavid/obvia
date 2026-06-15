@@ -17,35 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use uuid::Uuid;
+use sqlx::PgPool;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait AddressRepository: Send + Sync {
-    fn get_all_countries_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
+    async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
 }
 
-impl<P, T> AddressRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn get_all_countries_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+#[async_trait]
+impl AddressRepository for PgPool {
+    async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             r#"SELECT code as value, name as title FROM countries"#,
         )
-        .fetch_all(&self.get_tenant_pool(active_tenant)?)
+        .fetch_all(self)
         .await?)
     }
 }

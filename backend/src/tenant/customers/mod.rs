@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
 use lettre::{
@@ -25,6 +26,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -34,14 +37,25 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CustomersModule: CustomersRepository + BaseModule {}
+pub trait CustomersModule: BaseModule {
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+}
 
 impl<P, T> CustomersModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync,
+    P: PoolManager,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
     T::Error: Debug,
 {
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

@@ -17,8 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
@@ -26,55 +24,30 @@ use crate::common::query_parser::ResourceQuery;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait CustomersRepository: Send + Sync {
-    fn get_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
-    fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<CustomerResolved>> + Send;
-    fn get_paged(
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Customer>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved>;
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
-    fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Vec<SelectOption>>> + Send;
-    fn insert(
-        &self,
-        customer: &CustomerUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
-    fn update(
-        &self,
-        customer: &CustomerUserInput,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Customer>> + Send;
-    fn delete_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<()>> + Send;
+    ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer>;
+    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
-impl<P, T> CustomersRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer> {
+#[async_trait]
+impl CustomersRepository for PgPool {
+    async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Customer> {
         Ok(sqlx::query_as::<_, Customer>(
             r#"
             SELECT *
@@ -84,15 +57,11 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn get_resolved_by_id(
-        &self,
-        id: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<CustomerResolved> {
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved> {
         Ok(sqlx::query_as::<_, CustomerResolved>(
             r#"
             SELECT
@@ -115,14 +84,13 @@ where
             "#,
         )
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-        active_tenant: Uuid,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         let total: (i64,) = match (
             query_params.filtering().filter_by(), // Security: ValueObject
@@ -136,12 +104,12 @@ where
                                AND ($1::TEXT IS NULL OR customers.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
                 ))
                 .bind(value_unchecked)
-                .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                .fetch_one(self)
                 .await?
             }
             (_, _) => {
                 sqlx::query_as("SELECT COUNT(*) FROM customers WHERE deleted_at IS NULL")
-                    .fetch_one(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_one(self)
                     .await?
             }
         };
@@ -190,7 +158,7 @@ where
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
             (_, _) => {
@@ -221,7 +189,7 @@ where
                 sqlx::query_as::<_, CustomerResolved>(&sql)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
-                    .fetch_all(&self.get_tenant_pool(active_tenant)?)
+                    .fetch_all(self)
                     .await?
             }
         };
@@ -236,23 +204,15 @@ where
         ))
     }
 
-    async fn get_select_list_items(
-        &self,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT customers.id::VARCHAR as value, customers.name as title FROM customers WHERE deleted_at IS NULL ORDER BY name",
         )
-            .fetch_all(&self.get_tenant_pool(active_tenant)?)
+            .fetch_all(self)
             .await?)
     }
 
-    async fn insert(
-        &self,
-        customer: &CustomerUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Customer> {
+    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer> {
         let contact_name = match &customer.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
@@ -272,15 +232,11 @@ where
         .bind(customer.status.as_str()?)
         .bind(customer.customer_type.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn update(
-        &self,
-        customer: &CustomerUserInput,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Customer> {
+    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer> {
         let contact_name = match &customer.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
@@ -311,11 +267,11 @@ where
         .bind(customer.status.as_str()?)
         .bind(customer.customer_type.as_str()?)
         .bind(id)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 
-    async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()> {
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
             UPDATE customers 
@@ -325,7 +281,7 @@ where
             "#,
         )
         .bind(id)
-        .execute(&self.get_tenant_pool(active_tenant)?)
+        .execute(self)
         .await?;
 
         Ok(())

@@ -28,7 +28,6 @@ use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModule;
 use crate::tenant::customers::dto::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
-use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -123,75 +122,79 @@ where
     T: CustomersModule,
 {
     async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
-        CustomersRepository::insert(
-            self.module(),
-            payload,
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                CustomersServiceError::CustomerExists
-            } else {
-                e.into()
-            }
-        })
+        self.module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    CustomersServiceError::CustomerExists
+                } else {
+                    e.into()
+                }
+            })
     }
     async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
-        Ok(CustomersRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
     async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
-        Ok(CustomersRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
     async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
-        Ok(CustomersRepository::update(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
-        Ok(CustomersRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
     async fn get_paged(
         &self,
         query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
     ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-        Ok(CustomersRepository::get_paged(
-            self.module(),
-            query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(CustomersServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .customers_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CustomersServiceError::Unauthorized)?,
+            )?
+            .get_paged(query)
+            .await?)
     }
     async fn print(&self, payload: &[CustomerResolved]) -> CustomersServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(

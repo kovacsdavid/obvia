@@ -47,10 +47,10 @@ where
     T::Error: Debug,
 {
     fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync> {
-        Arc::new(self.get_main_pool())
+        self.get_main_pool()
     }
     fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
-        Arc::new(self.get_main_pool())
+        self.get_main_pool()
     }
 }
 

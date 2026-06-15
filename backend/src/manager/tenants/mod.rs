@@ -29,7 +29,6 @@ use lettre::{
     AsyncTransport,
     transport::smtp::{Error, response::Response},
 };
-use std::fmt::Debug;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -52,21 +51,20 @@ pub trait TenantsModule: DatabaseMigrator + PoolManager + BaseModule {
 
 impl<P, T> TenantsModule for AppState<P, T>
 where
-    P: DatabaseMigrator + PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
-    T::Error: Debug,
+    P: DatabaseMigrator + PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
 {
     fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync> {
-        Arc::new(self.get_main_pool())
+        self.get_main_pool()
     }
     fn tenant_user_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn TenantUserRepository + Send + Sync>> {
-        Ok(Arc::new(self.get_tenant_pool(tenant_id)?))
+        Ok(self.get_tenant_pool(tenant_id)?)
     }
     fn manager_user_repo(&self) -> Arc<dyn ManagerUserRepository + Send + Sync> {
-        Arc::new(self.get_main_pool())
+        self.get_main_pool()
     }
 }
 

@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::repository::ServicesRepository;
@@ -27,6 +28,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -36,17 +39,45 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait ServicesModule:
-    ServicesRepository + CurrenciesRepository + TaxesRepository + BaseModule
-{
+pub trait ServicesModule: BaseModule {
+    fn services_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
 }
 
 impl<P, T> ServicesModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
     T::Error: Debug,
 {
+    fn services_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn currencies_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn taxes_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

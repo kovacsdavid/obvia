@@ -24,13 +24,10 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::services::ServicesModule;
 use crate::tenant::services::dto::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
-use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
-use crate::tenant::taxes::repository::TaxesRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -153,102 +150,104 @@ where
     T: ServicesModule,
 {
     async fn insert(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
-        ServicesRepository::insert(
-            self.module(),
-            payload,
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                ServicesServiceError::ServiceExists
-            } else {
-                e.into()
-            }
-        })
+        self.module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    ServicesServiceError::ServiceExists
+                } else {
+                    e.into()
+                }
+            })
     }
 
     async fn get_resolved(&self, payload: Uuid) -> ServicesServiceResult<ServiceResolved> {
-        Ok(ServicesRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
 
     async fn get(&self, payload: Uuid) -> ServicesServiceResult<ServiceModel> {
-        Ok(ServicesRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
-        Ok(ServicesRepository::update(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> ServicesServiceResult<()> {
-        Ok(ServicesRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
 
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
     ) -> ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)> {
-        Ok(ServicesRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ServicesServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .services_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ServicesServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
     }
 
     async fn get_select_list_items(
         &self,
         select_list: &str,
     ) -> ServicesServiceResult<Vec<SelectOption>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(ServicesServiceError::Unauthorized)?;
         match ServicesSelectLists::from_str(select_list)? {
-            ServicesSelectLists::Currencies => {
-                Ok(CurrenciesRepository::get_all_countries_select_list_items(
-                    self.module(),
-                    self.claims()?
-                        .active_tenant()
-                        .ok_or(ServicesServiceError::Unauthorized)?,
-                )
-                .await?)
-            }
-            ServicesSelectLists::Taxes => Ok(TaxesRepository::get_select_list_items(
-                self.module(),
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
-            )
-            .await?),
+            ServicesSelectLists::Currencies => Ok(self
+                .module()
+                .currencies_repo(active_tenant)?
+                .get_all_countries_select_list_items()
+                .await?),
+            ServicesSelectLists::Taxes => Ok(self
+                .module()
+                .taxes_repo(active_tenant)?
+                .get_select_list_items()
+                .await?),
         }
     }
 

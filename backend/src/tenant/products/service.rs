@@ -29,7 +29,6 @@ use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::tenant::products::ProductsModule;
 use crate::tenant::products::dto::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
-use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
@@ -150,30 +149,30 @@ where
 {
     async fn insert(&self, payload: &mut ProductUserInput) -> ProductsServiceResult<Product> {
         if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
-            payload.unit_of_measure_id = ProductsRepository::insert_unit_of_measure(
-                self.module(),
-                new_unit_of_measure.as_str()?,
-                self.claims()?.sub(),
+            payload.unit_of_measure_id = self
+                .module()
+                .products_repo(
+                    self.claims()?
+                        .active_tenant()
+                        .ok_or(ProductsServiceError::Unauthorized)?,
+                )?
+                .insert_unit_of_measure(new_unit_of_measure.as_str()?, self.claims()?.sub())
+                .await?
+                .id
+                .to_string()
+                .parse::<ValueObjectRequired<UuidVO>>()
+                .map(Some)
+                .map_err(|_| ProductsServiceError::InvalidState)?;
+        }
+        Ok(self
+            .module()
+            .products_repo(
                 self.claims()?
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,
-            )
-            .await?
-            .id
-            .to_string()
-            .parse::<ValueObjectRequired<UuidVO>>()
-            .map(Some)
-            .map_err(|_| ProductsServiceError::InvalidState)?;
-        }
-        Ok(ProductsRepository::insert(
-            self.module(),
-            payload,
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await?)
     }
 
     async fn get_select_list_items(
@@ -181,72 +180,77 @@ where
         select_list: &str,
     ) -> ProductsServiceResult<Vec<SelectOption>> {
         match ProductsSelectLists::from_str(select_list)? {
-            ProductsSelectLists::UnitsOfMeasure => {
-                Ok(ProductsRepository::get_units_of_measure_select_list(
-                    self.module(),
+            ProductsSelectLists::UnitsOfMeasure => Ok(self
+                .module()
+                .products_repo(
                     self.claims()?
                         .active_tenant()
                         .ok_or(ProductsServiceError::Unauthorized)?,
-                )
-                .await?)
-            }
+                )?
+                .get_units_of_measure_select_list()
+                .await?),
         }
     }
 
     async fn get_resolved(&self, payload: Uuid) -> ProductsServiceResult<ProductResolved> {
-        Ok(ProductsRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .products_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
 
     async fn get(&self, payload: Uuid) -> ProductsServiceResult<Product> {
-        Ok(ProductsRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .products_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn update(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
-        Ok(ProductsRepository::update(
-            self.module(),
-            payload.clone(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .products_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )?
+            .update(payload.clone())
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> ProductsServiceResult<()> {
-        Ok(ProductsRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .products_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
     ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
-        Ok(ProductsRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(ProductsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .products_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(ProductsServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
     }
 
     async fn print(&self, payload: &[ProductResolved]) -> ProductsServiceResult<Bytes> {

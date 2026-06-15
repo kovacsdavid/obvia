@@ -24,15 +24,10 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::currencies::repository::CurrenciesRepository;
 use crate::tenant::inventory::InventoryModule;
 use crate::tenant::inventory::dto::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
-use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
-use crate::tenant::products::repository::ProductsRepository;
-use crate::tenant::taxes::repository::TaxesRepository;
-use crate::tenant::warehouses::repository::WarehousesRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -156,22 +151,21 @@ where
     T: InventoryModule,
 {
     async fn insert(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
-        InventoryRepository::insert(
-            self.module(),
-            payload.clone(),
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await
-        .map_err(|e| {
-            if e.is_unique_violation() {
-                InventoryServiceError::InventoryExists
-            } else {
-                e.into()
-            }
-        })
+        self.module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .insert(payload, self.claims()?.sub())
+            .await
+            .map_err(|e| {
+                if e.is_unique_violation() {
+                    InventoryServiceError::InventoryExists
+                } else {
+                    e.into()
+                }
+            })
     }
 
     async fn get_select_list_items(
@@ -184,76 +178,89 @@ where
             .ok_or(InventoryServiceError::Unauthorized)?;
         Ok(match InventorySelectLists::from_str(select_list)? {
             InventorySelectLists::Products => {
-                ProductsRepository::get_select_list_items(self.module(), active_tenant).await?
+                self.module()
+                    .products_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
             }
             InventorySelectLists::Currencies => {
-                CurrenciesRepository::get_all_countries_select_list_items(
-                    self.module(),
-                    active_tenant,
-                )
-                .await?
+                self.module()
+                    .currencies_repo(active_tenant)?
+                    .get_all_countries_select_list_items()
+                    .await?
             }
             InventorySelectLists::Warehouses => {
-                WarehousesRepository::get_select_list_items(self.module(), active_tenant).await?
+                self.module()
+                    .warehouses_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
             }
             InventorySelectLists::Taxes => {
-                TaxesRepository::get_select_list_items(self.module(), active_tenant).await?
+                self.module()
+                    .taxes_repo(active_tenant)?
+                    .get_select_list_items()
+                    .await?
             }
         })
     }
     async fn get_resolved(&self, payload: Uuid) -> InventoryServiceResult<InventoryResolved> {
-        Ok(InventoryRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
     async fn get(&self, payload: Uuid) -> InventoryServiceResult<Inventory> {
-        Ok(InventoryRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn update(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
-        Ok(InventoryRepository::update(
-            self.module(),
-            payload.clone(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
     }
     async fn delete(&self, payload: Uuid) -> InventoryServiceResult<()> {
-        Ok(InventoryRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
-        Ok(InventoryRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query)
+            .await?)
     }
 
     async fn print(&self, payload: &[InventoryResolved]) -> InventoryServiceResult<Bytes> {

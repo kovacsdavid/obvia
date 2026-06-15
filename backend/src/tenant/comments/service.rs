@@ -24,7 +24,6 @@ use crate::common::service::{Service, ServiceError};
 use crate::tenant::comments::CommentsModule;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
-use crate::tenant::comments::repository::CommentsRepository;
 use axum::http::StatusCode;
 use std::sync::Arc;
 use thiserror::Error;
@@ -91,14 +90,14 @@ where
     T: CommentsModule,
 {
     async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
-        Ok(CommentsRepository::post(
-            self.module(),
-            payload,
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(CommentsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .comments_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(CommentsServiceError::Unauthorized)?,
+            )?
+            .post(payload, self.claims()?.sub())
+            .await?)
     }
 }

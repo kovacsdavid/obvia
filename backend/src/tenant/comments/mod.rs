@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::comments::repository::CommentsRepository;
 use lettre::{
@@ -25,6 +26,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 mod dto;
 mod handler;
@@ -34,14 +37,25 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CommentsModule: CommentsRepository + BaseModule {}
+pub trait CommentsModule: BaseModule {
+    fn comments_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>>;
+}
 
 impl<P, T> CommentsModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    P: PoolManager,
+    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
     T::Error: Debug,
 {
+    fn comments_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

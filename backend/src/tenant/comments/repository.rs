@@ -17,36 +17,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::AppState;
-use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
+use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
+#[async_trait]
 pub trait CommentsRepository: Send + Sync {
-    fn post(
-        &self,
-        payload: &CommentUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> impl Future<Output = RepositoryResult<Comment>> + Send;
+    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment>;
 }
 
-impl<P, T> CommentsRepository for AppState<P, T>
-where
-    P: PoolManager + Send + Sync,
-    T: Send + Sync,
-{
-    async fn post(
-        &self,
-        payload: &CommentUserInput,
-        sub: Uuid,
-        active_tenant: Uuid,
-    ) -> RepositoryResult<Comment> {
+#[async_trait]
+impl CommentsRepository for PgPool {
+    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment> {
         Ok(sqlx::query_as::<_, Comment>(
             r#"
             INSERT INTO comments (
@@ -69,7 +57,7 @@ where
         .bind(payload.commentable_id.as_uuid()?)
         .bind(payload.comment.as_str()?)
         .bind(sub)
-        .fetch_one(&self.get_tenant_pool(active_tenant)?)
+        .fetch_one(self)
         .await?)
     }
 }

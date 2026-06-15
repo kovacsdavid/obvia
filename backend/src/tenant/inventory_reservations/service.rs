@@ -24,17 +24,14 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
 use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
-use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
-use crate::tenant::worksheets::repository::WorksheetsRepository;
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use std::str::FromStr;
@@ -160,51 +157,54 @@ where
         &self,
         payload: &InventoryReservationUserInput,
     ) -> InventoryReservationsServiceResult<InventoryReservation> {
-        Ok(InventoryReservationsRepository::insert(
-            self.module(),
-            payload.clone(),
-            self.claims()?.sub(),
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .insert(payload.clone(), self.claims()?.sub())
+            .await?)
     }
 
     async fn get(&self, payload: Uuid) -> InventoryReservationsServiceResult<InventoryReservation> {
-        Ok(InventoryReservationsRepository::get_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_by_id(payload)
+            .await?)
     }
 
     async fn get_resolved(
         &self,
         payload: Uuid,
     ) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
-        Ok(InventoryReservationsRepository::get_resolved_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_resolved_by_id(payload)
+            .await?)
     }
 
     async fn delete(&self, payload: Uuid) -> InventoryReservationsServiceResult<()> {
-        Ok(InventoryReservationsRepository::delete_by_id(
-            self.module(),
-            payload,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .delete_by_id(payload)
+            .await?)
     }
 
     async fn get_paged(
@@ -213,15 +213,15 @@ where
         inventory_id: Uuid,
     ) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>
     {
-        Ok(InventoryReservationsRepository::get_all_paged(
-            self.module(),
-            get_query,
-            self.claims()?
-                .active_tenant()
-                .ok_or(InventoryReservationsServiceError::Unauthorized)?,
-            inventory_id,
-        )
-        .await?)
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .get_all_paged(get_query, inventory_id)
+            .await?)
     }
 
     async fn get_select_list_items(
@@ -235,11 +235,16 @@ where
         Ok(
             match InventoryReservationsSelectLists::from_str(select_list)? {
                 InventoryReservationsSelectLists::Worksheets => {
-                    WorksheetsRepository::get_select_list_items(self.module(), active_tenant)
+                    self.module()
+                        .worksheets_repo(active_tenant)?
+                        .get_select_list_items()
                         .await?
                 }
                 InventoryReservationsSelectLists::Inventory => {
-                    InventoryRepository::get_select_list_items(self.module(), active_tenant).await?
+                    self.module()
+                        .inventory_repo(active_tenant)?
+                        .get_select_list_items()
+                        .await?
                 }
             },
         )

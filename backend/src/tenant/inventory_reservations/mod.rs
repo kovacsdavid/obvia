@@ -18,6 +18,7 @@
  */
 
 use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
@@ -27,6 +28,8 @@ use lettre::{
     transport::smtp::{Error, response::Response},
 };
 use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
 
 pub(crate) mod dto;
 pub(crate) mod handler;
@@ -36,9 +39,19 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryReservationsModule:
-    InventoryReservationsRepository + WorksheetsRepository + InventoryRepository + BaseModule
-{
+pub trait InventoryReservationsModule: BaseModule {
+    fn inventory_reservations_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
 impl<P, T> InventoryReservationsModule for AppState<P, T>
@@ -47,6 +60,24 @@ where
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
     T::Error: Debug,
 {
+    fn inventory_reservations_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn worksheets_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 /*

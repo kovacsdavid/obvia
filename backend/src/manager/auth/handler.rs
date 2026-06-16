@@ -1370,7 +1370,6 @@ mod tests {
         let token = Uuid::new_v4();
         let mut repo = MockAuthRepository::new();
         let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
-        let user_id = Uuid::new_v4();
         repo.expect_account_event_log_by_ip_and_event_type_count()
             .times(1)
             .with(eq(ip), eq(AccountEventType::PasswordChange), eq(120))
@@ -1382,13 +1381,32 @@ mod tests {
         repo.expect_get_forgotten_password()
             .times(1)
             .with(eq(token))
-            .returning(move |forgotten_password_id| {
-                Ok(ForgottenPassword {
-                    id: forgotten_password_id,
+            .returning(move |_| {
+                Err(RepositoryError::Custom("RowNotFound".to_string()))
+            });
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .withf({
+                move |_, _, aet, aes, ip_param, _, _| {
+                        *aet == AccountEventType::PasswordChange
+                        && *aes == AccountEventStatus::Failure
+                        && *ip_param == Some(ip)
+                }
+            })
+            .returning(move |user_id, user_email, _, _, _, _, _| {
+                let user_email = user_email.unwrap();
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
                     user_id,
-                    valid_until: Utc::now() - Duration::seconds(1),
+                    identifier: Some(user_email),
+                    event_type: AccountEventType::PasswordChange,
+                    status: AccountEventStatus::Failure,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
                     created_at: Utc::now(),
-                    deleted_at: None,
                 })
             });
 

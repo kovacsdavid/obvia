@@ -1270,10 +1270,6 @@ where
             }
         };
 
-        if forgotten_password.valid_until < Utc::now() {
-            return Err(AuthServiceError::InvalidForgottenPasswordToken);
-        }
-
         let mut user = match self
             .module()
             .auth_repo()

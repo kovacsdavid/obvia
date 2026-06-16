@@ -47,7 +47,7 @@ pub trait AuthRepository: Send + Sync {
 
     async fn get_user_by_id(&self, user_id: Uuid) -> RepositoryResult<User>;
 
-    async fn update_user(&self, user: User) -> RepositoryResult<User>;
+    async fn update_user(&self, user: &User) -> RepositoryResult<User>;
 
     async fn update_user_last_login_at(&self, user_id: Uuid) -> RepositoryResult<()>;
 
@@ -143,7 +143,7 @@ impl AuthRepository for PgPool {
         )
     }
 
-    async fn update_user(&self, user: User) -> RepositoryResult<User> {
+    async fn update_user(&self, user: &User) -> RepositoryResult<User> {
         Ok(sqlx::query_as::<_, User>(
             r#"
             UPDATE users
@@ -165,19 +165,19 @@ impl AuthRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(user.email)
-        .bind(user.password_hash)
-        .bind(user.first_name)
-        .bind(user.last_name)
-        .bind(user.phone)
-        .bind(user.status)
+        .bind(&user.email)
+        .bind(&user.password_hash)
+        .bind(&user.first_name)
+        .bind(&user.last_name)
+        .bind(&user.phone)
+        .bind(&user.status)
         .bind(user.last_login_at)
-        .bind(user.profile_picture_url)
-        .bind(user.locale)
+        .bind(&user.profile_picture_url)
+        .bind(&user.locale)
         .bind(user.invited_by)
         .bind(user.email_verified_at)
         .bind(user.is_mfa_enabled)
-        .bind(user.mfa_secret)
+        .bind(&user.mfa_secret)
         .bind(user.id)
         .fetch_one(self)
         .await?)

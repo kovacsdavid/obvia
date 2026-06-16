@@ -146,6 +146,7 @@ impl IntoFriendlyError for AuthServiceError {
             Self::UserNotFound
             | Self::InvalidPassword
             | Self::UserInactive
+            | Self::EmailValidationResend
             | Self::InvalidEmailValidationToken
             | Self::Unauthorized
             | Self::TooManyAttempts(_)
@@ -1095,7 +1096,7 @@ where
             .get_user_by_id(email_verification.user_id)
             .await?;
         user.status = String::from("pending");
-        self.module().auth_repo().update_user(user).await?;
+        self.module().auth_repo().update_user(&user).await?;
         self.module()
             .auth_repo()
             .invalidate_email_verification(email_verification.id)
@@ -1110,7 +1111,8 @@ where
             .module()
             .auth_repo()
             .get_user_by_email(payload.email.as_str()?)
-            .await?;
+            .await
+            .map_err(|_| AuthServiceError::EmailValidationResend)?;
         if user.need_email_verification() {
             let email_verification = self
                 .module()
@@ -1268,6 +1270,10 @@ where
             }
         };
 
+        if forgotten_password.valid_until < Utc::now() {
+            return Err(AuthServiceError::InvalidForgottenPasswordToken);
+        }
+
         let mut user = match self
             .module()
             .auth_repo()
@@ -1317,7 +1323,7 @@ where
                 }
             };
 
-            match self.module().auth_repo().update_user(user.clone()).await {
+            match self.module().auth_repo().update_user(&user).await {
                 Ok(_) => (),
                 Err(e) => {
                     self.module()
@@ -1712,5 +1718,21 @@ where
     match auth_module.send(email).await {
         Ok(_) => Ok(()),
         Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_password_hash() {
+        let hash = generate_password_hash("correctpassword".as_bytes()).unwrap();
+        let hash = PasswordHash::new(&hash).unwrap();
+        assert!(
+            Argon2::default()
+                .verify_password("correctpassword".as_bytes(), &hash)
+                .is_ok()
+        )
     }
 }

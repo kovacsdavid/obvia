@@ -1381,14 +1381,12 @@ mod tests {
         repo.expect_get_forgotten_password()
             .times(1)
             .with(eq(token))
-            .returning(move |_| {
-                Err(RepositoryError::Custom("RowNotFound".to_string()))
-            });
+            .returning(move |_| Err(RepositoryError::Custom("RowNotFound".to_string())));
         repo.expect_insert_account_event_log()
             .times(1)
             .withf({
                 move |_, _, aet, aes, ip_param, _, _| {
-                        *aet == AccountEventType::PasswordChange
+                    *aet == AccountEventType::PasswordChange
                         && *aes == AccountEventStatus::Failure
                         && *ip_param == Some(ip)
                 }

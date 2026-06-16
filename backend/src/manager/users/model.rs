@@ -32,7 +32,7 @@ pub enum UserModelError {
     InvalidMfaToken,
 }
 
-#[derive(Serialize, FromRow, Debug, Clone)]
+#[derive(Serialize, FromRow, Debug, Clone, PartialEq)]
 pub struct User {
     pub id: Uuid,
     pub email: String,

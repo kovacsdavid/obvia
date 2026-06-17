@@ -53,7 +53,7 @@ import {
 } from "@/components/modules/customers/lib/slice.ts";
 import { type CustomerResolvedList } from "@/components/modules/customers/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     openPopup,
     updateWindowWithPdfData,
 } from "@/lib/utils.ts";
@@ -75,11 +75,13 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import Type from "./Type";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<CustomerResolvedList>([]);
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -360,10 +362,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

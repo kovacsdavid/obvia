@@ -26,7 +26,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModule;
-use crate::tenant::customers::dto::CustomerUserInput;
+use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::body::Bytes;
@@ -113,7 +114,7 @@ pub trait CustomerService {
     ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[CustomerResolved],
+        payload: &[CustomerResolvedPrint],
     ) -> impl Future<Output = CustomersServiceResult<Bytes>> + Sync;
 }
 
@@ -196,7 +197,7 @@ where
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolved]) -> CustomersServiceResult<Bytes> {
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             &payload,

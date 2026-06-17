@@ -55,7 +55,7 @@ import {
 } from "@/components/modules/inventory/lib/slice.ts";
 import { type InventoryResolvedList } from "@/components/modules/inventory/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     openPopup,
     updateWindowWithPdfData,
 } from "@/lib/utils.ts";
@@ -76,11 +76,13 @@ import {
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<InventoryResolvedList>([]);
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -420,10 +422,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

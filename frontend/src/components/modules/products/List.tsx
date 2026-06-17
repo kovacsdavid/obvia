@@ -53,7 +53,7 @@ import {
 } from "@/components/modules/products/lib/slice.ts";
 import { type ProductResolvedList } from "@/components/modules/products/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     openPopup,
     updateWindowWithPdfData,
 } from "@/lib/utils.ts";
@@ -76,6 +76,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
 import Status from "./Status";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -84,7 +85,6 @@ export default function List() {
     const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
         console.log(parsedQuery);
     }, []);
-
     const {
         rawQuery,
         page,
@@ -100,6 +100,7 @@ export default function List() {
         filterValue,
         setFilterValue,
     } = useDataDisplayCommon(updateSpecialQueryParams);
+    const { claims } = useAuth();
 
     const refresh = useCallback(() => {
         dispatch(list(rawQuery)).then(async (response) => {
@@ -357,10 +358,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

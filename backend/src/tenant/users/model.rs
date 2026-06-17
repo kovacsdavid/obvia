@@ -32,7 +32,7 @@ pub struct User {
     pub phone: Option<String>,
     pub status: String,
     pub profile_picture_url: Option<String>,
-    pub locale: Option<String>,
+    pub locale: String,
     pub invited_by: Option<Uuid>,
     pub email_verified_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,

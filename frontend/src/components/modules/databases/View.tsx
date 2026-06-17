@@ -34,10 +34,11 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateLocal } from "@/lib/utils.ts";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<Database | null>(null);
@@ -45,6 +46,7 @@ export default function View() {
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
+    const { claims } = useAuth();
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
@@ -108,16 +110,20 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Létrehozva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.created_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Frissítve</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.updated_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>

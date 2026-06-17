@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::customers::CustomersModule;
-use crate::tenant::customers::dto::{CustomerUserInput, CustomerUserInputHelper};
+use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+use crate::tenant::customers::dto::user_input::{CustomerUserInput, CustomerUserInputHelper};
 use crate::tenant::customers::service::CustomerService;
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::extract::{Query, State};
@@ -173,11 +174,14 @@ pub async fn print<M: CustomersModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
     let error_mapper = ErrorMapper::new(customers_module);
-    let customer_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let customer_resolved_print = CustomerResolvedPrint::from_customer_revolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[customer_resolved]).await)
+        .or_handler_error(service.print(&[customer_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

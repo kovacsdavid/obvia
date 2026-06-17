@@ -16,9 +16,44 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+use chrono_tz::Tz;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 use uuid::Uuid;
+
+use crate::common::{
+    BaseModule,
+    dto::GeneralError,
+    error::{FriendlyError, IntoFriendlyError},
+};
+
+#[derive(Error, Debug)]
+pub enum ClaimsError {
+    #[error("Invalid timezone")]
+    InvalidTimezone,
+}
+
+impl IntoFriendlyError for ClaimsError {
+    fn into_friendly_error<M>(
+        self,
+        mailer: std::sync::Arc<M>,
+    ) -> impl Future<Output = crate::common::error::FriendlyError> + Send
+    where
+        M: BaseModule,
+    {
+        FriendlyError::internal_with_admin_notify(
+            file!(),
+            GeneralError {
+                message: self.to_string(),
+            }
+            .to_string(),
+            mailer,
+        )
+    }
+}
+
+pub type ClaimsResult<T> = Result<T, ClaimsError>;
 
 /// Represents the structure of the claims contained in a JSON Web Token (JWT).
 /// These claims provide metadata and security information for the token.
@@ -46,6 +81,10 @@ use uuid::Uuid;
 /// * `jti` - A unique identifier for the token, typically a UUID, which ensures that
 ///   each token is unique. This can help prevent token reuse or replay attacks.
 ///
+/// * `loc` - The user's locale
+///
+/// * `tz` - The user's timezone.
+///
 /// # Usage:
 ///
 /// This struct is typically used to validate, decode, or create JWTs in the application.
@@ -60,6 +99,8 @@ pub struct Claims {
     iss: String,
     aud: String,
     jti: Uuid,
+    loc: String,
+    tz: String, // NOTE: String because Tz is not Serialize
     family_id: Option<Uuid>,
     active_tenant: Option<Uuid>,
 }
@@ -76,6 +117,8 @@ impl Claims {
     /// - `iss` (`String`): The issuer of the token, typically representing the domain or service name that issued the token
     /// - `aud` (`String`): The audience for the token, identifying the intended recipient(s) of the token (e.g., frontend client ID or domain).
     /// - `jti` (`String`): A unique identifier for the token, typically a UUID, which ensures that each token is unique. This can help prevent token reuse or replay attacks.
+    /// - `loc` (`String`): The user's locale
+    /// - `tz`  (`String`): The user's timezone.
     ///
     /// # Returns
     ///
@@ -89,6 +132,8 @@ impl Claims {
         iss: String,
         aud: String,
         jti: Uuid,
+        loc: String,
+        tz: Tz,
         family_id: Option<Uuid>,
         active_tenant: Option<Uuid>,
     ) -> Self {
@@ -100,6 +145,8 @@ impl Claims {
             iss,
             aud,
             jti,
+            loc,
+            tz: tz.to_string(),
             family_id,
             active_tenant,
         }
@@ -218,10 +265,26 @@ impl Claims {
         &self.aud
     }
     /// Returns a reference to the `jti` field of the object.
-    /// `jti`A unique identifier for the token, typically a UUID, which ensures that each token is unique. This can help prevent token reuse or replay attacks.
+    /// `jti` A unique identifier for the token, typically a UUID, which ensures that each token is unique. This can help prevent token reuse or replay attacks.
     #[allow(dead_code)]
     pub fn jti(&self) -> Uuid {
         self.jti
+    }
+
+    /// Returns the user's locale
+    /// `tz` The user's locale.
+    #[allow(dead_code)]
+    pub fn loc(&self) -> &String {
+        &self.loc
+    }
+
+    /// Returns the user's timezone
+    /// `tz` The user's timezone.
+    #[allow(dead_code)]
+    pub fn tz(&self) -> ClaimsResult<Tz> {
+        self.tz
+            .parse::<Tz>()
+            .map_err(|_| ClaimsError::InvalidTimezone)
     }
 
     /// Retrieves the family_id associated with the current context.
@@ -270,6 +333,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -307,6 +372,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -339,6 +406,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -371,6 +440,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -404,6 +475,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -437,6 +510,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             None,
         );
@@ -472,6 +547,8 @@ mod tests {
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
             Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
             None,
             Some(active_tenant_uuid),
         );

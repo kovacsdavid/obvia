@@ -47,7 +47,7 @@ import { GlobalError } from "@/components/ui";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { type DatabaseList } from "@/components/modules/databases/lib/interface.ts";
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateLocal } from "@/lib/utils.ts";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -77,6 +77,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { updateToken } from "@/components/modules/auth/lib/slice.ts";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -89,6 +90,7 @@ export default function List() {
         React.useState<boolean>(false);
     const [deleteId, setDeleteId] = React.useState<string>("");
     const [deleteName, setDeleteName] = React.useState<string>("");
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -345,10 +347,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.name}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

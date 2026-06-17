@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,22 +17,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createContext } from "react";
-import type { PayloadAction } from "@reduxjs/toolkit";
-import type { Claims } from "@/components/modules/auth/lib/interface";
-
-type AuthContextType = {
-    isLoggedIn: boolean;
-    hasActiveDatabase: boolean;
-    claims: Claims | null;
-    login: (
-        email: string,
-        password: string,
-        otp: string | null,
-    ) => Promise<PayloadAction<any, any, any>>;
-    logout: () => void;
-};
-
-export const AuthContext = createContext<AuthContextType | undefined>(
-    undefined,
-);
+pub(crate) mod print;
+pub(crate) mod user_input;

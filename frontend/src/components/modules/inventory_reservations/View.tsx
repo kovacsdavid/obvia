@@ -34,7 +34,7 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateLocal } from "@/lib/utils.ts";
 import type { InventoryReservationResolved } from "@/components/modules/inventory_reservations/lib/interface.ts";
 import { useNavigate } from "react-router-dom";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
@@ -43,6 +43,7 @@ import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import ReferenceType from "./ReferenceType";
 import ReferenceId from "./ReferenceId";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<InventoryReservationResolved | null>(
@@ -52,6 +53,7 @@ export default function View() {
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
+    const { claims } = useAuth();
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
@@ -149,8 +151,10 @@ export default function View() {
                                                 Lefoglalva eddig
                                             </TableCell>
                                             <TableCell>
-                                                {formatDateToYMDHMS(
+                                                {formatDateLocal(
                                                     data.reserved_until,
+                                                    claims?.loc,
+                                                    claims?.tz,
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -168,16 +172,20 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Létrehozva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.created_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Módosítva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.updated_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>

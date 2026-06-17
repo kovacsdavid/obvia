@@ -54,7 +54,7 @@ import {
 } from "@/components/modules/tasks/lib/slice.ts";
 import { type TaskResolvedList } from "@/components/modules/tasks/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     formatNumber,
     openPopup,
     updateWindowWithPdfData,
@@ -77,11 +77,13 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import Priority from "./Priority";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<TaskResolvedList>([]);
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -414,15 +416,27 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>
                                         {item.due_date
-                                            ? formatDateToYMDHMS(item.due_date)
+                                            ? formatDateLocal(
+                                                  item.due_date,
+                                                  claims?.loc,
+                                                  claims?.tz,
+                                              )
                                             : "N/A"}
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -50,7 +50,14 @@ export function query_encoder(params: GetQuery): string {
     return encodeURIComponent(encode_get_query(params));
 }
 
-export function formatDateToYMDHMS(dateString: string): string {
+export function formatDateLocal(
+    dateString: string,
+    locale: string | undefined,
+    timeZone: string | undefined,
+): string {
+    if (!locale || !timeZone) {
+        return "";
+    }
     try {
         const date = new Date(dateString);
 
@@ -58,14 +65,7 @@ export function formatDateToYMDHMS(dateString: string): string {
             return "";
         }
 
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const hours = String(date.getHours()).padStart(2, "0");
-        const minutes = String(date.getMinutes()).padStart(2, "0");
-        const seconds = String(date.getSeconds()).padStart(2, "0");
-
-        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        return date.toLocaleString(locale, { timeZone });
     } catch (error) {
         console.log(error);
         return "";

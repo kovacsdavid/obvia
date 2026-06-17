@@ -307,7 +307,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -315,6 +315,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
         repo.expect_get_user_active_tenant()
             .times(1)
@@ -424,7 +425,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -432,6 +433,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
         repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
@@ -527,7 +529,7 @@ mod tests {
                     status: "active".to_string(),
                     last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+                    locale: "hu-HU".to_string(),
                     invited_by: None,
                     email_verified_at: Some(Utc::now()),
                     created_at: Utc::now(),
@@ -535,6 +537,7 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
                 }));
         repo.expect_insert_email_verification()
             .times(1)
@@ -682,7 +685,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -690,6 +693,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
         repo.expect_get_user_active_tenant()
             .times(1)
@@ -827,7 +831,7 @@ mod tests {
                 status: "unchecked_email".to_string(),
                 last_login_at: Some(utc_now),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(utc_now),
                 created_at: utc_now,
@@ -835,6 +839,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             })
         });
         repo.expect_update_user().times(1).with(eq(
@@ -848,7 +853,7 @@ mod tests {
                 status: "pending".to_string(),
                 last_login_at: Some(utc_now),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(utc_now),
                 created_at: utc_now,
@@ -856,6 +861,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }
         )).returning(|user| {
             Ok(user.clone())
@@ -935,7 +941,7 @@ mod tests {
                 status: "unchecked_email".to_string(),
                 last_login_at: Some(utc_now),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(utc_now),
                 created_at: utc_now,
@@ -943,6 +949,7 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             })
         });
         repo.expect_insert_email_verification()
@@ -1060,7 +1067,7 @@ mod tests {
                     status: "active".to_string(),
                     last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+                    locale: "hu-HU".to_string(),
                     invited_by: None,
                     email_verified_at: Some(Utc::now()),
                     created_at: Utc::now(),
@@ -1068,6 +1075,7 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
                 })
             });
         repo.expect_insert_forgotten_password()
@@ -1176,7 +1184,7 @@ mod tests {
                     status: "inactive".to_string(),
                     last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+                    locale: "hu-HU".to_string(),
                     invited_by: None,
                     email_verified_at: Some(Utc::now()),
                     created_at: Utc::now(),
@@ -1184,6 +1192,7 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
                 })
             });
         repo.expect_insert_account_event_log()
@@ -1284,7 +1293,7 @@ mod tests {
                     status: "active".to_string(),
                     last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+                    locale: "hu-HU".to_string(),
                     invited_by: None,
                     email_verified_at: Some(Utc::now()),
                     created_at: Utc::now(),
@@ -1292,6 +1301,7 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
                 })
             });
         repo.expect_update_user()

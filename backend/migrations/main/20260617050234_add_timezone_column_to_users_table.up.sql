@@ -17,22 +17,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createContext } from "react";
-import type { PayloadAction } from "@reduxjs/toolkit";
-import type { Claims } from "@/components/modules/auth/lib/interface";
-
-type AuthContextType = {
-    isLoggedIn: boolean;
-    hasActiveDatabase: boolean;
-    claims: Claims | null;
-    login: (
-        email: string,
-        password: string,
-        otp: string | null,
-    ) => Promise<PayloadAction<any, any, any>>;
-    logout: () => void;
-};
-
-export const AuthContext = createContext<AuthContextType | undefined>(
-    undefined,
-);
+ALTER TABLE users
+ADD COLUMN timezone VARCHAR(100) NOT NULL DEFAULT 'Europe/Budapest';

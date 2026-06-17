@@ -53,7 +53,7 @@ import {
 } from "@/components/modules/worksheets/lib/slice.ts";
 import { type WorksheetResolvedList } from "@/components/modules/worksheets/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     formatNumber,
     openPopup,
     updateWindowWithPdfData,
@@ -74,11 +74,13 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<WorksheetResolvedList>([]);
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -381,10 +383,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

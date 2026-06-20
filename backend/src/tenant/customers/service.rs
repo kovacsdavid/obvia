@@ -25,7 +25,7 @@ use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::customers::CustomersModule;
+use crate::tenant::customers::CustomersModuleInterface;
 use crate::tenant::customers::dto::print::CustomerResolvedPrint;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
@@ -120,7 +120,7 @@ pub trait CustomerService {
 
 impl<'a, T> CustomerService for Service<'a, T>
 where
-    T: CustomersModule,
+    T: CustomersModuleInterface,
 {
     async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
         self.module()

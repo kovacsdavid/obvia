@@ -25,7 +25,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::taxes::TaxesModule;
-use crate::tenant::taxes::dto::TaxUserInput;
+use crate::tenant::taxes::dto::print::TaxResolvedPrint;
+use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::body::Bytes;
@@ -137,7 +138,7 @@ pub trait TaxService {
     ) -> impl Future<Output = TaxesServiceResult<Vec<SelectOption>>> + Send;
     fn print(
         &self,
-        payload: &[TaxResolved],
+        payload: &[TaxResolvedPrint],
     ) -> impl Future<Output = TaxesServiceResult<Bytes>> + Send;
 }
 
@@ -242,7 +243,7 @@ where
         }
     }
 
-    async fn print(&self, payload: &[TaxResolved]) -> TaxesServiceResult<Bytes> {
+    async fn print(&self, payload: &[TaxResolvedPrint]) -> TaxesServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::TaxView,
             &payload,

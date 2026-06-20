@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::taxes::dto::TaxUserInput;
+use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use async_trait::async_trait;

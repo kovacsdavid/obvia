@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::taxes::TaxesModule;
-use crate::tenant::taxes::dto::{TaxUserInput, TaxUserInputHelper};
+use crate::tenant::taxes::dto::print::TaxResolvedPrint;
+use crate::tenant::taxes::dto::user_input::{TaxUserInput, TaxUserInputHelper};
 use crate::tenant::taxes::service::TaxService;
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::extract::{Query, State};
@@ -201,11 +202,14 @@ pub async fn print<M: TaxesModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
     let error_mapper = ErrorMapper::new(taxes_module);
-    let tax_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let tax_resolved_print = TaxResolvedPrint::from_tax_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[tax_resolved]).await)
+        .or_handler_error(service.print(&[tax_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

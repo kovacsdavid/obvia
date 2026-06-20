@@ -51,7 +51,6 @@ impl CustomerResolvedPrint {
             customer_type: Self::map_customer_type(&customer_resolved.customer_type),
             created_by_id: customer_resolved.created_by_id,
             created_by: customer_resolved.created_by,
-            // ,
             created_at: customer_resolved
                 .created_at
                 .with_timezone(&tz)
@@ -89,10 +88,9 @@ impl CustomerResolvedPrint {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
-
-    use super::*;
 
     #[test]
     fn test_from_customer_resolved() {

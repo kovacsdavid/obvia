@@ -20,7 +20,7 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
+use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };

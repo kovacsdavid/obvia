@@ -24,7 +24,8 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
-use crate::tenant::inventory_reservations::dto::{
+use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
+use crate::tenant::inventory_reservations::dto::user_input::{
     InventoryReservationUserInput, InventoryReservationUserInputHelper,
     InventoryReservationsRawQuery,
 };
@@ -194,11 +195,19 @@ pub async fn print<M: InventoryReservationsModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
     let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let inventory_reservations_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let inventory_reservations_resolved_print =
+        InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
+            error_mapper
+                .or_handler_error(service.get_resolved(payload.uuid).await)
+                .await?,
+            error_mapper.or_handler_error(claims.tz()).await?,
+        );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[inventory_reservations_resolved]).await)
+        .or_handler_error(
+            service
+                .print(&[inventory_reservations_resolved_print])
+                .await,
+        )
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

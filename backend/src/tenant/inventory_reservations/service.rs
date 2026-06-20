@@ -25,7 +25,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory_reservations::InventoryReservationsModule;
-use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
+use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
+use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
@@ -145,7 +146,7 @@ pub trait InventoryReservationService {
     > + Send;
     fn print(
         &self,
-        payload: &[InventoryReservationResolved],
+        payload: &[InventoryReservationResolvedPrint],
     ) -> impl Future<Output = InventoryReservationsServiceResult<Bytes>> + Send;
 }
 
@@ -252,7 +253,7 @@ where
 
     async fn print(
         &self,
-        payload: &[InventoryReservationResolved],
+        payload: &[InventoryReservationResolvedPrint],
     ) -> InventoryReservationsServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::InventoryReservationView,

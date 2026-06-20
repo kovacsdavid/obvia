@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::products::dto::ProductUserInput;
+use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved, UnitOfMeasure};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use async_trait::async_trait;

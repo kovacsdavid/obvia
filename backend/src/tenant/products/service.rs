@@ -27,7 +27,8 @@ use crate::common::service::{Service, ServiceError};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::tenant::products::ProductsModule;
-use crate::tenant::products::dto::ProductUserInput;
+use crate::tenant::products::dto::print::ProductsResolvedPrint;
+use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::body::Bytes;
@@ -139,7 +140,7 @@ pub trait ProductService {
     ) -> impl Future<Output = ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[ProductResolved],
+        payload: &[ProductsResolvedPrint],
     ) -> impl Future<Output = ProductsServiceResult<Bytes>> + Send;
 }
 
@@ -253,7 +254,7 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[ProductResolved]) -> ProductsServiceResult<Bytes> {
+    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::ProductView,
             &payload,

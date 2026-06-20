@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::products::ProductsModule;
-use crate::tenant::products::dto::{ProductUserInput, ProductUserInputHelper};
+use crate::tenant::products::dto::print::ProductsResolvedPrint;
+use crate::tenant::products::dto::user_input::{ProductUserInput, ProductUserInputHelper};
 use crate::tenant::products::service::ProductService;
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::extract::{Query, State};
@@ -202,11 +203,14 @@ pub async fn print<M: ProductsModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
     let error_mapper = ErrorMapper::new(products_module);
-    let product_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let product_resolved_print = ProductsResolvedPrint::from_product_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[product_resolved]).await)
+        .or_handler_error(service.print(&[product_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

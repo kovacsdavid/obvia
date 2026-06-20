@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::services::dto::ServiceUserInput;
+use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use async_trait::async_trait;

@@ -25,7 +25,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::services::ServicesModule;
-use crate::tenant::services::dto::ServiceUserInput;
+use crate::tenant::services::dto::print::ServicesResolvedPrint;
+use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::body::Bytes;
@@ -141,7 +142,7 @@ pub trait ServiceService {
     ) -> impl Future<Output = ServicesServiceResult<(PaginatorMeta, Vec<ServiceResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[ServiceResolved],
+        payload: &[ServicesResolvedPrint],
     ) -> impl Future<Output = ServicesServiceResult<Bytes>> + Send;
 }
 
@@ -251,7 +252,7 @@ where
         }
     }
 
-    async fn print(&self, payload: &[ServiceResolved]) -> ServicesServiceResult<Bytes> {
+    async fn print(&self, payload: &[ServicesResolvedPrint]) -> ServicesServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::ServiceView,
             &payload,

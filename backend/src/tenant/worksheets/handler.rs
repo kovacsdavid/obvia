@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::worksheets::WorksheetsModule;
-use crate::tenant::worksheets::dto::{WorksheetUserInput, WorksheetUserInputHelper};
+use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
+use crate::tenant::worksheets::dto::user_input::{WorksheetUserInput, WorksheetUserInputHelper};
 use crate::tenant::worksheets::service::WorksheetService;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::extract::{Query, State};
@@ -201,11 +202,14 @@ pub async fn print<M: WorksheetsModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
     let error_mapper = ErrorMapper::new(worksheets_module);
-    let worksheet_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let worksheet_resolved_print = WorksheetResolvedPrint::from_worksheet_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[worksheet_resolved]).await)
+        .or_handler_error(service.print(&[worksheet_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

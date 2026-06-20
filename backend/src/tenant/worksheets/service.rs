@@ -25,7 +25,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::worksheets::WorksheetsModule;
-use crate::tenant::worksheets::dto::WorksheetUserInput;
+use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
+use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::body::Bytes;
@@ -132,7 +133,7 @@ pub trait WorksheetService {
     ) -> impl Future<Output = WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[WorksheetResolved],
+        payload: &[WorksheetResolvedPrint],
     ) -> impl Future<Output = WorksheetsServiceResult<Bytes>> + Send;
 }
 
@@ -231,7 +232,7 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes> {
+    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::WorksheetView,
             &payload,

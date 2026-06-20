@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::worksheets::dto::WorksheetUserInput;
+use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use async_trait::async_trait;

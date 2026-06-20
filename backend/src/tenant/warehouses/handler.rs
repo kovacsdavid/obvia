@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::dto::{WarehouseUserInput, WarehouseUserInputHelper};
+use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+use crate::tenant::warehouses::dto::user_input::{WarehouseUserInput, WarehouseUserInputHelper};
 use crate::tenant::warehouses::service::WarehouseService;
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::extract::{Query, State};
@@ -175,11 +176,14 @@ pub async fn print<M: WarehousesModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
     let error_mapper = ErrorMapper::new(warehouses_module);
-    let warehouse_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let warehouse_resolved_print = WarehouseResolvedPrint::from_warehouse_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[warehouse_resolved]).await)
+        .or_handler_error(service.print(&[warehouse_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

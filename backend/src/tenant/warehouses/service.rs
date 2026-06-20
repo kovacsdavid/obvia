@@ -24,7 +24,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::dto::WarehouseUserInput;
+use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::body::Bytes;
@@ -96,7 +97,7 @@ pub trait WarehouseService {
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
-    async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes>;
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes>;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
@@ -173,7 +174,7 @@ where
             .get_all_paged(get_query)
             .await?)
     }
-    async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes> {
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::WarehouseView,
             &payload,

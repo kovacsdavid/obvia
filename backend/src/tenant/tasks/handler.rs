@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::{TaskUserInput, TaskUserInputHelper};
+use crate::tenant::tasks::dto::print::TaskResolvedPrint;
+use crate::tenant::tasks::dto::user_input::{TaskUserInput, TaskUserInputHelper};
 use crate::tenant::tasks::service::TaskService;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use axum::extract::{Query, State};
@@ -201,11 +202,14 @@ pub async fn print<M: TasksModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
     let error_mapper = ErrorMapper::new(tasks_module);
-    let task_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let task_resolved_print = TaskResolvedPrint::from_task_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[task_resolved]).await)
+        .or_handler_error(service.print(&[task_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

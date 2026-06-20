@@ -21,7 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::inventory::dto::InventoryUserInput;
+use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use async_trait::async_trait;

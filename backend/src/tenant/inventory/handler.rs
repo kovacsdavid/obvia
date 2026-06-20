@@ -24,7 +24,8 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory::InventoryModule;
-use crate::tenant::inventory::dto::{InventoryUserInput, InventoryUserInputHelper};
+use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
+use crate::tenant::inventory::dto::user_input::{InventoryUserInput, InventoryUserInputHelper};
 use crate::tenant::inventory::service::InventoryService;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use axum::extract::{Query, State};
@@ -200,11 +201,14 @@ pub async fn print<M: InventoryModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
     let error_mapper = ErrorMapper::new(inventory_module);
-    let inventory_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let inventory_resolved_print = InventoryResolvedPrint::from_inventory_resolved(
+        error_mapper
+            .or_handler_error(service.get_resolved(payload.uuid).await)
+            .await?,
+        error_mapper.or_handler_error(claims.tz()).await?,
+    );
     let pdf = error_mapper
-        .or_handler_error(service.print(&[inventory_resolved]).await)
+        .or_handler_error(service.print(&[inventory_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

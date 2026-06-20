@@ -25,7 +25,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory::InventoryModule;
-use crate::tenant::inventory::dto::InventoryUserInput;
+use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
+use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use axum::body::Bytes;
@@ -142,7 +143,7 @@ pub trait InventoryService {
     ) -> impl Future<Output = InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[InventoryResolved],
+        payload: &[InventoryResolvedPrint],
     ) -> impl Future<Output = InventoryServiceResult<Bytes>> + Send;
 }
 
@@ -263,7 +264,7 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[InventoryResolved]) -> InventoryServiceResult<Bytes> {
+    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::InventoryView,
             &payload,

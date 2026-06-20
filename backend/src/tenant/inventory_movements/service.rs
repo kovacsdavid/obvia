@@ -26,7 +26,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory_movements::InventoryMovementsModule;
-use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
+use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
+use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
@@ -143,7 +144,7 @@ pub trait InventoryMovementService {
     > + Send;
     fn print(
         &self,
-        payload: &[InventoryMovementResolved],
+        payload: &[InventoryMovementsResolvedPrint],
     ) -> impl Future<Output = InventoryMovementsServiceResult<Bytes>> + Send;
 }
 
@@ -252,7 +253,7 @@ where
     }
     async fn print(
         &self,
-        payload: &[InventoryMovementResolved],
+        payload: &[InventoryMovementsResolvedPrint],
     ) -> InventoryMovementsServiceResult<Bytes> {
         Ok(Bytes::from(gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,

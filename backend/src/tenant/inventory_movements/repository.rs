@@ -20,7 +20,7 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
+use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,

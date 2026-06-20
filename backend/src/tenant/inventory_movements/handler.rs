@@ -24,7 +24,8 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_movements::InventoryMovementsModule;
-use crate::tenant::inventory_movements::dto::{
+use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
+use crate::tenant::inventory_movements::dto::user_input::{
     InventoryMovementUserInput, InventoryMovementUserInputHelper, InventoryMovementsRawQuery,
 };
 use crate::tenant::inventory_movements::service::InventoryMovementService;
@@ -194,11 +195,16 @@ pub async fn print<M: InventoryMovementsModule>(
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
     let error_mapper = ErrorMapper::new(inventory_movements_module);
-    let inventory_movements_resolved = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
+    let inventory_movements_resolved_print =
+        InventoryMovementsResolvedPrint::from_inventory_movements_resolved(
+            error_mapper
+                .or_handler_error(service.get_resolved(payload.uuid).await)
+                .await?,
+            error_mapper.or_handler_error(claims.tz()).await?,
+        );
+
     let pdf = error_mapper
-        .or_handler_error(service.print(&[inventory_movements_resolved]).await)
+        .or_handler_error(service.print(&[inventory_movements_resolved_print]).await)
         .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());

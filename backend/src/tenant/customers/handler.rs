@@ -197,7 +197,7 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
-    use std::ops::Add;
+    use std::ops::{Add, Sub};
     use std::time::Duration;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -215,6 +215,29 @@ mod tests {
     fn generate_valid_token(active_tenant_id: Option<Uuid>) -> String {
         let config = AppConfigBuilder::default().build().unwrap();
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
+
+        Claims::new(
+            Uuid::new_v4(),
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            format!("{}-api", config.auth().jwt_audience()),
+            Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
+            None,
+            active_tenant_id,
+        )
+        .to_token(config.auth().jwt_secret().as_bytes())
+        .unwrap()
+    }
+
+    fn generate_expired_token(active_tenant_id: Option<Uuid>) -> String {
+        let config = AppConfigBuilder::default().build().unwrap();
+        let exp = Utc::now().sub(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
 
@@ -293,5 +316,58 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_get_unauthorized_expired() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_unauthorized_missing() {
+        let customer_id = Uuid::new_v4();
+        let app_state = MockCustomersModule::new();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 }

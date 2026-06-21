@@ -194,14 +194,8 @@ pub async fn print<M: CustomersModuleInterface>(
 
 #[cfg(test)]
 mod tests {
-    use axum::{Router, http::Request};
-    use chrono::Utc;
-    use mockall::predicate::eq;
-    use std::ops::{Add, Sub};
-    use std::time::Duration;
-    use tower::ServiceExt;
-    use uuid::Uuid;
-
+    use super::*;
+    use crate::common::error::RepositoryError;
     use crate::{
         common::config::tests::AppConfigBuilder,
         manager::auth::dto::claims::Claims,
@@ -209,8 +203,13 @@ mod tests {
             self, model::Customer, repository::MockCustomersRepository, tests::MockCustomersModule,
         },
     };
-
-    use super::*;
+    use axum::{Router, http::Request};
+    use chrono::Utc;
+    use mockall::predicate::eq;
+    use std::ops::{Add, Sub};
+    use std::time::Duration;
+    use tower::ServiceExt;
+    use uuid::Uuid;
 
     fn generate_valid_token(active_tenant_id: Option<Uuid>) -> String {
         let config = AppConfigBuilder::default().build().unwrap();
@@ -369,5 +368,48 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    #[tokio::test]
+    async fn test_get_unauthorized_not_found() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_get_by_id()
+            .times(1)
+            .with(eq(customer_id))
+            .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

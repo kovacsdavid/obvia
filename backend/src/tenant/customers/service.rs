@@ -65,17 +65,35 @@ impl IntoFriendlyError for CustomersServiceError {
         M: BaseModule,
     {
         match self {
-            CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    }
-                    .to_string(),
-                )
-            }
+            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::CustomerExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),

@@ -29,7 +29,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ServiceUserInputHelper {
     pub id: Option<String>,
     pub name: String,
@@ -86,7 +86,7 @@ impl From<ValueObjectError> for ServiceUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ServiceUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub name: ValueObjectRequired<ServiceName>,

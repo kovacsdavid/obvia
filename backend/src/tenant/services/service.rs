@@ -48,6 +48,9 @@ pub enum ServicesServiceError {
     #[error("A megadott névvel már létezik szolgáltatás a rendszerben!")]
     ServiceExists,
 
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
     #[error("A lista nem létezik")]
     InvalidSelectList,
 
@@ -69,17 +72,44 @@ impl IntoFriendlyError for ServicesServiceError {
         M: BaseModule,
     {
         match self {
-            ServicesServiceError::Unauthorized | ServicesServiceError::ServiceExists => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    }
-                    .to_string(),
-                )
-            }
+            ServicesServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            ServicesServiceError::ServiceExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            ServicesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            ServicesServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -193,6 +223,11 @@ where
     }
 
     async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
+        if !payload.id.is_present() {
+            return Err(ServicesServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .services_repo(
@@ -226,7 +261,7 @@ where
                     .active_tenant()
                     .ok_or(ServicesServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 

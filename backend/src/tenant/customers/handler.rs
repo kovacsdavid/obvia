@@ -195,6 +195,7 @@ pub async fn print<M: CustomersModuleInterface>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::tenant::customers::model::CustomerResolved;
     use crate::{
@@ -558,6 +559,174 @@ mod tests {
             .header("Content-Type", "application/json")
             .method("GET")
             .uri(format!("/api/customers/get_resolved?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_list_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+        let created_by_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_get_paged()
+            .times(1)
+            .with(eq(""
+                .parse::<ResourceQuery<CustomerOrderBy, CustomerFilterBy>>()
+                .unwrap()))
+            .returning(move |_| {
+                Ok((
+                    PaginatorMeta {
+                        page: 1,
+                        limit: 25,
+                        total: 100,
+                    },
+                    vec![CustomerResolved {
+                        id: customer_id,
+                        name: "Test customer".to_string(),
+                        contact_name: None,
+                        email: "test_customer@example.com".to_string(),
+                        phone_number: Some("+36301234567".to_string()),
+                        status: "active".to_string(),
+                        customer_type: "natural".to_string(),
+                        created_by_id,
+                        created_by: "Test User".to_string(),
+                        created_at: utc_now,
+                        updated_at: utc_now,
+                        deleted_at: None,
+                    }],
+                ))
+            });
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_expired() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_missing() {
+        let customer_id = Uuid::new_v4();
+        let app_state = MockCustomersModule::new();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    #[tokio::test]
+    async fn test_list_unauthorized_not_found() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_get_paged()
+            .times(1)
+            .with(eq(""
+                .parse::<ResourceQuery<CustomerOrderBy, CustomerFilterBy>>()
+                .unwrap()))
+            .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/list?uuid={customer_id}"))
             .body("".to_string())
             .unwrap();
 

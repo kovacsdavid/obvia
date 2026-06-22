@@ -896,4 +896,78 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+    #[tokio::test]
+    async fn test_create_unauthorized_expired() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    #[tokio::test]
+    async fn test_create_unauthorized_missing() {
+        let customer_id = Uuid::new_v4();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let app_state = MockCustomersModule::new();
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
 }

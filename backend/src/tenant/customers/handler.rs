@@ -648,7 +648,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .uri("/api/customers/list")
             .body("".to_string())
             .unwrap();
 
@@ -665,7 +665,6 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -680,7 +679,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .uri("/api/customers/list")
             .body("".to_string())
             .unwrap();
 
@@ -696,12 +695,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
         let app_state = MockCustomersModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .uri("/api/customers/list")
             .body("".to_string())
             .unwrap();
 
@@ -717,7 +715,6 @@ mod tests {
     #[tokio::test]
     async fn test_list_not_found() {
         let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_paged()
@@ -749,7 +746,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("GET")
-            .uri(format!("/api/customers/list?uuid={customer_id}"))
+            .uri("/api/customers/list")
             .body("".to_string())
             .unwrap();
 

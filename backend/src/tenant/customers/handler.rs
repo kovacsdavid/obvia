@@ -205,6 +205,7 @@ mod tests {
             self, model::Customer, repository::MockCustomersRepository, tests::MockCustomersModule,
         },
     };
+    use axum::body::Body;
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
@@ -213,14 +214,18 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
-    fn generate_valid_token(active_tenant_id: Option<Uuid>) -> String {
+    fn generate_valid_token(sub: Option<Uuid>, active_tenant_id: Option<Uuid>) -> String {
         let config = AppConfigBuilder::default().build().unwrap();
+        let sub = match sub {
+            Some(v) => v,
+            None => Uuid::new_v4(),
+        };
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
 
         Claims::new(
-            Uuid::new_v4(),
+            sub,
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
@@ -301,7 +306,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -397,7 +405,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -458,7 +469,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -554,7 +568,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -624,7 +641,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -722,7 +742,10 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_valid_token(Some(active_tenant_id))),
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(None, Some(active_tenant_id))
+                ),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -738,5 +761,92 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_create_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+        let created_by_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+        let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_insert()
+            .times(1)
+            .withf({
+                let user_input_expected = user_input.clone();
+                move |user_input, user_id_inner| {
+                    user_input.name == user_input_expected.name
+                        && user_input.contact_name == user_input_expected.contact_name
+                        && user_input.email == user_input_expected.email
+                        && user_input.phone_number == user_input_expected.phone_number
+                        && user_input.status == user_input_expected.status
+                        && user_input.customer_type == user_input_expected.customer_type
+                        && user_id == *user_id_inner
+                }
+            })
+            .returning(move |_, _| {
+                Ok(Customer {
+                    id: customer_id,
+                    name: "Test Customer".to_string(),
+                    contact_name: None,
+                    email: "test.customer@example.com".to_string(),
+                    phone_number: Some("36301234567".to_string()),
+                    status: "active".to_string(),
+                    customer_type: "natural".to_string(),
+                    created_by_id,
+                    created_at: utc_now,
+                    updated_at: utc_now,
+                    deleted_at: None,
+                })
+            });
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::CREATED);
     }
 }

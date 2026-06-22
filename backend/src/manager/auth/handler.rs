@@ -256,10 +256,8 @@ mod tests {
     use lettre::transport::smtp::response::Response;
     use lettre::transport::smtp::response::Severity;
     use mockall::predicate::*;
-    use sqlx::error::{DatabaseError, ErrorKind};
+    use sqlx::error::DatabaseError;
     use std::collections::HashMap;
-    use std::error::Error;
-    use std::fmt::{Debug, Display, Formatter};
     use std::net::IpAddr;
     use std::net::Ipv4Addr;
     use std::sync::Arc;
@@ -268,6 +266,7 @@ mod tests {
 
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
+    use crate::common::handler::tests::MockUniqueViolation;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
@@ -597,48 +596,10 @@ mod tests {
         })
         .unwrap();
 
-        pub struct DummyDatabaseError;
-
-        impl Error for DummyDatabaseError {}
-        impl Debug for DummyDatabaseError {
-            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
-                unimplemented!()
-            }
-        }
-        impl Display for DummyDatabaseError {
-            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
-                unimplemented!()
-            }
-        }
-        impl DatabaseError for DummyDatabaseError {
-            fn message(&self) -> &str {
-                unimplemented!()
-            }
-
-            fn as_error(&self) -> &(dyn Error + Send + Sync + 'static) {
-                unimplemented!()
-            }
-
-            fn as_error_mut(&mut self) -> &mut (dyn Error + Send + Sync + 'static) {
-                unimplemented!()
-            }
-
-            fn into_error(self: Box<Self>) -> Box<dyn Error + Send + Sync + 'static> {
-                unimplemented!()
-            }
-
-            fn kind(&self) -> ErrorKind {
-                unimplemented!()
-            }
-            fn is_unique_violation(&self) -> bool {
-                true
-            }
-        }
-
         let mut repo = MockAuthRepository::new();
         repo.expect_insert_user().times(1).returning(|_, _| {
             Err(RepositoryError::Database(sqlx::Error::Database(
-                Box::new(DummyDatabaseError) as Box<dyn DatabaseError>,
+                Box::new(MockUniqueViolation) as Box<dyn DatabaseError>,
             )))
         });
 

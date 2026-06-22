@@ -44,6 +44,9 @@ pub enum CustomersServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
     #[error("A megadot e-mail címmel már létezik vevő a rendszerben!")]
     CustomerExists,
 
@@ -77,6 +80,15 @@ impl IntoFriendlyError for CustomersServiceError {
             CustomersServiceError::CustomerExists => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
                 file!(),
                 GeneralError {
                     message: self.to_string(),
@@ -180,6 +192,11 @@ where
             .await?)
     }
     async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+        if !payload.id.is_present() {
+            return Err(CustomersServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .customers_repo(

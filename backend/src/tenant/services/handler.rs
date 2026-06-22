@@ -227,10 +227,12 @@ mod tests {
     use super::*;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
+    use crate::common::handler::tests::{
+        MockUniqueViolation, generate_expired_jwt, generate_valid_jwt,
+    };
     use crate::tenant::services::model::ServiceResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
-        manager::auth::dto::claims::Claims,
         tenant::services::{
             self, model::Service, repository::MockServicesRepository, tests::MockServicesModule,
         },
@@ -239,60 +241,9 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
-    use std::ops::{Add, Sub};
-    use std::time::Duration;
+    use sqlx::error::DatabaseError;
     use tower::ServiceExt;
     use uuid::Uuid;
-
-    fn generate_valid_token(sub: Option<Uuid>, active_tenant_id: Option<Uuid>) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
-        let sub = match sub {
-            Some(v) => v,
-            None => Uuid::new_v4(),
-        };
-        let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
-        let iat = Utc::now().timestamp();
-        let nbf = Utc::now().timestamp();
-
-        Claims::new(
-            sub,
-            usize::try_from(exp).unwrap(),
-            usize::try_from(iat).unwrap(),
-            usize::try_from(nbf).unwrap(),
-            config.auth().jwt_issuer().to_string(),
-            format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
-            "hu-HU".to_string(),
-            "Europe/Budapest".parse().unwrap(),
-            None,
-            active_tenant_id,
-        )
-        .to_token(config.auth().jwt_secret().as_bytes())
-        .unwrap()
-    }
-
-    fn generate_expired_token(active_tenant_id: Option<Uuid>) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
-        let exp = Utc::now().sub(Duration::from_secs(100)).timestamp();
-        let iat = Utc::now().timestamp();
-        let nbf = Utc::now().timestamp();
-
-        Claims::new(
-            Uuid::new_v4(),
-            usize::try_from(exp).unwrap(),
-            usize::try_from(iat).unwrap(),
-            usize::try_from(nbf).unwrap(),
-            config.auth().jwt_issuer().to_string(),
-            format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
-            "hu-HU".to_string(),
-            "Europe/Budapest".parse().unwrap(),
-            None,
-            active_tenant_id,
-        )
-        .to_token(config.auth().jwt_secret().as_bytes())
-        .unwrap()
-    }
 
     #[tokio::test]
     async fn test_get_success() {
@@ -338,7 +289,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -371,7 +322,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -437,7 +388,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -502,7 +453,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -535,7 +486,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -601,7 +552,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -675,7 +626,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -707,7 +658,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -773,7 +724,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(None, Some(active_tenant_id))
+                    generate_valid_jwt(None, Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -860,7 +811,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -877,6 +828,80 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn test_create_unique_violation() {
+        let active_tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        let user_input_helper = ServiceUserInputHelper {
+            id: None,
+            name: "Test service".to_string(),
+            description: "Test description".to_string(),
+            default_price: "".to_string(),
+            default_tax_id: "".to_string(),
+            currency_code: "HUF".to_string(),
+            status: "active".to_string(),
+        };
+        let user_input = ServiceUserInput::try_from(user_input_helper.clone()).unwrap();
+
+        let mut repo = MockServicesRepository::new();
+        repo.expect_insert()
+            .times(1)
+            .withf({
+                let user_input_expected = user_input.clone();
+                move |user_input, user_id_inner| {
+                    user_input.name == user_input_expected.name
+                        && user_input.description == user_input_expected.description
+                        && user_input.default_price == user_input_expected.default_price
+                        && user_input.default_tax_id == user_input_expected.default_tax_id
+                        && user_input.currency_code == user_input_expected.currency_code
+                        && user_input.status == user_input_expected.status
+                        && user_id == *user_id_inner
+                }
+            })
+            .returning(move |_, _| {
+                Err(RepositoryError::Database(sqlx::Error::Database(
+                    Box::new(MockUniqueViolation) as Box<dyn DatabaseError>,
+                )))
+            });
+
+        let mut app_state = MockServicesModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_services_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/services/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::CONFLICT);
     }
 
     #[tokio::test]
@@ -906,7 +931,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -948,7 +973,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("POST")
@@ -1052,7 +1077,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -1098,7 +1123,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -1141,7 +1166,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("PUT")
@@ -1219,7 +1244,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -1254,7 +1279,7 @@ mod tests {
                 "Authorization",
                 format!(
                     "Bearer {}",
-                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
                 ),
             )
             .header("Content-Type", "application/json")
@@ -1287,7 +1312,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
             )
             .header("Content-Type", "application/json")
             .method("DELETE")

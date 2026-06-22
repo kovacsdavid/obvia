@@ -43,6 +43,9 @@ pub enum WarehousesServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
 }
@@ -67,6 +70,15 @@ impl IntoFriendlyError for WarehousesServiceError {
                 file!(),
                 GeneralError {
                     message: WarehousesServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
+            WarehousesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
                 }
                 .to_string(),
             ),
@@ -150,6 +162,11 @@ where
     }
 
     async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
+        if !payload.id.is_present() {
+            return Err(WarehousesServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .warehouses_repo(

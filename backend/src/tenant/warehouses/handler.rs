@@ -331,7 +331,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
     #[tokio::test]
-    async fn test_get_unauthorized_not_found() {
+    async fn test_get_not_found() {
         let active_tenant_id = Uuid::new_v4();
         let warehouse_id = Uuid::new_v4();
 

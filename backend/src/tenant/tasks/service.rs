@@ -45,6 +45,9 @@ pub enum TasksServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
     #[error("A lista nem létezik")]
     InvalidSelectList,
 
@@ -75,6 +78,26 @@ impl IntoFriendlyError for TasksServiceError {
                 }
                 .to_string(),
             ),
+            TasksServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            TasksServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::NOT_FOUND,
+                    file!(),
+                    GeneralError {
+                        message: self.to_string(),
+                    }
+                    .to_string(),
+                )
+            }
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -216,6 +239,11 @@ where
             .await?)
     }
     async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+        if !payload.id.is_present() {
+            return Err(TasksServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .tasks_repo(
@@ -248,7 +276,7 @@ where
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 

@@ -31,7 +31,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TaskUserInputHelper {
     pub id: Option<String>,
     pub worksheet_id: String,
@@ -100,7 +100,7 @@ impl From<ValueObjectError> for TaskUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TaskUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub worksheet_id: ValueObjectRequired<UuidVO>,

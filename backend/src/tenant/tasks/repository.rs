@@ -34,7 +34,7 @@ use uuid::Uuid;
 pub trait TasksRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Task>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
@@ -95,7 +95,7 @@ impl TasksRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {

@@ -102,12 +102,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -117,19 +117,34 @@ pub mod tests {
     mock!(
         pub TasksModule {}
         impl ConfigProvider for TasksModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for TasksModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
+        impl BaseModule for TasksModule {}
         impl TasksModule for TasksModule {
-            fn tasks_repo(&self) -> Arc<dyn TasksRepository>;
-            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-            fn services_repo(&self) -> Arc<dyn ServicesRepository>;
-            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-            fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
+            fn tasks_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
+            fn currencies_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+            fn taxes_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+            fn services_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+            fn worksheets_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
         }
     );
 }
-*/

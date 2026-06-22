@@ -543,7 +543,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
     #[tokio::test]
-    async fn test_get_resolved_unauthorized_not_found() {
+    async fn test_get_resolved_not_found() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
 
@@ -715,7 +715,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
     #[tokio::test]
-    async fn test_list_unauthorized_not_found() {
+    async fn test_list_not_found() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
 
@@ -848,5 +848,52 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn test_create_invalid_user_input() {
+        let active_tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "activee".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
 }

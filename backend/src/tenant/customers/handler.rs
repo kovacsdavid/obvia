@@ -836,7 +836,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .uri("/api/customers/create")
             .body(Body::from(payload))
             .unwrap();
 
@@ -854,7 +854,6 @@ mod tests {
     async fn test_create_invalid_user_input() {
         let active_tenant_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -883,7 +882,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .uri("/api/customers/create")
             .body(Body::from(payload))
             .unwrap();
 
@@ -899,7 +898,6 @@ mod tests {
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
         let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -925,7 +923,7 @@ mod tests {
             )
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .uri("/api/customers/create")
             .body(Body::from(payload))
             .unwrap();
 
@@ -940,8 +938,6 @@ mod tests {
     }
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
-
         let user_input_helper = CustomerUserInputHelper {
             id: None,
             name: "Test Customer".to_string(),
@@ -957,7 +953,199 @@ mod tests {
         let request = Request::builder()
             .header("Content-Type", "application/json")
             .method("POST")
-            .uri(format!("/api/customers/create?uuid={customer_id}"))
+            .uri("/api/customers/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+    #[tokio::test]
+    async fn test_update_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+        let created_by_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: Some(customer_id.to_string()),
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+        let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_update()
+            .times(1)
+            .with(eq(user_input))
+            .returning(move |_| {
+                Ok(Customer {
+                    id: customer_id,
+                    name: "Test Customer".to_string(),
+                    contact_name: None,
+                    email: "test.customer@example.com".to_string(),
+                    phone_number: Some("36301234567".to_string()),
+                    status: "active".to_string(),
+                    customer_type: "natural".to_string(),
+                    created_by_id,
+                    created_at: utc_now,
+                    updated_at: utc_now,
+                    deleted_at: None,
+                })
+            });
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/customers/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_update_invalid_user_input() {
+        let active_tenant_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "activee".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_token(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/customers/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+    #[tokio::test]
+    async fn test_update_unauthorized_expired() {
+        let active_tenant_id = Uuid::new_v4();
+
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_token(Some(active_tenant_id))),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/customers/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    #[tokio::test]
+    async fn test_update_unauthorized_missing() {
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let app_state = MockCustomersModule::new();
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/customers/update")
             .body(Body::from(payload))
             .unwrap();
 

@@ -23,7 +23,7 @@ use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::warehouses::WarehousesModule;
+use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
@@ -70,6 +70,17 @@ impl IntoFriendlyError for WarehousesServiceError {
                 }
                 .to_string(),
             ),
+            WarehousesServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: WarehousesServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -102,7 +113,7 @@ pub trait WarehouseService {
 
 impl<'a, T> WarehouseService for Service<'a, T>
 where
-    T: WarehousesModule,
+    T: WarehousesModuleInterface,
 {
     async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
         Ok(self
@@ -171,7 +182,7 @@ where
                     .active_tenant()
                     .ok_or(WarehousesServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
     async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes> {

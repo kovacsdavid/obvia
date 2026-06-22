@@ -36,7 +36,7 @@ pub trait WarehousesRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Warehouse>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WarehouseResolved>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
@@ -93,7 +93,7 @@ impl WarehousesRepository for PgPool {
         .fetch_all(self)
         .await?)
     }
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)> {

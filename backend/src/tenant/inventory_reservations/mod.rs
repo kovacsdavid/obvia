@@ -39,7 +39,7 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryReservationsModule: BaseModule {
+pub trait InventoryReservationsModuleInterface: BaseModule {
     fn inventory_reservations_repo(
         &self,
         tenant_id: Uuid,
@@ -54,7 +54,7 @@ pub trait InventoryReservationsModule: BaseModule {
     ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
-impl<P, T> InventoryReservationsModule for AppState<P, T>
+impl<P, T> InventoryReservationsModuleInterface for AppState<P, T>
 where
     P: PoolManager + Send + Sync + 'static,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
@@ -80,12 +80,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -95,17 +95,26 @@ pub mod tests {
     mock!(
         pub InventoryReservationsModule {}
         impl ConfigProvider for InventoryReservationsModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for InventoryReservationsModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl InventoryReservationsModule for InventoryReservationsModule {
-            fn inventory_reservations_repo(&self) -> Arc<dyn InventoryReservationsRepository>;
-            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-            fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+        impl BaseModule for InventoryReservationsModule {}
+        impl InventoryReservationsModuleInterface for InventoryReservationsModule {
+            fn inventory_reservations_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
+            fn worksheets_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+            fn inventory_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
         }
     );
 }
-*/

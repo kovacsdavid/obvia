@@ -38,7 +38,7 @@ use uuid::Uuid;
 pub trait InventoryReservationsRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservation>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservationResolved>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
@@ -47,6 +47,10 @@ pub trait InventoryReservationsRepository: Send + Sync {
         &self,
         input: InventoryReservationUserInput,
         sub: Uuid,
+    ) -> RepositoryResult<InventoryReservation>;
+    async fn update(
+        &self,
+        input: &InventoryReservationUserInput,
     ) -> RepositoryResult<InventoryReservation>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
@@ -91,7 +95,7 @@ impl InventoryReservationsRepository for PgPool {
         .await?)
     }
 
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
@@ -248,7 +252,13 @@ impl InventoryReservationsRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-
+    async fn update(
+        &self,
+        _input: &InventoryReservationUserInput,
+    ) -> RepositoryResult<InventoryReservation> {
+        // TODO: implement this function!
+        todo!()
+    }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         let _ = sqlx::query(
             r#"

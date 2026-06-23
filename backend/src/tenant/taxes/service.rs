@@ -24,7 +24,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::taxes::TaxesModule;
+use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
@@ -44,6 +44,9 @@ pub enum TaxesServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("Az adó már létrehozásra került a rendszerben")]
     TaxExists,
@@ -69,10 +72,37 @@ impl IntoFriendlyError for TaxesServiceError {
         M: BaseModule,
     {
         match self {
-            TaxesServiceError::Unauthorized | TaxesServiceError::TaxExists => {
+            TaxesServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            TaxesServiceError::TaxExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            TaxesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            TaxesServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
                 FriendlyError::user_facing(
                     Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
+                    StatusCode::NOT_FOUND,
                     file!(),
                     GeneralError {
                         message: self.to_string(),
@@ -144,7 +174,7 @@ pub trait TaxService {
 
 impl<'a, T> TaxService for Service<'a, T>
 where
-    T: TaxesModule,
+    T: TaxesModuleInterface,
 {
     async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
         self.module()
@@ -189,6 +219,11 @@ where
     }
 
     async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
+        if !payload.id.is_present() {
+            return Err(TaxesServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .taxes_repo(
@@ -222,7 +257,7 @@ where
                     .active_tenant()
                     .ok_or(TaxesServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 

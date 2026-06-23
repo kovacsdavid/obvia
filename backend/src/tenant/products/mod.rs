@@ -37,14 +37,14 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait ProductsModule: BaseModule {
+pub trait ProductsModuleInterface: BaseModule {
     fn products_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
 }
 
-impl<P, T> ProductsModule for AppState<P, T>
+impl<P, T> ProductsModuleInterface for AppState<P, T>
 where
     P: PoolManager + Send + Sync + 'static,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
@@ -58,12 +58,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -73,15 +73,18 @@ pub mod tests {
     mock!(
         pub ProductsModule {}
         impl ConfigProvider for ProductsModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for ProductsModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl ProductsModule for ProductsModule {
-            fn products_repo(&self) -> Arc<dyn ProductsRepository>;
+        impl BaseModule for ProductsModule {}
+        impl ProductsModuleInterface for ProductsModule {
+            fn products_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
         }
     );
 }
-*/

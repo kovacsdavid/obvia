@@ -17,15 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::InventoryMovementsModule;
+use super::InventoryMovementsModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: InventoryMovementsModule>(inventory_movements_module: Arc<M>) -> Router {
+pub fn routes<M: InventoryMovementsModuleInterface>(inventory_movements_module: Arc<M>) -> Router {
     Router::new().nest(
         "/inventory_movements",
         Router::new()
@@ -34,6 +34,7 @@ pub fn routes<M: InventoryMovementsModule>(inventory_movements_module: Arc<M>) -
             .route("/list", get(handler::list::<M>))
             .route("/select_list", get(handler::select_list::<M>))
             .route("/create", post(handler::create::<M>))
+            .route("/update", put(handler::update::<M>))
             .route("/delete", delete(handler::delete::<M>))
             .route("/print", get(handler::print::<M>))
             .layer(from_fn_with_state(

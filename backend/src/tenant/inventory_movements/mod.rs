@@ -40,7 +40,7 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait InventoryMovementsModule: BaseModule {
+pub trait InventoryMovementsModuleInterface: BaseModule {
     fn inventory_movements_repo(
         &self,
         tenant_id: Uuid,
@@ -59,7 +59,7 @@ pub trait InventoryMovementsModule: BaseModule {
     ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
 }
 
-impl<P, T> InventoryMovementsModule for AppState<P, T>
+impl<P, T> InventoryMovementsModuleInterface for AppState<P, T>
 where
     P: PoolManager,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
@@ -91,12 +91,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -106,18 +106,30 @@ pub mod tests {
     mock!(
         pub InventoryMovementsModule {}
         impl ConfigProvider for InventoryMovementsModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for InventoryMovementsModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl InventoryMovementsModule for InventoryMovementsModule {
-            fn inventory_movements_repo(&self) -> Arc<dyn InventoryMovementsRepository>;
-            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-            fn inventory_repo(&self) -> Arc<dyn InventoryRepository>;
+        impl BaseModule for InventoryMovementsModule {}
+        impl InventoryMovementsModuleInterface for InventoryMovementsModule {
+            fn inventory_movements_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+            fn taxes_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+            fn worksheets_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+            fn inventory_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
         }
     );
 }
-*/

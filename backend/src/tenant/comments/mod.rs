@@ -37,14 +37,14 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CommentsModule: BaseModule {
+pub trait CommentsModuleInterface: BaseModule {
     fn comments_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>>;
 }
 
-impl<P, T> CommentsModule for AppState<P, T>
+impl<P, T> CommentsModuleInterface for AppState<P, T>
 where
     P: PoolManager,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
@@ -58,12 +58,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -73,15 +73,18 @@ pub mod tests {
     mock!(
         pub CommentsModule {}
         impl ConfigProvider for CommentsModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for CommentsModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl CommentsModule for CommentsModule {
-            fn comments_repo(&self) -> Arc<dyn CommentsRepository>;
+        impl BaseModule for CommentsModule {}
+        impl CommentsModuleInterface for CommentsModule {
+            fn comments_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CommentsRepository + Send + Sync>>;
         }
     );
 }
-*/

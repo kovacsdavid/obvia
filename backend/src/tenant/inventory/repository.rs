@@ -36,7 +36,7 @@ pub trait InventoryRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Inventory>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryResolved>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
@@ -116,7 +116,7 @@ impl InventoryRepository for PgPool {
         .await?)
     }
 
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {

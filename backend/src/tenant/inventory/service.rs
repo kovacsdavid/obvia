@@ -24,7 +24,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::inventory::InventoryModule;
+use crate::tenant::inventory::InventoryModuleInterface;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
@@ -44,6 +44,9 @@ pub enum InventoryServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
@@ -69,17 +72,44 @@ impl IntoFriendlyError for InventoryServiceError {
         M: BaseModule,
     {
         match self {
-            InventoryServiceError::Unauthorized | InventoryServiceError::InventoryExists => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    }
-                    .to_string(),
-                )
-            }
+            InventoryServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryServiceError::InventoryExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -149,7 +179,7 @@ pub trait InventoryService {
 
 impl<'a, T> InventoryService for Service<'a, T>
 where
-    T: InventoryModule,
+    T: InventoryModuleInterface,
 {
     async fn insert(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
         self.module()
@@ -228,6 +258,11 @@ where
     }
 
     async fn update(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
+        if !payload.id.is_present() {
+            return Err(InventoryServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .inventory_repo(
@@ -260,7 +295,7 @@ where
                     .active_tenant()
                     .ok_or(InventoryServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 

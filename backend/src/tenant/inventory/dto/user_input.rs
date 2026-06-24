@@ -29,7 +29,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InventoryUserInputHelper {
     pub id: Option<String>,
     pub product_id: String,
@@ -86,7 +86,7 @@ impl From<ValueObjectError> for InventoryUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InventoryUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub product_id: ValueObjectRequired<UuidVO>,

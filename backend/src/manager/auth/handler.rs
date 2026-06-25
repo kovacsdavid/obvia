@@ -256,6 +256,7 @@ mod tests {
     use lettre::transport::smtp::response::Response;
     use lettre::transport::smtp::response::Severity;
     use mockall::predicate::*;
+    use serde_json::json;
     use sqlx::error::DatabaseError;
     use std::collections::HashMap;
     use std::net::IpAddr;
@@ -267,6 +268,7 @@ mod tests {
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::MockUniqueViolation;
+    use crate::common::handler::tests::generate_expired_refresh_token;
     use crate::common::handler::tests::generate_valid_refresh_token;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
@@ -1550,5 +1552,95 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_unauthorized_expired() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let expired_refresh_token = generate_expired_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(Uuid::new_v4()),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Refresh),
+                eq(AccountEventStatus::Blocked),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(Some(json!({"error": "Invalid token"}))),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={expired_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_unauthorized_missing() {
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(MockAuthRepository::new());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

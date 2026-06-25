@@ -202,4 +202,40 @@ pub mod tests {
         .to_token(config.auth().jwt_secret().as_bytes())
         .unwrap()
     }
+
+    pub fn generate_expired_refresh_token(
+        sub: Option<Uuid>,
+        active_tenant_id: Option<Uuid>,
+        jti: Option<Uuid>,
+        family_id: Option<Uuid>,
+    ) -> String {
+        let config = AppConfigBuilder::default().build().unwrap();
+        let sub = match sub {
+            Some(v) => v,
+            None => Uuid::new_v4(),
+        };
+        let jti = match jti {
+            Some(v) => v,
+            None => Uuid::new_v4(),
+        };
+        let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
+
+        Claims::new(
+            sub,
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            format!("{}-auth", config.auth().jwt_audience()),
+            jti,
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
+            family_id,
+            active_tenant_id,
+        )
+        .to_token(config.auth().jwt_secret().as_bytes())
+        .unwrap()
+    }
 }

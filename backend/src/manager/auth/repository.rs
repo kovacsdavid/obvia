@@ -29,7 +29,7 @@ use crate::manager::auth::model::{
 use crate::manager::tenants::model::UserTenant;
 use crate::manager::users::model::User;
 use async_trait::async_trait;
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 #[cfg(test)]
 use mockall::automock;
 use sqlx::{Error, PgPool};
@@ -307,14 +307,21 @@ impl AuthRepository for PgPool {
         .bind(claims.sub())
         .bind(claims.family_id())
         .bind(claims.jti())
-        .bind(usize_epoch_seconds_to_local(claims.iat())?)
-        .bind(usize_epoch_seconds_to_local(claims.exp())?)
+        .bind(unix_seconds_to_utc(claims.iat())?)
+        .bind(unix_seconds_to_utc(claims.exp())?)
         .fetch_one(self)
         .await?)
     }
     async fn get_refresh_token(&self, jti: Uuid) -> RepositoryResult<RefreshToken> {
         Ok(sqlx::query_as::<_, RefreshToken>(
-            "SELECT * FROM refresh_tokens WHERE jti = $1 AND consumed_at IS NULL AND revoked_at IS NULL",
+            "
+            SELECT *
+            FROM refresh_tokens
+            WHERE jti = $1
+                AND consumed_at IS NULL
+                AND revoked_at IS NULL
+                AND replaced_by IS NULL
+            ",
         )
         .bind(jti)
         .fetch_one(self)
@@ -322,7 +329,14 @@ impl AuthRepository for PgPool {
     }
     async fn consume_refresh_token(&self, jti: Uuid, new_jti: Uuid) -> RepositoryResult<()> {
         sqlx::query(
-            "UPDATE refresh_tokens SET consumed_at = NOW(), replaced_by = $1 WHERE jti = $2 AND consumed_at IS NULL",
+            "
+            UPDATE refresh_tokens
+            SET consumed_at = NOW(), replaced_by = $1
+            WHERE jti = $2 
+                AND consumed_at IS NULL
+                AND revoked_at IS NULL
+                AND replaced_by IS NULL
+            ",
         )
         .bind(new_jti)
         .bind(jti)
@@ -423,13 +437,23 @@ impl AuthRepository for PgPool {
     }
 }
 
-pub fn usize_epoch_seconds_to_local(secs: usize) -> RepositoryResult<DateTime<Utc>> {
+pub fn unix_seconds_to_utc(secs: usize) -> RepositoryResult<DateTime<Utc>> {
     let secs_i64: i64 = secs
         .try_into()
         .map_err(|_| RepositoryError::Custom("timestamp too large for i64".to_string()))?;
-    let utc = Utc
-        .timestamp_opt(secs_i64, 0)
-        .single()
-        .ok_or_else(|| RepositoryError::Custom("usize_epoch_seconds_to_local: utc".to_string()))?;
-    Ok(utc.with_timezone(&Utc))
+    DateTime::<Utc>::from_timestamp(secs_i64, 0)
+        .ok_or_else(|| RepositoryError::Custom("usize_epoch date parse error".to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use pretty_assertions::assert_eq;
+
+    #[test]
+    fn test_unix_seconds_to_utc() {
+        let result = unix_seconds_to_utc(1767366245).unwrap();
+        let expected: DateTime<Utc> = "2026-01-02T15:04:05Z".parse().unwrap();
+        assert_eq!(result, expected);
+    }
 }

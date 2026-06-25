@@ -267,6 +267,7 @@ mod tests {
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::MockUniqueViolation;
+    use crate::common::handler::tests::generate_valid_refresh_token;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
@@ -278,6 +279,7 @@ mod tests {
     use crate::manager::auth::model::ForgottenPassword;
     use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::repository::MockAuthRepository;
+    use crate::manager::auth::repository::unix_seconds_to_utc;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
@@ -1407,5 +1409,146 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_success() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let new_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let valid_refresh_token = generate_valid_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(Uuid::new_v4()),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_id()
+            .times(1)
+            .with(eq(sub))
+            .returning(|sub| Ok(User {
+                id: sub,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Utc::now()),
+                profile_picture_url: None,
+                locale: "hu-HU".to_string(),
+                invited_by: None,
+                email_verified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
+            }));
+        repo.expect_get_refresh_token()
+            .times(1)
+            .with(eq(current_jti))
+            .returning(move |jti| {
+                Ok(RefreshToken {
+                    id: Uuid::new_v4(),
+                    user_id: sub,
+                    family_id: Uuid::new_v4(),
+                    jti,
+                    iat: Utc::now() - Duration::seconds(100),
+                    exp: Utc::now() + Duration::seconds(100),
+                    replaced_by: None,
+                    consumed_at: None,
+                    revoked_at: None,
+                })
+            });
+        repo.expect_get_user_active_tenant()
+            .times(1)
+            .with(eq(sub))
+            .returning(move |_| {
+                Ok(Some(UserTenant {
+                    id: Uuid::new_v4(),
+                    user_id: sub,
+                    tenant_id: active_tenant_id,
+                    role: "owner".to_string(),
+                    invited_by: None,
+                    last_activated: Utc::now(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                }))
+            });
+        repo.expect_insert_refresh_token()
+            .times(1)
+            .withf(move |claims| claims.sub() == sub)
+            .returning(move |claims| {
+                Ok(RefreshToken {
+                    id: Uuid::new_v4(),
+                    user_id: claims.sub(),
+                    family_id: claims.family_id().unwrap(),
+                    jti: new_jti,
+                    iat: unix_seconds_to_utc(claims.iat()).unwrap(),
+                    exp: unix_seconds_to_utc(claims.exp()).unwrap(),
+                    replaced_by: None,
+                    consumed_at: None,
+                    revoked_at: None,
+                })
+            });
+        repo.expect_consume_refresh_token()
+            .times(1)
+            .withf(move |jti, _| *jti == current_jti)
+            .returning(|_, _| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some("testuser@example.com".to_string())),
+                eq(AccountEventType::Refresh),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={valid_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
     }
 }

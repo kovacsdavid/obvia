@@ -81,7 +81,7 @@ impl LoginResponse {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct OtpUserInputHelper {
     pub otp: String,
 }

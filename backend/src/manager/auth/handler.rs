@@ -269,6 +269,7 @@ mod tests {
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::MockUniqueViolation;
     use crate::common::handler::tests::generate_expired_refresh_token;
+    use crate::common::handler::tests::generate_refresh_token_with_invalid_signature;
     use crate::common::handler::tests::generate_valid_refresh_token;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
@@ -1631,6 +1632,240 @@ mod tests {
             .header("Content-Type", "application/json")
             .method("POST")
             .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_logout_success() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let valid_refresh_token = generate_valid_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_revoke_refresh_tokens_by_family_id()
+            .times(1)
+            .with(eq(family_id))
+            .returning(|_| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={valid_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_logout_success_with_expired_refresh_token() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let expired_refresh_token = generate_expired_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_revoke_refresh_tokens_by_family_id()
+            .times(1)
+            .with(eq(family_id))
+            .returning(|_| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={expired_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_logout_unauthorized_wrong_signature() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let refresh_token_with_invalid_signature = generate_refresh_token_with_invalid_signature(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(None),
+                eq(None),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Failure),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(Some(json!({"error": "Invalid token"}))),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header(
+                "Cookie",
+                format!("refresh_token={refresh_token_with_invalid_signature}"),
+            )
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_logout_unauthorized_missing_token() {
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(MockAuthRepository::new());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/t/logout")
             .body("".to_string())
             .unwrap();
 

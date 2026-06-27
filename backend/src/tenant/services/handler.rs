@@ -228,7 +228,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        MockUniqueViolation, generate_expired_jwt, generate_valid_jwt,
+        MockUniqueViolation, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::tenant::services::model::ServiceResolved;
     use crate::{
@@ -310,7 +311,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let service_id = Uuid::new_v4();
 
         let mut app_state = MockServicesModule::new();
@@ -322,7 +322,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/services/get?uuid={service_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_unauthorized_invalid_signature() {
+        let service_id = Uuid::new_v4();
+
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -474,7 +505,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let service_id = Uuid::new_v4();
 
         let mut app_state = MockServicesModule::new();
@@ -486,7 +516,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/services/get_resolved?uuid={service_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_resolved_unauthorized_invalid_signature() {
+        let service_id = Uuid::new_v4();
+
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -647,8 +708,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let mut app_state = MockServicesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
@@ -658,7 +717,36 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/services/list")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_invalid_signature() {
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -949,10 +1037,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let user_input_helper = ServiceUserInputHelper {
             id: None,
             name: "Test service".to_string(),
@@ -973,7 +1060,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("POST")
@@ -990,6 +1077,47 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_create_unauthorized_invalid_signature() {
+        let user_input_helper = ServiceUserInputHelper {
+            id: None,
+            name: "Test service".to_string(),
+            description: "Test description".to_string(),
+            default_price: "".to_string(),
+            default_tax_id: "".to_string(),
+            currency_code: "HUF".to_string(),
+            status: "active".to_string(),
+        };
+
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/services/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
         let user_input_helper = ServiceUserInputHelper {
@@ -1143,7 +1271,6 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let service_id = Uuid::new_v4();
 
         let user_input_helper = ServiceUserInputHelper {
@@ -1166,7 +1293,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("PUT")
@@ -1300,7 +1427,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let service_id = Uuid::new_v4();
 
         let mut app_state = MockServicesModule::new();
@@ -1312,7 +1438,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1329,6 +1455,38 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_invalid_signature() {
+        let service_id = Uuid::new_v4();
+
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/services/delete?uuid={service_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
         let service_id = Uuid::new_v4();

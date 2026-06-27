@@ -144,14 +144,16 @@ pub mod tests {
         .unwrap()
     }
 
-    pub fn generate_expired_jwt(active_tenant_id: Option<Uuid>) -> String {
+    pub fn generate_expired_jwt() -> String {
         let config = AppConfigBuilder::default().build().unwrap();
+        let sub = Uuid::new_v4();
+        let active_tenant_id = Some(Uuid::new_v4());
         let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
 
         Claims::new(
-            Uuid::new_v4(),
+            sub,
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
@@ -164,6 +166,32 @@ pub mod tests {
             active_tenant_id,
         )
         .to_token(config.auth().jwt_secret().as_bytes())
+        .unwrap()
+    }
+
+    pub fn generate_jwt_with_invalid_signature() -> String {
+        let config = AppConfigBuilder::default().build().unwrap();
+        let wrong_signature = config.auth().jwt_secret().chars().rev().collect::<String>();
+        let sub = Uuid::new_v4();
+        let active_tenant_id = Some(Uuid::new_v4());
+        let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
+        let iat = Utc::now().timestamp();
+        let nbf = Utc::now().timestamp();
+
+        Claims::new(
+            sub,
+            usize::try_from(exp).unwrap(),
+            usize::try_from(iat).unwrap(),
+            usize::try_from(nbf).unwrap(),
+            config.auth().jwt_issuer().to_string(),
+            format!("{}-api", config.auth().jwt_audience()),
+            Uuid::new_v4(),
+            "hu-HU".to_string(),
+            "Europe/Budapest".parse().unwrap(),
+            None,
+            active_tenant_id,
+        )
+        .to_token(wrong_signature.as_bytes())
         .unwrap()
     }
 
@@ -255,7 +283,7 @@ pub mod tests {
             Some(v) => v,
             None => Uuid::new_v4(),
         };
-        let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
+        let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
 

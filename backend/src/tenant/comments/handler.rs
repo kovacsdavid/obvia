@@ -54,7 +54,9 @@ pub async fn post<M: CommentsModuleInterface>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::handler::tests::{generate_expired_jwt, generate_valid_jwt};
+    use crate::common::handler::tests::{
+        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+    };
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::comments::{
@@ -190,9 +192,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
     #[tokio::test]
     async fn test_post_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let commentable_id = Uuid::new_v4();
 
         let user_input_helper = CommentUserInputHelper {
@@ -212,7 +214,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("POST")
@@ -229,6 +231,46 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_post_unauthorized_invalid_signature() {
+        let commentable_id = Uuid::new_v4();
+
+        let user_input_helper = CommentUserInputHelper {
+            id: None,
+            commentable_type: "worksheets".to_string(),
+            commentable_id: commentable_id.to_string(),
+            comment: "Test comment".to_string(),
+        };
+
+        let mut app_state = MockCommentsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/comments/post")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_post_unauthorized_missing() {
         let commentable_id = Uuid::new_v4();

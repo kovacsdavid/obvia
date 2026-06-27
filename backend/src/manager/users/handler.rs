@@ -121,7 +121,9 @@ mod tests {
 
     use super::*;
     use crate::common::config::tests::AppConfigBuilder;
-    use crate::common::handler::tests::{generate_expired_jwt, generate_valid_jwt};
+    use crate::common::handler::tests::{
+        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+    };
     use crate::manager::auth::model::{AccountEventLogEntry, AccountEventStatus, AccountEventType};
     use crate::manager::auth::repository::MockAuthRepository;
     use crate::manager::users::{
@@ -222,7 +224,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_enable_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let mut app_state = MockUsersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
@@ -233,7 +234,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -250,6 +251,37 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_otp_enable_unauthorized_invalid_signature() {
+        let mut app_state = MockUsersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/users/otp/enable")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(users::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_otp_enable_unauthorized_missing() {
         let request = Request::builder()
@@ -526,7 +558,6 @@ mod tests {
     async fn test_otp_verify_unauthorized_expired() {
         let sub = Uuid::new_v4();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
 
         let user = User {
                     id: sub,
@@ -568,7 +599,69 @@ mod tests {
             .header("Content-Type", "application/json")
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .method("POST")
+            .uri("/api/users/otp/verify")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(users::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_otp_verify_unauthorized_invalid_signature() {
+        let sub = Uuid::new_v4();
+        let user_email = "testuser@example.com".to_string();
+
+        let user = User {
+                    id: sub,
+                    email: user_email.clone(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: "hu-HU".to_string(),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
+                };
+
+        assert!(!user.is_mfa_enabled());
+        let user = user.init_mfa_secret();
+
+        let mut app_state = MockUsersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let payload = serde_json::to_string(&OtpUserInputHelper {
+            otp: user.get_mfa_token().unwrap(),
+        })
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .method("POST")
             .uri("/api/users/otp/verify")
@@ -904,7 +997,6 @@ mod tests {
     async fn test_otp_disable_unauthorized_expired() {
         let sub = Uuid::new_v4();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
 
         let user = User {
                     id: sub,
@@ -946,7 +1038,69 @@ mod tests {
             .header("Content-Type", "application/json")
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .method("POST")
+            .uri("/api/users/otp/disable")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(users::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_otp_disable_unauthorized_invalid_signature() {
+        let sub = Uuid::new_v4();
+        let user_email = "testuser@example.com".to_string();
+
+        let user = User {
+                    id: sub,
+                    email: user_email.clone(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: "hu-HU".to_string(),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    is_mfa_enabled: true,
+                    mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
+                };
+
+        assert!(user.is_mfa_enabled());
+        let user = user.init_mfa_secret();
+
+        let mut app_state = MockUsersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let payload = serde_json::to_string(&OtpUserInputHelper {
+            otp: user.get_mfa_token().unwrap(),
+        })
+        .unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .method("POST")
             .uri("/api/users/otp/disable")

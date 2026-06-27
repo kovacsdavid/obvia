@@ -197,7 +197,9 @@ mod tests {
     use super::*;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
-    use crate::common::handler::tests::{generate_expired_jwt, generate_valid_jwt};
+    use crate::common::handler::tests::{
+        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+    };
     use crate::tenant::customers::model::CustomerResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -277,7 +279,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
 
         let mut app_state = MockCustomersModule::new();
@@ -289,7 +290,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_unauthorized_invalid_signature() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -440,7 +472,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
 
         let mut app_state = MockCustomersModule::new();
@@ -452,7 +483,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_resolved?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_resolved_unauthorized_invalid_signature() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -612,8 +674,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
@@ -623,7 +683,36 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/customers/list")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_invalid_signature() {
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -840,10 +929,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let user_input_helper = CustomerUserInputHelper {
             id: None,
             name: "Test Customer".to_string(),
@@ -864,7 +952,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("POST")
@@ -881,6 +969,47 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_create_unauthorized_invalid_signature() {
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/customers/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
         let user_input_helper = CustomerUserInputHelper {
@@ -1034,8 +1163,6 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let user_input_helper = CustomerUserInputHelper {
             id: None,
             name: "Test Customer".to_string(),
@@ -1056,7 +1183,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("PUT")
@@ -1073,6 +1200,47 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_update_unauthorized_invalid_signature() {
+        let user_input_helper = CustomerUserInputHelper {
+            id: None,
+            name: "Test Customer".to_string(),
+            contact_name: "".to_string(),
+            email: "test.customer@example.com".to_string(),
+            phone_number: "+36301234567".to_string(),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+        };
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/customers/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
         let user_input_helper = CustomerUserInputHelper {
@@ -1188,7 +1356,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
 
         let mut app_state = MockCustomersModule::new();
@@ -1200,7 +1367,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1217,6 +1384,38 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_invalid_signature() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/customers/delete?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
         let customer_id = Uuid::new_v4();

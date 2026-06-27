@@ -74,7 +74,9 @@ mod tests {
     use super::*;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
-    use crate::common::handler::tests::{generate_expired_jwt, generate_valid_jwt};
+    use crate::common::handler::tests::{
+        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+    };
     use crate::common::value_object::ValueObjectRequired;
     use crate::tenant::activity_feed::model::ActivityFeedResolved;
     use crate::tenant::activity_feed::types::ResourceType;
@@ -178,7 +180,6 @@ mod tests {
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
-        let active_tenant_id = Uuid::new_v4();
 
         let mut app_state = MockActivityFeedModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -189,7 +190,43 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!(
+                "/api/activity_feed/list?resource_id={resource_id}&resource_type={resource_type}"
+            ))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(activity_feed::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_invalid_signature() {
+        let resource_id = Uuid::new_v4();
+        let resource_type = "worksheets"
+            .parse::<ValueObjectRequired<ResourceType>>()
+            .unwrap();
+
+        let mut app_state = MockActivityFeedModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")

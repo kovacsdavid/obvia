@@ -227,7 +227,9 @@ mod tests {
     use super::*;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
-    use crate::common::handler::tests::{generate_expired_jwt, generate_valid_jwt};
+    use crate::common::handler::tests::{
+        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+    };
     use crate::tenant::taxes::model::TaxResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -310,7 +312,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
 
         let mut app_state = MockTaxesModule::new();
@@ -322,7 +323,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/taxes/get?uuid={tax_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_unauthorized_invalid_signature() {
+        let tax_id = Uuid::new_v4();
+
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -477,7 +509,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
 
         let mut app_state = MockTaxesModule::new();
@@ -489,7 +520,38 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/taxes/get_resolved?uuid={tax_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_resolved_unauthorized_invalid_signature() {
+        let tax_id = Uuid::new_v4();
+
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -653,8 +715,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let mut app_state = MockTaxesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
@@ -664,7 +724,36 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/taxes/list")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_invalid_signature() {
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
             )
             .header("Content-Type", "application/json")
             .method("GET")
@@ -893,10 +982,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
-
         let user_input_helper = TaxUserInputHelper {
             id: None,
             rate: "10".to_string(),
@@ -920,7 +1008,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("POST")
@@ -937,6 +1025,50 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_create_unauthorized_invalid_signature() {
+        let user_input_helper = TaxUserInputHelper {
+            id: None,
+            rate: "10".to_string(),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: Some(true),
+            legal_text: "".to_string(),
+            reporting_code: "".to_string(),
+            is_default: true,
+            status: "active".to_string(),
+        };
+
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/taxes/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
         let user_input_helper = TaxUserInputHelper {
@@ -1100,9 +1232,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
     }
+
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
 
         let user_input_helper = TaxUserInputHelper {
@@ -1128,7 +1260,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("PUT")
@@ -1145,6 +1277,52 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_update_unauthorized_invalid_signature() {
+        let tax_id = Uuid::new_v4();
+
+        let user_input_helper = TaxUserInputHelper {
+            id: Some(tax_id.to_string()),
+            rate: "10".to_string(),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: Some(true),
+            legal_text: "".to_string(),
+            reporting_code: "".to_string(),
+            is_default: true,
+            status: "active".to_string(),
+        };
+
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/taxes/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
         let tax_id = Uuid::new_v4();
@@ -1264,7 +1442,6 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
 
         let mut app_state = MockTaxesModule::new();
@@ -1276,7 +1453,7 @@ mod tests {
         let request = Request::builder()
             .header(
                 "Authorization",
-                format!("Bearer {}", generate_expired_jwt(Some(active_tenant_id))),
+                format!("Bearer {}", generate_expired_jwt()),
             )
             .header("Content-Type", "application/json")
             .method("DELETE")
@@ -1293,6 +1470,38 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_invalid_signature() {
+        let tax_id = Uuid::new_v4();
+
+        let mut app_state = MockTaxesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/taxes/delete?uuid={tax_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(taxes::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
         let tax_id = Uuid::new_v4();

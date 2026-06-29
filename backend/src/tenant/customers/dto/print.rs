@@ -22,7 +22,7 @@ use chrono_tz::Tz;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct CustomerResolvedPrint {
     id: Uuid,
     name: String,
@@ -83,6 +83,10 @@ impl CustomerResolvedPrint {
             _ => "Ismeretlen típus",
         }
         .to_string()
+    }
+
+    pub fn id(&self) -> Uuid {
+        self.id
     }
 }
 

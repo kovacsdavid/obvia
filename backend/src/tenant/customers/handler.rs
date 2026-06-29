@@ -180,6 +180,7 @@ pub async fn print<M: CustomersModuleInterface>(
             .await?,
         error_mapper.or_handler_error(claims.tz()).await?,
     );
+    let customer_id = customer_resolved_print.id();
     let pdf = error_mapper
         .or_handler_error(service.print(&[customer_resolved_print]).await)
         .await?;
@@ -187,7 +188,9 @@ pub async fn print<M: CustomersModuleInterface>(
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
         header::CONTENT_DISPOSITION,
-        r#"inline; filename="invoice.pdf""#.parse().unwrap(),
+        format!(r#"inline; filename="vevo_{customer_id}.pdf""#)
+            .parse()
+            .unwrap(),
     );
     Ok((StatusCode::OK, headers, pdf).into_response())
 }
@@ -200,6 +203,8 @@ mod tests {
     use crate::common::handler::tests::{
         generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
     };
+    use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
+    use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
     use crate::tenant::customers::model::CustomerResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -1431,6 +1436,174 @@ mod tests {
         let app = Router::new().nest(
             "/api",
             Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_print_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+        let created_by_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let customer_resolved = CustomerResolved {
+            id: customer_id,
+            name: "Test customer".to_string(),
+            contact_name: None,
+            email: "test_customer@example.com".to_string(),
+            phone_number: Some("+36301234567".to_string()),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(customer_id))
+            .returning({
+                let customer_resolved = customer_resolved.clone();
+                move |_| Ok(customer_resolved.clone())
+            });
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let pdf_gen_payload_expected = vec![CustomerResolvedPrint::from_customer_revolved(
+            customer_resolved,
+            "Europe/Budapest".parse().unwrap(),
+        )];
+
+        let _m = PDF_GENERATOR_TEST_SYNC.lock();
+        let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
+        pdf_gen
+            .expect::<Vec<CustomerResolvedPrint>>()
+            .times(1)
+            .with(eq(PdfTemplates::CustomerView), eq(pdf_gen_payload_expected))
+            .returning(|_, _| Ok(vec![]));
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(None, Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/print?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_expired() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/print?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_invalid_signature() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/print?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_missing() {
+        let customer_id = Uuid::new_v4();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/print?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(
+                MockCustomersModule::new(),
+            ))),
         );
 
         let response = app.oneshot(request).await.unwrap();

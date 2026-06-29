@@ -22,7 +22,9 @@ use std::sync::Arc;
 use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModuleInterface;
@@ -32,6 +34,7 @@ use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -233,9 +236,9 @@ where
             .await?)
     }
     async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

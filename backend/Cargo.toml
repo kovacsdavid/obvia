@@ -33,6 +33,7 @@ totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 tempfile = "3.27.0"
 async-trait = "0.1.89"
 chrono-tz = "0.10.4"
+mockall_double = "0.3.1"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

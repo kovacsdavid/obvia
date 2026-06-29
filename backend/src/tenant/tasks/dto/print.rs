@@ -23,7 +23,7 @@ use chrono_tz::Tz;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct TaskResolvedPrint {
     pub id: Uuid,
     pub worksheet_id: Uuid,

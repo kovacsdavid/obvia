@@ -22,7 +22,9 @@ use crate::common::dto::GeneralError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
@@ -34,6 +36,7 @@ use crate::tenant::inventory_movements::types::{
 };
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -296,13 +299,14 @@ where
             },
         )
     }
+
     async fn print(
         &self,
         payload: &[InventoryMovementsResolvedPrint],
     ) -> InventoryMovementsServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

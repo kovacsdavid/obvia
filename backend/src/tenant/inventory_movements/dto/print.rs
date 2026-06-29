@@ -23,7 +23,7 @@ use chrono_tz::Tz;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct InventoryMovementsResolvedPrint {
     id: Uuid,
     inventory_id: Uuid,

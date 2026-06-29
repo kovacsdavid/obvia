@@ -23,7 +23,7 @@ use uuid::Uuid;
 
 use crate::tenant::warehouses::model::WarehouseResolved;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct WarehouseResolvedPrint {
     pub id: Uuid,
     pub name: String,

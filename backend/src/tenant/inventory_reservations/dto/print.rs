@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::tenant::inventory_reservations::model::InventoryReservationResolved;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct InventoryReservationResolvedPrint {
     pub id: Uuid,
     pub inventory_id: Uuid,

@@ -22,7 +22,7 @@ use chrono_tz::Tz;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct ProductsResolvedPrint {
     pub id: Uuid,
     pub name: String,

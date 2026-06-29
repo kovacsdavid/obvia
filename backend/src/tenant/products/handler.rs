@@ -231,6 +231,8 @@ mod tests {
     use crate::common::handler::tests::{
         generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
     };
+    use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
+    use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
     use crate::tenant::products::model::ProductResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -1466,6 +1468,174 @@ mod tests {
         let app = Router::new().nest(
             "/api",
             Router::new().merge(products::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_print_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let product_id = Uuid::new_v4();
+        let unit_of_measure_id = Uuid::new_v4();
+        let created_by_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let product_resolved = ProductResolved {
+            id: product_id,
+            name: "Test product".to_string(),
+            description: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
+
+        let mut repo = MockProductsRepository::new();
+        repo.expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(product_id))
+            .returning({
+                let product_resolved = product_resolved.clone();
+                move |_| Ok(product_resolved.clone())
+            });
+
+        let mut app_state = MockProductsModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_products_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let pdf_gen_payload_expected = vec![ProductsResolvedPrint::from_product_resolved(
+            product_resolved,
+            "Europe/Budapest".parse().unwrap(),
+        )];
+
+        let _m = PDF_GENERATOR_TEST_SYNC.lock();
+        let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
+        pdf_gen
+            .expect::<Vec<ProductsResolvedPrint>>()
+            .times(1)
+            .with(eq(PdfTemplates::ProductView), eq(pdf_gen_payload_expected))
+            .returning(|_, _| Ok(vec![]));
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(None, Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/products/print?uuid={product_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(products::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_expired() {
+        let product_id = Uuid::new_v4();
+
+        let mut app_state = MockProductsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/products/print?uuid={product_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(products::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_invalid_signature() {
+        let product_id = Uuid::new_v4();
+
+        let mut app_state = MockProductsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/products/print?uuid={product_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(products::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_print_unauthorized_missing() {
+        let product_id = Uuid::new_v4();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/products/print?uuid={product_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(products::routes::routes(
+                Arc::new(MockProductsModule::new()),
+            )),
         );
 
         let response = app.oneshot(request).await.unwrap();

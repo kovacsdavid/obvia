@@ -21,7 +21,9 @@ use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::services::ServicesModule;
@@ -31,6 +33,7 @@ use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -288,9 +291,9 @@ where
     }
 
     async fn print(&self, payload: &[ServicesResolvedPrint]) -> ServicesServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ServiceView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

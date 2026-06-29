@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::tenant::inventory::model::InventoryResolved;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct InventoryResolvedPrint {
     pub id: Uuid,
     pub product_id: Uuid,

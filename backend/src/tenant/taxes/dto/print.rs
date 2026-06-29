@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::tenant::taxes::model::TaxResolved;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct TaxResolvedPrint {
     pub id: Uuid,
     pub rate: Option<BigDecimal>,

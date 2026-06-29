@@ -1598,7 +1598,10 @@ mod tests {
         pdf_gen
             .expect::<Vec<InventoryReservationResolvedPrint>>()
             .times(1)
-            .with(eq(PdfTemplates::InventoryReservationView), eq(pdf_gen_payload_expected))
+            .with(
+                eq(PdfTemplates::InventoryReservationView),
+                eq(pdf_gen_payload_expected),
+            )
             .returning(|_, _| Ok(vec![]));
 
         let request = Request::builder()

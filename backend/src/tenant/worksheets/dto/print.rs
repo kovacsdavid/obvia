@@ -24,7 +24,7 @@ use uuid::Uuid;
 
 use crate::tenant::worksheets::model::WorksheetResolved;
 
-#[derive(Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug)]
 pub struct WorksheetResolvedPrint {
     pub id: Uuid,
     pub name: String,

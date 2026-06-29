@@ -38,7 +38,7 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WorksheetsModule: BaseModule {
+pub trait WorksheetsModuleInterface: BaseModule {
     fn worksheets_repo(
         &self,
         tenant_id: Uuid,
@@ -49,7 +49,7 @@ pub trait WorksheetsModule: BaseModule {
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
 }
 
-impl<P, T> WorksheetsModule for AppState<P, T>
+impl<P, T> WorksheetsModuleInterface for AppState<P, T>
 where
     P: PoolManager + Send + Sync,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
@@ -69,12 +69,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -84,16 +84,22 @@ pub mod tests {
     mock!(
         pub WorksheetsModule {}
         impl ConfigProvider for WorksheetsModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for WorksheetsModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl WorksheetsModule for WorksheetsModule {
-            fn worksheets_repo(&self) -> Arc<dyn WorksheetsRepository>;
-            fn customers_repo(&self) -> Arc<dyn CustomersRepository>;
+        impl BaseModule for WorksheetsModule {}
+        impl WorksheetsModuleInterface for WorksheetsModule {
+            fn worksheets_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+            fn customers_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
         }
     );
 }
-*/

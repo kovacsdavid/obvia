@@ -36,7 +36,7 @@ pub trait WorksheetsRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Worksheet>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WorksheetResolved>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
@@ -127,7 +127,7 @@ impl WorksheetsRepository for PgPool {
         .fetch_all(self)
         .await?)
     }
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)> {

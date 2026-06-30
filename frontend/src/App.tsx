@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router";
 import React from "react";
 import Login from "@/components/modules/auth/Login";
 import Register from "@/components/modules/auth/Register";

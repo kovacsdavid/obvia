@@ -23,7 +23,7 @@ import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { create } from "@/components/modules/databases/lib/slice.ts";
 import { useActivateDatabase } from "@/hooks/use_activate_database.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import { useParams } from "react-router";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";

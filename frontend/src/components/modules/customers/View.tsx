@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateLocal } from "@/lib/utils.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";

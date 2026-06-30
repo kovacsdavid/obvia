@@ -36,7 +36,7 @@ import {
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateLocal, formatNumber } from "@/lib/utils.ts";
 import type { WorksheetResolved } from "@/components/modules/worksheets/lib/interface.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Plus } from "lucide-react";
 import { Link as LinkIcon } from "lucide-react";

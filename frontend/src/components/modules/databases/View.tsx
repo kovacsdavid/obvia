@@ -36,7 +36,7 @@ import {
 import { GlobalError, Button } from "@/components/ui";
 import { formatDateLocal } from "@/lib/utils.ts";
 import type { Database } from "@/components/modules/databases/lib/interface.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { useAuth } from "@/hooks/use_auth";
 

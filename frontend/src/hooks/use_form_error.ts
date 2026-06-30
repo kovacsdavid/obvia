@@ -19,7 +19,7 @@
 
 import { useCallback, useState } from "react";
 import type { FormError } from "@/lib/interface.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use_auth";
 
 export function useFormError() {

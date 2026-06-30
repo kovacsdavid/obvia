@@ -37,7 +37,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 

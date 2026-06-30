@@ -36,7 +36,7 @@ import { useSidebar } from "@/hooks/use_sidebar";
 import { useAuth } from "@/hooks/use_auth";
 import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router";
 import { Button } from "@/components/ui";
 import {
     Boxes,

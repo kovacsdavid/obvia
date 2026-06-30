@@ -26,7 +26,7 @@ import {
     get,
     select_list,
 } from "@/components/modules/inventory_movements/lib/slice.ts";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import {
     Select,

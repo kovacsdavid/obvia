@@ -27,7 +27,7 @@ use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -109,11 +109,11 @@ impl ProductsRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM products
                         WHERE deleted_at IS NULL
                             AND ($1::TEXT IS NULL OR products.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
-                ))
+                )))
                 .bind(value_unchecked)
                 .fetch_one(self)
                 .await?
@@ -165,7 +165,7 @@ impl ProductsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, ProductResolved>(&sql)
+                sqlx::query_as::<_, ProductResolved>(AssertSqlSafe(sql))
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -197,7 +197,7 @@ impl ProductsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, ProductResolved>(&sql)
+                sqlx::query_as::<_, ProductResolved>(AssertSqlSafe(sql))
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
                     .fetch_all(self)

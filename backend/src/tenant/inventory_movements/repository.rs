@@ -28,7 +28,7 @@ use crate::tenant::inventory_movements::types::{
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -107,11 +107,11 @@ impl InventoryMovementsRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM inventory_movements
                         WHERE inventory_id = $1
                             AND ($2::TEXT IS NULL OR inventory_movements.{filter_by}::TEXT ILIKE '%' || $2 || '%')"#,
-                ))
+                )))
                     .bind(inventory_id)
                     .bind(value_unchecked)
                     .fetch_one(self)
@@ -173,7 +173,7 @@ impl InventoryMovementsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryMovementResolved>(&query)
+                sqlx::query_as::<_, InventoryMovementResolved>(AssertSqlSafe(query))
                     .bind(inventory_id)
                     .bind(value_unchecked)
                     .bind(limit)
@@ -209,7 +209,7 @@ impl InventoryMovementsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryMovementResolved>(&query)
+                sqlx::query_as::<_, InventoryMovementResolved>(AssertSqlSafe(query))
                     .bind(inventory_id)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)

@@ -27,7 +27,7 @@ use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -112,11 +112,11 @@ impl ServicesRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM services
                         WHERE deleted_at IS NULL
                             AND ($1::TEXT IS NULL OR services.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#
-                ))
+                )))
                 .bind(value_unchecked)
                 .fetch_one(self)
                 .await?
@@ -172,7 +172,7 @@ impl ServicesRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, ServiceResolved>(&sql)
+                sqlx::query_as::<_, ServiceResolved>(AssertSqlSafe(sql))
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -208,7 +208,7 @@ impl ServicesRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, ServiceResolved>(&sql)
+                sqlx::query_as::<_, ServiceResolved>(AssertSqlSafe(sql))
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
                     .fetch_all(self)

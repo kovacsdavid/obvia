@@ -1,6 +1,6 @@
 [package]
 name = "obvia_backend"
-version = "0.28.0"
+version = "0.28.1"
 edition = "2024"
 
 [dependencies]
@@ -13,7 +13,7 @@ tokio = { version = "1.52.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "uuid", "chrono", "bigdecimal", "ipnetwork", "json"] }
+sqlx = { version = "0.9.0", features = ["runtime-tokio", "postgres", "uuid", "chrono", "bigdecimal", "ipnetwork", "json"] }
 chrono = { version = "0.4.41", features = ["serde"] }
 anyhow = "1.0.98"
 thiserror = "2.0.12"
@@ -22,13 +22,13 @@ config = "0.15.11"
 headers = "0.4.1"
 regex = "1.11.1"
 rand = "0.10.0"
-tower-http = { version = "0.6.6", features = ["trace"] }
+tower-http = { version = "0.7.0", features = ["trace"] }
 tower = { version = "0.5.2", features = ["full"] }
 bigdecimal = { version = "0.4.8", features = ["serde", "serde-json"] }
 handlebars = "6.3.2"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "hostname", "smtp-transport","tokio1", "tokio1-rustls-tls"] }
-time = "0.3.44"
-ipnetwork = { version = "0.20.0", features = ["serde"] }
+time = "0.3.45"
+ipnetwork = { version = "0.21.1", features = ["serde"] }
 totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
 tempfile = "3.27.0"
 async-trait = "0.1.89"
@@ -37,7 +37,7 @@ mockall_double = "0.3.1"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"
-mockall = "0.14.0"
+mockall = "0.15.0"
 
 [package.metadata]
 clippy = { deny = ["unsafe_code"] }

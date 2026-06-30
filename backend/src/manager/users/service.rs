@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::UsersModule;
+use super::UsersModuleInterface;
 use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
@@ -118,19 +118,15 @@ pub trait UserService {
 
 impl<'a, T> UserService for Service<'a, T>
 where
-    T: UsersModule,
+    T: UsersModuleInterface,
 {
     async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
-        let user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
-        {
+        let users_repo = self.module().users_repo();
+        let auth_repo = self.module().auth_repo();
+        let user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(self.claims()?.sub().to_string()),
@@ -148,8 +144,7 @@ where
         };
 
         if user.is_mfa_enabled() {
-            self.module()
-                .auth_repo()
+            auth_repo
                 .insert_account_event_log(
                     Some(self.claims()?.sub()),
                     Some(user.email),
@@ -174,8 +169,7 @@ where
         {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -192,11 +186,10 @@ where
             }
         };
 
-        match self.module().users_repo().update_user(user.clone()).await {
+        match users_repo.update_user(user.clone()).await {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -221,16 +214,12 @@ where
         payload: &OtpUserInput,
         client_context: &ClientContext,
     ) -> UsersServiceResult<()> {
-        let mut user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
-        {
+        let users_repo = self.module().users_repo();
+        let auth_repo = self.module().auth_repo();
+        let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(self.claims()?.sub().to_string()),
@@ -248,8 +237,7 @@ where
         };
 
         if user.is_mfa_enabled() {
-            self.module()
-                .auth_repo()
+            auth_repo
                 .insert_account_event_log(
                     Some(self.claims()?.sub()),
                     Some(user.email),
@@ -271,8 +259,7 @@ where
         {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -291,11 +278,10 @@ where
 
         user.is_mfa_enabled = true;
 
-        match self.module().users_repo().update_user(user.clone()).await {
+        match users_repo.update_user(user.clone()).await {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -312,8 +298,7 @@ where
             }
         };
 
-        self.module()
-            .auth_repo()
+        auth_repo
             .insert_account_event_log(
                 Some(self.claims()?.sub()),
                 Some(user.email),
@@ -343,16 +328,12 @@ where
             AccountEventType::MfaDisable,
         )
         .await?;
-        let mut user = match self
-            .module()
-            .users_repo()
-            .get_user_by_id(self.claims()?.sub())
-            .await
-        {
+        let users_repo = self.module().users_repo();
+        let auth_repo = self.module().auth_repo();
+        let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
             Ok(v) => v,
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(self.claims()?.sub().to_string()),
@@ -375,8 +356,7 @@ where
         {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -396,11 +376,10 @@ where
         user.is_mfa_enabled = false;
         user.mfa_secret = None;
 
-        match self.module().users_repo().update_user(user.clone()).await {
+        match users_repo.update_user(user.clone()).await {
             Ok(_) => (),
             Err(e) => {
-                self.module()
-                    .auth_repo()
+                auth_repo
                     .insert_account_event_log(
                         Some(self.claims()?.sub()),
                         Some(user.email),
@@ -417,8 +396,7 @@ where
             }
         };
 
-        self.module()
-            .auth_repo()
+        auth_repo
             .insert_account_event_log(
                 Some(self.claims()?.sub()),
                 Some(user.email),
@@ -444,7 +422,7 @@ async fn rate_limit_by_event_type<T>(
     event_type: AccountEventType,
 ) -> UsersServiceResult<()>
 where
-    T: UsersModule + ?Sized,
+    T: UsersModuleInterface + ?Sized,
 {
     let event_log_entries = match users_module
         .auth_repo()

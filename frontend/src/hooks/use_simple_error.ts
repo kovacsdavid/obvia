@@ -19,7 +19,7 @@
 
 import type { SimpleError } from "@/lib/interface.ts";
 import { useCallback, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use_auth";
 
 export function useSimpleError() {

@@ -20,13 +20,13 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::tasks::dto::TaskUserInput;
+use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -34,7 +34,7 @@ use uuid::Uuid;
 pub trait TasksRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Task>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
@@ -95,7 +95,7 @@ impl TasksRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)> {
@@ -108,12 +108,12 @@ impl TasksRepository for PgPool {
                     "name" => "services.name",
                     _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
                 };
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM tasks
                         LEFT JOIN services ON tasks.service_id = services.id
                         WHERE tasks.deleted_at IS NULL
                             AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')"#
-                ))
+                )))
                 .bind(value_unchecked)
                 .fetch_one(self)
                 .await?
@@ -179,7 +179,7 @@ impl TasksRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, TaskResolved>(&sql)
+                sqlx::query_as::<_, TaskResolved>(AssertSqlSafe(sql))
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -221,7 +221,7 @@ impl TasksRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, TaskResolved>(&sql)
+                sqlx::query_as::<_, TaskResolved>(AssertSqlSafe(sql))
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
                     .fetch_all(self)

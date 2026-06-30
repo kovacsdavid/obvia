@@ -21,11 +21,14 @@ use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::inventory_reservations::InventoryReservationsModule;
-use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
+use crate::tenant::inventory_reservations::InventoryReservationsModuleInterface;
+use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
+use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
@@ -34,6 +37,7 @@ use crate::tenant::inventory_reservations::types::{
 };
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -47,6 +51,9 @@ pub enum InventoryReservationsServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
@@ -72,6 +79,26 @@ impl IntoFriendlyError for InventoryReservationsServiceError {
             InventoryReservationsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryReservationsServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryReservationsServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
                 file!(),
                 GeneralError {
                     message: self.to_string(),
@@ -117,6 +144,10 @@ pub trait InventoryReservationService {
         &self,
         payload: &InventoryReservationUserInput,
     ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
+    fn update(
+        &self,
+        payload: &InventoryReservationUserInput,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
@@ -145,13 +176,13 @@ pub trait InventoryReservationService {
     > + Send;
     fn print(
         &self,
-        payload: &[InventoryReservationResolved],
+        payload: &[InventoryReservationResolvedPrint],
     ) -> impl Future<Output = InventoryReservationsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> InventoryReservationService for Service<'a, T>
 where
-    T: InventoryReservationsModule,
+    T: InventoryReservationsModuleInterface,
 {
     async fn insert(
         &self,
@@ -167,7 +198,25 @@ where
             .insert(payload.clone(), self.claims()?.sub())
             .await?)
     }
-
+    async fn update(
+        &self,
+        payload: &InventoryReservationUserInput,
+    ) -> InventoryReservationsServiceResult<InventoryReservation> {
+        if !payload.id.is_present() {
+            return Err(InventoryReservationsServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
+        Ok(self
+            .module()
+            .inventory_reservations_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
+    }
     async fn get(&self, payload: Uuid) -> InventoryReservationsServiceResult<InventoryReservation> {
         Ok(self
             .module()
@@ -220,7 +269,7 @@ where
                     .active_tenant()
                     .ok_or(InventoryReservationsServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query, inventory_id)
+            .get_paged(get_query, inventory_id)
             .await?)
     }
 
@@ -252,11 +301,11 @@ where
 
     async fn print(
         &self,
-        payload: &[InventoryReservationResolved],
+        payload: &[InventoryReservationResolvedPrint],
     ) -> InventoryReservationsServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryReservationView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

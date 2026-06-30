@@ -21,15 +21,19 @@ use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::TaskUserInput;
+use crate::tenant::tasks::dto::print::TaskResolvedPrint;
+use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -43,6 +47,9 @@ pub enum TasksServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
@@ -74,6 +81,26 @@ impl IntoFriendlyError for TasksServiceError {
                 }
                 .to_string(),
             ),
+            TasksServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            TasksServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
+                FriendlyError::user_facing(
+                    Level::DEBUG,
+                    StatusCode::NOT_FOUND,
+                    file!(),
+                    GeneralError {
+                        message: self.to_string(),
+                    }
+                    .to_string(),
+                )
+            }
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -137,7 +164,7 @@ pub trait TaskService {
     ) -> impl Future<Output = TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[TaskResolved],
+        payload: &[TaskResolvedPrint],
     ) -> impl Future<Output = TasksServiceResult<Bytes>> + Send;
 }
 
@@ -215,6 +242,11 @@ where
             .await?)
     }
     async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+        if !payload.id.is_present() {
+            return Err(TasksServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .tasks_repo(
@@ -247,14 +279,14 @@ where
                     .active_tenant()
                     .ok_or(TasksServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 
-    async fn print(&self, payload: &[TaskResolved]) -> TasksServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Bytes> {
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaskView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

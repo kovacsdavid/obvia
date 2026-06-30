@@ -30,8 +30,8 @@ pub struct Product {
     pub unit_of_measure_id: Uuid,
     pub status: String,
     pub created_by_id: Uuid,
-    pub created_at: Option<DateTime<Utc>>, // NOTE: possibly this should not be option
-    pub updated_at: Option<DateTime<Utc>>, // NOTE: possibly this should not be option
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
@@ -45,8 +45,8 @@ pub struct ProductResolved {
     pub status: String,
     pub created_by_id: Uuid,
     pub created_by: String,
-    pub created_at: Option<DateTime<Utc>>, // NOTE: possibly this should not be option
-    pub updated_at: Option<DateTime<Utc>>, // NOTE: possibly this should not be option
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
 }
 

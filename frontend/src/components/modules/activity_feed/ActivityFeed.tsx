@@ -44,7 +44,8 @@ import {
 } from "@/components/modules/activity_feed/lib/slice.ts";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateLocal } from "@/lib/utils.ts";
+import { useAuth } from "@/hooks/use_auth";
 
 interface ActivityProps {
     resourceId: string;
@@ -61,6 +62,7 @@ export default function ActivityFeed({
     const [newComment, setNewComment] = React.useState("");
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
+    const { claims } = useAuth();
 
     const { setPage, setLimit, setTotal } = useDataDisplayCommon(null);
 
@@ -142,8 +144,10 @@ export default function ActivityFeed({
                                                     {item.created_by}
                                                 </ItemTitle>
                                                 <ItemDescriptionLong className="mb-3">
-                                                    {formatDateToYMDHMS(
+                                                    {formatDateLocal(
                                                         item.created_at,
+                                                        claims?.loc,
+                                                        claims?.tz,
                                                     )}
                                                 </ItemDescriptionLong>
                                                 <ItemDescriptionLong>
@@ -168,8 +172,10 @@ export default function ActivityFeed({
                                                     {item.content}
                                                 </ItemTitle>
                                                 <ItemDescriptionLong>
-                                                    {formatDateToYMDHMS(
+                                                    {formatDateLocal(
                                                         item.created_at,
+                                                        claims?.loc,
+                                                        claims?.tz,
                                                     )}
                                                 </ItemDescriptionLong>
                                             </ItemContent>

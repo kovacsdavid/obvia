@@ -21,13 +21,13 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::inventory::dto::InventoryUserInput;
+use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -36,7 +36,7 @@ pub trait InventoryRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Inventory>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryResolved>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
@@ -116,7 +116,7 @@ impl InventoryRepository for PgPool {
         .await?)
     }
 
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)> {
@@ -129,13 +129,13 @@ impl InventoryRepository for PgPool {
                     "product" => "products.name",
                     _ => return Err(RepositoryError::InvalidInput("filter_by".to_string())),
                 };
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM inventory
                         LEFT JOIN products ON inventory.product_id = products.id
                         WHERE inventory.deleted_at IS NULL
                             AND ($1::TEXT IS NULL OR {filter_by}::TEXT ILIKE '%' || $1 || '%')
                     "#
-                ))
+                )))
                 .bind(value_unchecked)
                 .fetch_one(self)
                 .await?
@@ -200,7 +200,7 @@ impl InventoryRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryResolved>(&sql)
+                sqlx::query_as::<_, InventoryResolved>(AssertSqlSafe(sql))
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -241,7 +241,7 @@ impl InventoryRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryResolved>(&sql)
+                sqlx::query_as::<_, InventoryResolved>(AssertSqlSafe(sql))
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
                     .fetch_all(self)

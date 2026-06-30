@@ -31,7 +31,7 @@ use crate::{
     tenant::comments::types::{Comment, CommentableType},
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CommentUserInputHelper {
     pub id: Option<String>,
     pub commentable_type: String,
@@ -79,7 +79,7 @@ impl From<ValueObjectError> for CommentUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct CommentUserInput {
     #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,

@@ -33,7 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import type { SelectOptionList } from "@/lib/interface.ts";

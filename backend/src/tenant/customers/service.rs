@@ -22,15 +22,19 @@ use std::sync::Arc;
 use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::customers::CustomersModule;
-use crate::tenant::customers::dto::CustomerUserInput;
+use crate::tenant::customers::CustomersModuleInterface;
+use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -42,6 +46,9 @@ pub enum CustomersServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A megadot e-mail címmel már létezik vevő a rendszerben!")]
     CustomerExists,
@@ -64,17 +71,44 @@ impl IntoFriendlyError for CustomersServiceError {
         M: BaseModule,
     {
         match self {
-            CustomersServiceError::Unauthorized | CustomersServiceError::CustomerExists => {
-                FriendlyError::user_facing(
-                    Level::DEBUG,
-                    StatusCode::UNAUTHORIZED,
-                    file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    }
-                    .to_string(),
-                )
-            }
+            CustomersServiceError::Unauthorized => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::CustomerExists => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            CustomersServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -113,13 +147,13 @@ pub trait CustomerService {
     ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[CustomerResolved],
+        payload: &[CustomerResolvedPrint],
     ) -> impl Future<Output = CustomersServiceResult<Bytes>> + Sync;
 }
 
 impl<'a, T> CustomerService for Service<'a, T>
 where
-    T: CustomersModule,
+    T: CustomersModuleInterface,
 {
     async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
         self.module()
@@ -161,6 +195,11 @@ where
             .await?)
     }
     async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+        if !payload.id.is_present() {
+            return Err(CustomersServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .customers_repo(
@@ -196,10 +235,10 @@ where
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolved]) -> CustomersServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Bytes> {
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

@@ -21,13 +21,13 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::taxes::dto::TaxUserInput;
+use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -36,7 +36,7 @@ pub trait TaxesRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Tax>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaxResolved>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)>;
@@ -105,7 +105,7 @@ impl TaxesRepository for PgPool {
         .fetch_all(self)
         .await?)
     }
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)> {
@@ -114,11 +114,11 @@ impl TaxesRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"SELECT COUNT(*) FROM taxes
                     WHERE deleted_at IS NULL
                         AND ($1::TEXT IS NULL OR taxes.{filter_by}::TEXT ILIKE '%' || $1 || '%')"#,
-                ))
+                )))
                 .bind(value_unchecked)
                 .fetch_one(self)
                 .await?
@@ -175,7 +175,7 @@ impl TaxesRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, TaxResolved>(&sql)
+                sqlx::query_as::<_, TaxResolved>(AssertSqlSafe(sql))
                     .bind(value_unchecked)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -212,7 +212,7 @@ impl TaxesRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, TaxResolved>(&sql)
+                sqlx::query_as::<_, TaxResolved>(AssertSqlSafe(sql))
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
                     .fetch_all(self)

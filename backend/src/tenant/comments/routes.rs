@@ -19,13 +19,13 @@
 
 use std::sync::Arc;
 
-use super::CommentsModule;
+use super::CommentsModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
 use axum::{Router, routing::post};
 
-pub fn routes<M: CommentsModule>(comments_module: Arc<M>) -> Router {
+pub fn routes<M: CommentsModuleInterface>(comments_module: Arc<M>) -> Router {
     Router::new().nest(
         "/comments",
         Router::new()

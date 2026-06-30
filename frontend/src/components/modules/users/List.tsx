@@ -32,7 +32,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";

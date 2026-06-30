@@ -33,7 +33,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";

@@ -38,7 +38,7 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait TaxesModule: BaseModule {
+pub trait TaxesModuleInterface: BaseModule {
     fn taxes_repo(
         &self,
         tenant_id: Uuid,
@@ -49,7 +49,7 @@ pub trait TaxesModule: BaseModule {
     ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
 }
 
-impl<P, T> TaxesModule for AppState<P, T>
+impl<P, T> TaxesModuleInterface for AppState<P, T>
 where
     P: PoolManager + Send + Sync + 'static,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
@@ -69,12 +69,12 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -84,16 +84,22 @@ pub mod tests {
     mock!(
         pub TaxesModule {}
         impl ConfigProvider for TaxesModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for TaxesModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl TaxesModule for TaxesModule {
-            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
-            fn address_repo(&self) -> Arc<dyn AddressRepository>;
+        impl BaseModule for TaxesModule {}
+        impl TaxesModuleInterface for TaxesModule {
+            fn taxes_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+            fn address_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
         }
     );
 }
-*/

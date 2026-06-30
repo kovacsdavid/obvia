@@ -20,7 +20,7 @@
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryResult;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::inventory_reservations::dto::InventoryReservationUserInput;
+use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
 };
@@ -30,7 +30,7 @@ use crate::tenant::inventory_reservations::types::{
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgPool;
+use sqlx::{AssertSqlSafe, PgPool};
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -38,7 +38,7 @@ use uuid::Uuid;
 pub trait InventoryReservationsRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservation>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryReservationResolved>;
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
@@ -47,6 +47,10 @@ pub trait InventoryReservationsRepository: Send + Sync {
         &self,
         input: InventoryReservationUserInput,
         sub: Uuid,
+    ) -> RepositoryResult<InventoryReservation>;
+    async fn update(
+        &self,
+        input: &InventoryReservationUserInput,
     ) -> RepositoryResult<InventoryReservation>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
@@ -91,7 +95,7 @@ impl InventoryReservationsRepository for PgPool {
         .await?)
     }
 
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
@@ -101,14 +105,14 @@ impl InventoryReservationsRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"
                     SELECT COUNT(*)
                     FROM inventory_reservations
                     WHERE inventory_id = $1
                         AND ($2::TEXT IS NULL OR inventory_reservations.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     "#,
-                ))
+                )))
                 .bind(inventory_id)
                 .bind(value_unchecked)
                 .fetch_one(self)
@@ -169,7 +173,7 @@ impl InventoryReservationsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryReservationResolved>(&query)
+                sqlx::query_as::<_, InventoryReservationResolved>(AssertSqlSafe(query))
                     .bind(inventory_id)
                     .bind(value_unchecked)
                     .bind(limit)
@@ -201,7 +205,7 @@ impl InventoryReservationsRepository for PgPool {
                     "#
                 );
 
-                sqlx::query_as::<_, InventoryReservationResolved>(&query)
+                sqlx::query_as::<_, InventoryReservationResolved>(AssertSqlSafe(query))
                     .bind(inventory_id)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -248,7 +252,13 @@ impl InventoryReservationsRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-
+    async fn update(
+        &self,
+        _input: &InventoryReservationUserInput,
+    ) -> RepositoryResult<InventoryReservation> {
+        // TODO: implement this function!
+        todo!()
+    }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         let _ = sqlx::query(
             r#"

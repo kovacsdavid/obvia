@@ -21,13 +21,16 @@ use super::{
     AuthModuleInterface,
     dto::{claims::Claims, login::UserPublic},
 };
-use crate::common::service::{Service, ServiceError};
 use crate::{
     common::extractors::ClientContext,
     manager::auth::{
         dto::{login::LoginRequest, register::RegisterRequest},
         model::{AccountEventStatus, AccountEventType},
     },
+};
+use crate::{
+    common::service::{Service, ServiceError},
+    manager::{auth::dto::claims::ClaimsError, users::model::UserModelError},
 };
 use crate::{
     common::value_object::ValueObjectError,
@@ -56,6 +59,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{Duration, Utc};
+use chrono_tz::Tz;
 use handlebars::Handlebars;
 use jsonwebtoken::{EncodingKey, Header, encode};
 use lettre::{
@@ -127,6 +131,12 @@ pub enum AuthServiceError {
 
     #[error("Unexpected ValueObjectError: {0}")]
     UnexpectedValueObjectError(#[from] ValueObjectError),
+
+    #[error("UserModelError: {0}")]
+    UserModelError(#[from] UserModelError),
+
+    #[error("ClaimsError: {0}")]
+    ClaimsError(#[from] ClaimsError),
 }
 
 impl From<ServiceError> for AuthServiceError {
@@ -146,6 +156,7 @@ impl IntoFriendlyError for AuthServiceError {
             Self::UserNotFound
             | Self::InvalidPassword
             | Self::UserInactive
+            | Self::EmailValidationResend
             | Self::InvalidEmailValidationToken
             | Self::Unauthorized
             | Self::TooManyAttempts(_)
@@ -412,6 +423,8 @@ where
                     return Err(e);
                 }
             },
+            user.locale.clone(),
+            user.timezone()?,
             active_tenant_id,
             self.module().config().auth().jwt_secret().as_bytes(),
             None,
@@ -465,6 +478,8 @@ where
                     return Err(e);
                 }
             },
+            user.locale.clone(),
+            user.timezone()?,
             active_tenant_id,
             self.module().config().auth().jwt_secret().as_bytes(),
             Some(Uuid::new_v4()),
@@ -825,6 +840,8 @@ where
                     return Err(e);
                 }
             },
+            user.locale.clone(),
+            user.timezone()?,
             active_tenant_id,
             self.module().config().auth().jwt_secret().as_bytes(),
             None,
@@ -854,6 +871,8 @@ where
             self.module().config().auth().jwt_issuer().to_string(),
             format!("{}-auth", self.module().config().auth().jwt_audience()),
             current_refresh_token_claims.exp(),
+            user.locale.clone(),
+            user.timezone()?,
             active_tenant_id,
             self.module().config().auth().jwt_secret().as_bytes(),
             current_refresh_token_claims.family_id(),
@@ -1095,7 +1114,7 @@ where
             .get_user_by_id(email_verification.user_id)
             .await?;
         user.status = String::from("pending");
-        self.module().auth_repo().update_user(user).await?;
+        self.module().auth_repo().update_user(&user).await?;
         self.module()
             .auth_repo()
             .invalidate_email_verification(email_verification.id)
@@ -1110,7 +1129,8 @@ where
             .module()
             .auth_repo()
             .get_user_by_email(payload.email.as_str()?)
-            .await?;
+            .await
+            .map_err(|_| AuthServiceError::EmailValidationResend)?;
         if user.need_email_verification() {
             let email_verification = self
                 .module()
@@ -1317,7 +1337,7 @@ where
                 }
             };
 
-            match self.module().auth_repo().update_user(user.clone()).await {
+            match self.module().auth_repo().update_user(&user).await {
                 Ok(_) => (),
                 Err(e) => {
                     self.module()
@@ -1549,11 +1569,14 @@ fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
     .map_err(|_| AuthServiceError::Token("exp can not be converted to usize".to_string()))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn gen_jwt(
     sub: Uuid,
     iss: String,
     aud: String,
     exp: usize,
+    loc: String,
+    tz: Tz,
     active_tenant_id: Option<Uuid>,
     encoding_key: &[u8],
     family_id: Option<Uuid>,
@@ -1569,6 +1592,8 @@ fn gen_jwt(
         iss,
         aud,
         Uuid::new_v4(),
+        loc,
+        tz,
         family_id,
         active_tenant_id,
     );
@@ -1712,5 +1737,21 @@ where
     match auth_module.send(email).await {
         Ok(_) => Ok(()),
         Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_password_hash() {
+        let hash = generate_password_hash("correctpassword".as_bytes()).unwrap();
+        let hash = PasswordHash::new(&hash).unwrap();
+        assert!(
+            Argon2::default()
+                .verify_password("correctpassword".as_bytes(), &hash)
+                .is_ok()
+        )
     }
 }

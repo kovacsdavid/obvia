@@ -24,7 +24,7 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
-use crate::tenant::activity_feed::ActivityFeedModule;
+use crate::tenant::activity_feed::ActivityFeedModuleInterface;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use axum::http::StatusCode;
@@ -65,6 +65,17 @@ impl IntoFriendlyError for ActivityFeedServiceError {
                 }
                 .to_string(),
             ),
+            ActivityFeedServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
             e => {
                 FriendlyError::internal_with_admin_notify(
                     file!(),
@@ -93,7 +104,7 @@ pub trait ActivityFeedService {
 
 impl<'a, T> ActivityFeedService for Service<'a, T>
 where
-    T: ActivityFeedModule,
+    T: ActivityFeedModuleInterface,
 {
     async fn get_all_paged(
         &self,
@@ -108,7 +119,7 @@ where
                     .active_tenant()
                     .ok_or(ActivityFeedServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query, resource_id, resource_type)
+            .get_paged(get_query, resource_id, resource_type)
             .await?)
     }
 }

@@ -40,7 +40,7 @@ impl ValueObjectData for MovementType {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "in" | "out" | "adjustment" | "transfer" => Ok(()),
+            "in" | "out" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }

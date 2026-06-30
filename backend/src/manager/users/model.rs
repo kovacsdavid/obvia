@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use chrono_tz::Tz;
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 use thiserror::Error;
@@ -30,9 +31,14 @@ pub enum UserModelError {
 
     #[error("Invalid MFA token")]
     InvalidMfaToken,
+
+    #[error("Invalid timezone")]
+    InvalidTimezone,
 }
 
-#[derive(Serialize, FromRow, Debug, Clone)]
+pub type UserModelResult<T> = Result<T, UserModelError>;
+
+#[derive(Serialize, FromRow, Debug, Clone, PartialEq)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -43,7 +49,7 @@ pub struct User {
     pub status: String,
     pub last_login_at: Option<chrono::DateTime<chrono::Utc>>,
     pub profile_picture_url: Option<String>,
-    pub locale: Option<String>,
+    pub locale: String,
     pub invited_by: Option<Uuid>,
     pub email_verified_at: Option<chrono::DateTime<chrono::Utc>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
@@ -51,6 +57,7 @@ pub struct User {
     pub deleted_at: Option<chrono::DateTime<chrono::Utc>>,
     pub is_mfa_enabled: bool,
     pub mfa_secret: Option<String>,
+    pub timezone: String,
 }
 
 impl User {
@@ -87,7 +94,7 @@ impl User {
         totp.generate_current()
             .map_err(|e| UserModelError::MfaToken(e.to_string()))
     }
-    pub fn check_mfa_token(&self, token_to_test: &str) -> Result<(), UserModelError> {
+    pub fn check_mfa_token(&self, token_to_test: &str) -> UserModelResult<()> {
         match self.get_mfa_token() {
             Ok(current_mfa_token) => {
                 if current_mfa_token == token_to_test {
@@ -98,5 +105,10 @@ impl User {
             }
             Err(_) => Err(UserModelError::InvalidMfaToken),
         }
+    }
+    pub fn timezone(&self) -> UserModelResult<Tz> {
+        self.timezone
+            .parse::<Tz>()
+            .map_err(|_| UserModelError::InvalidTimezone)
     }
 }

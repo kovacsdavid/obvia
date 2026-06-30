@@ -46,12 +46,12 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Eye, MoreHorizontal, Plus, Trash, Printer } from "lucide-react";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     openPopup,
     updateWindowWithPdfData,
 } from "@/lib/utils.ts";
 import { useParams } from "react-router";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -63,6 +63,7 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import ReferenceType from "./ReferenceType";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function InventoryReservationsList() {
     const dispatch = useAppDispatch();
@@ -75,6 +76,7 @@ export default function InventoryReservationsList() {
         () => params["inventoryId"] ?? "",
         [params],
     );
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -302,8 +304,10 @@ export default function InventoryReservationsList() {
                                     </TableCell>
                                     <TableCell>
                                         {item.reserved_until
-                                            ? formatDateToYMDHMS(
+                                            ? formatDateLocal(
                                                   item.reserved_until,
+                                                  claims?.loc,
+                                                  claims?.tz,
                                               )
                                             : "N/A"}
                                     </TableCell>
@@ -312,10 +316,18 @@ export default function InventoryReservationsList() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

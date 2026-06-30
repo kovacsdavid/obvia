@@ -30,7 +30,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TaxUserInputHelper {
     pub id: Option<String>,
     pub rate: String,
@@ -96,7 +96,7 @@ impl From<ValueObjectError> for TaxUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TaxUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub rate: Option<ValueObjectRequired<TaxRate>>,

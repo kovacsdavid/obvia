@@ -37,14 +37,14 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait WarehousesModule: BaseModule {
+pub trait WarehousesModuleInterface: BaseModule {
     fn warehouses_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
 }
 
-impl<P, T> WarehousesModule for AppState<P, T>
+impl<P, T> WarehousesModuleInterface for AppState<P, T>
 where
     P: PoolManager + Send + Sync,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
@@ -58,12 +58,11 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -73,15 +72,18 @@ pub mod tests {
     mock!(
         pub WarehousesModule {}
         impl ConfigProvider for WarehousesModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for WarehousesModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl WarehousesModule for WarehousesModule {
-            fn warehouses_repo(&self) -> Arc<dyn WarehousesRepository>;
+        impl BaseModule for WarehousesModule {}
+        impl WarehousesModuleInterface for WarehousesModule {
+            fn warehouses_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
         }
     );
 }
-*/

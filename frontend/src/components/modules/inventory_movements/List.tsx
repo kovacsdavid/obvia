@@ -47,13 +47,13 @@ import { Paginator } from "@/components/ui/pagination.tsx";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { Eye, MoreHorizontal, Plus, Trash, Printer } from "lucide-react";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     formatNumber,
     openPopup,
     updateWindowWithPdfData,
 } from "@/lib/utils.ts";
 import { useParams } from "react-router";
-import { Link } from "react-router-dom";
+import { Link } from "react-router";
 import { Link as LinkIcon } from "lucide-react";
 import {
     DropdownMenu,
@@ -65,6 +65,7 @@ import {
 } from "@/components/ui/dropdown-menu.tsx";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function InventoryMovementsList() {
     const dispatch = useAppDispatch();
@@ -75,6 +76,7 @@ export default function InventoryMovementsList() {
         () => params["inventoryId"] ?? "",
         [params],
     );
+    const { claims } = useAuth();
 
     const updateSpecialQueryParams = useCallback((parsedQuery: GetQuery) => {
         console.log(parsedQuery);
@@ -340,11 +342,19 @@ export default function InventoryMovementsList() {
                                         </NavLink>
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.movement_date)}
+                                        {formatDateLocal(
+                                            item.movement_date,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

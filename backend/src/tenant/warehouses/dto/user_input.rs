@@ -27,7 +27,7 @@ use axum::response::{IntoResponse, Response};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WarehouseUserInputHelper {
     pub id: Option<String>,
     pub name: String,
@@ -78,7 +78,7 @@ impl From<ValueObjectError> for WarehouseUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WarehouseUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub name: ValueObjectRequired<WarehouseName>,

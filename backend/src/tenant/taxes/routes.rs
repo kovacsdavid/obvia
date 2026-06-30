@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::TaxesModule;
+use super::TaxesModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::Router;
@@ -25,7 +25,7 @@ use axum::middleware::from_fn_with_state;
 use axum::routing::{delete, get, post, put};
 use std::sync::Arc;
 
-pub fn routes<M: TaxesModule>(taxes_module: Arc<M>) -> Router {
+pub fn routes<M: TaxesModuleInterface>(taxes_module: Arc<M>) -> Router {
     Router::new().nest(
         "/taxes",
         Router::new()

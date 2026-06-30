@@ -107,8 +107,8 @@ pub(crate) mod tests {
         fn default() -> Self {
             AuthConfigBuilder::new()
                 .jwt_secret("test_jwt_secret")
-                .jwt_issuer("http://localhost")
-                .jwt_audience("http://localhost")
+                .jwt_issuer("obvia")
+                .jwt_audience("obvia")
                 .access_token_expiration_mins(5)
                 .refresh_token_expiration_mins(60)
         }

@@ -21,7 +21,7 @@ import React, { useState, useEffect } from "react";
 import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { registerUserRequest } from "@/components/modules/auth/lib/slice.ts";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { type ProcessedJsonResponse } from "@/lib/interface.ts";
 import { type RegisterResponse } from "@/components/modules/auth/lib/interface.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";

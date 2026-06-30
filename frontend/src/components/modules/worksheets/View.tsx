@@ -34,13 +34,14 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
+import { formatDateLocal, formatNumber } from "@/lib/utils.ts";
 import type { WorksheetResolved } from "@/components/modules/worksheets/lib/interface.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Plus } from "lucide-react";
 import { Link as LinkIcon } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<WorksheetResolved | null>(null);
@@ -48,6 +49,7 @@ export default function View() {
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
+    const { claims } = useAuth();
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
@@ -157,16 +159,20 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Létrehozva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.created_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Frissítve</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.updated_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>

@@ -21,7 +21,7 @@ import React, { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks.ts";
 import type { RootState } from "@/store";
 import { Button, GlobalError, Input } from "@/components/ui";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router";
 import { useAuth } from "@/hooks/use_auth";
 import { loginUser } from "@/components/modules/auth/lib/slice.ts";
 import { Card, CardContent } from "@/components/ui/card.tsx";

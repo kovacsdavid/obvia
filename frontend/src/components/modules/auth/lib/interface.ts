@@ -86,6 +86,12 @@ export interface Claims {
     /** A unique identifier for the token, typically a UUID */
     jti: string;
 
+    /** The user's locale. */
+    loc: string;
+
+    /** The user's timezone. */
+    tz: string;
+
     family_id: string | null;
 
     /** The UUID of the active tenant associated with the current context */

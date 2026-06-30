@@ -21,15 +21,19 @@ use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::worksheets::WorksheetsModule;
-use crate::tenant::worksheets::dto::WorksheetUserInput;
+use crate::tenant::worksheets::WorksheetsModuleInterface;
+use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
+use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -43,6 +47,9 @@ pub enum WorksheetsServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
@@ -71,6 +78,26 @@ impl IntoFriendlyError for WorksheetsServiceError {
                 file!(),
                 GeneralError {
                     message: WorksheetsServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
+            WorksheetsServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            WorksheetsServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
                 }
                 .to_string(),
             ),
@@ -132,13 +159,13 @@ pub trait WorksheetService {
     ) -> impl Future<Output = WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[WorksheetResolved],
+        payload: &[WorksheetResolvedPrint],
     ) -> impl Future<Output = WorksheetsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> WorksheetService for Service<'a, T>
 where
-    T: WorksheetsModule,
+    T: WorksheetsModuleInterface,
 {
     async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
         Ok(self
@@ -194,6 +221,11 @@ where
     }
 
     async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
+        if !payload.id.is_present() {
+            return Err(WorksheetsServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .worksheets_repo(
@@ -227,14 +259,14 @@ where
                     .active_tenant()
                     .ok_or(WorksheetsServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 
-    async fn print(&self, payload: &[WorksheetResolved]) -> WorksheetsServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Bytes> {
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

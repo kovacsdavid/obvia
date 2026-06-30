@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router";
 import { query_encoder, query_parser } from "@/lib/utils.ts";
 import React, { useEffect, useMemo, useCallback } from "react";
 import type { GetQuery } from "@/lib/get_query";

@@ -37,14 +37,14 @@ pub(crate) mod routes;
 pub(crate) mod service;
 pub(crate) mod types;
 
-pub trait CustomersModule: BaseModule {
+pub trait CustomersModuleInterface: BaseModule {
     fn customers_repo(
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
 }
 
-impl<P, T> CustomersModule for AppState<P, T>
+impl<P, T> CustomersModuleInterface for AppState<P, T>
 where
     P: PoolManager,
     T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
@@ -58,19 +58,12 @@ where
     }
 }
 
-/*
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryResult;
-    use crate::common::model::SelectOption;
-    use crate::common::query_parser::ResourceQuery;
-    use crate::tenant::customers::dto::CustomerUserInput;
-    use crate::tenant::customers::model::{Customer, CustomerResolved};
-    use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -87,35 +80,12 @@ pub mod tests {
         impl MailTransporter for CustomersModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
-        impl CustomersRepository for CustomersModule {
-            async fn get_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<Customer>;
-            async fn get_resolved_by_id(
+        impl BaseModule for CustomersModule {}
+        impl CustomersModuleInterface for CustomersModule {
+            fn customers_repo(
                 &self,
-                id: Uuid,
-                active_tenant: Uuid,
-            ) -> RepositoryResult<CustomerResolved>;
-            async fn get_paged(
-                &self,
-                query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-                active_tenant: Uuid,
-            ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
-            async fn get_select_list_items(
-                &self,
-                active_tenant: Uuid,
-            ) -> RepositoryResult<Vec<SelectOption>>;
-            async fn insert(
-                &self,
-                customer: &CustomerUserInput,
-                sub: Uuid,
-                active_tenant: Uuid,
-            ) -> RepositoryResult<Customer>;
-            async fn update(
-                &self,
-                customer: &CustomerUserInput,
-                active_tenant: Uuid,
-            ) -> RepositoryResult<Customer>;
-            async fn delete_by_id(&self, id: Uuid, active_tenant: Uuid) -> RepositoryResult<()>;
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
         }
     );
 }
-*/

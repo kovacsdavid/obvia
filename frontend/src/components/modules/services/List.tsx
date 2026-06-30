@@ -42,7 +42,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table.tsx";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router";
 import { useAppDispatch } from "@/store/hooks.ts";
 import React, { useCallback, useEffect } from "react";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
@@ -54,7 +54,7 @@ import {
 } from "@/components/modules/services/lib/slice.ts";
 import { type ServiceResolvedList } from "@/components/modules/services/lib/interface.ts";
 import {
-    formatDateToYMDHMS,
+    formatDateLocal,
     formatNumber,
     openPopup,
     updateWindowWithPdfData,
@@ -77,11 +77,13 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function List() {
     const dispatch = useAppDispatch();
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const [data, setData] = React.useState<ServiceResolvedList>([]);
+    const { claims } = useAuth();
 
     const {
         rawQuery,
@@ -379,10 +381,18 @@ export default function List() {
                                     </TableCell>
                                     <TableCell>{item.created_by}</TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.created_at)}
+                                        {formatDateLocal(
+                                            item.created_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {formatDateToYMDHMS(item.updated_at)}
+                                        {formatDateLocal(
+                                            item.updated_at,
+                                            claims?.loc,
+                                            claims?.tz,
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

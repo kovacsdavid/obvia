@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/select.tsx";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useFormError } from "@/hooks/use_form_error.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
 import type { Inventory } from "./lib/interface";

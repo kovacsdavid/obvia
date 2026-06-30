@@ -22,17 +22,21 @@ use crate::common::dto::GeneralError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::inventory_movements::InventoryMovementsModule;
-use crate::tenant::inventory_movements::dto::InventoryMovementUserInput;
+use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
+use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
+use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
 use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMovementResolved};
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -46,6 +50,9 @@ pub enum InventoryMovementsServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
@@ -71,6 +78,26 @@ impl IntoFriendlyError for InventoryMovementsServiceError {
             InventoryMovementsServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryMovementsServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            InventoryMovementsServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
                 file!(),
                 GeneralError {
                     message: self.to_string(),
@@ -118,6 +145,10 @@ pub trait InventoryMovementService {
         &self,
         payload: &InventoryMovementUserInput,
     ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    fn update(
+        &self,
+        payload: &InventoryMovementUserInput,
+    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
@@ -143,13 +174,13 @@ pub trait InventoryMovementService {
     > + Send;
     fn print(
         &self,
-        payload: &[InventoryMovementResolved],
+        payload: &[InventoryMovementsResolvedPrint],
     ) -> impl Future<Output = InventoryMovementsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> InventoryMovementService for Service<'a, T>
 where
-    T: InventoryMovementsModule,
+    T: InventoryMovementsModuleInterface,
 {
     async fn insert(
         &self,
@@ -176,7 +207,25 @@ where
             .get_by_id(payload)
             .await?)
     }
-
+    async fn update(
+        &self,
+        payload: &InventoryMovementUserInput,
+    ) -> InventoryMovementsServiceResult<InventoryMovement> {
+        if !payload.id.is_present() {
+            return Err(InventoryMovementsServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
+        Ok(self
+            .module()
+            .inventory_movements_repo(
+                self.claims()?
+                    .active_tenant()
+                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+            )?
+            .update(payload)
+            .await?)
+    }
     async fn get_resolved(
         &self,
         payload: Uuid,
@@ -216,7 +265,7 @@ where
                     .active_tenant()
                     .ok_or(InventoryMovementsServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query, inventory_id)
+            .get_paged(get_query, inventory_id)
             .await?)
     }
     async fn get_select_list_items(
@@ -250,13 +299,14 @@ where
             },
         )
     }
+
     async fn print(
         &self,
-        payload: &[InventoryMovementResolved],
+        payload: &[InventoryMovementsResolvedPrint],
     ) -> InventoryMovementsServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

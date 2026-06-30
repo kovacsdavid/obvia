@@ -33,7 +33,7 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait ActivityFeedRepository: Send + Sync {
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
@@ -43,7 +43,7 @@ pub trait ActivityFeedRepository: Send + Sync {
 
 #[async_trait]
 impl ActivityFeedRepository for PgPool {
-    async fn get_all_paged(
+    async fn get_paged(
         &self,
         query_params: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,

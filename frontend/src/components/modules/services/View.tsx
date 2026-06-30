@@ -35,13 +35,14 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS, formatNumber } from "@/lib/utils.ts";
-import { useNavigate } from "react-router-dom";
+import { formatDateLocal, formatNumber } from "@/lib/utils.ts";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "lucide-react";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<ServiceResolved | null>(null);
@@ -49,6 +50,7 @@ export default function View() {
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
+    const { claims } = useAuth();
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
@@ -160,16 +162,20 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Létrehozva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.created_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Frissítve</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.updated_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>

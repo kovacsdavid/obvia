@@ -247,6 +247,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
+    use chrono::Duration;
     use chrono::Utc;
     use ipnetwork::IpNetwork;
     use lettre::transport::smtp::response::Category;
@@ -255,9 +256,10 @@ mod tests {
     use lettre::transport::smtp::response::Response;
     use lettre::transport::smtp::response::Severity;
     use mockall::predicate::*;
-    use sqlx::error::{DatabaseError, ErrorKind};
-    use std::error::Error;
-    use std::fmt::{Debug, Display, Formatter};
+    use serde_json::json;
+    use sqlx::error::DatabaseError;
+    use std::collections::HashMap;
+    use std::net::IpAddr;
     use std::net::Ipv4Addr;
     use std::sync::Arc;
     use tower::ServiceExt;
@@ -265,6 +267,10 @@ mod tests {
 
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
+    use crate::common::handler::tests::MockUniqueViolation;
+    use crate::common::handler::tests::generate_expired_refresh_token;
+    use crate::common::handler::tests::generate_refresh_token_with_invalid_signature;
+    use crate::common::handler::tests::generate_valid_refresh_token;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
@@ -273,8 +279,10 @@ mod tests {
     use crate::manager::auth::model::AccountEventStatus;
     use crate::manager::auth::model::AccountEventType;
     use crate::manager::auth::model::EmailVerification;
+    use crate::manager::auth::model::ForgottenPassword;
     use crate::manager::auth::model::RefreshToken;
     use crate::manager::auth::repository::MockAuthRepository;
+    use crate::manager::auth::repository::unix_seconds_to_utc;
     use crate::manager::auth::tests::MockAuthModule;
     use crate::manager::tenants::model::UserTenant;
     use crate::manager::{
@@ -291,6 +299,7 @@ mod tests {
 
         let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
+            .times(1)
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
                 id: user_id1,
@@ -302,7 +311,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -310,11 +319,14 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
         repo.expect_get_user_active_tenant()
+            .times(1)
             .with(eq(user_id2))
             .returning(|_| Ok(None));
         repo.expect_update_user_last_login_at()
+            .times(1)
             .with(eq(user_id2))
             .returning(|_| Ok(()));
         repo.expect_insert_refresh_token().times(1).returning(|_| {
@@ -403,9 +415,9 @@ mod tests {
     #[tokio::test]
     async fn test_login_failure() {
         let user_id1 = Uuid::new_v4();
-        let user_id2 = user_id1;
         let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
+            .times(1)
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
                 id: user_id1,
@@ -417,7 +429,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -425,15 +437,11 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
-        repo.expect_get_user_active_tenant()
-            .with(eq(user_id2))
-            .returning(|_| Ok(None));
-
         repo.expect_account_event_log_ip_and_event_status_count()
             .times(1)
             .returning(|_, _, _| Ok(0));
-
         repo.expect_insert_account_event_log()
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
@@ -499,6 +507,7 @@ mod tests {
 
         let mut repo = MockAuthRepository::new();
         repo.expect_insert_user()
+            .times(1)
             .withf(move |payload_param, hashed_password| {
                 *payload_param
                     == RegisterRequest {
@@ -524,7 +533,7 @@ mod tests {
                     status: "active".to_string(),
                     last_login_at: Some(Utc::now()),
                     profile_picture_url: None,
-                    locale: Some("hu-HU".to_string()),
+                    locale: "hu-HU".to_string(),
                     invited_by: None,
                     email_verified_at: Some(Utc::now()),
                     created_at: Utc::now(),
@@ -532,6 +541,7 @@ mod tests {
                     deleted_at: None,
                     is_mfa_enabled: false,
                     mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
                 }));
         repo.expect_insert_email_verification()
             .times(1)
@@ -591,48 +601,10 @@ mod tests {
         })
         .unwrap();
 
-        pub struct DummyDatabaseError;
-
-        impl Error for DummyDatabaseError {}
-        impl Debug for DummyDatabaseError {
-            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
-                unimplemented!()
-            }
-        }
-        impl Display for DummyDatabaseError {
-            fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
-                unimplemented!()
-            }
-        }
-        impl DatabaseError for DummyDatabaseError {
-            fn message(&self) -> &str {
-                unimplemented!()
-            }
-
-            fn as_error(&self) -> &(dyn Error + Send + Sync + 'static) {
-                unimplemented!()
-            }
-
-            fn as_error_mut(&mut self) -> &mut (dyn Error + Send + Sync + 'static) {
-                unimplemented!()
-            }
-
-            fn into_error(self: Box<Self>) -> Box<dyn Error + Send + Sync + 'static> {
-                unimplemented!()
-            }
-
-            fn kind(&self) -> ErrorKind {
-                unimplemented!()
-            }
-            fn is_unique_violation(&self) -> bool {
-                true
-            }
-        }
-
         let mut repo = MockAuthRepository::new();
-        repo.expect_insert_user().returning(|_, _| {
+        repo.expect_insert_user().times(1).returning(|_, _| {
             Err(RepositoryError::Database(sqlx::Error::Database(
-                Box::new(DummyDatabaseError) as Box<dyn DatabaseError>,
+                Box::new(MockUniqueViolation) as Box<dyn DatabaseError>,
             )))
         });
 
@@ -660,13 +632,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_active_user_tenant() {
+    async fn test_login_success_contains_active_tenant_id() {
         let active_tenant_id1 = Uuid::new_v4();
         let active_tenant_id2 = active_tenant_id1;
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
         let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
+            .times(1)
             .with(eq("testuser@example.com"))
             .returning(move |_| Ok(User {
                 id: user_id1,
@@ -678,7 +651,7 @@ mod tests {
                 status: "active".to_string(),
                 last_login_at: Some(Utc::now()),
                 profile_picture_url: None,
-                locale: Some("hu-HU".to_string()),
+                locale: "hu-HU".to_string(),
                 invited_by: None,
                 email_verified_at: Some(Utc::now()),
                 created_at: Utc::now(),
@@ -686,8 +659,10 @@ mod tests {
                 deleted_at: None,
                 is_mfa_enabled: false,
                 mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
             }));
         repo.expect_get_user_active_tenant()
+            .times(1)
             .with(eq(user_id2))
             .returning(move |user_id| {
                 Ok(Some(UserTenant {
@@ -704,6 +679,7 @@ mod tests {
             });
 
         repo.expect_update_user_last_login_at()
+            .times(1)
             .with(eq(user_id2))
             .returning(|_| Ok(()));
 
@@ -791,5 +767,1115 @@ mod tests {
         assert!(claims.is_ok());
 
         assert_eq!(claims.unwrap().active_tenant().unwrap(), active_tenant_id2)
+    }
+    #[tokio::test]
+    async fn verify_email_success() {
+        let token = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_email_verification()
+            .times(1)
+            .with(eq(token))
+            .returning(move |token| {
+                Ok(EmailVerification {
+                    id: token,
+                    user_id,
+                    valid_until: Utc::now() + Duration::days(1),
+                    created_at: Utc::now() - Duration::days(1),
+                    deleted_at: None,
+                })
+            });
+        let utc_now = Utc::now();
+        repo.expect_get_user_by_id().times(1).with(eq(user_id)).returning(move |_| {
+            Ok(User {
+                id: user_id,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "unchecked_email".to_string(),
+                last_login_at: Some(utc_now),
+                profile_picture_url: None,
+                locale: "hu-HU".to_string(),
+                invited_by: None,
+                email_verified_at: Some(utc_now),
+                created_at: utc_now,
+                updated_at: utc_now,
+                deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
+            })
+        });
+        repo.expect_update_user().times(1).with(eq(
+            User {
+                id: user_id,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "pending".to_string(),
+                last_login_at: Some(utc_now),
+                profile_picture_url: None,
+                locale: "hu-HU".to_string(),
+                invited_by: None,
+                email_verified_at: Some(utc_now),
+                created_at: utc_now,
+                updated_at: utc_now,
+                deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
+            }
+        )).returning(|user| {
+            Ok(user.clone())
+        });
+        repo.expect_invalidate_email_verification()
+            .times(1)
+            .with(eq(token))
+            .returning(|_| Ok(()));
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/auth/verify_email?id={token}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+    #[tokio::test]
+    async fn verify_email_failure() {
+        let token = Uuid::new_v4();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_email_verification()
+            .times(1)
+            .with(eq(token))
+            .returning(|_| Err(RepositoryError::Custom("something went wrong".to_string())));
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/auth/verify_email?id={token}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    #[tokio::test]
+    async fn resend_email_verification_success() {
+        let user_id = Uuid::new_v4();
+        let valid_user_email = "testuser@example.com".to_string();
+        let utc_now = Utc::now();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email().times(1).with(eq(valid_user_email.clone())).returning(move |valid_user_email| {
+            Ok(User {
+                id: user_id,
+                email: valid_user_email.to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "unchecked_email".to_string(),
+                last_login_at: Some(utc_now),
+                profile_picture_url: None,
+                locale: "hu-HU".to_string(),
+                invited_by: None,
+                email_verified_at: Some(utc_now),
+                created_at: utc_now,
+                updated_at: utc_now,
+                deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
+            })
+        });
+        repo.expect_insert_email_verification()
+            .times(1)
+            .with(eq(user_id))
+            .returning(move |user_id| {
+                Ok(EmailVerification {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    valid_until: utc_now + Duration::days(1),
+                    created_at: utc_now,
+                    deleted_at: None,
+                })
+            });
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+        app_state.expect_send().times(1).returning(|_| {
+            Box::pin(ready(Ok(Some(Response::new(
+                Code::new(
+                    Severity::PositiveIntermediate,
+                    Category::Connections,
+                    Detail::One,
+                ),
+                vec![],
+            )))))
+        });
+
+        let mut payload = HashMap::new();
+        payload.insert("email".to_string(), valid_user_email);
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/auth/resend_email_verification")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+    #[tokio::test]
+    async fn resend_email_verification_failure() {
+        let invalid_user_email = "testuser@example.com".to_string();
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
+            .times(1)
+            .with(eq(invalid_user_email.clone()))
+            .returning(move |_| Err(RepositoryError::Custom("user_not_found".to_string())));
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let mut payload = HashMap::new();
+        payload.insert("email".to_string(), invalid_user_email);
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/auth/resend_email_verification")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+    #[tokio::test]
+    async fn forgotten_password_success() {
+        let mut repo = MockAuthRepository::new();
+        let valid_user_email = "testuser@example.com".to_string();
+        let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
+        let user_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+        repo.expect_account_event_log_by_ip_and_event_type_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventType::PasswordResetRequest), eq(120))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventStatus::Failure), eq(60))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_get_user_by_email()
+            .times(1)
+            .with(eq(valid_user_email.clone()))
+            .returning(move |valid_user_email| {
+                Ok(User {
+                    id: user_id,
+                    email: valid_user_email.to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: "hu-HU".to_string(),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
+                })
+            });
+        repo.expect_insert_forgotten_password()
+            .times(1)
+            .with(eq(user_id))
+            .returning(move |_| {
+                Ok(ForgottenPassword {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    valid_until: utc_now + Duration::days(1),
+                    created_at: utc_now,
+                    deleted_at: None,
+                })
+            });
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .withf({
+                let valid_user_email_clone = valid_user_email.clone();
+                move |user_id_param, user_email, aet, aes, ip_param, _, _| {
+                    Some(user_id) == *user_id_param
+                        && Some(&valid_user_email_clone) == user_email.as_ref()
+                        && *aet == AccountEventType::PasswordResetRequest
+                        && *aes == AccountEventStatus::Success
+                        && *ip_param == Some(ip)
+                }
+            })
+            .returning(move |user_id, user_email, _, _, _, _, _| {
+                let user_email = user_email.unwrap();
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    identifier: Some(user_email),
+                    event_type: AccountEventType::PasswordResetRequest,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Utc::now(),
+                })
+            });
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+        app_state.expect_send().times(1).returning(|_| {
+            Box::pin(ready(Ok(Some(Response::new(
+                Code::new(
+                    Severity::PositiveIntermediate,
+                    Category::Connections,
+                    Detail::One,
+                ),
+                vec![],
+            )))))
+        });
+
+        let mut payload = HashMap::new();
+        payload.insert("email".to_string(), valid_user_email);
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/forgotten_password")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+    #[tokio::test]
+    async fn forgotten_password_failure() {
+        let mut repo = MockAuthRepository::new();
+        let valid_user_email = "testuser@example.com".to_string();
+        let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
+        let user_id = Uuid::new_v4();
+        repo.expect_account_event_log_by_ip_and_event_type_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventType::PasswordResetRequest), eq(120))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventStatus::Failure), eq(60))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_get_user_by_email()
+            .times(1)
+            .with(eq(valid_user_email.clone()))
+            .returning(move |valid_user_email| {
+                Ok(User {
+                    id: user_id,
+                    email: valid_user_email.to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "inactive".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: "hu-HU".to_string(),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
+                })
+            });
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .withf({
+                let valid_user_email_clone = valid_user_email.clone();
+                move |user_id_param, user_email, aet, aes, ip_param, _, _| {
+                    Some(user_id) == *user_id_param
+                        && Some(&valid_user_email_clone) == user_email.as_ref()
+                        && *aet == AccountEventType::PasswordResetRequest
+                        && *aes == AccountEventStatus::Failure
+                        && *ip_param == Some(ip)
+                }
+            })
+            .returning(move |user_id, user_email, _, _, _, _, _| {
+                let user_email = user_email.unwrap();
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    identifier: Some(user_email),
+                    event_type: AccountEventType::PasswordResetRequest,
+                    status: AccountEventStatus::Failure,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Utc::now(),
+                })
+            });
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let mut payload = HashMap::new();
+        payload.insert("email".to_string(), valid_user_email);
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/forgotten_password")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        // NOTE: This endpoint returns HTTP OK even if the request
+        // failed to prevent discovery attacks
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+    #[tokio::test]
+    async fn new_password_success() {
+        let token = Uuid::new_v4();
+        let mut repo = MockAuthRepository::new();
+        let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
+        let user_id = Uuid::new_v4();
+        repo.expect_account_event_log_by_ip_and_event_type_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventType::PasswordChange), eq(120))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventStatus::Failure), eq(60))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_get_forgotten_password()
+            .times(1)
+            .with(eq(token))
+            .returning(move |forgotten_password_id| {
+                Ok(ForgottenPassword {
+                    id: forgotten_password_id,
+                    user_id,
+                    valid_until: Utc::now() + Duration::days(1),
+                    created_at: Utc::now(),
+                    deleted_at: None,
+                })
+            });
+        repo.expect_get_user_by_id()
+            .times(1)
+            .with(eq(user_id))
+            .returning(|user_id| {
+                Ok(User {
+                    id: user_id,
+                    email: "testuser@example.com".to_string(),
+                    password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                    first_name: Some("Test".to_string()),
+                    last_name: Some("User".to_string()),
+                    phone: Some("+123456789".to_string()),
+                    status: "active".to_string(),
+                    last_login_at: Some(Utc::now()),
+                    profile_picture_url: None,
+                    locale: "hu-HU".to_string(),
+                    invited_by: None,
+                    email_verified_at: Some(Utc::now()),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                    is_mfa_enabled: false,
+                    mfa_secret: None,
+                    timezone: "Europe/Budapest".to_string(),
+                })
+            });
+        repo.expect_update_user()
+            .times(1)
+            .withf(move |user| {
+                let hash = PasswordHash::new(&user.password_hash).unwrap();
+                user.is_active()
+                    && user.id == user_id
+                    && Argon2::default()
+                        .verify_password("NewPassword1!".as_bytes(), &hash)
+                        .is_ok()
+            })
+            .returning(|user| Ok(user.clone()));
+        repo.expect_invalidate_forgotten_password()
+            .times(1)
+            .with(eq(token))
+            .returning(|_| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .withf({
+                move |user_id_param, _, aet, aes, ip_param, _, _| {
+                    Some(user_id) == *user_id_param
+                        && *aet == AccountEventType::PasswordChange
+                        && *aes == AccountEventStatus::Success
+                        && *ip_param == Some(ip)
+                }
+            })
+            .returning(move |user_id, user_email, _, _, _, _, _| {
+                let user_email = user_email.unwrap();
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    identifier: Some(user_email),
+                    event_type: AccountEventType::PasswordChange,
+                    status: AccountEventStatus::Success,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Utc::now(),
+                })
+            });
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let mut payload = HashMap::new();
+        payload.insert("token".to_string(), token.to_string());
+        payload.insert("password".to_string(), "NewPassword1!".to_string());
+        payload.insert("password_confirm".to_string(), "NewPassword1!".to_string());
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/new_password")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+    #[tokio::test]
+    async fn new_password_failure() {
+        let token = Uuid::new_v4();
+        let mut repo = MockAuthRepository::new();
+        let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
+        repo.expect_account_event_log_by_ip_and_event_type_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventType::PasswordChange), eq(120))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_account_event_log_ip_and_event_status_count()
+            .times(1)
+            .with(eq(ip), eq(AccountEventStatus::Failure), eq(60))
+            .returning(|_, _, _| Ok(0));
+        repo.expect_get_forgotten_password()
+            .times(1)
+            .with(eq(token))
+            .returning(move |_| Err(RepositoryError::Custom("RowNotFound".to_string())));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .withf({
+                move |_, _, aet, aes, ip_param, _, _| {
+                    *aet == AccountEventType::PasswordChange
+                        && *aes == AccountEventStatus::Failure
+                        && *ip_param == Some(ip)
+                }
+            })
+            .returning(move |user_id, user_email, _, _, _, _, _| {
+                let user_email = user_email.unwrap();
+                Ok(AccountEventLogEntry {
+                    id: Uuid::new_v4(),
+                    user_id,
+                    identifier: Some(user_email),
+                    event_type: AccountEventType::PasswordChange,
+                    status: AccountEventStatus::Failure,
+                    ip_address: Some(
+                        IpNetwork::new(Ipv4Addr::new(127, 0, 0, 1).into(), 32).unwrap(),
+                    ),
+                    user_agent: None,
+                    metadata: None,
+                    created_at: Utc::now(),
+                })
+            });
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let mut payload = HashMap::new();
+        payload.insert("token".to_string(), token.to_string());
+        payload.insert("password".to_string(), "NewPassword1!".to_string());
+        payload.insert("password_confirm".to_string(), "NewPassword1!".to_string());
+
+        let payload = serde_json::to_string(&payload).unwrap();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/new_password")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_success() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let new_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let valid_refresh_token = generate_valid_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(Uuid::new_v4()),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_id()
+            .times(1)
+            .with(eq(sub))
+            .returning(|sub| Ok(User {
+                id: sub,
+                email: "testuser@example.com".to_string(),
+                password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
+                first_name: Some("Test".to_string()),
+                last_name: Some("User".to_string()),
+                phone: Some("+123456789".to_string()),
+                status: "active".to_string(),
+                last_login_at: Some(Utc::now()),
+                profile_picture_url: None,
+                locale: "hu-HU".to_string(),
+                invited_by: None,
+                email_verified_at: Some(Utc::now()),
+                created_at: Utc::now(),
+                updated_at: Utc::now(),
+                deleted_at: None,
+                is_mfa_enabled: false,
+                mfa_secret: None,
+                timezone: "Europe/Budapest".to_string(),
+            }));
+        repo.expect_get_refresh_token()
+            .times(1)
+            .with(eq(current_jti))
+            .returning(move |jti| {
+                Ok(RefreshToken {
+                    id: Uuid::new_v4(),
+                    user_id: sub,
+                    family_id: Uuid::new_v4(),
+                    jti,
+                    iat: Utc::now() - Duration::seconds(100),
+                    exp: Utc::now() + Duration::seconds(100),
+                    replaced_by: None,
+                    consumed_at: None,
+                    revoked_at: None,
+                })
+            });
+        repo.expect_get_user_active_tenant()
+            .times(1)
+            .with(eq(sub))
+            .returning(move |_| {
+                Ok(Some(UserTenant {
+                    id: Uuid::new_v4(),
+                    user_id: sub,
+                    tenant_id: active_tenant_id,
+                    role: "owner".to_string(),
+                    invited_by: None,
+                    last_activated: Utc::now(),
+                    created_at: Utc::now(),
+                    updated_at: Utc::now(),
+                    deleted_at: None,
+                }))
+            });
+        repo.expect_insert_refresh_token()
+            .times(1)
+            .withf(move |claims| claims.sub() == sub)
+            .returning(move |claims| {
+                Ok(RefreshToken {
+                    id: Uuid::new_v4(),
+                    user_id: claims.sub(),
+                    family_id: claims.family_id().unwrap(),
+                    jti: new_jti,
+                    iat: unix_seconds_to_utc(claims.iat()).unwrap(),
+                    exp: unix_seconds_to_utc(claims.exp()).unwrap(),
+                    replaced_by: None,
+                    consumed_at: None,
+                    revoked_at: None,
+                })
+            });
+        repo.expect_consume_refresh_token()
+            .times(1)
+            .withf(move |jti, _| *jti == current_jti)
+            .returning(|_, _| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some("testuser@example.com".to_string())),
+                eq(AccountEventType::Refresh),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={valid_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_unauthorized_expired() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let expired_refresh_token = generate_expired_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(Uuid::new_v4()),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Refresh),
+                eq(AccountEventStatus::Blocked),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(Some(json!({"error": "Invalid token"}))),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={expired_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_refresh_unauthorized_missing() {
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(MockAuthRepository::new());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/t/refresh")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_logout_success() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let valid_refresh_token = generate_valid_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_revoke_refresh_tokens_by_family_id()
+            .times(1)
+            .with(eq(family_id))
+            .returning(|_| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={valid_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_logout_success_with_expired_refresh_token() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let expired_refresh_token = generate_expired_refresh_token(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_revoke_refresh_tokens_by_family_id()
+            .times(1)
+            .with(eq(family_id))
+            .returning(|_| Ok(()));
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(Some(sub)),
+                eq(Some(sub.to_string())),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Success),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(None),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header("Cookie", format!("refresh_token={expired_refresh_token}"))
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_logout_unauthorized_wrong_signature() {
+        let sub = Uuid::new_v4();
+        let current_jti = Uuid::new_v4();
+        let active_tenant_id = Uuid::new_v4();
+        let family_id = Uuid::new_v4();
+        let refresh_token_with_invalid_signature = generate_refresh_token_with_invalid_signature(
+            Some(sub),
+            Some(active_tenant_id),
+            Some(current_jti),
+            Some(family_id),
+        );
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_insert_account_event_log()
+            .times(1)
+            .with(
+                eq(None),
+                eq(None),
+                eq(AccountEventType::Logout),
+                eq(AccountEventStatus::Failure),
+                eq(Some("127.0.0.1".parse::<IpAddr>().unwrap())),
+                eq(None),
+                eq(Some(json!({"error": "Invalid token"}))),
+            )
+            .returning(
+                |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
+                    let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
+                    Ok(AccountEventLogEntry {
+                        id: Uuid::new_v4(),
+                        user_id,
+                        identifier,
+                        event_type,
+                        status,
+                        ip_address,
+                        user_agent,
+                        metadata,
+                        created_at: Utc::now(),
+                    })
+                },
+            );
+
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(repo);
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .header(
+                "Cookie",
+                format!("refresh_token={refresh_token_with_invalid_signature}"),
+            )
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_logout_unauthorized_missing_token() {
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        let mut app_state = MockAuthModule::new();
+        let repo = Arc::new(MockAuthRepository::new());
+        app_state.expect_auth_repo().returning(move || repo.clone());
+        app_state.expect_config().return_const(test_config);
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/auth/t/logout")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(auth::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
     }
 }

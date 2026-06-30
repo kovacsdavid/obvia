@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InventoryReservationUserInputHelper {
     pub id: Option<String>,
     pub inventory_id: String,
@@ -86,7 +86,7 @@ impl From<ValueObjectError> for InventoryReservationUserInputError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct InventoryReservationUserInput {
     #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,

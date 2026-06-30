@@ -18,9 +18,8 @@
  */
 
 import type { ReactNode } from "react";
-import { useSelector } from "react-redux";
 import type { RootState } from "@/store";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
     loginUserRequest,
     logoutAndRevokeRefreshToken,
@@ -29,13 +28,15 @@ import { AuthContext } from "@/context/auth/AuthContext";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const dispach = useAppDispatch();
-    const isLoggedIn = useSelector(
+    const isLoggedIn = useAppSelector(
         (state: RootState) => state.auth.login.isLoggedIn,
     );
-    const hasActiveDatabase = useSelector(
+    const hasActiveDatabase = useAppSelector(
         (state: RootState) => state.auth.login.hasActiveDatabase,
     );
-
+    const claims = useAppSelector(
+        (state: RootState) => state.auth.login.claims,
+    );
     const login = (email: string, password: string, otp: string | null) => {
         return dispach(loginUserRequest({ email, password, otp }));
     };
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return (
         <AuthContext.Provider
-            value={{ isLoggedIn, hasActiveDatabase, login, logout }}
+            value={{ isLoggedIn, hasActiveDatabase, claims, login, logout }}
         >
             {children}
         </AuthContext.Provider>

@@ -31,7 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { SidebarProvider } from "@/context/sidebar/SidebarProvider";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router";
 import { Alert, AlertDescription } from "@/components/ui";
 import { FlaskConical } from "lucide-react";
 

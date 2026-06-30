@@ -19,10 +19,12 @@
 
 import { createContext } from "react";
 import type { PayloadAction } from "@reduxjs/toolkit";
+import type { Claims } from "@/components/modules/auth/lib/interface";
 
 type AuthContextType = {
     isLoggedIn: boolean;
     hasActiveDatabase: boolean;
+    claims: Claims | null;
     login: (
         email: string,
         password: string,

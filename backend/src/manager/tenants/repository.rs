@@ -31,7 +31,7 @@ use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
-use sqlx::PgConnection;
+use sqlx::{AssertSqlSafe, PgConnection};
 use sqlx::{Error, PgPool};
 use uuid::Uuid;
 
@@ -99,11 +99,13 @@ impl TenantsRepository for PgPool {
         // NOTE: Postgres is not allow CREATE DATABASE in TX
         let create_db_sql = format!(
             "CREATE DATABASE tenant_{} WITH OWNER = 'tenant_{}'",
-            tenant_name.as_str()?,
-            tenant_name.as_str()?,
+            tenant_name.as_str()?, // SECRUTIY: ValueObejct
+            tenant_name.as_str()?, // SECRUTIY: ValueObejct
         );
 
-        let _create_db = sqlx::query(&create_db_sql).execute(self).await?;
+        let _create_db = sqlx::query(AssertSqlSafe(create_db_sql))
+            .execute(self)
+            .await?;
         Ok(tenant)
     }
 
@@ -117,7 +119,7 @@ impl TenantsRepository for PgPool {
             query_params.filtering().value_unchecked(), // Security: bind
         ) {
             (Some(filter_by), Some(value_unchecked)) => {
-                sqlx::query_as(&format!(
+                sqlx::query_as(AssertSqlSafe(format!(
                     r#"
                     SELECT COUNT(*) FROM tenants
                     LEFT JOIN user_tenants ON tenants.id = user_tenants.tenant_id
@@ -126,7 +128,7 @@ impl TenantsRepository for PgPool {
                         AND user_tenants.deleted_at IS NULL
                         AND ($2::TEXT IS NULL OR tenants.{filter_by}::TEXT ILIKE '%' || $2 || '%')
                     "#,
-                ))
+                )))
                 .bind(user_uuid)
                 .bind(value_unchecked)
                 .fetch_one(self)
@@ -177,7 +179,7 @@ impl TenantsRepository for PgPool {
                         "#
                 );
 
-                sqlx::query_as::<_, Tenant>(&sql)
+                sqlx::query_as::<_, Tenant>(AssertSqlSafe(sql))
                     .bind(user_uuid)
                     .bind(value_unchecked)
                     .bind(limit)
@@ -201,7 +203,7 @@ impl TenantsRepository for PgPool {
                         "#
                 );
 
-                sqlx::query_as::<_, Tenant>(&sql)
+                sqlx::query_as::<_, Tenant>(AssertSqlSafe(sql))
                     .bind(user_uuid)
                     .bind(limit)
                     .bind(i32::try_from(query_params.paging().offset().unwrap_or(0))?)
@@ -275,7 +277,7 @@ impl TenantsRepository for PgPool {
         .fetch_one(self)
         .await?;
 
-        let _ = sqlx::query(&format!(
+        let _ = sqlx::query(AssertSqlSafe(format!(
             r#"
                 DROP DATABASE tenant_{} WITH (FORCE)
             "#,
@@ -284,8 +286,8 @@ impl TenantsRepository for PgPool {
                 .to_string()
                 .replace("-", "")
                 .parse::<ValueObjectRequired<DdlParameter>>()?
-                .as_str()?
-        ))
+                .as_str()? // SECURITY: ValueObject
+        )))
         .execute(self)
         .await?;
 
@@ -351,19 +353,23 @@ async fn create_database_user_for_managed(
         .parse::<ValueObjectRequired<DdlParameter>>()?;
     let create_user_sql = format!(
         "CREATE USER tenant_{} WITH PASSWORD '{}'",
-        tenant_name.as_str()?,
-        tenant_password.as_str()?,
+        tenant_name.as_str()?,     // safety: ValueObject
+        tenant_password.as_str()?, // safety: ValueObject
     );
 
-    let _create_user = sqlx::query(&create_user_sql).execute(&mut *conn).await?;
+    let _create_user = sqlx::query(AssertSqlSafe(create_user_sql))
+        .execute(&mut *conn)
+        .await?;
 
     let grant_sql = format!(
         "GRANT tenant_{} to {};",
-        tenant_name.as_str()?,
-        app_config.main_database().username // safety: not user input
+        tenant_name.as_str()?,               // safety: ValueObject
+        app_config.main_database().username  // safety: not user input
     );
 
-    let _grant = sqlx::query(&grant_sql).execute(&mut *conn).await?;
+    let _grant = sqlx::query(AssertSqlSafe(grant_sql))
+        .execute(&mut *conn)
+        .await?;
 
     Ok(())
 }

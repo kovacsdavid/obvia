@@ -34,12 +34,13 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { GlobalError, Button } from "@/components/ui";
-import { formatDateToYMDHMS } from "@/lib/utils.ts";
+import { formatDateLocal } from "@/lib/utils.ts";
 import type { InventoryMovementResolved } from "@/components/modules/inventory_movements/lib/interface.ts";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
+import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
     const [data, setData] = React.useState<InventoryMovementResolved | null>(
@@ -49,6 +50,7 @@ export default function View() {
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
+    const { claims } = useAuth();
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
@@ -150,8 +152,10 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Mozgás dátuma</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.movement_date,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -162,8 +166,10 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Létrehozva</TableCell>
                                         <TableCell>
-                                            {formatDateToYMDHMS(
+                                            {formatDateLocal(
                                                 data.created_at,
+                                                claims?.loc,
+                                                claims?.tz,
                                             )}
                                         </TableCell>
                                     </TableRow>

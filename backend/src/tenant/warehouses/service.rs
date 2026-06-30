@@ -20,15 +20,19 @@
 use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::warehouses::WarehousesModule;
-use crate::tenant::warehouses::dto::WarehouseUserInput;
+use crate::tenant::warehouses::WarehousesModuleInterface;
+use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
@@ -41,6 +45,9 @@ pub enum WarehousesServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
@@ -63,6 +70,26 @@ impl IntoFriendlyError for WarehousesServiceError {
             WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
+                file!(),
+                GeneralError {
+                    message: WarehousesServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
+            WarehousesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            WarehousesServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
                 file!(),
                 GeneralError {
                     message: WarehousesServiceError::Unauthorized.to_string(),
@@ -96,12 +123,12 @@ pub trait WarehouseService {
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
-    async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes>;
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes>;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
 where
-    T: WarehousesModule,
+    T: WarehousesModuleInterface,
 {
     async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
         Ok(self
@@ -138,6 +165,11 @@ where
     }
 
     async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
+        if !payload.id.is_present() {
+            return Err(WarehousesServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .warehouses_repo(
@@ -170,13 +202,13 @@ where
                     .active_tenant()
                     .ok_or(WarehousesServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
-    async fn print(&self, payload: &[WarehouseResolved]) -> WarehousesServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes> {
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WarehouseView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

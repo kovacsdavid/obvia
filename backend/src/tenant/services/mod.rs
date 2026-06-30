@@ -80,12 +80,11 @@ where
     }
 }
 
-/*
 #[cfg(test)]
 pub mod tests {
     use super::*;
     use crate::common::config::AppConfig;
-    use async_trait::async_trait;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
     use lettre::{
         Message,
         transport::smtp::{Error, response::Response},
@@ -95,17 +94,26 @@ pub mod tests {
     mock!(
         pub ServicesModule {}
         impl ConfigProvider for ServicesModule {
-            fn config(&self) -> Arc<AppConfig>;
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
         }
-        #[async_trait]
         impl MailTransporter for ServicesModule {
             async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
         }
+        impl BaseModule for ServicesModule {}
         impl ServicesModule for ServicesModule {
-            fn services_repo(&self) -> Arc<dyn ServicesRepository>;
-            fn currencies_repo(&self) -> Arc<dyn CurrenciesRepository>;
-            fn taxes_repo(&self) -> Arc<dyn TaxesRepository>;
+            fn services_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+            fn currencies_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+            fn taxes_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
         }
     );
 }
-*/

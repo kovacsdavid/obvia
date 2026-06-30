@@ -21,17 +21,21 @@ use crate::common::BaseModule;
 use crate::common::dto::{GeneralError, PaginatorMeta};
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::model::SelectOption;
-use crate::common::pdf::{PdfGenError, PdfTemplates, gen_pdf_temporary};
+#[double]
+use crate::common::pdf::PdfGenerator;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
-use crate::tenant::products::ProductsModule;
-use crate::tenant::products::dto::ProductUserInput;
+use crate::tenant::products::ProductsModuleInterface;
+use crate::tenant::products::dto::print::ProductsResolvedPrint;
+use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
+use mockall_double::double;
 use std::str::FromStr;
 use std::sync::Arc;
 use thiserror::Error;
@@ -51,6 +55,9 @@ pub enum ProductsServiceError {
 
     #[error("A lista nem létezik")]
     InvalidSelectList,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
 
     #[error("ValueObjectError: {0}")]
     ValueObjectError(#[from] ValueObjectError),
@@ -79,6 +86,26 @@ impl IntoFriendlyError for ProductsServiceError {
                 file!(),
                 GeneralError {
                     message: ProductsServiceError::Unauthorized.to_string(),
+                }
+                .to_string(),
+            ),
+            ProductsServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
+                }
+                .to_string(),
+            ),
+            ProductsServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => FriendlyError::user_facing(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                GeneralError {
+                    message: self.to_string(),
                 }
                 .to_string(),
             ),
@@ -139,13 +166,13 @@ pub trait ProductService {
     ) -> impl Future<Output = ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)>> + Send;
     fn print(
         &self,
-        payload: &[ProductResolved],
+        payload: &[ProductsResolvedPrint],
     ) -> impl Future<Output = ProductsServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> ProductService for Service<'a, T>
 where
-    T: ProductsModule,
+    T: ProductsModuleInterface,
 {
     async fn insert(&self, payload: &mut ProductUserInput) -> ProductsServiceResult<Product> {
         if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
@@ -217,6 +244,11 @@ where
     }
 
     async fn update(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
+        if !payload.id.is_present() {
+            return Err(ProductsServiceError::UnprocessableEntry(
+                "Az azonosító megadása kötelező!",
+            ));
+        }
         Ok(self
             .module()
             .products_repo(
@@ -249,14 +281,14 @@ where
                     .active_tenant()
                     .ok_or(ProductsServiceError::Unauthorized)?,
             )?
-            .get_all_paged(get_query)
+            .get_paged(get_query)
             .await?)
     }
 
-    async fn print(&self, payload: &[ProductResolved]) -> ProductsServiceResult<Bytes> {
-        Ok(Bytes::from(gen_pdf_temporary(
+    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Bytes> {
+        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ProductView,
-            &payload,
+            payload.to_vec(),
         )?))
     }
 }

@@ -20,6 +20,8 @@
 #![allow(dead_code)]
 use std::{fmt::Display, fs, path::Path, process::Command};
 
+#[cfg(test)]
+use mockall::automock;
 use serde::Serialize;
 use tempfile::NamedTempFile;
 use thiserror::Error;
@@ -38,7 +40,7 @@ pub enum PdfGenError {
 
 pub type PdfGenResult<T> = Result<T, PdfGenError>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum PdfTemplates {
     Test,
     CustomerView,
@@ -73,105 +75,84 @@ impl Display for PdfTemplates {
 }
 
 #[derive(Debug)]
-struct PdfGen<'a, T>
-where
-    T: Serialize,
-{
-    path: &'a Path,
-    template: &'a PdfTemplates,
-    payload: &'a T,
-}
+pub struct PdfGenerator {}
 
-impl<'a, T> PdfGen<'a, T>
-where
-    T: Serialize,
-{
-    pub fn new(path: &'a Path, template: &'a PdfTemplates, payload: &'a T) -> PdfGenResult<Self> {
-        Ok(PdfGen {
-            path,
-            template,
-            payload,
-        })
-    }
-    pub fn path(&self) -> &Path {
-        self.path
-    }
-    pub fn template(&self) -> &PdfTemplates {
-        self.template
-    }
-    pub fn payload(&self) -> &T {
-        self.payload
-    }
-    pub fn typst_compile_args(&self) -> PdfGenResult<Vec<String>> {
+#[cfg_attr(test, automock)]
+impl PdfGenerator {
+    fn typst_compile_args<T: Serialize + 'static>(
+        template: &PdfTemplates,
+        path: &Path,
+        payload: T,
+    ) -> PdfGenResult<Vec<String>> {
         let args = vec![
             "compile".to_owned(),
             "-f".to_owned(),
             "pdf".to_owned(),
-            self.template().to_string(),
-            self.path().to_string_lossy().into_owned(),
+            template.to_string(),
+            path.to_string_lossy().into_owned(),
             "--input".to_owned(),
             format!(
                 "payload={}",
-                serde_json::to_string(self.payload())
+                serde_json::to_string(&payload)
                     .map_err(|e| PdfGenError::PayloadJson(e.to_string()))?
             ),
         ];
         Ok(args)
     }
-}
+    pub fn gen_pdf_temporary<T>(template: &PdfTemplates, payload: T) -> PdfGenResult<Vec<u8>>
+    where
+        T: Serialize + 'static,
+    {
+        let tmp_file = NamedTempFile::new().map_err(|e| PdfGenError::IOError(e.to_string()))?;
+        let mut output = Command::new("typst");
 
-pub fn gen_pdf_temporary<T>(template: &PdfTemplates, payload: &T) -> PdfGenResult<Vec<u8>>
-where
-    T: Serialize,
-{
-    let tmp_file = NamedTempFile::new().map_err(|e| PdfGenError::IOError(e.to_string()))?;
-    let pdf_gen = PdfGen::new(tmp_file.path(), template, payload)?;
-    let mut output = Command::new("typst");
+        for arg in PdfGenerator::typst_compile_args(template, tmp_file.path(), payload)? {
+            output.arg(arg);
+        }
 
-    for arg in pdf_gen.typst_compile_args()? {
-        output.arg(arg);
+        let output = output
+            .output()
+            .map_err(|e| PdfGenError::IOError(e.to_string()))?;
+
+        if !output.status.success() {
+            return Err(PdfGenError::SubProcess(
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ));
+        }
+
+        fs::read(tmp_file.path()).map_err(|e| PdfGenError::IOError(e.to_string()))
     }
 
-    let output = output
-        .output()
-        .map_err(|e| PdfGenError::IOError(e.to_string()))?;
+    pub fn gen_pdf_persistent<T>(
+        path: &'static Path,
+        template: &PdfTemplates,
+        payload: T,
+    ) -> PdfGenResult<&'static Path>
+    where
+        T: Serialize + 'static,
+    {
+        let mut output = Command::new("typst");
 
-    if !output.status.success() {
-        return Err(PdfGenError::SubProcess(
-            String::from_utf8_lossy(&output.stderr).into_owned(),
-        ));
+        for arg in PdfGenerator::typst_compile_args(template, path, payload)? {
+            output.arg(arg);
+        }
+
+        let output = output
+            .output()
+            .map_err(|e| PdfGenError::IOError(e.to_string()))?;
+
+        if !output.status.success() {
+            return Err(PdfGenError::SubProcess(
+                String::from_utf8_lossy(&output.stderr).into_owned(),
+            ));
+        }
+        Ok(path)
     }
-
-    fs::read(pdf_gen.path()).map_err(|e| PdfGenError::IOError(e.to_string()))
-}
-
-pub fn gen_pdf_persistent<'a, T>(
-    path: &'a Path,
-    template: &PdfTemplates,
-    params: &T,
-) -> PdfGenResult<&'a Path>
-where
-    T: Serialize,
-{
-    let pdf_gen = PdfGen::new(path, template, params)?;
-
-    let mut output = Command::new("typst");
-
-    for arg in pdf_gen.typst_compile_args()? {
-        output.arg(arg);
-    }
-
-    let output = output
-        .output()
-        .map_err(|e| PdfGenError::IOError(e.to_string()))?;
-
-    if !output.status.success() {
-        return Err(PdfGenError::SubProcess(
-            String::from_utf8_lossy(&output.stderr).into_owned(),
-        ));
-    }
-    Ok(path)
 }
 
 #[cfg(test)]
-mod tests {}
+pub mod tests {
+    use std::sync::Mutex;
+
+    pub static PDF_GENERATOR_TEST_SYNC: Mutex<()> = Mutex::new(());
+}

@@ -21,7 +21,7 @@ use crate::common::BaseModule;
 use crate::common::dto::GeneralError;
 use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
 use crate::common::service::{Service, ServiceError};
-use crate::tenant::comments::CommentsModule;
+use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
 use axum::http::StatusCode;
@@ -87,7 +87,7 @@ pub trait CommentService {
 
 impl<'a, T> CommentService for Service<'a, T>
 where
-    T: CommentsModule,
+    T: CommentsModuleInterface,
 {
     async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
         Ok(self

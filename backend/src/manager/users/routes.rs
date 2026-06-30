@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use super::UsersModule;
+use super::UsersModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
@@ -27,7 +27,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub fn routes<M: UsersModule>(users_module: Arc<M>) -> Router {
+pub fn routes<M: UsersModuleInterface>(users_module: Arc<M>) -> Router {
     Router::new().nest(
         "/users",
         Router::new()

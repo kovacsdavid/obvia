@@ -18,9 +18,8 @@
  */
 
 use super::UsersModuleInterface;
-use crate::common::BaseModule;
-use crate::common::dto::GeneralError;
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::extractors::ClientContext;
 use crate::common::service::{Service, ServiceError};
 use crate::common::value_object::ValueObjectError;
@@ -28,7 +27,6 @@ use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
 use axum::http::StatusCode;
 use serde_json::json;
-use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -65,34 +63,25 @@ impl From<ServiceError> for UsersServiceError {
     }
 }
 
-impl IntoFriendlyError for UsersServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
+impl From<UsersServiceError> for AppError {
+    fn from(value: UsersServiceError) -> Self {
+        match value {
             UsersServiceError::InvalidMfaToken
             | UsersServiceError::TooManyAttempts(_)
-            | UsersServiceError::MfaAlreadyActive => FriendlyError::user_facing(
+            | UsersServiceError::MfaAlreadyActive => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

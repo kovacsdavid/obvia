@@ -17,11 +17,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::BaseModule;
 use crate::common::config::database_config::BasicDatabaseConfig;
 use crate::common::database::{DatabaseMigrator, PoolManager};
-use crate::common::dto::{GeneralError, PaginatorMeta};
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::utils::generate_string_csprng;
@@ -31,7 +31,7 @@ use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant,
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use axum::http::StatusCode;
-use std::sync::Arc;
+use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -65,32 +65,23 @@ impl From<ServiceError> for TenantsServiceError {
     }
 }
 
-impl IntoFriendlyError for TenantsServiceError {
-    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            TenantsServiceError::Unauthorized => FriendlyError::user_facing(
+impl From<TenantsServiceError> for AppError {
+    fn from(value: TenantsServiceError) -> Self {
+        match value {
+            TenantsServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: TenantsServiceError::Unauthorized.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    mailer,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

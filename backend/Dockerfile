@@ -46,7 +46,7 @@ RUN case "${TARGETPLATFORM}" in \
  && install -m 0755 /opt/typst/typst /usr/local/bin/typst \
  && typst --version
 
-FROM --platform=$BUILDPLATFORM rust:1.96.0 AS builder
+FROM --platform=$BUILDPLATFORM rust:1.96.1 AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]

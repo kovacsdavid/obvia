@@ -21,7 +21,7 @@ use super::UsersModuleInterface;
 use super::service::UserService;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -32,16 +32,15 @@ pub async fn get_claims<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(users_module): State<Arc<M>>,
 ) -> HandlerResult {
-    let error_mapper = ErrorMapper::new(users_module);
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(claims)
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(claims)
+            .build(),
+        users_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn otp_enable<M: UsersModuleInterface>(
@@ -50,19 +49,20 @@ pub async fn otp_enable<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), users_module.clone());
-    let error_mapper = ErrorMapper::new(users_module);
-    let response = error_mapper
-        .or_handler_error(service.otp_enable(&client_context).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(response)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let response = map_handler_err(
+        service.otp_enable(&client_context).await,
+        users_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(response)
+            .build(),
+        users_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn otp_verify<M: UsersModuleInterface>(
@@ -72,22 +72,23 @@ pub async fn otp_verify<M: UsersModuleInterface>(
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), users_module.clone());
-    let error_mapper = ErrorMapper::new(users_module);
-    error_mapper
-        .or_handler_error(service.otp_verify(&user_input, &client_context).await)
-        .await?;
+    map_handler_err(
+        service.otp_verify(&user_input, &client_context).await,
+        users_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A kétlépcsős azonosítás aktiválása megtörtént!",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A kétlépcsős azonosítás aktiválása megtörtént!",
+            ))
+            .build(),
+        users_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn otp_disable<M: UsersModuleInterface>(
@@ -97,22 +98,23 @@ pub async fn otp_disable<M: UsersModuleInterface>(
     UserInput(user_input, _): UserInput<OtpUserInput, OtpUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), users_module.clone());
-    let error_mapper = ErrorMapper::new(users_module);
-    error_mapper
-        .or_handler_error(service.otp_disable(&user_input, &client_context).await)
-        .await?;
+    map_handler_err(
+        service.otp_disable(&user_input, &client_context).await,
+        users_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A kétlépcsős azonosítás kikapcsolása megtörtént!",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A kétlépcsős azonosítás kikapcsolása megtörtént!",
+            ))
+            .build(),
+        users_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[cfg(test)]

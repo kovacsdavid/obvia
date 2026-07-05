@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::AppError;
+use crate::common::error::v2::AppErrorVisibility;
 use crate::common::types::Integer32;
 use crate::common::types::UuidVO;
 use crate::common::value_object::ValueObjectError;
@@ -25,9 +26,11 @@ use crate::common::value_object::ValueObjectOptional;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::inventory::types::inventory::InventoryStatus;
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InventoryUserInputHelper {
@@ -72,11 +75,18 @@ impl Display for InventoryUserInputError {
     }
 }
 
-impl FormErrorResponse for InventoryUserInputError {}
-
-impl IntoResponse for InventoryUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<InventoryUserInputError> for AppError {
+    fn from(value: InventoryUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

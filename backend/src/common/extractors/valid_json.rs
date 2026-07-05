@@ -17,13 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FriendlyError;
 use axum::Json;
 use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
-use axum::response::{IntoResponse, Response};
 use serde::de::DeserializeOwned;
+use serde_json::json;
 use tracing::Level;
+
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 
 pub struct ValidJson<T>(pub T);
 
@@ -32,17 +33,17 @@ where
     T: DeserializeOwned,
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = AppError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let Json(payload) = Json::<T>::from_request(req, state).await.map_err(|_| {
-            FriendlyError::user_facing(
+            AppError::new(
                 Level::DEBUG,
                 StatusCode::BAD_REQUEST,
                 file!(),
-                "Invalid JSON".to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": "Hibás JSON formátum!"}),
             )
-            .into_response()
         })?;
 
         Ok(ValidJson(payload))

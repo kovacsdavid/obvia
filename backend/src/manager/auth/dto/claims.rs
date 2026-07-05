@@ -16,17 +16,17 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use axum::http::StatusCode;
 use chrono_tz::Tz;
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
 
-use crate::common::{
-    BaseModule,
-    dto::GeneralError,
-    error::{FriendlyError, IntoFriendlyError},
-};
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 
 #[derive(Error, Debug)]
 pub enum ClaimsError {
@@ -34,21 +34,14 @@ pub enum ClaimsError {
     InvalidTimezone,
 }
 
-impl IntoFriendlyError for ClaimsError {
-    fn into_friendly_error<M>(
-        self,
-        mailer: std::sync::Arc<M>,
-    ) -> impl Future<Output = crate::common::error::FriendlyError> + Send
-    where
-        M: BaseModule,
-    {
-        FriendlyError::internal_with_admin_notify(
+impl From<ClaimsError> for AppError {
+    fn from(value: ClaimsError) -> Self {
+        Self::new(
+            Level::ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
             file!(),
-            GeneralError {
-                message: self.to_string(),
-            }
-            .to_string(),
-            mailer,
+            AppErrorVisibility::Internal,
+            json!({"message": value.to_string()}),
         )
     }
 }

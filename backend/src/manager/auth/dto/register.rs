@@ -17,13 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::{Email, FirstName, LastName, Password, UuidVO};
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
 pub struct RegisterRequestHelper {
@@ -42,6 +44,7 @@ pub struct RegisterRequestError {
     pub password: Option<String>,
     pub password_confirm: Option<String>,
 }
+
 impl RegisterRequestError {
     pub fn is_empty(&self) -> bool {
         self.email.is_none()
@@ -67,11 +70,18 @@ impl From<ValueObjectError> for RegisterRequestError {
     }
 }
 
-impl FormErrorResponse for RegisterRequestError {}
-
-impl IntoResponse for RegisterRequestError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<RegisterRequestError> for AppError {
+    fn from(value: RegisterRequestError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 
@@ -168,11 +178,18 @@ impl From<ValueObjectError> for ResendEmailValidationError {
     }
 }
 
-impl FormErrorResponse for ResendEmailValidationError {}
-
-impl IntoResponse for ResendEmailValidationError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<ResendEmailValidationError> for AppError {
+    fn from(value: ResendEmailValidationError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 
@@ -227,11 +244,18 @@ impl Display for ForgottenPasswordRequestError {
     }
 }
 
-impl FormErrorResponse for ForgottenPasswordRequestError {}
-
-impl IntoResponse for ForgottenPasswordRequestError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<ForgottenPasswordRequestError> for AppError {
+    fn from(value: ForgottenPasswordRequestError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 
@@ -298,11 +322,18 @@ impl From<ValueObjectError> for NewPasswordRequestError {
     }
 }
 
-impl FormErrorResponse for NewPasswordRequestError {}
-
-impl IntoResponse for NewPasswordRequestError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<NewPasswordRequestError> for AppError {
+    fn from(value: NewPasswordRequestError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

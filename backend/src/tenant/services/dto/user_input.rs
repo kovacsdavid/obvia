@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::currencies::types::CurrencyCode;
@@ -25,9 +25,11 @@ use crate::tenant::services::types::service::default_price::DefaultPrice;
 use crate::tenant::services::types::service::{
     ServiceDefaultPrice, ServiceDescription, ServiceName, ServiceStatus,
 };
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ServiceUserInputHelper {
@@ -72,11 +74,18 @@ impl Display for ServiceUserInputError {
     }
 }
 
-impl FormErrorResponse for ServiceUserInputError {}
-
-impl IntoResponse for ServiceUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<ServiceUserInputError> for AppError {
+    fn from(value: ServiceUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

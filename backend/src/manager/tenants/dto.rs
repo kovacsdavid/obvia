@@ -17,14 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::Name;
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
@@ -52,11 +54,18 @@ impl Display for CreateTenantError {
     }
 }
 
-impl FormErrorResponse for CreateTenantError {}
-
-impl IntoResponse for CreateTenantError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<CreateTenantError> for AppError {
+    fn from(value: CreateTenantError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

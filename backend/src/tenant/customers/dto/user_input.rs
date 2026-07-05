@@ -17,13 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::{Email, UuidVO};
 use crate::common::value_object::*;
 use crate::tenant::customers::types::customer::*;
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomerUserInputHelper {
@@ -68,11 +70,18 @@ impl Display for CustomerUserInputError {
     }
 }
 
-impl FormErrorResponse for CustomerUserInputError {}
-
-impl IntoResponse for CustomerUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<CustomerUserInputError> for AppError {
+    fn from(value: CustomerUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

@@ -18,15 +18,15 @@
  */
 
 #![allow(dead_code)]
+use axum::http::StatusCode;
 use serde::Deserialize;
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use serde_json::json;
+use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
+use tracing::Level;
 
 use crate::common::{
-    ConfigProvider, MailTransporter,
-    config::AppConfig,
-    dto::GeneralError,
-    error::{FriendlyError, IntoFriendlyError},
+    error::v2::{AppError, AppErrorVisibility},
     value_object::*,
 };
 
@@ -48,25 +48,22 @@ impl From<ValueObjectError> for ResourceQueryError {
     }
 }
 
-impl IntoFriendlyError for ResourceQueryError {
-    async fn into_friendly_error<M>(self, _: Arc<M>) -> FriendlyError
-    where
-        M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
-    {
-        match self {
-            ResourceQueryError::InvalidInput(e) => FriendlyError::internal(
+impl From<ResourceQueryError> for AppError {
+    fn from(value: ResourceQueryError) -> Self {
+        match value {
+            ResourceQueryError::InvalidInput(_) => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 file!(),
-                GeneralError {
-                    message: e.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
             ),
-            ResourceQueryError::Custom(e) => FriendlyError::internal(
+            ResourceQueryError::Custom(_) => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
                 file!(),
-                GeneralError {
-                    message: e.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
             ),
         }
     }

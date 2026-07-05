@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::AppError;
+use crate::common::error::v2::AppErrorVisibility;
 use crate::common::types::UuidVO;
 use crate::common::types::quantity::Quantity;
 use crate::common::value_object::ValueObjectError;
@@ -27,9 +28,11 @@ use crate::tenant::currencies::types::CurrencyCode;
 use crate::tenant::tasks::types::task::{
     TaskDescription, TaskDueDate, TaskPrice, TaskPriority, TaskStatus,
 };
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TaskUserInputHelper {
@@ -86,11 +89,18 @@ impl Display for TaskUserInputError {
     }
 }
 
-impl FormErrorResponse for TaskUserInputError {}
-
-impl IntoResponse for TaskUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<TaskUserInputError> for AppError {
+    fn from(value: TaskUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

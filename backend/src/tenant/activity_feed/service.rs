@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::BaseModule;
-use crate::common::dto::{GeneralError, PaginatorMeta};
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::types::Empty;
@@ -28,7 +28,7 @@ use crate::tenant::activity_feed::ActivityFeedModuleInterface;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use axum::http::StatusCode;
-use std::sync::Arc;
+use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -50,43 +50,32 @@ impl From<ServiceError> for ActivityFeedServiceError {
     }
 }
 
-impl IntoFriendlyError for ActivityFeedServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            ActivityFeedServiceError::Unauthorized => FriendlyError::user_facing(
+impl From<ActivityFeedServiceError> for AppError {
+    fn from(value: ActivityFeedServiceError) -> Self {
+        match value {
+            ActivityFeedServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
             ActivityFeedServiceError::Repository(RepositoryError::Database(
                 sqlx::Error::RowNotFound,
-            )) => FriendlyError::user_facing(
+            )) => Self::new(
                 Level::DEBUG,
                 StatusCode::NOT_FOUND,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

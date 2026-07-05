@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::{UserInput, ValidJson};
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -42,19 +42,20 @@ pub async fn create<M: TenantsModule>(
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
-    let error_mapper = ErrorMapper::new(tenants_module);
-    let result = error_mapper
-        .or_handler_error(service.create_managed(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(PublicTenantManaged::from(result))
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.create_managed(&user_input).await,
+        tenants_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(PublicTenantManaged::from(result))
+            .build(),
+        tenants_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn get<M: TenantsModule>(
@@ -70,26 +71,27 @@ pub async fn list<M: TenantsModule>(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
-    let error_mapper = ErrorMapper::new(tenants_module);
-    let resource_query = error_mapper
-        .or_handler_error(ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(
-            payload.q(),
-        ))
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(service.get_paged(&resource_query).await)
-        .await?;
+    let resource_query = map_handler_err(
+        ResourceQuery::<TenantOrderBy, TenantFilterBy>::from_str(payload.q()),
+        tenants_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service.get_paged(&resource_query).await,
+        tenants_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        tenants_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn activate<M: TenantsModule>(
@@ -98,19 +100,16 @@ pub async fn activate<M: TenantsModule>(
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
-    let error_mapper = ErrorMapper::new(tenants_module);
-    let result = error_mapper
-        .or_handler_error(service.activate(&payload).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.activate(&payload).await, tenants_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tenants_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn delete<M: TenantsModule>(
@@ -119,19 +118,17 @@ pub async fn delete<M: TenantsModule>(
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
-    let error_mapper = ErrorMapper::new(tenants_module);
-    let result = error_mapper
-        .or_handler_error(service.delete(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result =
+        map_handler_err(service.delete(payload.uuid).await, tenants_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tenants_module,
+    )
+    .await?
+    .into_response())
 }
 
 /*

@@ -17,11 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use axum::http::StatusCode;
 use chrono::NaiveDate;
+use serde_json::json;
 use std::str::FromStr;
 use std::{fmt::Display, marker::PhantomData};
 use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
+
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 
 pub type ValueObjectResult<T> = Result<T, ValueObjectError>;
 
@@ -41,6 +46,18 @@ pub enum ValueObjectError {
 
 impl ValueObjectError {
     pub const REQUIRED: &'static str = "A mező kitöltése kötelező";
+}
+
+impl From<ValueObjectError> for AppError {
+    fn from(value: ValueObjectError) -> Self {
+        Self::new(
+            Level::ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            file!(),
+            AppErrorVisibility::Internal,
+            json!({"message": value.to_string()}),
+        )
+    }
 }
 
 pub trait ValueObjectData: Display + Sized {

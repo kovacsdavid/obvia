@@ -17,223 +17,19 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{fmt::Display, num::TryFromIntError, sync::Arc};
+use std::num::TryFromIntError;
 use thiserror::Error;
 
 use crate::common::{
-    BaseModule, ConfigProvider, MailTransporter,
-    config::AppConfig,
-    dto::{ErrorResponse, FormError, GeneralError},
+    error::v2::{AppError, AppErrorVisibility},
     value_object::ValueObjectError,
 };
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-};
-use handlebars::Handlebars;
-use lettre::Message;
-use lettre::{
-    address::AddressError,
-    message::{Mailbox, header::ContentType},
-};
+use axum::http::StatusCode;
 use serde::Serialize;
 use serde_json::json;
 use sqlx::Error;
 use sqlx::migrate::MigrateError;
 use tracing::Level;
-use tracing::event;
-
-#[derive(Debug, Error, Clone)]
-pub enum FriendlyError {
-    #[error("{0}")]
-    UserFacing(StatusCode, String, String),
-    #[error("Váratlan hiba történt a feldolgozás során!")]
-    Internal(String, String),
-}
-
-impl FriendlyError {
-    pub fn user_facing(severity: Level, status: StatusCode, loc: &str, body: String) -> Self {
-        Self::UserFacing(status, loc.to_string(), body).trace(severity)
-    }
-    pub fn internal(loc: &str, body: String) -> Self {
-        Self::Internal(loc.to_string(), body).trace(Level::ERROR)
-    }
-    pub async fn internal_with_admin_notify<M>(loc: &str, body: String, mailer: Arc<M>) -> Self
-    where
-        M: MailTransporter + ConfigProvider<Cfg = AppConfig> + Send + Sync,
-    {
-        let fe = Self::Internal(loc.to_string(), body).trace(Level::ERROR);
-
-        if let Err(e) = fe.notify_admin(mailer).await {
-            event!(Level::ERROR, "Could not notify admin: {e}")
-        }
-
-        fe
-    }
-
-    fn trace(self, severity: Level) -> Self {
-        match &self {
-            FriendlyError::UserFacing(status, loc, body) => match severity {
-                Level::ERROR => {
-                    event!(
-                        Level::ERROR,
-                        "User-facing error: http-status={status} location={loc}, message={body}",
-                    );
-                }
-                Level::WARN => {
-                    event!(
-                        Level::WARN,
-                        "User-facing error: http-status={status} location={loc}, message={body}",
-                    );
-                }
-                Level::INFO => {
-                    event!(
-                        Level::INFO,
-                        "User-facing error: http-status={status} location={loc}, message={body}",
-                    );
-                }
-                Level::DEBUG => {
-                    event!(
-                        Level::DEBUG,
-                        "User-facing error: http-status={status} location={loc}, message={body}",
-                    );
-                }
-                Level::TRACE => {
-                    event!(
-                        Level::TRACE,
-                        "User-facing error: http-status={status} location={loc}, message={body}",
-                    );
-                }
-            },
-            FriendlyError::Internal(body, loc) => match severity {
-                Level::ERROR => {
-                    event!(
-                        Level::ERROR,
-                        "Internal error: location={loc} message={body}"
-                    );
-                }
-                Level::WARN => {
-                    event!(Level::WARN, "Internal error: location={loc} message={body}");
-                }
-                Level::INFO => {
-                    event!(
-                        Level::INFO,
-                        "Internal error:  location={loc} message={body}"
-                    );
-                }
-                Level::DEBUG => {
-                    event!(
-                        Level::DEBUG,
-                        "Internal error: location={loc} message={body}"
-                    );
-                }
-                Level::TRACE => {
-                    event!(
-                        Level::TRACE,
-                        "Internal error: location={loc} message={body}"
-                    );
-                }
-            },
-        }
-        self
-    }
-    async fn notify_admin<M>(&self, mailer: Arc<M>) -> Result<(), String>
-    where
-        M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
-    {
-        if let FriendlyError::Internal(loc, body) = &self {
-            let config = mailer.config().mail();
-            let handlebars = Handlebars::new();
-            let email = Message::builder()
-                .from(Mailbox::new(
-                    Some(config.default_from_name().to_owned()),
-                    config
-                        .default_from()
-                        .parse()
-                        .map_err(|e: AddressError| e.to_string())?,
-                ))
-                .to(Mailbox::new(
-                    None,
-                    config
-                        .default_notification_email()
-                        .parse()
-                        .map_err(|e: AddressError| e.to_string())?,
-                ))
-                .subject("Unexpected error")
-                .header(ContentType::TEXT_PLAIN)
-                .body(
-                    handlebars
-                        .render_template(
-                            r##"
-                    Dear Admin!\n\n
-                    Check this error!\n
-                    Internal error: location={{loc}} message={{body}}
-                    "##,
-                            &json!({"loc": loc, "body": body.to_string()}),
-                        )
-                        .map_err(|e| e.to_string())?,
-                )
-                .map_err(|e| e.to_string())?;
-
-            match mailer.send(email).await {
-                Ok(_) => Ok(()),
-                Err(e) => Err(e.to_string()),
-            }
-        } else {
-            Err("".to_string())
-        }
-    }
-}
-
-impl IntoResponse for FriendlyError {
-    fn into_response(self) -> Response {
-        match self {
-            FriendlyError::UserFacing(status, _, body) => ErrorResponse {
-                status_code: status,
-                error: body,
-            }
-            .into_response(),
-            FriendlyError::Internal(_, _) => ErrorResponse {
-                status_code: StatusCode::INTERNAL_SERVER_ERROR,
-                error: GeneralError {
-                    message: String::from("Váratlan hiba történt a feldolgozás során"),
-                },
-            }
-            .into_response(),
-        }
-    }
-}
-
-pub trait FormErrorResponse: Serialize + Display {
-    fn global_message(&self) -> String {
-        "Kérjük ellenőrizze a hibás mezőket!".to_string()
-    }
-    fn status_code(&self) -> StatusCode {
-        StatusCode::UNPROCESSABLE_ENTITY
-    }
-    fn log_level(&self) -> Level {
-        Level::DEBUG
-    }
-    fn get_error_response(&self) -> Response {
-        FriendlyError::user_facing(
-            self.log_level(),
-            self.status_code(),
-            file!(),
-            FormError {
-                message: self.global_message(),
-                fields: self,
-            }
-            .to_string(),
-        )
-        .into_response()
-    }
-}
-
-pub trait IntoFriendlyError {
-    fn into_friendly_error<M>(self, mailer: Arc<M>) -> impl Future<Output = FriendlyError> + Send
-    where
-        M: BaseModule;
-}
 
 #[derive(Debug, Error)]
 pub enum RepositoryError {
@@ -294,13 +90,174 @@ pub enum BuilderError {
     MissingRequired(&'static str),
 }
 
-impl IntoFriendlyError for BuilderError {
-    async fn into_friendly_error<M>(self, mailer: Arc<M>) -> FriendlyError
-    where
-        M: MailTransporter + ConfigProvider<Cfg = AppConfig> + Send + Sync,
-    {
-        FriendlyError::internal_with_admin_notify(file!(), self.to_string(), mailer).await
+impl From<BuilderError> for AppError {
+    fn from(value: BuilderError) -> Self {
+        Self::new(
+            Level::ERROR,
+            StatusCode::INTERNAL_SERVER_ERROR,
+            file!(),
+            AppErrorVisibility::Internal,
+            json!({
+                "message":
+                value.to_string(),
+            }),
+        )
     }
 }
 
 pub type BuilderResult<T> = Result<T, BuilderError>;
+
+pub mod v2 {
+    use std::sync::Arc;
+
+    use axum::{
+        http::StatusCode,
+        response::{IntoResponse, Response},
+    };
+    use handlebars::Handlebars;
+    use lettre::{
+        Message,
+        message::{Mailbox, header::ContentType},
+    };
+    use serde_json::json;
+    use tracing::{Level, event};
+
+    use crate::common::{
+        BaseModule, ConfigProvider, MailTransporter, config::AppConfig, dto::ErrorResponse,
+    };
+
+    #[derive(Debug, PartialEq)]
+    pub enum AppErrorVisibility {
+        UserFacing,
+        Internal,
+    }
+
+    #[derive(Debug)]
+    pub struct AppError {
+        log_level: Level,
+        http_status: StatusCode,
+        location: &'static str,
+        visibility: AppErrorVisibility,
+        json: serde_json::Value,
+    }
+
+    impl AppError {
+        pub fn new(
+            log_level: Level,
+            http_status: StatusCode,
+            location: &'static str,
+            visibility: AppErrorVisibility,
+            json: serde_json::Value,
+        ) -> Self {
+            let app_error = Self {
+                log_level,
+                http_status,
+                location,
+                visibility,
+                json,
+            };
+            app_error.trace();
+            app_error
+        }
+    }
+
+    impl AppError {
+        fn trace(&self) {
+            match self.visibility {
+                AppErrorVisibility::UserFacing => match self.log_level {
+                    Level::ERROR => {
+                        event!(Level::ERROR, "{:?}", self,);
+                    }
+                    Level::WARN => {
+                        event!(Level::WARN, "{:?}", self,);
+                    }
+                    Level::INFO => {
+                        event!(Level::INFO, "{:?}", self,);
+                    }
+                    Level::DEBUG => {
+                        event!(Level::DEBUG, "{:?}", self,);
+                    }
+                    Level::TRACE => {
+                        event!(Level::TRACE, "{:?}", self,);
+                    }
+                },
+                AppErrorVisibility::Internal => match self.log_level {
+                    Level::ERROR => {
+                        event!(Level::ERROR, "{:?}", self,);
+                    }
+                    Level::WARN => {
+                        event!(Level::WARN, "{:?}", self,);
+                    }
+                    Level::INFO => {
+                        event!(Level::INFO, "{:?}", self,);
+                    }
+                    Level::DEBUG => {
+                        event!(Level::DEBUG, "{:?}", self,);
+                    }
+                    Level::TRACE => {
+                        event!(Level::TRACE, "{:?}", self,);
+                    }
+                },
+            }
+        }
+        pub async fn notify_admin<M>(&self, mailer: Arc<M>)
+        where
+            M: MailTransporter + ConfigProvider<Cfg = AppConfig>,
+        {
+            let config = mailer.config().mail();
+            let default_from = config.default_from().parse();
+            let default_notification_email = config.default_notification_email().parse();
+            let default_from_name = config.default_from_name().to_owned();
+            let handlebars = Handlebars::new();
+            let template = handlebars.render_template(
+                r##"
+                    Dear Admin!\n\n
+                    Check this error!\n
+                    Internal error: location={{loc}} message={{message}}
+                    "##,
+                &json!({"location": self.location, "message": self.json.to_string()}),
+            );
+
+            if let Ok(default_from) = default_from
+                && let Ok(default_notification_email) = default_notification_email
+                && let Ok(body) = template
+                && let Ok(message) = Message::builder()
+                    .from(Mailbox::new(Some(default_from_name), default_from))
+                    .to(Mailbox::new(None, default_notification_email))
+                    .subject("Unexpected error")
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(body)
+            {
+                let _ = mailer.send(message).await;
+            }
+        }
+        pub async fn notify_admin_if_internal<M>(&self, mailer: Arc<M>)
+        where
+            M: BaseModule,
+        {
+            if self.visibility == AppErrorVisibility::Internal {
+                self.notify_admin(mailer).await
+            }
+        }
+    }
+
+    impl IntoResponse for AppError {
+        fn into_response(self) -> Response {
+            match self.visibility {
+                AppErrorVisibility::UserFacing => ErrorResponse {
+                    status_code: self.http_status,
+                    error: self.json,
+                }
+                .into_response(),
+                AppErrorVisibility::Internal => ErrorResponse {
+                    status_code: StatusCode::INTERNAL_SERVER_ERROR,
+                    error: json!({
+                        "message":
+                        "Váratlan hiba történt a feldolgozás során"
+                    }),
+                }
+                .into_response(),
+            }
+        }
+    }
+}

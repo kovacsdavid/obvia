@@ -19,13 +19,16 @@
 
 use std::fmt::{Display, Formatter};
 
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::value_object::ValueObjectError;
-use crate::common::{error::FormErrorResponse, value_object::ValueObjectRequired};
+use crate::common::value_object::ValueObjectRequired;
 use crate::manager::auth::dto::claims::Claims;
 use crate::manager::auth::types::Otp;
 use crate::manager::users::model::User;
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]
@@ -112,11 +115,18 @@ impl From<ValueObjectError> for OtpUserInputError {
     }
 }
 
-impl FormErrorResponse for OtpUserInputError {}
-
-impl IntoResponse for OtpUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<OtpUserInputError> for AppError {
+    fn from(value: OtpUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

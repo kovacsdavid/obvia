@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::address::types::country::CountryCode;
@@ -26,9 +26,11 @@ use crate::tenant::taxes::types::reporting_code::ReportingCode;
 use crate::tenant::taxes::types::{
     TaxCategory, TaxDescription, TaxLegalText, TaxRate, TaxReportingCode, TaxStatus,
 };
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TaxUserInputHelper {
@@ -82,11 +84,18 @@ impl Display for TaxUserInputError {
     }
 }
 
-impl FormErrorResponse for TaxUserInputError {}
-
-impl IntoResponse for TaxUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<TaxUserInputError> for AppError {
+    fn from(value: TaxUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

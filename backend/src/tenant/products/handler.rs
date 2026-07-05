@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -41,19 +41,20 @@ pub async fn get_resolved<M: ProductsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    let result = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_resolved(payload.uuid).await,
+        products_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn get<M: ProductsModuleInterface>(
@@ -62,19 +63,16 @@ pub async fn get<M: ProductsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    let result = error_mapper
-        .or_handler_error(service.get(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.get(payload.uuid).await, products_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn update<M: ProductsModuleInterface>(
@@ -83,19 +81,17 @@ pub async fn update<M: ProductsModuleInterface>(
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    let result = error_mapper
-        .or_handler_error(service.update(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result =
+        map_handler_err(service.update(&user_input).await, products_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn delete<M: ProductsModuleInterface>(
@@ -104,21 +100,18 @@ pub async fn delete<M: ProductsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    error_mapper
-        .or_handler_error(service.delete(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A termék törlése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(service.delete(payload.uuid).await, products_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A termék törlése sikeresen megtörtént",
+            ))
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn create<M: ProductsModuleInterface>(
@@ -127,19 +120,20 @@ pub async fn create<M: ProductsModuleInterface>(
     UserInput(mut user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    let result = error_mapper
-        .or_handler_error(service.insert(&mut user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.insert(&mut user_input).await,
+        products_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn list<M: ProductsModuleInterface>(
@@ -148,25 +142,26 @@ pub async fn list<M: ProductsModuleInterface>(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
-    let resource_query = error_mapper
-        .or_handler_error(ResourceQuery::<ProductOrderBy, ProductFilterBy>::from_str(
-            payload.q(),
-        ))
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(service.get_paged(&resource_query).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let resource_query = map_handler_err(
+        ResourceQuery::<ProductOrderBy, ProductFilterBy>::from_str(payload.q()),
+        products_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service.get_paged(&resource_query).await,
+        products_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn select_list<M: ProductsModuleInterface>(
@@ -175,25 +170,26 @@ pub async fn select_list<M: ProductsModuleInterface>(
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = error_mapper
-        .or_handler_error(service.get_select_list_items(&list_type).await)
-        .await?;
+    let result = map_handler_err(
+        service.get_select_list_items(&list_type).await,
+        products_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        products_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn print<M: ProductsModuleInterface>(
@@ -202,16 +198,19 @@ pub async fn print<M: ProductsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let error_mapper = ErrorMapper::new(products_module);
     let product_resolved_print = ProductsResolvedPrint::from_product_resolved(
-        error_mapper
-            .or_handler_error(service.get_resolved(payload.uuid).await)
-            .await?,
-        error_mapper.or_handler_error(claims.tz()).await?,
+        map_handler_err(
+            service.get_resolved(payload.uuid).await,
+            products_module.clone(),
+        )
+        .await?,
+        map_handler_err(claims.tz(), products_module.clone()).await?,
     );
-    let pdf = error_mapper
-        .or_handler_error(service.print(&[product_resolved_print]).await)
-        .await?;
+    let pdf = map_handler_err(
+        service.print(&[product_resolved_print]).await,
+        products_module,
+    )
+    .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

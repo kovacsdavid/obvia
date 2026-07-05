@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -41,19 +41,20 @@ pub async fn get_resolved<M: WorksheetsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    let result = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_resolved(payload.uuid).await,
+        worksheets_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn get<M: WorksheetsModuleInterface>(
@@ -62,19 +63,17 @@ pub async fn get<M: WorksheetsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    let result = error_mapper
-        .or_handler_error(service.get(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result =
+        map_handler_err(service.get(payload.uuid).await, worksheets_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn update<M: WorksheetsModuleInterface>(
@@ -83,19 +82,17 @@ pub async fn update<M: WorksheetsModuleInterface>(
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    let result = error_mapper
-        .or_handler_error(service.update(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result =
+        map_handler_err(service.update(&user_input).await, worksheets_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn delete<M: WorksheetsModuleInterface>(
@@ -104,21 +101,22 @@ pub async fn delete<M: WorksheetsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    error_mapper
-        .or_handler_error(service.delete(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A munkalap törlése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(
+        service.delete(payload.uuid).await,
+        worksheets_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A munkalap törlése sikeresen megtörtént",
+            ))
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn create<M: WorksheetsModuleInterface>(
@@ -127,19 +125,17 @@ pub async fn create<M: WorksheetsModuleInterface>(
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    let result = error_mapper
-        .or_handler_error(service.insert(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result =
+        map_handler_err(service.insert(&user_input).await, worksheets_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn select_list<M: WorksheetsModuleInterface>(
@@ -148,24 +144,25 @@ pub async fn select_list<M: WorksheetsModuleInterface>(
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = error_mapper
-        .or_handler_error(service.get_select_list_items(&list_type).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_select_list_items(&list_type).await,
+        worksheets_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn list<M: WorksheetsModuleInterface>(
@@ -174,25 +171,26 @@ pub async fn list<M: WorksheetsModuleInterface>(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
-    let resource_query = error_mapper
-        .or_handler_error(
-            ResourceQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q()),
-        )
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(service.get_paged(&resource_query).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let resource_query = map_handler_err(
+        ResourceQuery::<WorksheetOrderBy, WorksheetFilterBy>::from_str(payload.q()),
+        worksheets_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service.get_paged(&resource_query).await,
+        worksheets_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        worksheets_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn print<M: WorksheetsModuleInterface>(
@@ -201,16 +199,19 @@ pub async fn print<M: WorksheetsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let error_mapper = ErrorMapper::new(worksheets_module);
     let worksheet_resolved_print = WorksheetResolvedPrint::from_worksheet_resolved(
-        error_mapper
-            .or_handler_error(service.get_resolved(payload.uuid).await)
-            .await?,
-        error_mapper.or_handler_error(claims.tz()).await?,
+        map_handler_err(
+            service.get_resolved(payload.uuid).await,
+            worksheets_module.clone(),
+        )
+        .await?,
+        map_handler_err(claims.tz(), worksheets_module.clone()).await?,
     );
-    let pdf = error_mapper
-        .or_handler_error(service.print(&[worksheet_resolved_print]).await)
-        .await?;
+    let pdf = map_handler_err(
+        service.print(&[worksheet_resolved_print]).await,
+        worksheets_module,
+    )
+    .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

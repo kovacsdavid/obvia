@@ -19,12 +19,14 @@
 
 use std::fmt::Display;
 
-use axum::response::IntoResponse;
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use tracing::Level;
 
 use crate::{
     common::{
-        error::FormErrorResponse,
+        error::v2::{AppError, AppErrorVisibility},
         types::UuidVO,
         value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired},
     },
@@ -65,11 +67,18 @@ impl Display for CommentUserInputError {
     }
 }
 
-impl FormErrorResponse for CommentUserInputError {}
-
-impl IntoResponse for CommentUserInputError {
-    fn into_response(self) -> axum::response::Response {
-        self.get_error_response()
+impl From<CommentUserInputError> for AppError {
+    fn from(value: CommentUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

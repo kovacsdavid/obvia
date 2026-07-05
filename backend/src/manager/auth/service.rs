@@ -21,13 +21,8 @@ use super::{
     AuthModuleInterface,
     dto::{claims::Claims, login::UserPublic},
 };
-use crate::{
-    common::extractors::ClientContext,
-    manager::auth::{
-        dto::{login::LoginRequest, register::RegisterRequest},
-        model::{AccountEventStatus, AccountEventType},
-    },
-};
+use crate::manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest};
+use crate::{common::error::RepositoryError, manager::auth::model::ForgottenPassword};
 use crate::{
     common::service::{Service, ServiceError},
     manager::{auth::dto::claims::ClaimsError, users::model::UserModelError},
@@ -41,14 +36,13 @@ use crate::{
 };
 use crate::{
     common::{
-        BaseModule,
-        error::{FriendlyError, RepositoryError},
+        error::v2::{AppError, AppErrorVisibility},
+        extractors::ClientContext,
     },
-    manager::auth::model::ForgottenPassword,
-};
-use crate::{
-    common::{dto::GeneralError, error::IntoFriendlyError},
-    manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest},
+    manager::auth::{
+        dto::{login::LoginRequest, register::RegisterRequest},
+        model::{AccountEventStatus, AccountEventType},
+    },
 };
 use anyhow::Result;
 use argon2::{
@@ -69,7 +63,6 @@ use lettre::{
 };
 use rand::RngExt;
 use serde_json::json;
-use std::sync::Arc;
 use thiserror::Error;
 use time::Duration as TimeDuration;
 use tokio::time::{Duration as TokioDuration, sleep};
@@ -147,50 +140,39 @@ impl From<ServiceError> for AuthServiceError {
     }
 }
 
-impl IntoFriendlyError for AuthServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            Self::UserNotFound
-            | Self::InvalidPassword
-            | Self::UserInactive
-            | Self::EmailValidationResend
-            | Self::InvalidEmailValidationToken
-            | Self::Unauthorized
-            | Self::TooManyAttempts(_)
-            | Self::MfaRequired
-            | Self::MfaInvalid
-            | Self::InvalidForgottenPasswordToken => FriendlyError::user_facing(
+impl From<AuthServiceError> for AppError {
+    fn from(value: AuthServiceError) -> Self {
+        match value {
+            AuthServiceError::UserNotFound
+            | AuthServiceError::InvalidPassword
+            | AuthServiceError::UserInactive
+            | AuthServiceError::EmailValidationResend
+            | AuthServiceError::InvalidEmailValidationToken
+            | AuthServiceError::Unauthorized
+            | AuthServiceError::TooManyAttempts(_)
+            | AuthServiceError::MfaRequired
+            | AuthServiceError::MfaInvalid
+            | AuthServiceError::InvalidForgottenPasswordToken => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            Self::UserExists => FriendlyError::user_facing(
+            AuthServiceError::UserExists => Self::new(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

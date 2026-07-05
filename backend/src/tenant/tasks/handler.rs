@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -41,19 +41,20 @@ pub async fn get_resolved<M: TasksModule>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    let result = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_resolved(payload.uuid).await,
+        tasks_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn get<M: TasksModule>(
@@ -62,19 +63,16 @@ pub async fn get<M: TasksModule>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    let result = error_mapper
-        .or_handler_error(service.get(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.get(payload.uuid).await, tasks_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn update<M: TasksModule>(
@@ -83,19 +81,16 @@ pub async fn update<M: TasksModule>(
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    let result = error_mapper
-        .or_handler_error(service.update(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.update(&user_input).await, tasks_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn delete<M: TasksModule>(
@@ -104,21 +99,18 @@ pub async fn delete<M: TasksModule>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    error_mapper
-        .or_handler_error(service.delete(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A feladat törlése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(service.delete(payload.uuid).await, tasks_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A feladat törlése sikeresen megtörtént",
+            ))
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn create<M: TasksModule>(
@@ -127,19 +119,16 @@ pub async fn create<M: TasksModule>(
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    let result = error_mapper
-        .or_handler_error(service.insert(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.insert(&user_input).await, tasks_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn select_list<M: TasksModule>(
@@ -148,24 +137,25 @@ pub async fn select_list<M: TasksModule>(
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = error_mapper
-        .or_handler_error(service.get_select_list_items(&list_type).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_select_list_items(&list_type).await,
+        tasks_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn list<M: TasksModule>(
@@ -174,25 +164,26 @@ pub async fn list<M: TasksModule>(
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
-    let resource_query = error_mapper
-        .or_handler_error(ResourceQuery::<TaskOrderBy, TaskFilterBy>::from_str(
-            payload.q(),
-        ))
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(service.get_paged(&resource_query).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let resource_query = map_handler_err(
+        ResourceQuery::<TaskOrderBy, TaskFilterBy>::from_str(payload.q()),
+        tasks_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service.get_paged(&resource_query).await,
+        tasks_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        tasks_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn print<M: TasksModule>(
@@ -201,16 +192,15 @@ pub async fn print<M: TasksModule>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let error_mapper = ErrorMapper::new(tasks_module);
     let task_resolved_print = TaskResolvedPrint::from_task_resolved(
-        error_mapper
-            .or_handler_error(service.get_resolved(payload.uuid).await)
-            .await?,
-        error_mapper.or_handler_error(claims.tz()).await?,
+        map_handler_err(
+            service.get_resolved(payload.uuid).await,
+            tasks_module.clone(),
+        )
+        .await?,
+        map_handler_err(claims.tz(), tasks_module.clone()).await?,
     );
-    let pdf = error_mapper
-        .or_handler_error(service.print(&[task_resolved_print]).await)
-        .await?;
+    let pdf = map_handler_err(service.print(&[task_resolved_print]).await, tasks_module).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

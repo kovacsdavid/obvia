@@ -17,15 +17,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::BaseModule;
-use crate::common::dto::GeneralError;
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
 use axum::http::StatusCode;
-use std::sync::Arc;
+use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
 
@@ -46,32 +45,23 @@ impl From<ServiceError> for CommentsServiceError {
     }
 }
 
-impl IntoFriendlyError for CommentsServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            CommentsServiceError::Unauthorized => FriendlyError::user_facing(
+impl From<CommentsServiceError> for AppError {
+    fn from(value: CommentsServiceError) -> Self {
+        match value {
+            CommentsServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

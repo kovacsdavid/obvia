@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::BaseModule;
-use crate::common::dto::{GeneralError, PaginatorMeta};
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
@@ -34,8 +34,8 @@ use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
+use serde_json::json;
 use std::str::FromStr;
-use std::sync::Arc;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -69,61 +69,46 @@ impl From<ServiceError> for TaxesServiceError {
     }
 }
 
-impl IntoFriendlyError for TaxesServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            TaxesServiceError::Unauthorized => FriendlyError::user_facing(
+impl From<TaxesServiceError> for AppError {
+    fn from(value: TaxesServiceError) -> Self {
+        match value {
+            TaxesServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            TaxesServiceError::TaxExists => FriendlyError::user_facing(
+            TaxesServiceError::TaxExists => Self::new(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            TaxesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+            TaxesServiceError::UnprocessableEntry(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
             TaxesServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
-                FriendlyError::user_facing(
+                Self::new(
                     Level::DEBUG,
                     StatusCode::NOT_FOUND,
                     file!(),
-                    GeneralError {
-                        message: self.to_string(),
-                    }
-                    .to_string(),
+                    AppErrorVisibility::UserFacing,
+                    json!({"message": value.to_string()}),
                 )
             }
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

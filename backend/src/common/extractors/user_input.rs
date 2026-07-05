@@ -18,10 +18,10 @@
  */
 
 use axum::extract::{FromRequest, Request};
-use axum::response::{IntoResponse, Response};
 use serde::de::DeserializeOwned;
 use std::marker::PhantomData;
 
+use crate::common::error::v2::AppError;
 use crate::common::extractors::ValidJson;
 
 pub struct UserInput<T, H>(pub T, pub PhantomData<H>);
@@ -29,15 +29,15 @@ pub struct UserInput<T, H>(pub T, pub PhantomData<H>);
 impl<T, H, S> FromRequest<S> for UserInput<T, H>
 where
     T: TryFrom<H>,
-    T::Error: IntoResponse,
+    T::Error: Into<AppError>,
     H: DeserializeOwned,
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = AppError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let user_input = T::try_from(ValidJson::<H>::from_request(req, state).await?.0)
-            .map_err(|e| e.into_response())?;
+        let user_input =
+            T::try_from(ValidJson::<H>::from_request(req, state).await?.0).map_err(|e| e.into())?;
 
         Ok(UserInput(user_input, PhantomData))
     }

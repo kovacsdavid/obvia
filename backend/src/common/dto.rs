@@ -121,39 +121,6 @@ where
 }
 
 #[derive(Serialize)]
-pub struct FormError<T>
-where
-    T: Serialize + Display,
-{
-    pub message: String,
-    pub fields: T,
-}
-
-impl<T> Display for FormError<T>
-where
-    T: Serialize + Display,
-{
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "FormError: message: {}, fields: {}",
-            self.message, self.fields
-        )
-    }
-}
-
-#[derive(Serialize)]
-pub struct GeneralError {
-    pub message: String,
-}
-
-impl Display for GeneralError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "FormError: message: {}", self.message)
-    }
-}
-
-#[derive(Serialize)]
 pub struct SimpleMessageResponse {
     pub message: String,
 }

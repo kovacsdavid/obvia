@@ -17,14 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::products::types::product::{ProductDescription, ProductName, ProductStatus};
 use crate::tenant::products::types::unit_of_measure::UnitsOfMeasure;
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ProductUserInputHelper {
@@ -65,11 +67,18 @@ impl Display for ProductUserInputError {
     }
 }
 
-impl FormErrorResponse for ProductUserInputError {}
-
-impl IntoResponse for ProductUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<ProductUserInputError> for AppError {
+    fn from(value: ProductUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

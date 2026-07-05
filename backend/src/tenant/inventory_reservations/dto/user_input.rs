@@ -17,16 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::types::quantity::Quantity;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::inventory_reservations::types::{
     InventoryReferenceType, InventoryReservationsReservedUntil, InventoryReservationsStatus,
 };
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -72,11 +74,18 @@ impl Display for InventoryReservationUserInputError {
     }
 }
 
-impl FormErrorResponse for InventoryReservationUserInputError {}
-
-impl IntoResponse for InventoryReservationUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<InventoryReservationUserInputError> for AppError {
+    fn from(value: InventoryReservationUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

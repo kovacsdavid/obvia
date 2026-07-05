@@ -17,9 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::BaseModule;
-use crate::common::dto::{GeneralError, PaginatorMeta};
-use crate::common::error::{FriendlyError, IntoFriendlyError, RepositoryError};
+use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 #[double]
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
@@ -33,7 +33,7 @@ use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOr
 use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
-use std::sync::Arc;
+use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -61,52 +61,39 @@ impl From<ServiceError> for WarehousesServiceError {
     }
 }
 
-impl IntoFriendlyError for WarehousesServiceError {
-    async fn into_friendly_error<M>(self, module: Arc<M>) -> FriendlyError
-    where
-        M: BaseModule,
-    {
-        match self {
-            WarehousesServiceError::Unauthorized => FriendlyError::user_facing(
+impl From<WarehousesServiceError> for AppError {
+    fn from(value: WarehousesServiceError) -> Self {
+        match value {
+            WarehousesServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
-                GeneralError {
-                    message: WarehousesServiceError::Unauthorized.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            WarehousesServiceError::UnprocessableEntry(_) => FriendlyError::user_facing(
+            WarehousesServiceError::UnprocessableEntry(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
                 file!(),
-                GeneralError {
-                    message: self.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
             WarehousesServiceError::Repository(RepositoryError::Database(
                 sqlx::Error::RowNotFound,
-            )) => FriendlyError::user_facing(
+            )) => Self::new(
                 Level::DEBUG,
                 StatusCode::NOT_FOUND,
                 file!(),
-                GeneralError {
-                    message: WarehousesServiceError::Unauthorized.to_string(),
-                }
-                .to_string(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
-            e => {
-                FriendlyError::internal_with_admin_notify(
-                    file!(),
-                    GeneralError {
-                        message: e.to_string(),
-                    }
-                    .to_string(),
-                    module,
-                )
-                .await
-            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
         }
     }
 }

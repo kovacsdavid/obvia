@@ -20,7 +20,7 @@
 use super::AuthModuleInterface;
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder};
 use crate::common::extractors::{ClientContext, UserInput};
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::dto::login::LoginResponse;
 use crate::manager::auth::dto::register::{
@@ -43,22 +43,23 @@ pub async fn login<M: AuthModuleInterface>(
     Json(payload): Json<LoginRequest>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
-        .or_handler_error(service.try_login(&payload, &client_context).await)
-        .await?;
-    let response = error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(LoginResponse::new(access_claims, user_public, access_token))
-                .build(),
-        )
-        .await?
-        .into_response();
+    let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
+        service.try_login(&payload, &client_context).await,
+        auth_module.clone(),
+    )
+    .await?;
+    let response = map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(LoginResponse::new(access_claims, user_public, access_token))
+            .build(),
+        auth_module.clone(),
+    )
+    .await?
+    .into_response();
 
-    let refresh_cookie = error_mapper
-        .or_handler_error(gen_refresh_cookie(
+    let refresh_cookie = map_handler_err(
+        gen_refresh_cookie(
             refresh_token,
             !matches!(service.module().config().server().environment(), "dev"),
             service
@@ -66,8 +67,10 @@ pub async fn login<M: AuthModuleInterface>(
                 .config()
                 .auth()
                 .refresh_token_expiration_mins(),
-        ))
-        .await?;
+        ),
+        auth_module,
+    )
+    .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
@@ -77,22 +80,23 @@ pub async fn refresh<M: AuthModuleInterface>(
     client_context: ClientContext,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    let (access_token, access_claims, refresh_token, _, user_public) = error_mapper
-        .or_handler_error(service.refresh(jar.clone(), &client_context).await)
-        .await?;
-    let response = error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(LoginResponse::new(access_claims, user_public, access_token))
-                .build(),
-        )
-        .await?
-        .into_response();
+    let (access_token, access_claims, refresh_token, _, user_public) = map_handler_err(
+        service.refresh(jar.clone(), &client_context).await,
+        auth_module.clone(),
+    )
+    .await?;
+    let response = map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(LoginResponse::new(access_claims, user_public, access_token))
+            .build(),
+        auth_module.clone(),
+    )
+    .await?
+    .into_response();
 
-    let refresh_cookie = error_mapper
-        .or_handler_error(gen_refresh_cookie(
+    let refresh_cookie = map_handler_err(
+        gen_refresh_cookie(
             refresh_token,
             !matches!(service.module().config().server().environment(), "dev"),
             service
@@ -100,8 +104,10 @@ pub async fn refresh<M: AuthModuleInterface>(
                 .config()
                 .auth()
                 .refresh_token_expiration_mins(),
-        ))
-        .await?;
+        ),
+        auth_module,
+    )
+    .await?;
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
@@ -111,10 +117,11 @@ pub async fn logout<M: AuthModuleInterface>(
     client_context: ClientContext,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    error_mapper
-        .or_handler_error(service.logout(jar.clone(), &client_context).await)
-        .await?;
+    map_handler_err(
+        service.logout(jar.clone(), &client_context).await,
+        auth_module.clone(),
+    )
+    .await?;
 
     Ok(jar
         .remove(Cookie::build("refresh_token").path("/api/auth/t"))
@@ -126,21 +133,18 @@ pub async fn register<M: AuthModuleInterface>(
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    error_mapper
-        .or_handler_error(service.try_register(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(SimpleMessageResponse::new(
-                    "A felhasználó sikeresen létrehozva",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(service.try_register(&user_input).await, auth_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(SimpleMessageResponse::new(
+                "A felhasználó sikeresen létrehozva",
+            ))
+            .build(),
+        auth_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn verify_email<M: AuthModuleInterface>(
@@ -148,25 +152,22 @@ pub async fn verify_email<M: AuthModuleInterface>(
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
     let token = payload
         .get("id")
         .cloned()
         .unwrap_or(String::from("missing_token"));
-    error_mapper
-        .or_handler_error(service.verify_email(&token).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "Az e-mail cím megerősítése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(service.verify_email(&token).await, auth_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "Az e-mail cím megerősítése sikeresen megtörtént",
+            ))
+            .build(),
+        auth_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn resend_email_verification<M: AuthModuleInterface>(
@@ -177,22 +178,23 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
     >,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    error_mapper
-        .or_handler_error(service.resend_email_verification(user_input).await)
-        .await?;
+    map_handler_err(
+        service.resend_email_verification(user_input).await,
+        auth_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A megerősítő e-mail újraküldése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A megerősítő e-mail újraküldése sikeresen megtörtént",
+            ))
+            .build(),
+        auth_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn forgotten_password<M: AuthModuleInterface>(
@@ -201,20 +203,22 @@ pub async fn forgotten_password<M: AuthModuleInterface>(
     UserInput(user_input, _): UserInput<ForgottenPasswordRequest, ForgottenPasswordRequestHelper>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    error_mapper
-        .or_handler_error(
-            service
-                .forgotten_password(user_input, &client_context)
-                .await,
-        )
-        .await?;
-    Ok(error_mapper.or_handler_error(SuccessResponseBuilder::<EmptyType, _>::new()
+    map_handler_err(
+        service
+            .forgotten_password(user_input, &client_context)
+            .await,
+        auth_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+            SuccessResponseBuilder::<EmptyType, _>::new()
         .status_code(StatusCode::OK)
         .data(SimpleMessageResponse::new(
             "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került.",
         ))
-        .build()).await?.into_response())
+        .build(),
+        auth_module
+        ).await?.into_response())
 }
 
 pub async fn new_password<M: AuthModuleInterface>(
@@ -223,21 +227,22 @@ pub async fn new_password<M: AuthModuleInterface>(
     UserInput(user_input, _): UserInput<NewPasswordRequest, NewPasswordRequestHelper>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
-    let error_mapper = ErrorMapper::new(auth_module);
-    error_mapper
-        .or_handler_error(service.new_password(user_input, &client_context).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A jelszó megváltoztatása sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(
+        service.new_password(user_input, &client_context).await,
+        auth_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A jelszó megváltoztatása sikeresen megtörtént",
+            ))
+            .build(),
+        auth_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[cfg(test)]

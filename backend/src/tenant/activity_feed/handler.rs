@@ -18,8 +18,7 @@
  */
 
 use crate::common::dto::SuccessResponseBuilder;
-use crate::common::error::FriendlyError;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
 use crate::common::types::Empty;
@@ -39,34 +38,33 @@ pub async fn list<M: ActivityFeedModuleInterface>(
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), activity_feed_module.clone());
-    let error_mapper = ErrorMapper::new(activity_feed_module);
-    let resource_query = error_mapper
-        .or_handler_error(ResourceQuery::<Empty, Empty>::from_str(payload.q()))
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(
-            service
-                .get_all_paged(
-                    &resource_query,
-                    payload.resource_id(),
-                    &payload.resource_type().map_err(|e| {
-                        FriendlyError::internal(file!(), e.to_string()).into_response()
-                    })?,
-                )
-                .await,
-        )
-        .await?;
+    let resource_query = map_handler_err(
+        ResourceQuery::<Empty, Empty>::from_str(payload.q()),
+        activity_feed_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service
+            .get_all_paged(
+                &resource_query,
+                payload.resource_id(),
+                &map_handler_err(payload.resource_type(), activity_feed_module.clone()).await?,
+            )
+            .await,
+        activity_feed_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        activity_feed_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[cfg(test)]

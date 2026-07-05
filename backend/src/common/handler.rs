@@ -17,57 +17,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use axum::response::{IntoResponse, Response};
+use axum::response::Response;
 use std::sync::Arc;
 
-use crate::common::{BaseModule, error::IntoFriendlyError};
+use crate::common::{BaseModule, error::v2::AppError};
 
-pub trait ErrorMapperInterface {
-    fn or_handler_error<R, E>(
-        &self,
-        result: Result<R, E>,
-    ) -> impl Future<Output = Result<R, Response>> + Send
-    where
-        R: Send + Sync + 'static,
-        E: IntoFriendlyError + Send + Sync + 'static;
-}
-
-pub struct ErrorMapper<M>
+pub async fn map_handler_err<R, E, M>(result: Result<R, E>, mailer: Arc<M>) -> Result<R, AppError>
 where
-    M: BaseModule,
+    R: Send + Sync,
+    E: Into<AppError> + Send + Sync,
+    M: BaseModule + Send + Sync,
 {
-    mailer: Arc<M>,
-}
-
-impl<M> ErrorMapper<M>
-where
-    M: BaseModule,
-{
-    pub fn new(mailer: Arc<M>) -> Self {
-        Self { mailer }
-    }
-}
-
-impl<M> ErrorMapperInterface for ErrorMapper<M>
-where
-    M: BaseModule,
-{
-    async fn or_handler_error<R, E>(&self, result: Result<R, E>) -> Result<R, Response>
-    where
-        R: Send + Sync + 'static,
-        E: IntoFriendlyError + Send + Sync + 'static,
-    {
-        match result {
-            Ok(value) => Ok(value),
-            Err(err) => Err(err
-                .into_friendly_error(self.mailer.clone())
-                .await
-                .into_response()),
+    match result {
+        Ok(v) => Ok(v),
+        Err(e) => {
+            let app_error: AppError = e.into();
+            app_error.notify_admin_if_internal(mailer).await;
+            Err(app_error)
         }
     }
 }
 
-pub type HandlerResult = Result<Response, Response>;
+pub type HandlerResult = Result<Response, AppError>;
 
 #[cfg(test)]
 pub mod tests {

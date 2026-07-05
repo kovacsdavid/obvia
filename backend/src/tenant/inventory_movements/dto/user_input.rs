@@ -17,7 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::AppError;
+use crate::common::error::v2::AppErrorVisibility;
 use crate::common::types::Float64;
 use crate::common::types::UuidVO;
 use crate::common::types::quantity::Quantity;
@@ -25,9 +26,11 @@ use crate::common::value_object::ValueObjectError;
 use crate::common::value_object::ValueObjectOptional;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::inventory_movements::types::{InventoryMovementType, InventoryReferenceType};
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -77,11 +80,18 @@ impl Display for InventoryMovementUserInputError {
     }
 }
 
-impl FormErrorResponse for InventoryMovementUserInputError {}
-
-impl IntoResponse for InventoryMovementUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<InventoryMovementUserInputError> for AppError {
+    fn from(value: InventoryMovementUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

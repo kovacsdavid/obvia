@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModuleInterface;
@@ -36,19 +36,16 @@ pub async fn post<M: CommentsModuleInterface>(
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), comments_module.clone());
-    let error_mapper = ErrorMapper::new(comments_module);
-    let result = error_mapper
-        .or_handler_error(service.post(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(service.post(&user_input).await, comments_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        comments_module,
+    )
+    .await?
+    .into_response())
 }
 
 #[cfg(test)]

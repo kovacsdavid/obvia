@@ -17,15 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::FormErrorResponse;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
 use crate::tenant::worksheets::types::worksheet::{
     WorksheetDescription, WorksheetName, WorksheetStatus,
 };
-use axum::response::{IntoResponse, Response};
+use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
+use tracing::Level;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorksheetUserInputHelper {
@@ -67,11 +69,18 @@ impl Display for WorksheetUserInputError {
     }
 }
 
-impl FormErrorResponse for WorksheetUserInputError {}
-
-impl IntoResponse for WorksheetUserInputError {
-    fn into_response(self) -> Response {
-        self.get_error_response()
+impl From<WorksheetUserInputError> for AppError {
+    fn from(value: WorksheetUserInputError) -> Self {
+        Self::new(
+            Level::DEBUG,
+            StatusCode::UNPROCESSABLE_ENTITY,
+            file!(),
+            AppErrorVisibility::UserFacing,
+            json!({
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": value
+            }),
+        )
     }
 }
 

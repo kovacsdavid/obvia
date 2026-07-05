@@ -19,7 +19,7 @@
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::UserInput;
-use crate::common::handler::{ErrorMapper, ErrorMapperInterface, HandlerResult};
+use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -46,19 +46,20 @@ pub async fn get<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let result = error_mapper
-        .or_handler_error(service.get(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get(payload.uuid).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
@@ -67,19 +68,20 @@ pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let result = error_mapper
-        .or_handler_error(service.get_resolved(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.get_resolved(payload.uuid).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn create<M: InventoryReservationsModuleInterface>(
@@ -91,19 +93,20 @@ pub async fn create<M: InventoryReservationsModuleInterface>(
     >,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let result = error_mapper
-        .or_handler_error(service.insert(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::CREATED)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.insert(&user_input).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::CREATED)
+            .data(result)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn update<M: InventoryReservationsModuleInterface>(
@@ -115,19 +118,20 @@ pub async fn update<M: InventoryReservationsModuleInterface>(
     >,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let result = error_mapper
-        .or_handler_error(service.update(&user_input).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let result = map_handler_err(
+        service.update(&user_input).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn delete<M: InventoryReservationsModuleInterface>(
@@ -136,21 +140,22 @@ pub async fn delete<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    error_mapper
-        .or_handler_error(service.delete(payload.uuid).await)
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(SimpleMessageResponse::new(
-                    "A készletfoglalás törlése sikeresen megtörtént",
-                ))
-                .build(),
-        )
-        .await?
-        .into_response())
+    map_handler_err(
+        service.delete(payload.uuid).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A készletfoglalás törlése sikeresen megtörtént",
+            ))
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn list<M: InventoryReservationsModuleInterface>(
@@ -159,30 +164,30 @@ pub async fn list<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<InventoryReservationsRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
-    let resource_query = error_mapper
-        .or_handler_error(ResourceQuery::<
-            InventoryReservationOrderBy,
-            InventoryReservationFilterBy,
-        >::from_str(payload.q()))
-        .await?;
-    let (meta, data) = error_mapper
-        .or_handler_error(
-            service
-                .get_paged(&resource_query, payload.inventory_id())
-                .await,
-        )
-        .await?;
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::new()
-                .status_code(StatusCode::OK)
-                .meta(meta)
-                .data(data)
-                .build(),
-        )
-        .await?
-        .into_response())
+    let resource_query = map_handler_err(
+        ResourceQuery::<InventoryReservationOrderBy, InventoryReservationFilterBy>::from_str(
+            payload.q(),
+        ),
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    let (meta, data) = map_handler_err(
+        service
+            .get_paged(&resource_query, payload.inventory_id())
+            .await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::new()
+            .status_code(StatusCode::OK)
+            .meta(meta)
+            .data(data)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn select_list<M: InventoryReservationsModuleInterface>(
@@ -191,25 +196,26 @@ pub async fn select_list<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
     let list_type = payload
         .get("list")
         .cloned()
         .unwrap_or(String::from("missing_list"));
 
-    let result = error_mapper
-        .or_handler_error(service.get_select_list_items(&list_type).await)
-        .await?;
+    let result = map_handler_err(
+        service.get_select_list_items(&list_type).await,
+        inventory_reservations_module.clone(),
+    )
+    .await?;
 
-    Ok(error_mapper
-        .or_handler_error(
-            SuccessResponseBuilder::<EmptyType, _>::new()
-                .status_code(StatusCode::OK)
-                .data(result)
-                .build(),
-        )
-        .await?
-        .into_response())
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        inventory_reservations_module,
+    )
+    .await?
+    .into_response())
 }
 
 pub async fn print<M: InventoryReservationsModuleInterface>(
@@ -218,21 +224,22 @@ pub async fn print<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let error_mapper = ErrorMapper::new(inventory_reservations_module);
     let inventory_reservations_resolved_print =
         InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-            error_mapper
-                .or_handler_error(service.get_resolved(payload.uuid).await)
-                .await?,
-            error_mapper.or_handler_error(claims.tz()).await?,
+            map_handler_err(
+                service.get_resolved(payload.uuid).await,
+                inventory_reservations_module.clone(),
+            )
+            .await?,
+            map_handler_err(claims.tz(), inventory_reservations_module.clone()).await?,
         );
-    let pdf = error_mapper
-        .or_handler_error(
-            service
-                .print(&[inventory_reservations_resolved_print])
-                .await,
-        )
-        .await?;
+    let pdf = map_handler_err(
+        service
+            .print(&[inventory_reservations_resolved_print])
+            .await,
+        inventory_reservations_module,
+    )
+    .await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(

@@ -73,7 +73,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+        extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::common::value_object::ValueObjectRequired;
     use crate::tenant::activity_feed::model::ActivityFeedResolved;
@@ -87,6 +88,7 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
+    use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -101,6 +103,24 @@ mod tests {
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
 
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let activity_feed_resolved = ActivityFeedResolved {
+            id: activity_feed_id,
+            resource_id,
+            resource_type: resource_type.to_string(),
+            activity_type: "comment".to_string(),
+            content: "Test content".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
+
         let mut repo = MockActivityFeedRepository::new();
         repo.expect_get_paged()
             .times(1)
@@ -110,28 +130,8 @@ mod tests {
                 eq(resource_type.clone()),
             )
             .returning({
-                let resource_type_clone = resource_type.clone();
-                move |_, _, _| {
-                    Ok((
-                        PaginatorMeta {
-                            page: 1,
-                            limit: 25,
-                            total: 100,
-                        },
-                        vec![ActivityFeedResolved {
-                            id: activity_feed_id,
-                            resource_id,
-                            resource_type: resource_type_clone.to_string(),
-                            activity_type: "comment".to_string(),
-                            content: "Test content".to_string(),
-                            created_by_id,
-                            created_by: "Test User".to_string(),
-                            created_at: utc_now,
-                            updated_at: utc_now,
-                            deleted_at: None,
-                        }],
-                    ))
-                }
+                let activity_feed_resolved = activity_feed_resolved.clone();
+                move |_, _, _| Ok((paginator_meta, vec![activity_feed_resolved.clone()]))
             });
 
         let mut app_state = MockActivityFeedModule::new();
@@ -170,6 +170,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": vec![activity_feed_resolved]
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -206,6 +214,13 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "message": "Hozzáférés megtagadva!"
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -242,6 +257,13 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "message": "Hozzáférés megtagadva!"
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -268,7 +290,13 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
+
     #[tokio::test]
     async fn test_list_not_found() {
         let resource_id = Uuid::new_v4();
@@ -323,5 +351,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 }

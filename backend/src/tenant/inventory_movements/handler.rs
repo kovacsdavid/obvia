@@ -254,7 +254,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+        extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
     use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
@@ -270,6 +271,8 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -283,25 +286,28 @@ mod tests {
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
 
+        let inventory_movement = InventoryMovement {
+            id: inventory_movement_id,
+            inventory_id,
+            movement_type: "in".to_string(),
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            unit_price: Some("20".parse().unwrap()),
+            total_price: Some("30".parse().unwrap()),
+            tax_id,
+            movement_date: utc_now,
+            created_by_id,
+            created_at: utc_now,
+        };
+
         let mut repo = MockInventoryMovementsRepository::new();
         repo.expect_get_by_id()
             .times(1)
             .with(eq(inventory_movement_id))
-            .returning(move |inventory_movement_id| {
-                Ok(InventoryMovement {
-                    id: inventory_movement_id,
-                    inventory_id,
-                    movement_type: "in".to_string(),
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id,
-                    unit_price: Some("20".parse().unwrap()),
-                    total_price: Some("30".parse().unwrap()),
-                    tax_id,
-                    movement_date: utc_now,
-                    created_by_id,
-                    created_at: utc_now,
-                })
+            .returning({
+                let inventory_movement = inventory_movement.clone();
+                move |_| Ok(inventory_movement.clone())
             });
 
         let mut app_state = MockInventoryMovementsModule::new();
@@ -340,6 +346,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_movement
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -373,6 +387,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -406,6 +429,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -429,7 +461,13 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
+
     #[tokio::test]
     async fn test_get_not_found() {
         let active_tenant_id = Uuid::new_v4();
@@ -477,6 +515,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -488,28 +535,30 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let inventory_movement_resolved = InventoryMovementResolved {
+            id: inventory_movement_id,
+            inventory_id,
+            movement_type: "in".to_string(),
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            unit_price: Some("20".parse().unwrap()),
+            total_price: Some("30".parse().unwrap()),
+            tax_id,
+            tax: Some("Test Tax".to_string()),
+            movement_date: utc_now,
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+        };
 
         let mut repo = MockInventoryMovementsRepository::new();
         repo.expect_get_resolved_by_id()
             .times(1)
             .with(eq(inventory_movement_id))
-            .returning(move |inventory_movement_id| {
-                Ok(InventoryMovementResolved {
-                    id: inventory_movement_id,
-                    inventory_id,
-                    movement_type: "in".to_string(),
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id,
-                    unit_price: Some("20".parse().unwrap()),
-                    total_price: Some("30".parse().unwrap()),
-                    tax_id,
-                    tax: Some("Test Tax".to_string()),
-                    movement_date: utc_now,
-                    created_by_id,
-                    created_by: "Test User".to_string(),
-                    created_at: utc_now,
-                })
+            .returning({
+                let inventory_movement_resolved = inventory_movement_resolved.clone();
+                move |_| Ok(inventory_movement_resolved.clone())
             });
 
         let mut app_state = MockInventoryMovementsModule::new();
@@ -548,6 +597,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_movement_resolved
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -581,6 +638,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -614,6 +680,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -637,6 +712,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
@@ -685,6 +765,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -696,6 +785,27 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let inventory_movement_resolved = InventoryMovementResolved {
+            id: inventory_movement_id,
+            inventory_id,
+            movement_type: "in".to_string(),
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            unit_price: Some("20".parse().unwrap()),
+            total_price: Some("30".parse().unwrap()),
+            tax_id,
+            tax: Some("Test Tax".to_string()),
+            movement_date: utc_now,
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+        };
 
         let mut repo = MockInventoryMovementsRepository::new();
         repo.expect_get_paged()
@@ -706,30 +816,9 @@ mod tests {
                     .unwrap()),
                 eq(inventory_id),
             )
-            .returning(move |_, _| {
-                Ok((
-                    PaginatorMeta {
-                        page: 1,
-                        limit: 25,
-                        total: 100,
-                    },
-                    vec![InventoryMovementResolved {
-                        id: inventory_movement_id,
-                        inventory_id,
-                        movement_type: "in".to_string(),
-                        quantity: "10".parse().unwrap(),
-                        reference_type: Some("worksheets".to_string()),
-                        reference_id,
-                        unit_price: Some("20".parse().unwrap()),
-                        total_price: Some("30".parse().unwrap()),
-                        tax_id,
-                        tax: Some("Test Tax".to_string()),
-                        movement_date: utc_now,
-                        created_by_id,
-                        created_by: "Test User".to_string(),
-                        created_at: utc_now,
-                    }],
-                ))
+            .returning({
+                let inventory_movement_resolved = inventory_movement_resolved.clone();
+                move |_, _| Ok((paginator_meta, vec![inventory_movement_resolved.clone()]))
             });
 
         let mut app_state = MockInventoryMovementsModule::new();
@@ -768,6 +857,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [inventory_movement_resolved]
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -801,6 +898,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -834,6 +940,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -857,6 +972,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_list_not_found() {
@@ -909,6 +1029,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -921,6 +1050,20 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let inventory_movement = InventoryMovement {
+            id: inventory_movement_id,
+            inventory_id,
+            movement_type: "in".to_string(),
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id: Some(reference_id),
+            unit_price: Some("20".parse().unwrap()),
+            total_price: Some("30".parse().unwrap()),
+            tax_id,
+            movement_date: utc_now,
+            created_by_id,
+            created_at: utc_now,
+        };
 
         let user_input_helper = InventoryMovementUserInputHelper {
             id: None,
@@ -950,21 +1093,9 @@ mod tests {
                         && user_id == *user_id_inner
                 }
             })
-            .returning(move |_, _| {
-                Ok(InventoryMovement {
-                    id: inventory_movement_id,
-                    inventory_id,
-                    movement_type: "in".to_string(),
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id: Some(reference_id),
-                    unit_price: Some("20".parse().unwrap()),
-                    total_price: Some("30".parse().unwrap()),
-                    tax_id,
-                    movement_date: utc_now,
-                    created_by_id,
-                    created_at: utc_now,
-                })
+            .returning({
+                let inventory_movement = inventory_movement.clone();
+                move |_, _| Ok(inventory_movement.clone())
             });
 
         let mut app_state = MockInventoryMovementsModule::new();
@@ -1002,6 +1133,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_movement
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1052,6 +1191,18 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let user_input_error = InventoryMovementUserInput::try_from(user_input_helper).unwrap_err();
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": user_input_error
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1097,6 +1248,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1142,6 +1302,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1177,6 +1346,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_update_success() {
@@ -1188,6 +1362,20 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let inventory_movement = InventoryMovement {
+            id: inventory_movement_id,
+            inventory_id,
+            movement_type: "in".to_string(),
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id: Some(reference_id),
+            unit_price: Some("20".parse().unwrap()),
+            total_price: Some("30".parse().unwrap()),
+            tax_id,
+            movement_date: utc_now,
+            created_by_id,
+            created_at: utc_now,
+        };
 
         let user_input_helper = InventoryMovementUserInputHelper {
             id: Some(inventory_movement_id.to_string()),
@@ -1205,21 +1393,9 @@ mod tests {
         repo.expect_update()
             .times(1)
             .with(eq(user_input))
-            .returning(move |_| {
-                Ok(InventoryMovement {
-                    id: inventory_movement_id,
-                    inventory_id,
-                    movement_type: "in".to_string(),
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id: Some(reference_id),
-                    unit_price: Some("20".parse().unwrap()),
-                    total_price: Some("30".parse().unwrap()),
-                    tax_id,
-                    movement_date: utc_now,
-                    created_by_id,
-                    created_at: utc_now,
-                })
+            .returning({
+                let inventory_movement = inventory_movement.clone();
+                move |_| Ok(inventory_movement.clone())
             });
 
         let mut app_state = MockInventoryMovementsModule::new();
@@ -1257,6 +1433,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_movement,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1307,6 +1491,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hiba történt az adatok feldolgozása során: Az azonosító megadása kötelező!"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1353,6 +1546,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1399,6 +1601,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1436,6 +1647,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_delete_success() {
@@ -1485,6 +1701,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A készletmozgás törlése sikeresen megtörtént",
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1520,6 +1746,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1553,6 +1784,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1586,6 +1826,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1610,6 +1859,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1737,6 +1991,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1771,6 +2034,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1796,5 +2068,10 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 }

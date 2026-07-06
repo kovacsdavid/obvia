@@ -355,7 +355,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -393,7 +395,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -596,7 +600,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -634,7 +640,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -842,7 +850,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -878,7 +888,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1172,7 +1184,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1222,7 +1236,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1460,7 +1476,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1511,7 +1529,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1687,7 +1707,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1725,7 +1747,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1883,7 +1907,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -1922,7 +1948,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
+            "error": {
                 "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);

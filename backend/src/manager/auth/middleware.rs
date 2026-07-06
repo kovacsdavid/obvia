@@ -48,7 +48,12 @@ pub async fn require_auth<M: ConfigProvider<Cfg = AppConfig>>(
         .map_err(|_| {
             (
                 StatusCode::UNAUTHORIZED,
-                json!({"message": "Hozzáférés megtagadva!"}).to_string(),
+                json!({
+                    "error": {
+                        "message": "Hozzáférés megtagadva!"
+                    }
+                })
+                .to_string(),
             )
         })?,
     );
@@ -71,7 +76,12 @@ where
             .map(AuthenticatedUser)
             .ok_or((
                 StatusCode::UNAUTHORIZED,
-                json!({"message": "Hozzáférés megtagadva!"}).to_string(),
+                json!({
+                    "error": {
+                        "message": "Hozzáférés megtagadva!"
+                    }
+                })
+                .to_string(),
             ))
     }
 }

@@ -65,6 +65,7 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
     use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -254,7 +255,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);
@@ -300,7 +303,9 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
-            "message": "Hozzáférés megtagadva!"
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
         });
 
         assert_eq!(response_body, expected_body);

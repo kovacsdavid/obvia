@@ -100,7 +100,7 @@ impl From<InventoryServiceError> for AppError {
                 StatusCode::NOT_FOUND,
                 file!(),
                 AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
+                json!({"message": "Nem található"}),
             ),
             _ => Self::new(
                 Level::ERROR,

@@ -257,7 +257,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+        extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
     use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
@@ -273,6 +274,8 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::{Duration, Utc};
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -284,24 +287,26 @@ mod tests {
         let reference_id = Some(Uuid::new_v4());
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let inventory_reservation = InventoryReservation {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+        };
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_by_id()
             .times(1)
             .with(eq(inventory_reservation_id))
-            .returning(move |inventory_reservation_id| {
-                Ok(InventoryReservation {
-                    id: inventory_reservation_id,
-                    inventory_id,
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id,
-                    reserved_until: None,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                })
+            .returning({
+                let inventory_reservation = inventory_reservation.clone();
+                move |_| Ok(inventory_reservation.clone())
             });
 
         let mut app_state = MockInventoryReservationsModule::new();
@@ -340,6 +345,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_reservation,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -373,6 +386,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -406,6 +428,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -429,6 +460,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_not_found() {
@@ -477,6 +513,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -487,25 +532,27 @@ mod tests {
         let reference_id = Some(Uuid::new_v4());
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let inventory_reservation_resolved = InventoryReservationResolved {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+        };
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_resolved_by_id()
             .times(1)
             .with(eq(inventory_reservation_id))
-            .returning(move |inventory_reservation_id| {
-                Ok(InventoryReservationResolved {
-                    id: inventory_reservation_id,
-                    inventory_id,
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id,
-                    reserved_until: None,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_by: "Test User".to_string(),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                })
+            .returning({
+                let inventory_reservation_resolved = inventory_reservation_resolved.clone();
+                move |_| Ok(inventory_reservation_resolved.clone())
             });
 
         let mut app_state = MockInventoryReservationsModule::new();
@@ -544,6 +591,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_reservation_resolved,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -577,6 +632,57 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_get_resolved_unauthorized_invalid_signature() {
+        let inventory_reservation_id = Uuid::new_v4();
+
+        let mut app_state = MockInventoryReservationsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!(
+                "/api/inventory_reservations/get_resolved?uuid={inventory_reservation_id}"
+            ))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(inventory_reservations::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -600,6 +706,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
@@ -648,6 +759,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -658,6 +778,24 @@ mod tests {
         let reference_id = Some(Uuid::new_v4());
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let inventory_reservation_resolved = InventoryReservationResolved {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id,
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+        };
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_paged()
@@ -666,28 +804,14 @@ mod tests {
                 .parse::<ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>>()
                 .unwrap()),
                 eq(inventory_id))
-            .returning(move |_, _| {
+            .returning({
+                let inventory_reservation_resolved = inventory_reservation_resolved.clone();
+                move |_, _| {
                 Ok((
-                    PaginatorMeta {
-                        page: 1,
-                        limit: 25,
-                        total: 100,
-                    },
-                    vec![InventoryReservationResolved {
-                        id: inventory_reservation_id,
-                        inventory_id,
-                        quantity: "10".parse().unwrap(),
-                        reference_type: Some("worksheets".to_string()),
-                        reference_id,
-                        reserved_until: None,
-                        status: "active".to_string(),
-                        created_by_id,
-                        created_by: "Test User".to_string(),
-                        created_at: utc_now,
-                        updated_at: utc_now,
-                    }],
+                    paginator_meta,
+                    vec![inventory_reservation_resolved.clone()],
                 ))
-            });
+            }});
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
@@ -725,6 +849,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [inventory_reservation_resolved],
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -758,6 +890,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -791,6 +932,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -815,6 +965,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_list_not_found() {
@@ -867,6 +1022,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -891,6 +1055,19 @@ mod tests {
         let user_input =
             InventoryReservationUserInput::try_from(user_input_helper.clone()).unwrap();
 
+        let inventory_reservation = InventoryReservation {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id: Some(reference_id),
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+        };
+
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_insert()
             .times(1)
@@ -906,19 +1083,9 @@ mod tests {
                         && user_id == *user_id_inner
                 }
             })
-            .returning(move |_, _| {
-                Ok(InventoryReservation {
-                    id: inventory_reservation_id,
-                    inventory_id,
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id: Some(reference_id),
-                    reserved_until: None,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                })
+            .returning({
+                let inventory_reservation = inventory_reservation.clone();
+                move |_, _| Ok(inventory_reservation.clone())
             });
 
         let mut app_state = MockInventoryReservationsModule::new();
@@ -956,6 +1123,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_reservation
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1004,6 +1179,19 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let user_input_error =
+            InventoryReservationUserInput::try_from(user_input_helper).unwrap_err();
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields":user_input_error
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1047,6 +1235,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1090,6 +1287,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1124,6 +1330,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_update_success() {
@@ -1146,24 +1357,26 @@ mod tests {
         };
         let user_input =
             InventoryReservationUserInput::try_from(user_input_helper.clone()).unwrap();
+        let inventory_reservation = InventoryReservation {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id: Some(reference_id),
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+        };
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_update()
             .times(1)
             .with(eq(user_input))
-            .returning(move |_| {
-                Ok(InventoryReservation {
-                    id: inventory_reservation_id,
-                    inventory_id,
-                    quantity: "10".parse().unwrap(),
-                    reference_type: Some("worksheets".to_string()),
-                    reference_id: Some(reference_id),
-                    reserved_until: None,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                })
+            .returning({
+                let inventory_reservation = inventory_reservation.clone();
+                move |_| Ok(inventory_reservation.clone())
             });
 
         let mut app_state = MockInventoryReservationsModule::new();
@@ -1201,6 +1414,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": inventory_reservation,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1209,6 +1430,7 @@ mod tests {
         let inventory_id = Uuid::new_v4();
         let reference_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
+        let utc_now = Utc::now();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: None,
@@ -1216,7 +1438,7 @@ mod tests {
             quantity: "10".to_string(),
             reference_type: "worksheets".to_string(),
             reference_id: reference_id.to_string(),
-            reserved_until: "".to_string(),
+            reserved_until: (utc_now + Duration::days(2)).date_naive().to_string(),
             status: "active".to_string(),
         };
 
@@ -1249,6 +1471,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hiba történt az adatok feldolgozása során: Az azonosító megadása kötelező!"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1293,6 +1524,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1337,6 +1577,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1372,6 +1621,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_delete_success() {
@@ -1421,6 +1675,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A készletfoglalás törlése sikeresen megtörtént"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1456,6 +1720,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1489,6 +1758,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1522,6 +1800,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1546,6 +1833,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1669,6 +1961,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1703,6 +2004,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1728,5 +2038,10 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 }

@@ -1043,7 +1043,97 @@ mod tests {
         assert_eq!(response_body, expected_body);
     }
 
-    // TODO: test_delete_success
+    #[tokio::test]
+    async fn test_delete_success() {
+        let sub = Uuid::new_v4();
+        let tenant_id = Uuid::new_v4();
+        let utc_now = Utc::now();
+
+        let mut repo = MockTenantsRepository::new();
+        repo.expect_delete()
+            .times(1)
+            .with(eq(tenant_id), eq(sub))
+            .returning(move |_, _| {
+                Ok(Tenant {
+                    id: tenant_id,
+                    name: "Test tenant".to_string(),
+                    is_self_hosted: false,
+                    db_host: "localhost".to_string(),
+                    db_port: 5432,
+                    db_name: "test_db".to_string(),
+                    db_user: "test_user".to_string(),
+                    db_password: "test_password".to_string(),
+                    db_max_pool_size: 3,
+                    db_ssl_mode: "verify-full".to_string(),
+                    created_at: utc_now,
+                    updated_at: utc_now,
+                    deleted_at: None,
+                })
+            });
+
+        let repo = Arc::new(repo);
+        let mut app_state = MockTenantsModule::new();
+        app_state
+            .expect_tenants_repo()
+            .times(1)
+            .returning(move || repo.clone());
+        app_state
+            .expect_delete_tenant_pool()
+            .times(1)
+            .with(eq(tenant_id))
+            .returning(|_| Box::pin(ready(Ok(()))));
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(2)
+            .return_const(test_config.clone());
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(app_state))),
+        );
+
+        let payload = json!({
+            "uuid": tenant_id
+        });
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_valid_jwt(Some(sub), None)),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/tenants/delete")
+            .body(Body::from(payload.to_string()))
+            .unwrap();
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let data = response_body.get("data").unwrap();
+        let claims = Claims::from_token(
+            data["token"].as_str().unwrap(),
+            test_config.auth().jwt_secret().as_bytes(),
+            test_config.auth().jwt_issuer(),
+            &format!("{}-api", test_config.auth().jwt_audience()),
+        )
+        .unwrap();
+
+        assert_eq!(claims.active_tenant(), None);
+
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "token": data["token"],
+                "claims": claims
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {

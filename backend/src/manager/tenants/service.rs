@@ -26,7 +26,7 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::utils::generate_string_csprng;
 use crate::common::value_object::ValueObjectError;
-use crate::manager::tenants::TenantsModule;
+use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
@@ -109,13 +109,14 @@ pub trait TenantService {
 
 impl<'a, T> TenantService for Service<'a, T>
 where
-    T: TenantsModule,
+    T: TenantsModuleInterface,
 {
     async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
+        let config = self.module().config();
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
-            host: self.module().config().main_database().host.clone(),
-            port: self.module().config().main_database().port,
+            host: config.main_database().host.clone(),
+            port: config.main_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
             password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
@@ -131,7 +132,7 @@ where
                 payload.name.as_str()?,
                 &db_config,
                 self.claims()?,
-                self.module().config(),
+                config,
             )
             .await?;
 

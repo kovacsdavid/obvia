@@ -109,7 +109,7 @@ export async function get_resolved(
     uuid: string,
     token: string | null,
 ): Promise<ProcessedJsonResponse<DatabaseResponse>> {
-    return await fetch(`/api/tenants/get?uuid=${uuid}`, {
+    return await fetch(`/api/tenants/get_resolved?uuid=${uuid}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

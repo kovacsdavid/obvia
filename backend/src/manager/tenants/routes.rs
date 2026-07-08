@@ -31,6 +31,7 @@ pub fn routes<M: TenantsModuleInterface>(tenants_module: Arc<M>) -> Router {
         Router::new()
             .route("/create", post(handler::create::<M>))
             .route("/get", get(handler::get::<M>))
+            .route("/get_resolved", get(handler::get_resolved::<M>))
             .route("/list", get(handler::list::<M>))
             .route("/activate", post(handler::activate::<M>))
             .route("/delete", post(handler::delete::<M>))

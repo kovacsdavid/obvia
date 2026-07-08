@@ -651,6 +651,110 @@ mod tests {
         assert_eq!(response_body, expected_body);
     }
 
+    // TODO: test_list_success
+
+    #[tokio::test]
+    async fn test_list_unauthorized_expired() {
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/tenants/list")
+            .body("".to_string())
+            .unwrap();
+
+        let mut tenants_module = MockTenantsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        tenants_module
+            .expect_config()
+            .times(1)
+            .return_const(test_config);
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_invalid_signature() {
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/tenants/list")
+            .body("".to_string())
+            .unwrap();
+
+        let mut tenants_module = MockTenantsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        tenants_module
+            .expect_config()
+            .times(1)
+            .return_const(test_config);
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_list_unauthorized_missing() {
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/tenants/list")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
+    }
+
     #[tokio::test]
     async fn test_activate_success() {
         let sub = Uuid::new_v4();
@@ -847,6 +951,116 @@ mod tests {
             .method("POST")
             .uri("/api/tenants/activate")
             .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(MockTenantsModule::new()))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    // TODO: test_delete_success
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_expired() {
+        let tenant_id = Uuid::new_v4();
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/tenants/delete?uuid=${tenant_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let mut tenants_module = MockTenantsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        tenants_module
+            .expect_config()
+            .times(1)
+            .return_const(test_config);
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_invalid_signature() {
+        let tenant_id = Uuid::new_v4();
+
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/tenants/delete?uuid=${tenant_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let mut tenants_module = MockTenantsModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        tenants_module
+            .expect_config()
+            .times(1)
+            .return_const(test_config);
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_missing() {
+        let tenant_id = Uuid::new_v4();
+
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/tenants/delete?uuid=${tenant_id}"))
+            .body("".to_string())
             .unwrap();
 
         let app = Router::new().nest(

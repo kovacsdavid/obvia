@@ -142,12 +142,14 @@ pub async fn delete<M: TenantsModuleInterface>(
 mod tests {
     use super::*;
     use crate::common::config::tests::AppConfigBuilder;
+    use crate::common::dto::PaginatorMeta;
     use crate::common::handler::tests::{
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
     use crate::manager::auth::dto::claims::Claims;
     use crate::manager::tenants;
+    use crate::manager::tenants::dto::PublicTenant;
     use crate::manager::tenants::model::{Tenant, UserTenant};
     use crate::manager::tenants::repository::MockTenantsRepository;
     use crate::manager::tenants::tests::MockTenantsModule;
@@ -651,7 +653,80 @@ mod tests {
         assert_eq!(response_body, expected_body);
     }
 
-    // TODO: test_list_success
+    #[tokio::test]
+    async fn test_list_success() {
+        let sub = Uuid::new_v4();
+        let tenant_id = Uuid::new_v4();
+        let mut repo = MockTenantsRepository::new();
+        let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let tenant = Tenant {
+            id: tenant_id,
+            name: "Test tenant".to_string(),
+            is_self_hosted: false,
+            db_host: "localhost".to_string(),
+            db_port: 5432,
+            db_name: "test_db".to_string(),
+            db_user: "test_user".to_string(),
+            db_password: "test_password".to_string(),
+            db_max_pool_size: 3,
+            db_ssl_mode: "verify-full".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
+
+        repo.expect_get_all_by_user_id()
+            .times(1)
+            .withf(move |user_id, _| *user_id == sub)
+            .returning({
+                let tenant = tenant.clone();
+                move |_, _| Ok((paginator_meta, vec![tenant.clone()]))
+            });
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_valid_jwt(Some(sub), None)),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri("/api/tenants/list")
+            .body("".to_string())
+            .unwrap();
+
+        let mut tenants_module = MockTenantsModule::new();
+        let repo = Arc::new(repo);
+        tenants_module
+            .expect_tenants_repo()
+            .times(1)
+            .returning(move || repo.clone());
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        tenants_module
+            .expect_config()
+            .times(1)
+            .return_const(test_config);
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(tenants::routes::routes(Arc::new(tenants_module))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [PublicTenant::from(tenant)]
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {

@@ -25,6 +25,7 @@ use axum::{
 };
 use axum_extra::TypedHeader;
 use headers::{Authorization, authorization::Bearer};
+use serde_json::json;
 use std::sync::Arc;
 
 use super::dto::claims::Claims;
@@ -35,7 +36,7 @@ pub async fn require_auth<M: ConfigProvider<Cfg = AppConfig>>(
     TypedHeader(Authorization(bearer)): TypedHeader<Authorization<Bearer>>,
     mut req: Request,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, (StatusCode, String)> {
     let auth_cfg = module.config().auth();
     req.extensions_mut().insert(
         Claims::from_token(
@@ -44,7 +45,17 @@ pub async fn require_auth<M: ConfigProvider<Cfg = AppConfig>>(
             auth_cfg.jwt_issuer(),
             &format!("{}-api", auth_cfg.jwt_audience()),
         )
-        .map_err(|_| StatusCode::UNAUTHORIZED)?,
+        .map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                json!({
+                    "error": {
+                        "message": "Hozzáférés megtagadva!"
+                    }
+                })
+                .to_string(),
+            )
+        })?,
     );
     Ok(next.run(req).await)
 }
@@ -55,7 +66,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUser
 where
     S: Send + Sync,
 {
-    type Rejection = (StatusCode, &'static str);
+    type Rejection = (StatusCode, String);
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         parts
@@ -63,6 +74,14 @@ where
             .get::<Claims>()
             .cloned()
             .map(AuthenticatedUser)
-            .ok_or((StatusCode::UNAUTHORIZED, "Missing authentication claims"))
+            .ok_or((
+                StatusCode::UNAUTHORIZED,
+                json!({
+                    "error": {
+                        "message": "Hozzáférés megtagadva!"
+                    }
+                })
+                .to_string(),
+            ))
     }
 }

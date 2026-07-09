@@ -133,7 +133,7 @@ impl SimpleMessageResponse {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Copy, Clone, Serialize)]
 pub struct PaginatorMeta {
     pub page: i32,
     pub limit: i32,

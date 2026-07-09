@@ -43,7 +43,10 @@ pub type HandlerResult = Result<Response, AppError>;
 #[cfg(test)]
 pub mod tests {
     use crate::{common::config::tests::AppConfigBuilder, manager::auth::dto::claims::Claims};
+    use axum::body::Body;
+    use axum::http::Response;
     use chrono::Utc;
+    use serde_json::json;
     use sqlx::error::{DatabaseError, ErrorKind};
     use std::error::Error;
     use std::fmt::{Debug, Display, Formatter};
@@ -273,5 +276,23 @@ pub mod tests {
         )
         .to_token(wrong_signature.as_bytes())
         .unwrap()
+    }
+
+    pub async fn extract_json_response(response: Response<Body>) -> serde_json::Value {
+        let bytes = match axum::body::to_bytes(response.into_body(), usize::MAX).await {
+            Ok(v) => v,
+            Err(e) => {
+                println!("{:?}", e);
+                return json!({});
+            }
+        };
+
+        match serde_json::from_slice(&bytes) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("{:?}", e);
+                json!({})
+            }
+        }
     }
 }

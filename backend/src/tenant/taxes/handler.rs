@@ -218,7 +218,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+        extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
     use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
@@ -233,6 +234,8 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -242,28 +245,30 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let tax = Tax {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockTaxesRepository::new();
         repo.expect_get_by_id()
             .times(1)
             .with(eq(tax_id))
-            .returning(move |tax_id| {
-                Ok(Tax {
-                    id: tax_id,
-                    rate: Some("10".parse().unwrap()),
-                    description: "Test tax".to_string(),
-                    country_code: "HU".to_string(),
-                    tax_category: "standard".to_string(),
-                    is_rate_applicable: true,
-                    legal_text: None,
-                    reporting_code: None,
-                    is_default: true,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let tax = tax.clone();
+                move |_| Ok(tax.clone())
             });
 
         let mut app_state = MockTaxesModule::new();
@@ -300,6 +305,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": tax
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -331,6 +344,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -362,6 +384,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -383,6 +414,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_not_found() {
@@ -429,6 +465,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -437,30 +482,32 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let tax_resolved = TaxResolved {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            country: "Magyarország".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockTaxesRepository::new();
         repo.expect_get_resolved_by_id()
             .times(1)
             .with(eq(tax_id))
-            .returning(move |tax_id| {
-                Ok(TaxResolved {
-                    id: tax_id,
-                    rate: Some("10".parse().unwrap()),
-                    description: "Test tax".to_string(),
-                    country_code: "HU".to_string(),
-                    country: "Magyarország".to_string(),
-                    tax_category: "standard".to_string(),
-                    is_rate_applicable: true,
-                    legal_text: None,
-                    reporting_code: None,
-                    is_default: true,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_by: "Test User".to_string(),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let tax_resolved = tax_resolved.clone();
+                move |_| Ok(tax_resolved.clone())
             });
 
         let mut app_state = MockTaxesModule::new();
@@ -497,6 +544,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": tax_resolved,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -528,6 +583,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -559,6 +623,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -580,6 +653,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
@@ -626,6 +704,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -634,6 +721,29 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let tax_resolved = TaxResolved {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            country: "Magyarország".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockTaxesRepository::new();
         repo.expect_get_paged()
@@ -641,32 +751,9 @@ mod tests {
             .with(eq(""
                 .parse::<ResourceQuery<TaxOrderBy, TaxFilterBy>>()
                 .unwrap()))
-            .returning(move |_| {
-                Ok((
-                    PaginatorMeta {
-                        page: 1,
-                        limit: 25,
-                        total: 100,
-                    },
-                    vec![TaxResolved {
-                        id: tax_id,
-                        rate: Some("10".parse().unwrap()),
-                        description: "Test tax".to_string(),
-                        country_code: "HU".to_string(),
-                        country: "Magyarország".to_string(),
-                        tax_category: "standard".to_string(),
-                        is_rate_applicable: true,
-                        legal_text: None,
-                        reporting_code: None,
-                        is_default: true,
-                        status: "active".to_string(),
-                        created_by_id,
-                        created_by: "Test User".to_string(),
-                        created_at: utc_now,
-                        updated_at: utc_now,
-                        deleted_at: None,
-                    }],
-                ))
+            .returning({
+                let tax_resolved = tax_resolved.clone();
+                move |_| Ok((paginator_meta, vec![tax_resolved.clone()]))
             });
 
         let mut app_state = MockTaxesModule::new();
@@ -703,6 +790,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [tax_resolved]
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -732,6 +827,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -761,6 +865,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -781,6 +894,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_list_not_found() {
@@ -828,6 +946,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -837,6 +964,22 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let tax = Tax {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let user_input_helper = TaxUserInputHelper {
             id: None,
@@ -870,23 +1013,9 @@ mod tests {
                         && user_id == *user_id_inner
                 }
             })
-            .returning(move |_, _| {
-                Ok(Tax {
-                    id: tax_id,
-                    rate: Some("10".parse().unwrap()),
-                    description: "Test tax".to_string(),
-                    country_code: "HU".to_string(),
-                    tax_category: "standard".to_string(),
-                    is_rate_applicable: true,
-                    legal_text: None,
-                    reporting_code: None,
-                    is_default: true,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let tax = tax.clone();
+                move |_, _| Ok(tax.clone())
             });
 
         let mut app_state = MockTaxesModule::new();
@@ -924,6 +1053,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": tax
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -973,6 +1110,18 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let user_input_error = TaxUserInput::try_from(user_input_helper).unwrap_err();
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": user_input_error
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1016,6 +1165,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1059,6 +1217,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1093,6 +1260,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_update_success() {
@@ -1115,28 +1287,30 @@ mod tests {
             status: "active".to_string(),
         };
         let user_input = TaxUserInput::try_from(user_input_helper.clone()).unwrap();
+        let tax = Tax {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockTaxesRepository::new();
         repo.expect_update()
             .times(1)
             .with(eq(user_input))
-            .returning(move |_| {
-                Ok(Tax {
-                    id: tax_id,
-                    rate: Some("10".parse().unwrap()),
-                    description: "Test tax".to_string(),
-                    country_code: "HU".to_string(),
-                    tax_category: "standard".to_string(),
-                    is_rate_applicable: true,
-                    legal_text: None,
-                    reporting_code: None,
-                    is_default: true,
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let tax = tax.clone();
+                move |_| Ok(tax.clone())
             });
 
         let mut app_state = MockTaxesModule::new();
@@ -1174,6 +1348,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": tax
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1223,6 +1405,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hiba történt az adatok feldolgozása során: Az azonosító megadása kötelező!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1268,6 +1459,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1313,6 +1513,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1348,6 +1557,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_delete_success() {
@@ -1395,6 +1609,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "Az adó törlése sikeresen megtörtént"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1430,6 +1654,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1461,6 +1690,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1492,6 +1730,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1514,6 +1761,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1631,6 +1883,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1663,6 +1924,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1684,5 +1954,10 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 }

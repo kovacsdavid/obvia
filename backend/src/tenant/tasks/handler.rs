@@ -218,7 +218,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        generate_expired_jwt, generate_jwt_with_invalid_signature, generate_valid_jwt,
+        extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
+        generate_valid_jwt,
     };
     use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
     use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
@@ -233,6 +234,8 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::{Duration, Utc};
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -245,29 +248,31 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let task = Task {
+            id: task_id,
+            worksheet_id,
+            service_id,
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            created_by_id,
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: Some(utc_now + Duration::weeks(1)),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+            description: None,
+        };
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_by_id()
             .times(1)
             .with(eq(task_id))
-            .returning(move |task_id| {
-                Ok(Task {
-                    id: task_id,
-                    worksheet_id,
-                    service_id,
-                    currency_code: "HUF".to_string(),
-                    quantity: None,
-                    price: None,
-                    tax_id,
-                    created_by_id,
-                    status: "active".to_string(),
-                    priority: Some("normal".to_string()),
-                    due_date: Some(utc_now + Duration::weeks(1)),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                    description: None,
-                })
+            .returning({
+                let task = task.clone();
+                move |_| Ok(task.clone())
             });
 
         let mut app_state = MockTasksModule::new();
@@ -304,6 +309,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": task,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -335,6 +348,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -366,6 +388,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -387,6 +418,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_not_found() {
@@ -433,6 +469,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -444,33 +489,35 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let task_resolved = TaskResolved {
+            id: task_id,
+            worksheet_id,
+            worksheet: "Test worksheet".to_string(),
+            service_id,
+            service: "Test service".to_string(),
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            tax: "Test tax".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: Some(utc_now + Duration::weeks(1)),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+            description: None,
+        };
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_resolved_by_id()
             .times(1)
             .with(eq(task_id))
-            .returning(move |task_id| {
-                Ok(TaskResolved {
-                    id: task_id,
-                    worksheet_id,
-                    worksheet: "Test worksheet".to_string(),
-                    service_id,
-                    service: "Test service".to_string(),
-                    currency_code: "HUF".to_string(),
-                    quantity: None,
-                    price: None,
-                    tax_id,
-                    tax: "Test tax".to_string(),
-                    created_by_id,
-                    created_by: "Test User".to_string(),
-                    status: "active".to_string(),
-                    priority: Some("normal".to_string()),
-                    due_date: Some(utc_now + Duration::weeks(1)),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                    description: None,
-                })
+            .returning({
+                let task_resolved = task_resolved.clone();
+                move |_| Ok(task_resolved.clone())
             });
 
         let mut app_state = MockTasksModule::new();
@@ -507,6 +554,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": task_resolved
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -538,6 +593,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -569,6 +633,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -590,6 +663,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
@@ -636,6 +714,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -647,6 +734,32 @@ mod tests {
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let task_resolved = TaskResolved {
+            id: task_id,
+            worksheet_id,
+            worksheet: "Test worksheet".to_string(),
+            service_id,
+            service: "Test service".to_string(),
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            tax: "Test tax".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: Some(utc_now + Duration::weeks(1)),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+            description: None,
+        };
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_paged()
@@ -654,35 +767,9 @@ mod tests {
             .with(eq(""
                 .parse::<ResourceQuery<TaskOrderBy, TaskFilterBy>>()
                 .unwrap()))
-            .returning(move |_| {
-                Ok((
-                    PaginatorMeta {
-                        page: 1,
-                        limit: 25,
-                        total: 100,
-                    },
-                    vec![TaskResolved {
-                        id: task_id,
-                        worksheet_id,
-                        worksheet: "Test worksheet".to_string(),
-                        service_id,
-                        service: "Test service".to_string(),
-                        currency_code: "HUF".to_string(),
-                        quantity: None,
-                        price: None,
-                        tax_id,
-                        tax: "Test tax".to_string(),
-                        created_by_id,
-                        created_by: "Test User".to_string(),
-                        status: "active".to_string(),
-                        priority: Some("normal".to_string()),
-                        due_date: Some(utc_now + Duration::weeks(1)),
-                        created_at: utc_now,
-                        updated_at: utc_now,
-                        deleted_at: None,
-                        description: None,
-                    }],
-                ))
+            .returning({
+                let task_resolved = task_resolved.clone();
+                move |_| Ok((paginator_meta, vec![task_resolved.clone()]))
             });
 
         let mut app_state = MockTasksModule::new();
@@ -719,6 +806,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [task_resolved]
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -748,6 +843,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -777,6 +881,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -797,6 +910,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_list_not_found() {
@@ -844,6 +962,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -871,6 +998,23 @@ mod tests {
             description: "".to_string(),
         };
         let user_input = TaskUserInput::try_from(user_input_helper.clone()).unwrap();
+        let task = Task {
+            id: task_id,
+            worksheet_id,
+            service_id,
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            created_by_id,
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: None,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+            description: None,
+        };
 
         let mut repo = MockTasksRepository::new();
         repo.expect_insert()
@@ -891,24 +1035,9 @@ mod tests {
                         && user_id == *user_id_inner
                 }
             })
-            .returning(move |_, _| {
-                Ok(Task {
-                    id: task_id,
-                    worksheet_id,
-                    service_id,
-                    currency_code: "HUF".to_string(),
-                    quantity: None,
-                    price: None,
-                    tax_id,
-                    created_by_id,
-                    status: "active".to_string(),
-                    priority: Some("normal".to_string()),
-                    due_date: None,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                    description: None,
-                })
+            .returning({
+                let task = task.clone();
+                move |_, _| Ok(task.clone())
             });
 
         let mut app_state = MockTasksModule::new();
@@ -946,6 +1075,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": task
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -999,6 +1136,17 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let user_input_error = TaskUserInput::try_from(user_input_helper).unwrap_err();
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": user_input_error,
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1047,6 +1195,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1095,6 +1252,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1134,6 +1300,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_update_success() {
@@ -1145,6 +1316,23 @@ mod tests {
         let worksheet_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let task = Task {
+            id: task_id,
+            worksheet_id,
+            service_id,
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            created_by_id,
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: Some(utc_now + Duration::weeks(1)),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+            description: None,
+        };
 
         let user_input_helper = TaskUserInputHelper {
             id: Some(task_id.to_string()),
@@ -1165,24 +1353,9 @@ mod tests {
         repo.expect_update()
             .times(1)
             .with(eq(user_input))
-            .returning(move |_| {
-                Ok(Task {
-                    id: task_id,
-                    worksheet_id,
-                    service_id,
-                    currency_code: "HUF".to_string(),
-                    quantity: None,
-                    price: None,
-                    tax_id,
-                    created_by_id,
-                    status: "active".to_string(),
-                    priority: Some("normal".to_string()),
-                    due_date: Some(utc_now + Duration::weeks(1)),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                    description: None,
-                })
+            .returning({
+                let task = task.clone();
+                move |_| Ok(task.clone())
             });
 
         let mut app_state = MockTasksModule::new();
@@ -1220,6 +1393,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": task
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1273,6 +1454,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hiba történt az adatok feldolgozása során: Az azonosító megadása kötelező!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1322,6 +1512,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1371,6 +1570,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1411,6 +1619,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_delete_success() {
@@ -1458,6 +1671,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A feladat törlése sikeresen megtörtént"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1493,6 +1716,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1524,6 +1752,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1555,6 +1792,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1577,6 +1823,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1700,6 +1951,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1732,6 +1992,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1753,5 +2022,10 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 }

@@ -252,6 +252,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use axum::http::StatusCode;
+    use axum_extra::extract::cookie::Cookie;
     use chrono::Duration;
     use chrono::Utc;
     use ipnetwork::IpNetwork;
@@ -273,12 +274,14 @@ mod tests {
     use crate::common::config::tests::AppConfigBuilder;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::MockUniqueViolation;
+    use crate::common::handler::tests::extract_json_response;
     use crate::common::handler::tests::generate_expired_refresh_token;
     use crate::common::handler::tests::generate_refresh_token_with_invalid_signature;
     use crate::common::handler::tests::generate_valid_refresh_token;
     use crate::common::types::{Email, FirstName, LastName, Password};
     use crate::common::value_object::ValueObjectRequired;
     use crate::manager::auth::dto::claims::Claims;
+    use crate::manager::auth::dto::login::UserPublic;
     use crate::manager::auth::dto::register::RegisterRequestHelper;
     use crate::manager::auth::model::AccountEventLogEntry;
     use crate::manager::auth::model::AccountEventStatus;
@@ -295,18 +298,14 @@ mod tests {
         auth::dto::{login::LoginRequest, register::RegisterRequest},
         users::model::User,
     };
+    use pretty_assertions::{assert_eq, assert_ne};
     use std::future::ready;
 
     #[tokio::test]
     async fn test_login_success() {
         let user_id1 = Uuid::new_v4();
         let user_id2 = user_id1;
-
-        let mut repo = MockAuthRepository::new();
-        repo.expect_get_user_by_email()
-            .times(1)
-            .with(eq("testuser@example.com"))
-            .returning(move |_| Ok(User {
+        let user = User {
                 id: user_id1,
                 email: "testuser@example.com".to_string(),
                 password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -325,7 +324,16 @@ mod tests {
                 is_mfa_enabled: false,
                 mfa_secret: None,
                 timezone: "Europe/Budapest".to_string(),
-            }));
+        };
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_email()
+            .times(1)
+            .with(eq("testuser@example.com"))
+            .returning({
+                let user = user.clone();
+                move |_| Ok(user.clone())
+            });
         repo.expect_get_user_active_tenant()
             .times(1)
             .with(eq(user_id2))
@@ -399,22 +407,47 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-
-        let data = body.get("data").unwrap();
+        let refresh_token = Cookie::parse(
+            response
+                .headers()
+                .get("Set-Cookie")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
 
         assert!(
             Claims::from_token(
-                data["token"].as_str().unwrap(),
+                refresh_token.value(),
                 config.auth().jwt_secret().as_bytes(),
                 config.auth().jwt_issuer(),
-                &format!("{}-api", config.auth().jwt_audience()),
+                &format!("{}-auth", config.auth().jwt_audience()),
             )
             .is_ok()
         );
+
+        let response_body = extract_json_response(response).await;
+        let data = response_body.get("data").unwrap();
+        let claims = Claims::from_token(
+            data["token"].as_str().unwrap(),
+            config.auth().jwt_secret().as_bytes(),
+            config.auth().jwt_issuer(),
+            &format!("{}-api", config.auth().jwt_audience()),
+        )
+        .unwrap();
+        let user = UserPublic::from(user);
+
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "claims": claims,
+                "user": user,
+                "token": data["token"]
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -493,6 +526,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hibás e-mail cím vagy jelszó"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     // ===== REGISTER =====
 
@@ -593,6 +635,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A felhasználó sikeresen létrehozva"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -634,6 +686,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CONFLICT);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "A megadott e-mail cím már foglalt!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -755,12 +816,9 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        let response_body = extract_json_response(response).await;
 
-        let data = body.get("data").unwrap();
+        let data = response_body.get("data").unwrap();
 
         let claims = Claims::from_token(
             data["token"].as_str().unwrap(),
@@ -771,7 +829,7 @@ mod tests {
 
         assert!(claims.is_ok());
 
-        assert_eq!(claims.unwrap().active_tenant().unwrap(), active_tenant_id2)
+        assert_eq!(claims.unwrap().active_tenant().unwrap(), active_tenant_id2);
     }
     #[tokio::test]
     async fn verify_email_success() {
@@ -863,6 +921,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "Az e-mail cím megerősítése sikeresen megtörtént"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn verify_email_failure() {
@@ -894,6 +962,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hibás e-mail megerősítő hivatkozás"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn resend_email_verification_success() {
@@ -972,6 +1049,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A megerősítő e-mail újraküldése sikeresen megtörtént"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn resend_email_verification_failure() {
@@ -1008,6 +1095,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "A megerősítő e-mail újraküldése sikertelen"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn forgotten_password_success() {
@@ -1126,6 +1222,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került."
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn forgotten_password_failure() {
@@ -1223,6 +1329,17 @@ mod tests {
         // NOTE: This endpoint returns HTTP OK even if the request
         // failed to prevent discovery attacks
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "Ha a megadott e-mail cím helyes, a jelszó helyreállításához szükséges levél elküldésre került."
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn new_password_success() {
@@ -1345,6 +1462,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A jelszó megváltoztatása sikeresen megtörtént"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn new_password_failure() {
@@ -1417,6 +1544,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hibás elfelejtett jelszó hivatkozás!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1431,12 +1567,7 @@ mod tests {
             Some(current_jti),
             Some(Uuid::new_v4()),
         );
-
-        let mut repo = MockAuthRepository::new();
-        repo.expect_get_user_by_id()
-            .times(1)
-            .with(eq(sub))
-            .returning(|sub| Ok(User {
+        let user = User {
                 id: sub,
                 email: "testuser@example.com".to_string(),
                 password_hash: "$argon2id$v=19$m=19456,t=2,p=1$MTIzNDU2Nzg$13WsVCFEv98dFpY+OIm6vHiQvmQ5nLhlxNKktlDvlvs".to_string(),
@@ -1455,7 +1586,16 @@ mod tests {
                 is_mfa_enabled: false,
                 mfa_secret: None,
                 timezone: "Europe/Budapest".to_string(),
-            }));
+            };
+
+        let mut repo = MockAuthRepository::new();
+        repo.expect_get_user_by_id()
+            .times(1)
+            .with(eq(sub))
+            .returning({
+                let user = user.clone();
+                move |_| Ok(user.clone())
+            });
         repo.expect_get_refresh_token()
             .times(1)
             .with(eq(current_jti))
@@ -1540,7 +1680,7 @@ mod tests {
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
-        app_state.expect_config().return_const(test_config);
+        app_state.expect_config().return_const(test_config.clone());
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -1558,6 +1698,40 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        // NOTE: The refresh tokens are rotating with every refresh calls
+        let refresh_token = Cookie::parse(
+            response
+                .headers()
+                .get("Set-Cookie")
+                .unwrap()
+                .to_str()
+                .unwrap(),
+        )
+        .unwrap();
+
+        assert_ne!(refresh_token.value(), valid_refresh_token);
+
+        let response_body = extract_json_response(response).await;
+        let data = response_body.get("data").unwrap();
+        let claims = Claims::from_token(
+            data["token"].as_str().unwrap(),
+            test_config.auth().jwt_secret().as_bytes(),
+            test_config.auth().jwt_issuer(),
+            &format!("{}-api", test_config.auth().jwt_audience()),
+        )
+        .unwrap();
+        let user = UserPublic::from(user);
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "claims": claims,
+                "user": user,
+                "token": data["token"]
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1623,6 +1797,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nincs jogosultságod az erőforrás használatához"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1648,6 +1831,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nincs jogosultságod az erőforrás használatához"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1718,6 +1910,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1788,6 +1985,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1857,6 +2059,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nincs jogosultságod az erőforrás használatához"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1882,5 +2093,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nincs jogosultságod az erőforrás használatához"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 }

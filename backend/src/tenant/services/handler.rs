@@ -224,8 +224,8 @@ mod tests {
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
-        MockUniqueViolation, generate_expired_jwt, generate_jwt_with_invalid_signature,
-        generate_valid_jwt,
+        MockUniqueViolation, extract_json_response, generate_expired_jwt,
+        generate_jwt_with_invalid_signature, generate_valid_jwt,
     };
     use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
     use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
@@ -240,6 +240,8 @@ mod tests {
     use axum::{Router, http::Request};
     use chrono::Utc;
     use mockall::predicate::eq;
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
     use sqlx::error::DatabaseError;
     use tower::ServiceExt;
     use uuid::Uuid;
@@ -250,25 +252,27 @@ mod tests {
         let service_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let service = Service {
+            id: service_id,
+            name: "Test Service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockServicesRepository::new();
         repo.expect_get_by_id()
             .times(1)
             .with(eq(service_id))
-            .returning(move |service_id| {
-                Ok(Service {
-                    id: service_id,
-                    name: "Test Service".to_string(),
-                    description: Some("Test description".to_string()),
-                    default_price: None,
-                    default_tax_id: None,
-                    currency_code: Some("HUF".to_string()),
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let service = service.clone();
+                move |_| Ok(service.clone())
             });
 
         let mut app_state = MockServicesModule::new();
@@ -305,6 +309,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": service,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -336,6 +348,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -367,6 +388,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -388,6 +418,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_not_found() {
@@ -434,6 +469,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -442,27 +486,29 @@ mod tests {
         let service_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let service_resolved = ServiceResolved {
+            id: service_id,
+            name: "Test Service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            default_tax: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockServicesRepository::new();
         repo.expect_get_resolved_by_id()
             .times(1)
             .with(eq(service_id))
-            .returning(move |service_id| {
-                Ok(ServiceResolved {
-                    id: service_id,
-                    name: "Test Service".to_string(),
-                    description: Some("Test description".to_string()),
-                    default_price: None,
-                    default_tax_id: None,
-                    default_tax: None,
-                    currency_code: Some("HUF".to_string()),
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_by: "Test User".to_string(),
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let service_resolved = service_resolved.clone();
+                move |_| Ok(service_resolved.clone())
             });
 
         let mut app_state = MockServicesModule::new();
@@ -499,6 +545,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": service_resolved
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -530,6 +584,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -561,6 +624,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -582,6 +654,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
@@ -628,6 +705,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -636,6 +722,26 @@ mod tests {
         let service_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let paginator_meta = PaginatorMeta {
+            page: 1,
+            limit: 25,
+            total: 100,
+        };
+        let service_resolved = ServiceResolved {
+            id: service_id,
+            name: "Test Service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            default_tax: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let mut repo = MockServicesRepository::new();
         repo.expect_get_paged()
@@ -643,29 +749,9 @@ mod tests {
             .with(eq(""
                 .parse::<ResourceQuery<ServiceOrderBy, ServiceFilterBy>>()
                 .unwrap()))
-            .returning(move |_| {
-                Ok((
-                    PaginatorMeta {
-                        page: 1,
-                        limit: 25,
-                        total: 100,
-                    },
-                    vec![ServiceResolved {
-                        id: service_id,
-                        name: "Test Service".to_string(),
-                        description: Some("Test description".to_string()),
-                        default_price: None,
-                        default_tax_id: None,
-                        default_tax: None,
-                        currency_code: Some("HUF".to_string()),
-                        status: "active".to_string(),
-                        created_by_id,
-                        created_by: "Test User".to_string(),
-                        created_at: utc_now,
-                        updated_at: utc_now,
-                        deleted_at: None,
-                    }],
-                ))
+            .returning({
+                let service_resolved = service_resolved.clone();
+                move |_| Ok((paginator_meta, vec![service_resolved.clone()]))
             });
 
         let mut app_state = MockServicesModule::new();
@@ -702,6 +788,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": paginator_meta,
+            "data": [service_resolved]
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -731,6 +825,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -760,6 +863,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -780,6 +892,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_list_not_found() {
@@ -827,6 +944,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -836,6 +962,19 @@ mod tests {
         let service_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let service = Service {
+            id: service_id,
+            name: "Test service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let user_input_helper = ServiceUserInputHelper {
             id: None,
@@ -863,20 +1002,9 @@ mod tests {
                         && user_id == *user_id_inner
                 }
             })
-            .returning(move |_, _| {
-                Ok(Service {
-                    id: service_id,
-                    name: "Test service".to_string(),
-                    description: Some("Test description".to_string()),
-                    default_price: None,
-                    default_tax_id: None,
-                    currency_code: Some("HUF".to_string()),
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let service = service.clone();
+                move |_, _| Ok(service.clone())
             });
 
         let mut app_state = MockServicesModule::new();
@@ -914,6 +1042,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CREATED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": service,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -988,6 +1124,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::CONFLICT);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "A megadott névvel már létezik szolgáltatás a rendszerben!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1034,6 +1179,18 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let user_input_error = ServiceUserInput::try_from(user_input_helper).unwrap_err();
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Kérjük ellenőrizze a hibás mezőket!",
+                "fields": user_input_error
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1074,6 +1231,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1114,6 +1280,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1145,6 +1320,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_update_success() {
@@ -1153,6 +1333,19 @@ mod tests {
         let service_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
         let utc_now = Utc::now();
+        let service = Service {
+            id: service_id,
+            name: "Test Service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_at: utc_now,
+            updated_at: utc_now,
+            deleted_at: None,
+        };
 
         let user_input_helper = ServiceUserInputHelper {
             id: Some(service_id.to_string()),
@@ -1169,20 +1362,9 @@ mod tests {
         repo.expect_update()
             .times(1)
             .with(eq(user_input))
-            .returning(move |_| {
-                Ok(Service {
-                    id: service_id,
-                    name: "Test Service".to_string(),
-                    description: Some("Test description".to_string()),
-                    default_price: None,
-                    default_tax_id: None,
-                    currency_code: Some("HUF".to_string()),
-                    status: "active".to_string(),
-                    created_by_id,
-                    created_at: utc_now,
-                    updated_at: utc_now,
-                    deleted_at: None,
-                })
+            .returning({
+                let service = service.clone();
+                move |_| Ok(service.clone())
             });
 
         let mut app_state = MockServicesModule::new();
@@ -1220,6 +1402,14 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": service,
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1266,7 +1456,17 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message":  "Hiba történt az adatok feldolgozása során: Az azonosító megadása kötelező!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
+
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
         let service_id = Uuid::new_v4();
@@ -1307,7 +1507,68 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
+
+    #[tokio::test]
+    async fn test_update_unauthorized_invalid_signature() {
+        let service_id = Uuid::new_v4();
+
+        let user_input_helper = ServiceUserInputHelper {
+            id: Some(service_id.to_string()),
+            name: "Test service".to_string(),
+            description: "Test description".to_string(),
+            default_price: "".to_string(),
+            default_tax_id: "".to_string(),
+            currency_code: "HUF".to_string(),
+            status: "active".to_string(),
+        };
+
+        let mut app_state = MockServicesModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/services/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(services::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
         let service_id = Uuid::new_v4();
@@ -1339,6 +1600,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
     #[tokio::test]
     async fn test_delete_success() {
@@ -1386,6 +1652,16 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {
+                "message": "A szolgáltatás törlése sikeresen megtörtént"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1421,6 +1697,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1452,6 +1733,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1483,6 +1773,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1505,6 +1804,11 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1619,6 +1923,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1651,6 +1964,15 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
     }
 
     #[tokio::test]
@@ -1674,5 +1996,10 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
     }
 }

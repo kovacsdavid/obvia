@@ -60,10 +60,10 @@ WORKDIR /opt
 COPY . .
 RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPLATFORM" ]; then \
     cargo build --release --target aarch64-unknown-linux-gnu --config target.aarch64-unknown-linux-gnu.linker=\"aarch64-linux-gnu-gcc\"; \
-    cp target/aarch64-unknown-linux-gnu/release/obvia_backend /opt; \
+    cp target/aarch64-unknown-linux-gnu/release/obvia_server /opt; \
     else \
     cargo build --release; \
-    cp target/release/obvia_backend /opt; \
+    cp target/release/obvia_server /opt; \
     fi
 
 FROM ubuntu:24.04
@@ -74,10 +74,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fontconfig \
     fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
-COPY --from=builder /opt/obvia_backend /opt/obvia_backend
+COPY --from=builder /opt/obvia_server /opt/obvia_server
 COPY --from=builder /opt/templates /opt/templates
 COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
 RUN groupadd -r obvia && useradd -r -g obvia obvia
 RUN typst --version
 USER obvia
-ENTRYPOINT ["/opt/obvia_backend"]
+ENTRYPOINT ["/opt/obvia_server"]

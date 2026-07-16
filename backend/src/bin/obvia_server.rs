@@ -17,13 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#![forbid(unsafe_code)]
-mod common;
-mod manager;
-mod tenant;
-
-use crate::common::config::AppConfig;
-use crate::common::init::{init_default_app, init_subscriber};
+use obvia::common::config::AppConfig;
+use obvia::common::init::{init_default_app, init_subscriber};
 use tokio::signal;
 
 #[tokio::main]

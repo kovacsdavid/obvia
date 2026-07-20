@@ -17,6 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#set text(font: ("DejaVu Sans", "Liberation Sans"), lang: "hu")
+
 #set page(
   header: grid(
     columns: (1fr, 1fr),

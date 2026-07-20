@@ -39,7 +39,7 @@ use lettre::{
 use tracing::{error, info};
 
 pub mod config;
-pub(crate) mod database;
+pub mod database;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;
@@ -49,7 +49,7 @@ pub(crate) mod macros;
 pub(crate) mod model;
 pub(crate) mod pdf;
 pub(crate) mod query_parser;
-pub(crate) mod service;
+pub mod service;
 pub(crate) mod types;
 pub(crate) mod utils;
 pub(crate) mod value_object;

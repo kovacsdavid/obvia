@@ -30,7 +30,6 @@ use crate::tenant::customers::dto::print::CustomerResolvedPrint;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -132,7 +131,7 @@ pub trait CustomerService {
     fn print(
         &self,
         payload: &[CustomerResolvedPrint],
-    ) -> impl Future<Output = CustomersServiceResult<Bytes>> + Sync;
+    ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
 }
 
 impl<'a, T> CustomerService for Service<'a, T>
@@ -219,10 +218,10 @@ where
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

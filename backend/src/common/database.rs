@@ -134,7 +134,7 @@ impl PoolManager for PgPoolManager {
 
 #[cfg_attr(test, automock)]
 #[allow(dead_code)]
-pub trait ConnectionTester: Send + Sync {
+pub(crate) trait ConnectionTester: Send + Sync {
     async fn test_connect(
         &self,
         config: &BasicDatabaseConfig,

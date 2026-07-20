@@ -19,5 +19,5 @@
 
 #![forbid(unsafe_code)]
 pub mod common;
-mod manager;
-mod tenant;
+pub mod manager;
+pub mod tenant;

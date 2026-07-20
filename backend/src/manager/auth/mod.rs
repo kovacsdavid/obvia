@@ -27,7 +27,7 @@ use lettre::{
 use std::fmt::Debug;
 use std::sync::Arc;
 
-pub(crate) mod dto;
+pub mod dto;
 mod handler;
 pub(crate) mod middleware;
 pub(crate) mod model;

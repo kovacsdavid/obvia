@@ -18,7 +18,7 @@
  */
 
 use obvia::common::config::AppConfig;
-use obvia::common::init::{init_default_app, init_subscriber};
+use obvia::common::init::{init_default_app, init_default_app_state, init_subscriber};
 use tokio::signal;
 
 #[tokio::main]
@@ -32,7 +32,7 @@ async fn serve() -> anyhow::Result<()> {
     let bind_address = config.server().bind_address();
     let bind_port = config.server().bind_port();
     let addr = format!("{bind_address}:{bind_port}");
-    let app = init_default_app(config).await?;
+    let app = init_default_app(init_default_app_state(config).await?).await?;
     let listener = tokio::net::TcpListener::bind(addr).await?;
 
     axum::serve(listener, app)

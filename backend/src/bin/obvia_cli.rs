@@ -17,7 +17,21 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::{io::Write, path::Path, sync::Arc};
+
+use anyhow::anyhow;
+use chrono::{DateTime, Duration, Utc};
+use chrono_tz::Tz;
 use clap::{Parser, Subcommand, ValueEnum};
+use obvia::{
+    common::{config::AppConfig, init::init_default_app_state, service::Service},
+    manager::auth::dto::claims::Claims,
+    tenant::customers::{
+        dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
+    },
+};
+use std::fs::File;
+use uuid::Uuid;
 
 #[derive(Parser, Debug)]
 struct Cli {
@@ -39,6 +53,9 @@ enum DevCommands {
     PdfTestSnapshot {
         #[arg(value_enum)]
         module: Modules,
+
+        #[arg(default_value = "testing/pdf/snapshots/")]
+        folder: String,
     },
 }
 
@@ -56,10 +73,67 @@ enum Modules {
     Worksheets,
 }
 
-fn gen_pdf_test_snapshot(module: &Modules) {
+fn gen_exp(expiration_mins: u64) -> anyhow::Result<usize> {
+    (Utc::now()
+        + Duration::minutes(
+            expiration_mins.try_into().map_err(|_| {
+                anyhow!("refresh_token_expiration_mins can not be converted to i64")
+            })?,
+        ))
+    .timestamp()
+    .try_into()
+    .map_err(|_| anyhow!("exp can not be converted to usize"))
+}
+
+fn init_dev_claims(config: &AppConfig) -> anyhow::Result<Claims> {
+    let now = Utc::now();
+    let tz: Tz = "Europe/Budapest".parse()?;
+    Ok(Claims::new(
+        Uuid::new_v4(),
+        gen_exp(config.auth().access_token_expiration_mins())?,
+        now.timestamp() as usize,
+        now.timestamp() as usize,
+        "obvia".to_string(),
+        "obvia".to_string(),
+        Uuid::new_v4(),
+        "hu-HU".to_string(),
+        tz,
+        None,
+        None,
+    ))
+}
+
+async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result<()> {
+    let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse()?;
+    let config = AppConfig::from_env()?;
+    let claims = init_dev_claims(&config)?;
+    let app_state = init_default_app_state(config).await?;
+    let service = Service::new(Some(&claims), Arc::new(app_state));
     match module {
         Modules::Customers => {
-            todo!()
+            let path = format!("{folder}/customers_test.pdf");
+            let path = Path::new(&path);
+            let tz: Tz = "Europe/Budapest".parse()?;
+            let customer_resolved = CustomerResolved {
+                id: "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?,
+                name: "Test Customer".to_string(),
+                contact_name: None,
+                email: "test.customer@example.com".to_string(),
+                phone_number: Some("+36301234567".to_string()),
+                status: "active".to_string(),
+                customer_type: "natural".to_string(),
+                created_by_id: "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let customer_resolved_print =
+                CustomerResolvedPrint::from_customer_revolved(customer_resolved, tz);
+            let pdf = CustomerService::print(&service, &[customer_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Warehouses => {
             todo!()
@@ -91,14 +165,14 @@ fn gen_pdf_test_snapshot(module: &Modules) {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
         CliCommands::Dev { command } => match &command {
-            DevCommands::PdfTestSnapshot { module } => {
-                println!("{:?}", cli);
-                gen_pdf_test_snapshot(module);
+            DevCommands::PdfTestSnapshot { module, folder } => {
+                gen_pdf_test_snapshot(module, folder).await?;
             }
         },
     }

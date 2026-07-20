@@ -54,21 +54,12 @@ mod tests {
     use super::*;
 
     #[test]
-    #[ignore]
-    fn test_valid_filter_by() {
-        let filter_by = "name".parse::<ValueObjectRequired<FilterBy>>().unwrap();
-        assert_eq!(filter_by.as_str().unwrap(), "name");
-    }
-
-    #[test]
-    #[ignore]
     fn test_invalid_filter_by() {
         let filter_by = "invalid".parse::<ValueObjectRequired<FilterBy>>();
         assert!(filter_by.is_err());
     }
 
     #[test]
-    #[ignore]
     fn test_empty_filter_by() {
         let filter_by = "".parse::<ValueObjectRequired<FilterBy>>();
         assert!(filter_by.is_err());

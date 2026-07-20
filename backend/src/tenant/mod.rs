@@ -17,18 +17,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod activity_feed;
-pub(crate) mod address;
-pub(crate) mod comments;
-pub(crate) mod currencies;
-pub(crate) mod customers;
-pub(crate) mod inventory;
-pub(crate) mod inventory_movements;
-pub(crate) mod inventory_reservations;
-pub(crate) mod products;
-pub(crate) mod services;
-pub(crate) mod tasks;
-pub(crate) mod taxes;
-pub(crate) mod users;
-pub(crate) mod warehouses;
-pub(crate) mod worksheets;
+pub mod activity_feed;
+pub mod address;
+pub mod comments;
+pub mod currencies;
+pub mod customers;
+pub mod inventory;
+pub mod inventory_movements;
+pub mod inventory_reservations;
+pub mod products;
+pub mod services;
+pub mod tasks;
+pub mod taxes;
+pub mod users;
+pub mod warehouses;
+pub mod worksheets;

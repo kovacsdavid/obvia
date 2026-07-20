@@ -34,10 +34,6 @@ jobs:
       run: |
         cd backend
         cargo clippy -- -D warnings --verbose
-    - name: Install fonts
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y fonts-dejavu-core fonts-liberation fontconfig
     - name: Install Typst
       run: |
         set -euo pipefail

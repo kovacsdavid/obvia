@@ -39,6 +39,7 @@ clap = { version = "4.6.2", features = ["derive"] }
 [dev-dependencies]
 pretty_assertions = "1.4.1"
 mockall = "0.15.0"
+lopdf = "0.44.0"
 
 [package.metadata]
 clippy = { deny = ["unsafe_code"] }

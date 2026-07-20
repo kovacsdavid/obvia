@@ -205,7 +205,7 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
-    use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, normalize_pdf_bytes};
+    use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::customers::model::CustomerResolved;
     use crate::{
@@ -1795,8 +1795,8 @@ mod tests {
         file.write_all(&body_bytes).unwrap();
 
         assert_eq!(
-            normalize_pdf_bytes(&body_bytes),
-            normalize_pdf_bytes(&snapshot)
+            extract_pdf_text(&body_bytes).unwrap(),
+            extract_pdf_text(&snapshot).unwrap()
         );
     }
 

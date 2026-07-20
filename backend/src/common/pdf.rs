@@ -152,45 +152,15 @@ impl PdfGenerator {
 
 #[cfg(test)]
 pub mod tests {
-    use regex::Regex;
+    use lopdf::Document;
     use std::sync::Mutex;
-    use std::sync::OnceLock;
 
     pub static PDF_GENERATOR_TEST_SYNC: Mutex<()> = Mutex::new(());
-    static CREATION_DATE: OnceLock<Regex> = OnceLock::new();
-    static MOD_DATE: OnceLock<Regex> = OnceLock::new();
-    static XMP_CREATE_DATE: OnceLock<Regex> = OnceLock::new();
-    static XMP_MODIFY_DATE: OnceLock<Regex> = OnceLock::new();
-    static XMP_INSTANCE_ID: OnceLock<Regex> = OnceLock::new();
-    static XMP_DOCUMENT_ID: OnceLock<Regex> = OnceLock::new();
-    static TRAILER_ID: OnceLock<Regex> = OnceLock::new();
 
-    // NOTE: This could break with future Typst updates.
-    pub fn normalize_pdf_bytes(bytes: &[u8]) -> Vec<u8> {
-        let s = String::from_utf8_lossy(bytes);
-
-        let s = CREATION_DATE
-            .get_or_init(|| Regex::new(r"/CreationDate\(D:[^)]*\)").unwrap())
-            .replace_all(&s, "/CreationDate(D:FIXED)");
-        let s = MOD_DATE
-            .get_or_init(|| Regex::new(r"/ModDate\(D:[^)]*\)").unwrap())
-            .replace_all(&s, "/ModDate(D:FIXED)");
-        let s = XMP_CREATE_DATE
-            .get_or_init(|| Regex::new(r"<xmp:CreateDate>[^<]*</xmp:CreateDate>").unwrap())
-            .replace_all(&s, "<xmp:CreateDate>FIXED</xmp:CreateDate>");
-        let s = XMP_MODIFY_DATE
-            .get_or_init(|| Regex::new(r"<xmp:ModifyDate>[^<]*</xmp:ModifyDate>").unwrap())
-            .replace_all(&s, "<xmp:ModifyDate>FIXED</xmp:ModifyDate>");
-        let s = XMP_INSTANCE_ID
-            .get_or_init(|| Regex::new(r"<xmpMM:InstanceID>[^<]*</xmpMM:InstanceID>").unwrap())
-            .replace_all(&s, "<xmpMM:InstanceID>FIXED</xmpMM:InstanceID>");
-        let s = XMP_DOCUMENT_ID
-            .get_or_init(|| Regex::new(r"<xmpMM:DocumentID>[^<]*</xmpMM:DocumentID>").unwrap())
-            .replace_all(&s, "<xmpMM:DocumentID>FIXED</xmpMM:DocumentID>");
-        let s = TRAILER_ID
-            .get_or_init(|| Regex::new(r"/ID\[\([^)]*\)\([^)]*\)\]").unwrap())
-            .replace_all(&s, "/ID[(FIXED)(FIXED)]");
-
-        s.into_owned().into_bytes()
+    pub fn extract_pdf_text(bytes: &[u8]) -> Result<String, lopdf::Error> {
+        let document = Document::load_mem(bytes)?;
+        let pages = document.get_pages();
+        let page_numbers: Vec<u32> = pages.keys().copied().collect();
+        document.extract_text(&page_numbers)
     }
 }

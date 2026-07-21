@@ -101,16 +101,29 @@ impl From<WarehousesServiceError> for AppError {
 pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
 
 pub trait WarehouseService {
-    async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse>;
-    async fn get_resolved(&self, payload: Uuid) -> WarehousesServiceResult<WarehouseResolved>;
-    async fn get(&self, payload: Uuid) -> WarehousesServiceResult<Warehouse>;
-    async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse>;
-    async fn delete(&self, payload: Uuid) -> WarehousesServiceResult<()>;
-    async fn get_paged(
+    fn insert(
+        &self,
+        payload: &WarehouseUserInput,
+    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = WarehousesServiceResult<WarehouseResolved>> + Send;
+    fn get(&self, payload: Uuid)
+    -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn update(
+        &self,
+        payload: &WarehouseUserInput,
+    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = WarehousesServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
-    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes>;
+    ) -> impl Future<Output = WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[WarehouseResolvedPrint],
+    ) -> impl Future<Output = WarehousesServiceResult<Bytes>> + Send;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>

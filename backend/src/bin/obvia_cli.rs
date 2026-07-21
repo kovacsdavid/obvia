@@ -26,8 +26,13 @@ use clap::{Parser, Subcommand, ValueEnum};
 use obvia::{
     common::{config::AppConfig, init::init_default_app_state, service::Service},
     manager::auth::dto::claims::Claims,
-    tenant::customers::{
-        dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
+    tenant::{
+        customers::{
+            dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
+        },
+        warehouses::{
+            dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
+        },
     },
 };
 use std::fs::File;
@@ -109,6 +114,7 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
     let claims = init_dev_claims(&config)?;
     let app_state = init_default_app_state(config).await?;
     let service = Service::new(Some(&claims), Arc::new(app_state));
+    let tz: Tz = "Europe/Budapest".parse()?;
     match module {
         Modules::Customers => {
             let path = format!("{folder}/customers_test.pdf");
@@ -136,7 +142,28 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::Warehouses => {
-            todo!()
+            let path = format!("{folder}/warehouses_test.pdf");
+            let path = Path::new(&path);
+            let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let warehouse_resolved = WarehouseResolved {
+                id: warehouse_id,
+                name: "Test Warehouse".to_string(),
+                contact_name: Some("Test Contact".to_string()),
+                contact_phone: Some("+36301234567".to_string()),
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let warehouse_resolved_print =
+                WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
+            let pdf = WarehouseService::print(&service, &[warehouse_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Taxes => {
             todo!()

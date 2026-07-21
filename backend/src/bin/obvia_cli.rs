@@ -30,6 +30,9 @@ use obvia::{
         customers::{
             dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
         },
+        products::{
+            dto::print::ProductsResolvedPrint, model::ProductResolved, service::ProductService,
+        },
         taxes::{dto::print::TaxResolvedPrint, model::TaxResolved, service::TaxService},
         warehouses::{
             dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
@@ -196,7 +199,30 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::Products => {
-            todo!()
+            let path = format!("{folder}/products_test.pdf");
+            let path = Path::new(&path);
+            let product_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
+            let taxes_resolved = ProductResolved {
+                id: product_id,
+                name: "Test product".to_string(),
+                description: None,
+                unit_of_measure_id,
+                unit_of_measure: "cm".to_string(),
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let products_resolved_print =
+                ProductsResolvedPrint::from_product_resolved(taxes_resolved, tz);
+            let pdf = ProductService::print(&service, &[products_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Inventory => {
             todo!()

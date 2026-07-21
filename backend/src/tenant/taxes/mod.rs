@@ -30,12 +30,12 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod dto;
+pub mod dto;
 mod handler;
-pub(crate) mod model;
+pub mod model;
 pub(crate) mod repository;
 pub(crate) mod routes;
-pub(crate) mod service;
+pub mod service;
 pub(crate) mod types;
 
 pub trait TaxesModuleInterface: BaseModule {

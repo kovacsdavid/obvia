@@ -30,6 +30,7 @@ use obvia::{
         customers::{
             dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
         },
+        taxes::{dto::print::TaxResolvedPrint, model::TaxResolved, service::TaxService},
         warehouses::{
             dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
         },
@@ -166,7 +167,33 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::Taxes => {
-            todo!()
+            let path = format!("{folder}/taxes_test.pdf");
+            let path = Path::new(&path);
+            let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let taxes_resolved = TaxResolved {
+                id: tax_id,
+                rate: Some("10".parse().unwrap()),
+                description: "Test tax".to_string(),
+                country_code: "HU".to_string(),
+                country: "Magyarország".to_string(),
+                tax_category: "standard".to_string(),
+                is_rate_applicable: true,
+                legal_text: None,
+                reporting_code: None,
+                is_default: true,
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let taxes_resolved_print = TaxResolvedPrint::from_tax_resolved(taxes_resolved, tz);
+            let pdf = TaxService::print(&service, &[taxes_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Products => {
             todo!()

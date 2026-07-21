@@ -30,6 +30,9 @@ use obvia::{
         customers::{
             dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
         },
+        inventory::{
+            dto::print::InventoryResolvedPrint, model::InventoryResolved, service::InventoryService,
+        },
         products::{
             dto::print::ProductsResolvedPrint, model::ProductResolved, service::ProductService,
         },
@@ -174,7 +177,7 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             let path = Path::new(&path);
             let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
             let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let taxes_resolved = TaxResolved {
+            let tax_resolved = TaxResolved {
                 id: tax_id,
                 rate: Some("10".parse().unwrap()),
                 description: "Test tax".to_string(),
@@ -192,7 +195,7 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
                 updated_at: test_time,
                 deleted_at: None,
             };
-            let taxes_resolved_print = TaxResolvedPrint::from_tax_resolved(taxes_resolved, tz);
+            let taxes_resolved_print = TaxResolvedPrint::from_tax_resolved(tax_resolved, tz);
             let pdf = TaxService::print(&service, &[taxes_resolved_print]).await?;
             let mut file = File::create(path)?;
             file.write_all(&pdf)?;
@@ -204,7 +207,7 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             let product_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
             let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
             let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
-            let taxes_resolved = ProductResolved {
+            let product_resolved = ProductResolved {
                 id: product_id,
                 name: "Test product".to_string(),
                 description: None,
@@ -218,14 +221,45 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
                 deleted_at: None,
             };
             let products_resolved_print =
-                ProductsResolvedPrint::from_product_resolved(taxes_resolved, tz);
+                ProductsResolvedPrint::from_product_resolved(product_resolved, tz);
             let pdf = ProductService::print(&service, &[products_resolved_print]).await?;
             let mut file = File::create(path)?;
             file.write_all(&pdf)?;
             Ok(())
         }
         Modules::Inventory => {
-            todo!()
+            let path = format!("{folder}/inventory_test.pdf");
+            let path = Path::new(&path);
+            let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
+            let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let inventory_resolved = InventoryResolved {
+                id: inventory_id,
+                product_id,
+                product: "Test product".to_string(),
+                warehouse_id,
+                warehouse: "Test warehouse".to_string(),
+                quantity_on_hand: "10".parse().unwrap(),
+                quantity_reserved: "20".parse().unwrap(),
+                quantity_available: "30".parse().unwrap(),
+                minimum_stock: None,
+                maximum_stock: None,
+                currency_code: "HUF".to_string(),
+                currency: "Forint".to_string(),
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let inventory_resolved_print =
+                InventoryResolvedPrint::from_inventory_resolved(inventory_resolved, tz);
+            let pdf = InventoryService::print(&service, &[inventory_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::InventoryMovements => {
             todo!()

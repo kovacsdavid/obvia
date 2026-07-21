@@ -31,7 +31,6 @@ use crate::tenant::services::dto::print::ServicesResolvedPrint;
 use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -161,7 +160,7 @@ pub trait ServiceService {
     fn print(
         &self,
         payload: &[ServicesResolvedPrint],
-    ) -> impl Future<Output = ServicesServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = ServicesServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> ServiceService for Service<'a, T>
@@ -275,10 +274,10 @@ where
         }
     }
 
-    async fn print(&self, payload: &[ServicesResolvedPrint]) -> ServicesServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[ServicesResolvedPrint]) -> ServicesServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ServiceView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

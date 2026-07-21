@@ -35,7 +35,6 @@ use crate::tenant::inventory_reservations::model::{
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -164,7 +163,7 @@ pub trait InventoryReservationService {
     fn print(
         &self,
         payload: &[InventoryReservationResolvedPrint],
-    ) -> impl Future<Output = InventoryReservationsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> InventoryReservationService for Service<'a, T>
@@ -289,10 +288,10 @@ where
     async fn print(
         &self,
         payload: &[InventoryReservationResolvedPrint],
-    ) -> InventoryReservationsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    ) -> InventoryReservationsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryReservationView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

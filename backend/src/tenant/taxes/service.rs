@@ -31,7 +31,6 @@ use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -157,7 +156,7 @@ pub trait TaxService {
     fn print(
         &self,
         payload: &[TaxResolvedPrint],
-    ) -> impl Future<Output = TaxesServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = TaxesServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> TaxService for Service<'a, T>
@@ -266,10 +265,10 @@ where
         }
     }
 
-    async fn print(&self, payload: &[TaxResolvedPrint]) -> TaxesServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[TaxResolvedPrint]) -> TaxesServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaxView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

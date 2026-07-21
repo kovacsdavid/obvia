@@ -33,7 +33,6 @@ use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -154,7 +153,7 @@ pub trait ProductService {
     fn print(
         &self,
         payload: &[ProductsResolvedPrint],
-    ) -> impl Future<Output = ProductsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = ProductsServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> ProductService for Service<'a, T>
@@ -272,10 +271,10 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ProductView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

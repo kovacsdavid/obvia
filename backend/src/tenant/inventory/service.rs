@@ -31,7 +31,6 @@ use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -162,7 +161,7 @@ pub trait InventoryService {
     fn print(
         &self,
         payload: &[InventoryResolvedPrint],
-    ) -> impl Future<Output = InventoryServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> InventoryService for Service<'a, T>
@@ -287,10 +286,10 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

@@ -31,7 +31,6 @@ use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
 use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -147,7 +146,7 @@ pub trait WorksheetService {
     fn print(
         &self,
         payload: &[WorksheetResolvedPrint],
-    ) -> impl Future<Output = WorksheetsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = WorksheetsServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> WorksheetService for Service<'a, T>
@@ -250,10 +249,10 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

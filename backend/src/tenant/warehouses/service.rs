@@ -30,7 +30,6 @@ use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -123,7 +122,7 @@ pub trait WarehouseService {
     fn print(
         &self,
         payload: &[WarehouseResolvedPrint],
-    ) -> impl Future<Output = WarehousesServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = WarehousesServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
@@ -205,10 +204,10 @@ where
             .get_paged(get_query)
             .await?)
     }
-    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WarehouseView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

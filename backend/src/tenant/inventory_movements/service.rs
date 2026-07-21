@@ -34,7 +34,6 @@ use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMove
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -162,7 +161,7 @@ pub trait InventoryMovementService {
     fn print(
         &self,
         payload: &[InventoryMovementsResolvedPrint],
-    ) -> impl Future<Output = InventoryMovementsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> InventoryMovementService for Service<'a, T>
@@ -290,10 +289,10 @@ where
     async fn print(
         &self,
         payload: &[InventoryMovementsResolvedPrint],
-    ) -> InventoryMovementsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    ) -> InventoryMovementsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

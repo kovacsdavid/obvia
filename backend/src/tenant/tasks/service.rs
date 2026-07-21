@@ -31,7 +31,6 @@ use crate::tenant::tasks::dto::print::TaskResolvedPrint;
 use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
@@ -152,7 +151,7 @@ pub trait TaskService {
     fn print(
         &self,
         payload: &[TaskResolvedPrint],
-    ) -> impl Future<Output = TasksServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = TasksServiceResult<Vec<u8>>> + Send;
 }
 
 impl<'a, T> TaskService for Service<'a, T>
@@ -270,10 +269,10 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaskView,
             payload.to_vec(),
-        )?))
+        )?)
     }
 }

@@ -44,6 +44,9 @@ use obvia::{
         products::{
             dto::print::ProductsResolvedPrint, model::ProductResolved, service::ProductService,
         },
+        services::{
+            dto::print::ServicesResolvedPrint, model::ServiceResolved, service::ServiceService,
+        },
         taxes::{dto::print::TaxResolvedPrint, model::TaxResolved, service::TaxService},
         warehouses::{
             dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
@@ -340,7 +343,31 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::Services => {
-            todo!()
+            let path = format!("{folder}/services_test.pdf");
+            let path = Path::new(&path);
+            let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let service_resolved = ServiceResolved {
+                id: service_id,
+                name: "Test Service".to_string(),
+                description: Some("Test description".to_string()),
+                default_price: None,
+                default_tax_id: None,
+                default_tax: None,
+                currency_code: Some("HUF".to_string()),
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+            };
+            let service_resolved_print =
+                ServicesResolvedPrint::from_service_resolved(service_resolved, tz);
+            let pdf = ServiceService::print(&service, &[service_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Tasks => {
             todo!()

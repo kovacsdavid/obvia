@@ -37,6 +37,10 @@ use obvia::{
             dto::print::InventoryMovementsResolvedPrint, model::InventoryMovementResolved,
             service::InventoryMovementService,
         },
+        inventory_reservations::{
+            dto::print::InventoryReservationResolvedPrint, model::InventoryReservationResolved,
+            service::InventoryReservationService,
+        },
         products::{
             dto::print::ProductsResolvedPrint, model::ProductResolved, service::ProductService,
         },
@@ -302,7 +306,38 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::InventoryReservations => {
-            todo!()
+            let path = format!("{folder}/inventory_reservations_test.pdf");
+            let path = Path::new(&path);
+            let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+            let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
+            let inventory_reservation_resolved = InventoryReservationResolved {
+                id: inventory_reservation_id,
+                inventory_id,
+                quantity: "10".parse().unwrap(),
+                reference_type: Some("worksheets".to_string()),
+                reference_id: Some(reference_id),
+                reserved_until: None,
+                status: "active".to_string(),
+                created_by_id,
+                created_by: "Test User".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+            };
+            let inventory_reservation_resolved_print =
+                InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
+                    inventory_reservation_resolved,
+                    tz,
+                );
+            let pdf = InventoryReservationService::print(
+                &service,
+                &[inventory_reservation_resolved_print],
+            )
+            .await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
         Modules::Services => {
             todo!()

@@ -52,6 +52,9 @@ use obvia::{
         warehouses::{
             dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
         },
+        worksheets::{
+            dto::print::WorksheetResolvedPrint, model::WorksheetResolved, service::WorksheetService,
+        },
     },
 };
 use std::fs::File;
@@ -407,7 +410,37 @@ async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result
             Ok(())
         }
         Modules::Worksheets => {
-            todo!()
+            let path = format!("{folder}/worksheets_test.pdf");
+            let path = Path::new(&path);
+            let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+            let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
+            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+
+            let worksheet_resolved = WorksheetResolved {
+                id: worksheet_id,
+                name: "Test worksheet".to_string(),
+                description: None,
+                customer_id,
+                customer: "Test customer".to_string(),
+                project_id: None,
+                project: None,
+                created_by_id,
+                created_by: "Test user".to_string(),
+                status: "active".to_string(),
+                created_at: test_time,
+                updated_at: test_time,
+                deleted_at: None,
+                net_material_cost: "10".parse().unwrap(),
+                gross_material_cost: "20".parse().unwrap(),
+                net_work_cost: "30".parse().unwrap(),
+                gross_work_cost: "40".parse().unwrap(),
+            };
+            let worksheet_resolved_print =
+                WorksheetResolvedPrint::from_worksheet_resolved(worksheet_resolved, tz);
+            let pdf = WorksheetService::print(&service, &[worksheet_resolved_print]).await?;
+            let mut file = File::create(path)?;
+            file.write_all(&pdf)?;
+            Ok(())
         }
     }
 }

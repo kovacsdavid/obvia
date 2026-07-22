@@ -30,10 +30,14 @@ use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -51,6 +55,12 @@ pub enum WarehousesServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for WarehousesServiceError {
@@ -101,16 +111,33 @@ impl From<WarehousesServiceError> for AppError {
 pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
 
 pub trait WarehouseService {
-    async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse>;
-    async fn get_resolved(&self, payload: Uuid) -> WarehousesServiceResult<WarehouseResolved>;
-    async fn get(&self, payload: Uuid) -> WarehousesServiceResult<Warehouse>;
-    async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse>;
-    async fn delete(&self, payload: Uuid) -> WarehousesServiceResult<()>;
-    async fn get_paged(
+    fn insert(
+        &self,
+        payload: &WarehouseUserInput,
+    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn get_resolved(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = WarehousesServiceResult<WarehouseResolved>> + Send;
+    fn get(&self, payload: Uuid)
+    -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn update(
+        &self,
+        payload: &WarehouseUserInput,
+    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = WarehousesServiceResult<()>> + Send;
+    fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
-    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes>;
+    ) -> impl Future<Output = WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>> + Send;
+    fn print(
+        &self,
+        payload: &[WarehouseResolvedPrint],
+    ) -> impl Future<Output = WarehousesServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = WarehousesServiceResult<()>> + Sync;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
@@ -192,10 +219,44 @@ where
             .get_paged(get_query)
             .await?)
     }
-    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WarehouseView,
             payload.to_vec(),
-        )?))
+        )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> WarehousesServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| WarehousesServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| {
+                WarehousesServiceError::ParseError(e.to_string())
+            })?;
+        let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+        let warehouse_resolved = WarehouseResolved {
+            id: warehouse_id,
+            name: "Test Warehouse".to_string(),
+            contact_name: Some("Test Contact".to_string()),
+            contact_phone: Some("+36301234567".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let warehouse_resolved_print =
+            WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
+        let pdf = self.print(&[warehouse_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

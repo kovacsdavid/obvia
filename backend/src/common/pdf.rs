@@ -152,7 +152,15 @@ impl PdfGenerator {
 
 #[cfg(test)]
 pub mod tests {
+    use lopdf::Document;
     use std::sync::Mutex;
 
     pub static PDF_GENERATOR_TEST_SYNC: Mutex<()> = Mutex::new(());
+
+    pub fn extract_pdf_text(bytes: &[u8]) -> Result<String, lopdf::Error> {
+        let document = Document::load_mem(bytes)?;
+        let pages = document.get_pages();
+        let page_numbers: Vec<u32> = pages.keys().copied().collect();
+        document.extract_text(&page_numbers)
+    }
 }

@@ -31,10 +31,14 @@ use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
 use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -56,6 +60,12 @@ pub enum WorksheetsServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for WorksheetsServiceError {
@@ -147,7 +157,11 @@ pub trait WorksheetService {
     fn print(
         &self,
         payload: &[WorksheetResolvedPrint],
-    ) -> impl Future<Output = WorksheetsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = WorksheetsServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Sync;
 }
 
 impl<'a, T> WorksheetService for Service<'a, T>
@@ -250,10 +264,55 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,
             payload.to_vec(),
-        )?))
+        )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> WorksheetsServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| WorksheetsServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| {
+                WorksheetsServiceError::ParseError(e.to_string())
+            })?;
+        let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+        let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
+            .parse()
+            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+
+        let worksheet_resolved = WorksheetResolved {
+            id: worksheet_id,
+            name: "Test worksheet".to_string(),
+            description: None,
+            customer_id,
+            customer: "Test customer".to_string(),
+            project_id: None,
+            project: None,
+            created_by_id,
+            created_by: "Test user".to_string(),
+            status: "active".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+            net_material_cost: "10".parse().unwrap(),
+            gross_material_cost: "20".parse().unwrap(),
+            net_work_cost: "30".parse().unwrap(),
+            gross_work_cost: "40".parse().unwrap(),
+        };
+        let worksheet_resolved_print =
+            WorksheetResolvedPrint::from_worksheet_resolved(worksheet_resolved, tz);
+        let pdf = self.print(&[worksheet_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

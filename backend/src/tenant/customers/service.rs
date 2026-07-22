@@ -30,10 +30,14 @@ use crate::tenant::customers::dto::print::CustomerResolvedPrint;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -54,6 +58,12 @@ pub enum CustomersServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for CustomersServiceError {
@@ -132,7 +142,11 @@ pub trait CustomerService {
     fn print(
         &self,
         payload: &[CustomerResolvedPrint],
-    ) -> impl Future<Output = CustomersServiceResult<Bytes>> + Sync;
+    ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = CustomersServiceResult<()>> + Sync;
 }
 
 impl<'a, T> CustomerService for Service<'a, T>
@@ -219,10 +233,44 @@ where
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
-        )?))
+        )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+        let customer_resolved = CustomerResolved {
+            id: customer_id,
+            name: "Test Customer".to_string(),
+            contact_name: None,
+            email: "test.customer@example.com".to_string(),
+            phone_number: Some("+36301234567".to_string()),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let customer_resolved_print =
+            CustomerResolvedPrint::from_customer_revolved(customer_resolved, tz);
+        let pdf = self.print(&[customer_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

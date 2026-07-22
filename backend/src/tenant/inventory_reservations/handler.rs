@@ -260,8 +260,8 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
-    use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
-    use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
+    use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
+    use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::inventory_reservations::model::InventoryReservationResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -272,10 +272,13 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{Duration, Utc};
+    use chrono::{DateTime, Duration, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
+    use std::fs::File;
+    use std::io::{Read, Write};
+    use std::path::Path;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -1843,11 +1846,11 @@ mod tests {
     #[tokio::test]
     async fn test_print_success() {
         let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
+        let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
+        let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse().unwrap();
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
+        let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
         let inventory_reservation_resolved = InventoryReservationResolved {
             id: inventory_reservation_id,
@@ -1859,8 +1862,8 @@ mod tests {
             status: "active".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
-            created_at: utc_now,
-            updated_at: utc_now,
+            created_at: test_time,
+            updated_at: test_time,
         };
 
         let mut repo = MockInventoryReservationsRepository::new();
@@ -1901,7 +1904,9 @@ mod tests {
                 eq(PdfTemplates::InventoryReservationView),
                 eq(pdf_gen_payload_expected),
             )
-            .returning(|_, _| Ok(vec![]));
+            .returning(|template, payload| {
+                Ok(PdfGenerator::gen_pdf_temporary(template, payload).unwrap())
+            });
 
         let request = Request::builder()
             .header(
@@ -1927,6 +1932,25 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let snapshot_path = Path::new("testing/pdf/snapshots/inventory_reservations_test.pdf");
+        let mut file = File::open(snapshot_path).unwrap();
+        let mut snapshot = vec![];
+        file.read_to_end(&mut snapshot).unwrap();
+
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec();
+        let test_result_path =
+            Path::new("testing/pdf/test_results/inventory_reservations_test.pdf");
+        let mut file = File::create(test_result_path).unwrap();
+        file.write_all(&body_bytes).unwrap();
+
+        assert_eq!(
+            extract_pdf_text(&body_bytes).unwrap(),
+            extract_pdf_text(&snapshot).unwrap()
+        );
     }
 
     #[tokio::test]

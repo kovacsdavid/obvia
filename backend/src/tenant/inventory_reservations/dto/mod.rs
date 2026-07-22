@@ -17,5 +17,5 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod print;
-pub(crate) mod user_input;
+pub mod print;
+pub mod user_input;

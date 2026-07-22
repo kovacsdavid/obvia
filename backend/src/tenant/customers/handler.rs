@@ -194,6 +194,10 @@ pub async fn print<M: CustomersModuleInterface>(
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+    use std::io::{Read, Write};
+    use std::path::Path;
+
     use super::*;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
@@ -201,8 +205,8 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
-    use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
-    use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
+    use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
+    use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::customers::model::CustomerResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -212,7 +216,7 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1698,22 +1702,22 @@ mod tests {
     #[tokio::test]
     async fn test_print_success() {
         let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
+        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
+        let created_by_id: Uuid = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
         let customer_resolved = CustomerResolved {
             id: customer_id,
-            name: "Test customer".to_string(),
+            name: "Test Customer".to_string(),
             contact_name: None,
-            email: "test_customer@example.com".to_string(),
+            email: "test.customer@example.com".to_string(),
             phone_number: Some("+36301234567".to_string()),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
-            created_at: utc_now,
-            updated_at: utc_now,
+            created_at: test_time,
+            updated_at: test_time,
             deleted_at: None,
         };
 
@@ -1750,7 +1754,9 @@ mod tests {
             .expect::<Vec<CustomerResolvedPrint>>()
             .times(1)
             .with(eq(PdfTemplates::CustomerView), eq(pdf_gen_payload_expected))
-            .returning(|_, _| Ok(vec![]));
+            .returning(|template, payload| {
+                Ok(PdfGenerator::gen_pdf_temporary(template, payload).unwrap())
+            });
 
         let request = Request::builder()
             .header(
@@ -1774,6 +1780,24 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let snapshot_path = Path::new("testing/pdf/snapshots/customers_test.pdf");
+        let mut file = File::open(snapshot_path).unwrap();
+        let mut snapshot = vec![];
+        file.read_to_end(&mut snapshot).unwrap();
+
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec();
+        let test_result_path = Path::new("testing/pdf/test_results/customers_test.pdf");
+        let mut file = File::create(test_result_path).unwrap();
+        file.write_all(&body_bytes).unwrap();
+
+        assert_eq!(
+            extract_pdf_text(&body_bytes).unwrap(),
+            extract_pdf_text(&snapshot).unwrap()
+        );
     }
 
     #[tokio::test]

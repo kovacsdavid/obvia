@@ -33,10 +33,14 @@ use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -64,6 +68,12 @@ pub enum ProductsServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for ProductsServiceError {
@@ -154,7 +164,9 @@ pub trait ProductService {
     fn print(
         &self,
         payload: &[ProductsResolvedPrint],
-    ) -> impl Future<Output = ProductsServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = ProductsServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path)
+    -> impl Future<Output = ProductsServiceResult<()>> + Sync;
 }
 
 impl<'a, T> ProductService for Service<'a, T>
@@ -272,10 +284,47 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ProductView,
             payload.to_vec(),
-        )?))
+        )?)
+    }
+
+    async fn print_snapshot(&self, path: &Path) -> ProductsServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| ProductsServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| ProductsServiceError::ParseError(e.to_string()))?;
+        let product_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+        let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
+            .parse()
+            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+        let product_resolved = ProductResolved {
+            id: product_id,
+            name: "Test product".to_string(),
+            description: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let products_resolved_print =
+            ProductsResolvedPrint::from_product_resolved(product_resolved, tz);
+        let pdf = self.print(&[products_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

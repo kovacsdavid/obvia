@@ -38,18 +38,18 @@ use lettre::{
 };
 use tracing::{error, info};
 
-pub(crate) mod config;
-pub(crate) mod database;
+pub mod config;
+pub mod database;
 pub(crate) mod dto;
 pub(crate) mod error;
 pub(crate) mod extractors;
 pub(crate) mod handler;
-pub(crate) mod init;
+pub mod init;
 pub(crate) mod macros;
 pub(crate) mod model;
 pub(crate) mod pdf;
 pub(crate) mod query_parser;
-pub(crate) mod service;
+pub mod service;
 pub(crate) mod types;
 pub(crate) mod utils;
 pub(crate) mod value_object;

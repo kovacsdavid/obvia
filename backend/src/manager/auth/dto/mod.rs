@@ -17,6 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod claims;
+pub mod claims;
 pub(crate) mod login;
 pub(crate) mod register;

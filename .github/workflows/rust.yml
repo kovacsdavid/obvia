@@ -34,7 +34,23 @@ jobs:
       run: |
         cd backend
         cargo clippy -- -D warnings --verbose
+    - name: Install Typst
+      run: |
+        set -euo pipefail
+
+        TYPST_VERSION="0.15.0"
+        TYPST_ARCHIVE="typst-x86_64-unknown-linux-musl.tar.xz"
+        TYPST_URL="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/${TYPST_ARCHIVE}"
+        TYPST_SHA256="59b207df01be2dab9f13e80f73d04d7ff8273ffd46b3dd1b9eef5c60f3eeabea"
+
+        curl -L "$TYPST_URL" -o "$TYPST_ARCHIVE"
+        echo "${TYPST_SHA256}  ${TYPST_ARCHIVE}" | sha256sum -c -
+
+        mkdir typst-bin
+        tar -xf "$TYPST_ARCHIVE" -C typst-bin --strip-components=1
+        sudo mv typst-bin/typst /usr/local/bin/typst
+        typst --version
     - name: Run tests
       run: |
         cd backend
-        cargo test --verbose
+        cargo test -r --verbose

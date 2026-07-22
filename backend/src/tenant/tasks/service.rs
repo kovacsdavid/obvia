@@ -31,10 +31,14 @@ use crate::tenant::tasks::dto::print::TaskResolvedPrint;
 use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
-use axum::body::Bytes;
 use axum::http::StatusCode;
+use chrono::{DateTime, Duration, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -56,6 +60,12 @@ pub enum TasksServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for TasksServiceError {
@@ -152,7 +162,8 @@ pub trait TaskService {
     fn print(
         &self,
         payload: &[TaskResolvedPrint],
-    ) -> impl Future<Output = TasksServiceResult<Bytes>> + Send;
+    ) -> impl Future<Output = TasksServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = TasksServiceResult<()>> + Sync;
 }
 
 impl<'a, T> TaskService for Service<'a, T>
@@ -270,10 +281,60 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Bytes> {
-        Ok(Bytes::from(PdfGenerator::gen_pdf_temporary(
+    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Vec<u8>> {
+        Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaskView,
             payload.to_vec(),
-        )?))
+        )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> TasksServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| TasksServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| TasksServiceError::ParseError(e.to_string()))?;
+        let task_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+        let worksheet_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
+            .parse()
+            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+        let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b"
+            .parse()
+            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+        let service_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
+            .parse()
+            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+
+        let task_resolved = TaskResolved {
+            id: task_id,
+            worksheet_id,
+            worksheet: "Test worksheet".to_string(),
+            service_id,
+            service: "Test service".to_string(),
+            currency_code: "HUF".to_string(),
+            quantity: None,
+            price: None,
+            tax_id,
+            tax: "Test tax".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            status: "active".to_string(),
+            priority: Some("normal".to_string()),
+            due_date: Some(test_time + Duration::weeks(1)),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+            description: None,
+        };
+        let task_resolved_print = TaskResolvedPrint::from_task_resolved(task_resolved, tz);
+        let pdf = self.print(&[task_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

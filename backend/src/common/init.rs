@@ -39,7 +39,9 @@ pub fn init_subscriber(config: &AppConfig) {
     .expect("setting default subscriber failed");
 }
 
-pub async fn init_default_app(config: AppConfig) -> Result<Router> {
+pub async fn init_default_app_state(
+    config: AppConfig,
+) -> Result<AppState<PgPoolManager, AsyncSmtpTransport<Tokio1Executor>>> {
     let pg_pool_manager = PgPoolManager::new(config.main_database()).await?;
     let smtp_transport =
         AsyncSmtpTransport::<Tokio1Executor>::starttls_relay(config.mail().smtp_host())?
@@ -58,8 +60,13 @@ pub async fn init_default_app(config: AppConfig) -> Result<Router> {
         .migrate_all_tenant_dbs(&tenants)
         .await?;
 
-    let app_state = Arc::new(app_state);
+    Ok(app_state)
+}
 
+pub async fn init_default_app(
+    app_state: AppState<PgPoolManager, AsyncSmtpTransport<Tokio1Executor>>,
+) -> Result<Router> {
+    let app_state = Arc::new(app_state);
     Ok(Router::new().nest(
         "/api",
         Router::new()

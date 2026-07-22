@@ -232,8 +232,8 @@ mod tests {
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
     };
-    use crate::common::pdf::tests::PDF_GENERATOR_TEST_SYNC;
-    use crate::common::pdf::{MockPdfGenerator, PdfTemplates};
+    use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
+    use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::worksheets::model::WorksheetResolved;
     use crate::{
         common::config::tests::AppConfigBuilder,
@@ -244,10 +244,13 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::Utc;
+    use chrono::{DateTime, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
+    use std::fs::File;
+    use std::io::{Read, Write};
+    use std::path::Path;
     use tower::ServiceExt;
     use uuid::Uuid;
 
@@ -1731,12 +1734,12 @@ mod tests {
     #[tokio::test]
     async fn test_print_success() {
         let active_tenant_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
+        let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
+        let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
-        let customer_resolved = WorksheetResolved {
+        let worksheet_resolved = WorksheetResolved {
             id: worksheet_id,
             name: "Test worksheet".to_string(),
             description: None,
@@ -1747,8 +1750,8 @@ mod tests {
             created_by_id,
             created_by: "Test user".to_string(),
             status: "active".to_string(),
-            created_at: utc_now,
-            updated_at: utc_now,
+            created_at: test_time,
+            updated_at: test_time,
             deleted_at: None,
             net_material_cost: "10".parse().unwrap(),
             gross_material_cost: "20".parse().unwrap(),
@@ -1761,8 +1764,8 @@ mod tests {
             .times(1)
             .with(eq(worksheet_id))
             .returning({
-                let customer_resolved = customer_resolved.clone();
-                move |_| Ok(customer_resolved.clone())
+                let worksheet_resolved = worksheet_resolved.clone();
+                move |_| Ok(worksheet_resolved.clone())
             });
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1779,7 +1782,7 @@ mod tests {
             .return_const(test_config.clone());
 
         let pdf_gen_payload_expected = vec![WorksheetResolvedPrint::from_worksheet_resolved(
-            customer_resolved,
+            worksheet_resolved,
             "Europe/Budapest".parse().unwrap(),
         )];
 
@@ -1792,7 +1795,9 @@ mod tests {
                 eq(PdfTemplates::WorksheetView),
                 eq(pdf_gen_payload_expected),
             )
-            .returning(|_, _| Ok(vec![]));
+            .returning(|template, payload| {
+                Ok(PdfGenerator::gen_pdf_temporary(template, payload).unwrap())
+            });
 
         let request = Request::builder()
             .header(
@@ -1816,6 +1821,24 @@ mod tests {
         let response = app.oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
+
+        let snapshot_path = Path::new("testing/pdf/snapshots/worksheets_test.pdf");
+        let mut file = File::open(snapshot_path).unwrap();
+        let mut snapshot = vec![];
+        file.read_to_end(&mut snapshot).unwrap();
+
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap()
+            .to_vec();
+        let test_result_path = Path::new("testing/pdf/test_results/worksheets_test.pdf");
+        let mut file = File::create(test_result_path).unwrap();
+        file.write_all(&body_bytes).unwrap();
+
+        assert_eq!(
+            extract_pdf_text(&body_bytes).unwrap(),
+            extract_pdf_text(&snapshot).unwrap()
+        );
     }
 
     #[tokio::test]

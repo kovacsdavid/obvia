@@ -29,13 +29,13 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod dto;
+pub mod dto;
 mod handler;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod routes;
-pub(crate) mod service;
-pub(crate) mod types;
+pub mod model;
+pub mod repository;
+pub mod routes;
+pub mod service;
+pub mod types;
 
 pub trait CustomersModuleInterface: BaseModule {
     fn customers_repo(

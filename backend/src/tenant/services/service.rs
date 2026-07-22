@@ -32,8 +32,13 @@ use crate::tenant::services::dto::user_input::ServiceUserInput;
 use crate::tenant::services::model::{Service as ServiceModel, ServiceResolved};
 use crate::tenant::services::types::service::{ServiceFilterBy, ServiceOrderBy};
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -58,6 +63,12 @@ pub enum ServicesServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for ServicesServiceError {
@@ -161,6 +172,8 @@ pub trait ServiceService {
         &self,
         payload: &[ServicesResolvedPrint],
     ) -> impl Future<Output = ServicesServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path)
+    -> impl Future<Output = ServicesServiceResult<()>> + Sync;
 }
 
 impl<'a, T> ServiceService for Service<'a, T>
@@ -279,5 +292,40 @@ where
             &PdfTemplates::ServiceView,
             payload.to_vec(),
         )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> ServicesServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
+        let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
+        let service_resolved = ServiceResolved {
+            id: service_id,
+            name: "Test Service".to_string(),
+            description: Some("Test description".to_string()),
+            default_price: None,
+            default_tax_id: None,
+            default_tax: None,
+            currency_code: Some("HUF".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let service_resolved_print =
+            ServicesResolvedPrint::from_service_resolved(service_resolved, tz);
+        let pdf = self.print(&[service_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

@@ -17,6 +17,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use clap::ValueEnum;
+use std::fmt::Display;
+
 pub mod activity_feed;
 pub mod address;
 pub mod comments;
@@ -32,3 +35,34 @@ pub mod taxes;
 pub mod users;
 pub mod warehouses;
 pub mod worksheets;
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+pub enum Modules {
+    Customers,
+    Warehouses,
+    Taxes,
+    Products,
+    Inventory,
+    InventoryMovements,
+    InventoryReservations,
+    Services,
+    Tasks,
+    Worksheets,
+}
+
+impl Display for Modules {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Modules::Customers => write!(f, "customers"),
+            Modules::Warehouses => write!(f, "warehouses"),
+            Modules::Taxes => write!(f, "taxes"),
+            Modules::Products => write!(f, "products"),
+            Modules::Inventory => write!(f, "inventory"),
+            Modules::InventoryMovements => write!(f, "inventory_movements"),
+            Modules::InventoryReservations => write!(f, "inventory_reservations"),
+            Modules::Services => write!(f, "services"),
+            Modules::Tasks => write!(f, "tasks"),
+            Modules::Worksheets => write!(f, "worksheets"),
+        }
+    }
+}

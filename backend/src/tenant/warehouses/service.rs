@@ -31,8 +31,13 @@ use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
 use crate::tenant::warehouses::model::{Warehouse, WarehouseResolved};
 use crate::tenant::warehouses::types::warehouse::{WarehouseFilterBy, WarehouseOrderBy};
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use thiserror::Error;
 use tracing::Level;
 use uuid::Uuid;
@@ -50,6 +55,12 @@ pub enum WarehousesServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for WarehousesServiceError {
@@ -123,6 +134,10 @@ pub trait WarehouseService {
         &self,
         payload: &[WarehouseResolvedPrint],
     ) -> impl Future<Output = WarehousesServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = WarehousesServiceResult<()>> + Sync;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
@@ -209,5 +224,39 @@ where
             &PdfTemplates::WarehouseView,
             payload.to_vec(),
         )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> WarehousesServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| WarehousesServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| {
+                WarehousesServiceError::ParseError(e.to_string())
+            })?;
+        let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+        let warehouse_resolved = WarehouseResolved {
+            id: warehouse_id,
+            name: "Test Warehouse".to_string(),
+            contact_name: Some("Test Contact".to_string()),
+            contact_phone: Some("+36301234567".to_string()),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let warehouse_resolved_print =
+            WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
+        let pdf = self.print(&[warehouse_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

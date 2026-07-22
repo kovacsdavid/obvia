@@ -36,8 +36,13 @@ use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -59,6 +64,12 @@ pub enum InventoryReservationsServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for InventoryReservationsServiceError {
@@ -164,6 +175,10 @@ pub trait InventoryReservationService {
         &self,
         payload: &[InventoryReservationResolvedPrint],
     ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = InventoryReservationsServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryReservationService for Service<'a, T>
@@ -293,5 +308,64 @@ where
             &PdfTemplates::InventoryReservationView,
             payload.to_vec(),
         )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> InventoryReservationsServiceResult<()> {
+        let test_time: DateTime<Utc> =
+            "2026-01-02T11:11:11Z"
+                .parse()
+                .map_err(|e: chrono::ParseError| {
+                    InventoryReservationsServiceError::ParseError(e.to_string())
+                })?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| {
+                InventoryReservationsServiceError::ParseError(e.to_string())
+            })?;
+        let inventory_reservation_id =
+            "4f321721-37c6-4e91-8e42-6281c36937bc"
+                .parse()
+                .map_err(|e: uuid::Error| {
+                    InventoryReservationsServiceError::ParseError(e.to_string())
+                })?;
+        let inventory_id =
+            "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
+                .parse()
+                .map_err(|e: uuid::Error| {
+                    InventoryReservationsServiceError::ParseError(e.to_string())
+                })?;
+        let created_by_id =
+            "97054cdb-781c-4f40-a489-b43373d75bf0"
+                .parse()
+                .map_err(|e: uuid::Error| {
+                    InventoryReservationsServiceError::ParseError(e.to_string())
+                })?;
+        let reference_id =
+            "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
+                .parse()
+                .map_err(|e: uuid::Error| {
+                    InventoryReservationsServiceError::ParseError(e.to_string())
+                })?;
+        let inventory_reservation_resolved = InventoryReservationResolved {
+            id: inventory_reservation_id,
+            inventory_id,
+            quantity: "10".parse().unwrap(),
+            reference_type: Some("worksheets".to_string()),
+            reference_id: Some(reference_id),
+            reserved_until: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+        };
+        let inventory_reservation_resolved_print =
+            InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
+                inventory_reservation_resolved,
+                tz,
+            );
+        let pdf = self.print(&[inventory_reservation_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

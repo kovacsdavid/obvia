@@ -17,47 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{io::Write, path::Path, sync::Arc};
-
 use anyhow::anyhow;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use chrono_tz::Tz;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use obvia::{
     common::{config::AppConfig, init::init_default_app_state, service::Service},
     manager::auth::dto::claims::Claims,
     tenant::{
-        customers::{
-            dto::print::CustomerResolvedPrint, model::CustomerResolved, service::CustomerService,
-        },
-        inventory::{
-            dto::print::InventoryResolvedPrint, model::InventoryResolved, service::InventoryService,
-        },
-        inventory_movements::{
-            dto::print::InventoryMovementsResolvedPrint, model::InventoryMovementResolved,
-            service::InventoryMovementService,
-        },
-        inventory_reservations::{
-            dto::print::InventoryReservationResolvedPrint, model::InventoryReservationResolved,
-            service::InventoryReservationService,
-        },
-        products::{
-            dto::print::ProductsResolvedPrint, model::ProductResolved, service::ProductService,
-        },
-        services::{
-            dto::print::ServicesResolvedPrint, model::ServiceResolved, service::ServiceService,
-        },
-        tasks::{dto::print::TaskResolvedPrint, model::TaskResolved, service::TaskService},
-        taxes::{dto::print::TaxResolvedPrint, model::TaxResolved, service::TaxService},
-        warehouses::{
-            dto::print::WarehouseResolvedPrint, model::WarehouseResolved, service::WarehouseService,
-        },
-        worksheets::{
-            dto::print::WorksheetResolvedPrint, model::WorksheetResolved, service::WorksheetService,
-        },
+        Modules, customers::service::CustomerService, inventory::service::InventoryService,
+        inventory_movements::service::InventoryMovementService,
+        inventory_reservations::service::InventoryReservationService,
+        products::service::ProductService, services::service::ServiceService,
+        tasks::service::TaskService, taxes::service::TaxService,
+        warehouses::service::WarehouseService, worksheets::service::WorksheetService,
     },
 };
-use std::fs::File;
+use std::{path::Path, sync::Arc};
 use uuid::Uuid;
 
 #[derive(Parser, Debug)]
@@ -84,20 +60,6 @@ enum DevCommands {
         #[arg(default_value = "testing/pdf/snapshots/")]
         folder: String,
     },
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
-enum Modules {
-    Customers,
-    Warehouses,
-    Taxes,
-    Products,
-    Inventory,
-    InventoryMovements,
-    InventoryReservations,
-    Services,
-    Tasks,
-    Worksheets,
 }
 
 fn gen_exp(expiration_mins: u64) -> anyhow::Result<usize> {
@@ -131,317 +93,27 @@ fn init_dev_claims(config: &AppConfig) -> anyhow::Result<Claims> {
 }
 
 async fn gen_pdf_test_snapshot(module: &Modules, folder: &str) -> anyhow::Result<()> {
-    let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse()?;
     let config = AppConfig::from_env()?;
     let claims = init_dev_claims(&config)?;
     let app_state = init_default_app_state(config).await?;
     let service = Service::new(Some(&claims), Arc::new(app_state));
-    let tz: Tz = "Europe/Budapest".parse()?;
+    let path = format!("{folder}/{module}_test.pdf");
+    let path = Path::new(&path);
     match module {
-        Modules::Customers => {
-            let path = format!("{folder}/customers_test.pdf");
-            let path = Path::new(&path);
-            let tz: Tz = "Europe/Budapest".parse()?;
-            let customer_resolved = CustomerResolved {
-                id: "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?,
-                name: "Test Customer".to_string(),
-                contact_name: None,
-                email: "test.customer@example.com".to_string(),
-                phone_number: Some("+36301234567".to_string()),
-                status: "active".to_string(),
-                customer_type: "natural".to_string(),
-                created_by_id: "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let customer_resolved_print =
-                CustomerResolvedPrint::from_customer_revolved(customer_resolved, tz);
-            let pdf = CustomerService::print(&service, &[customer_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Warehouses => {
-            let path = format!("{folder}/warehouses_test.pdf");
-            let path = Path::new(&path);
-            let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let warehouse_resolved = WarehouseResolved {
-                id: warehouse_id,
-                name: "Test Warehouse".to_string(),
-                contact_name: Some("Test Contact".to_string()),
-                contact_phone: Some("+36301234567".to_string()),
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let warehouse_resolved_print =
-                WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
-            let pdf = WarehouseService::print(&service, &[warehouse_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Taxes => {
-            let path = format!("{folder}/taxes_test.pdf");
-            let path = Path::new(&path);
-            let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let tax_resolved = TaxResolved {
-                id: tax_id,
-                rate: Some("10".parse().unwrap()),
-                description: "Test tax".to_string(),
-                country_code: "HU".to_string(),
-                country: "Magyarország".to_string(),
-                tax_category: "standard".to_string(),
-                is_rate_applicable: true,
-                legal_text: None,
-                reporting_code: None,
-                is_default: true,
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let taxes_resolved_print = TaxResolvedPrint::from_tax_resolved(tax_resolved, tz);
-            let pdf = TaxService::print(&service, &[taxes_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Products => {
-            let path = format!("{folder}/products_test.pdf");
-            let path = Path::new(&path);
-            let product_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
-            let product_resolved = ProductResolved {
-                id: product_id,
-                name: "Test product".to_string(),
-                description: None,
-                unit_of_measure_id,
-                unit_of_measure: "cm".to_string(),
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let products_resolved_print =
-                ProductsResolvedPrint::from_product_resolved(product_resolved, tz);
-            let pdf = ProductService::print(&service, &[products_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Inventory => {
-            let path = format!("{folder}/inventory_test.pdf");
-            let path = Path::new(&path);
-            let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
-            let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let inventory_resolved = InventoryResolved {
-                id: inventory_id,
-                product_id,
-                product: "Test product".to_string(),
-                warehouse_id,
-                warehouse: "Test warehouse".to_string(),
-                quantity_on_hand: "10".parse().unwrap(),
-                quantity_reserved: "20".parse().unwrap(),
-                quantity_available: "30".parse().unwrap(),
-                minimum_stock: None,
-                maximum_stock: None,
-                currency_code: "HUF".to_string(),
-                currency: "Forint".to_string(),
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let inventory_resolved_print =
-                InventoryResolvedPrint::from_inventory_resolved(inventory_resolved, tz);
-            let pdf = InventoryService::print(&service, &[inventory_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
+        Modules::Customers => Ok(CustomerService::print_snapshot(&service, path).await?),
+        Modules::Warehouses => Ok(WarehouseService::print_snapshot(&service, path).await?),
+        Modules::Taxes => Ok(TaxService::print_snapshot(&service, path).await?),
+        Modules::Products => Ok(ProductService::print_snapshot(&service, path).await?),
+        Modules::Inventory => Ok(InventoryService::print_snapshot(&service, path).await?),
         Modules::InventoryMovements => {
-            let path = format!("{folder}/inventory_movements_test.pdf");
-            let path = Path::new(&path);
-            let inventory_movement_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
-            let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b".parse()?;
-            let inventory_movement_resolved = InventoryMovementResolved {
-                id: inventory_movement_id,
-                inventory_id,
-                movement_type: "in".to_string(),
-                quantity: "10".parse().unwrap(),
-                reference_type: Some("worksheets".to_string()),
-                reference_id: Some(reference_id),
-                unit_price: Some("20".parse().unwrap()),
-                total_price: Some("30".parse().unwrap()),
-                tax_id,
-                tax: Some("Test Tax".to_string()),
-                movement_date: test_time,
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-            };
-            let inventory_movement_resolved_print =
-                InventoryMovementsResolvedPrint::from_inventory_movements_resolved(
-                    inventory_movement_resolved,
-                    tz,
-                );
-            let pdf =
-                InventoryMovementService::print(&service, &[inventory_movement_resolved_print])
-                    .await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
+            Ok(InventoryMovementService::print_snapshot(&service, path).await?)
         }
         Modules::InventoryReservations => {
-            let path = format!("{folder}/inventory_reservations_test.pdf");
-            let path = Path::new(&path);
-            let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
-            let inventory_reservation_resolved = InventoryReservationResolved {
-                id: inventory_reservation_id,
-                inventory_id,
-                quantity: "10".parse().unwrap(),
-                reference_type: Some("worksheets".to_string()),
-                reference_id: Some(reference_id),
-                reserved_until: None,
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-            };
-            let inventory_reservation_resolved_print =
-                InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-                    inventory_reservation_resolved,
-                    tz,
-                );
-            let pdf = InventoryReservationService::print(
-                &service,
-                &[inventory_reservation_resolved_print],
-            )
-            .await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
+            Ok(InventoryReservationService::print_snapshot(&service, path).await?)
         }
-        Modules::Services => {
-            let path = format!("{folder}/services_test.pdf");
-            let path = Path::new(&path);
-            let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-            let service_resolved = ServiceResolved {
-                id: service_id,
-                name: "Test Service".to_string(),
-                description: Some("Test description".to_string()),
-                default_price: None,
-                default_tax_id: None,
-                default_tax: None,
-                currency_code: Some("HUF".to_string()),
-                status: "active".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-            };
-            let service_resolved_print =
-                ServicesResolvedPrint::from_service_resolved(service_resolved, tz);
-            let pdf = ServiceService::print(&service, &[service_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Tasks => {
-            let path = format!("{folder}/tasks_test.pdf");
-            let path = Path::new(&path);
-            let task_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let worksheet_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
-            let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b".parse()?;
-            let service_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-
-            let task_resolved = TaskResolved {
-                id: task_id,
-                worksheet_id,
-                worksheet: "Test worksheet".to_string(),
-                service_id,
-                service: "Test service".to_string(),
-                currency_code: "HUF".to_string(),
-                quantity: None,
-                price: None,
-                tax_id,
-                tax: "Test tax".to_string(),
-                created_by_id,
-                created_by: "Test User".to_string(),
-                status: "active".to_string(),
-                priority: Some("normal".to_string()),
-                due_date: Some(test_time + Duration::weeks(1)),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-                description: None,
-            };
-            let task_resolved_print = TaskResolvedPrint::from_task_resolved(task_resolved, tz);
-            let pdf = TaskService::print(&service, &[task_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
-        Modules::Worksheets => {
-            let path = format!("{folder}/worksheets_test.pdf");
-            let path = Path::new(&path);
-            let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
-            let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
-            let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-
-            let worksheet_resolved = WorksheetResolved {
-                id: worksheet_id,
-                name: "Test worksheet".to_string(),
-                description: None,
-                customer_id,
-                customer: "Test customer".to_string(),
-                project_id: None,
-                project: None,
-                created_by_id,
-                created_by: "Test user".to_string(),
-                status: "active".to_string(),
-                created_at: test_time,
-                updated_at: test_time,
-                deleted_at: None,
-                net_material_cost: "10".parse().unwrap(),
-                gross_material_cost: "20".parse().unwrap(),
-                net_work_cost: "30".parse().unwrap(),
-                gross_work_cost: "40".parse().unwrap(),
-            };
-            let worksheet_resolved_print =
-                WorksheetResolvedPrint::from_worksheet_resolved(worksheet_resolved, tz);
-            let pdf = WorksheetService::print(&service, &[worksheet_resolved_print]).await?;
-            let mut file = File::create(path)?;
-            file.write_all(&pdf)?;
-            Ok(())
-        }
+        Modules::Services => Ok(ServiceService::print_snapshot(&service, path).await?),
+        Modules::Tasks => Ok(TaskService::print_snapshot(&service, path).await?),
+        Modules::Worksheets => Ok(WorksheetService::print_snapshot(&service, path).await?),
     }
 }
 

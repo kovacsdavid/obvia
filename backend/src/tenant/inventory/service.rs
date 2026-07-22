@@ -32,8 +32,13 @@ use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -58,6 +63,12 @@ pub enum InventoryServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for InventoryServiceError {
@@ -162,6 +173,10 @@ pub trait InventoryService {
         &self,
         payload: &[InventoryResolvedPrint],
     ) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = InventoryServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryService for Service<'a, T>
@@ -291,5 +306,51 @@ where
             &PdfTemplates::InventoryView,
             payload.to_vec(),
         )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> InventoryServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
+        let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+        let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
+            .parse()
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+        let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c"
+            .parse()
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+        let inventory_resolved = InventoryResolved {
+            id: inventory_id,
+            product_id,
+            product: "Test product".to_string(),
+            warehouse_id,
+            warehouse: "Test warehouse".to_string(),
+            quantity_on_hand: "10".parse().unwrap(),
+            quantity_reserved: "20".parse().unwrap(),
+            quantity_available: "30".parse().unwrap(),
+            minimum_stock: None,
+            maximum_stock: None,
+            currency_code: "HUF".to_string(),
+            currency: "Forint".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let inventory_resolved_print =
+            InventoryResolvedPrint::from_inventory_resolved(inventory_resolved, tz);
+        let pdf = self.print(&[inventory_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

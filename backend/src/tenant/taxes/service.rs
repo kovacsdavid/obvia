@@ -32,8 +32,13 @@ use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::fs::File;
+use std::io::Write;
+use std::path::Path;
 use std::str::FromStr;
 use thiserror::Error;
 use tracing::Level;
@@ -58,6 +63,12 @@ pub enum TaxesServiceError {
 
     #[error("PdfGen error: {0}")]
     PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
 }
 
 impl From<ServiceError> for TaxesServiceError {
@@ -157,6 +168,7 @@ pub trait TaxService {
         &self,
         payload: &[TaxResolvedPrint],
     ) -> impl Future<Output = TaxesServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = TaxesServiceResult<()>> + Sync;
 }
 
 impl<'a, T> TaxService for Service<'a, T>
@@ -270,5 +282,42 @@ where
             &PdfTemplates::TaxView,
             payload.to_vec(),
         )?)
+    }
+    async fn print_snapshot(&self, path: &Path) -> TaxesServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
+        let tz: Tz = "Europe/Budapest"
+            .parse()
+            .map_err(|e: chrono_tz::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
+        let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
+        let tax_resolved = TaxResolved {
+            id: tax_id,
+            rate: Some("10".parse().unwrap()),
+            description: "Test tax".to_string(),
+            country_code: "HU".to_string(),
+            country: "Magyarország".to_string(),
+            tax_category: "standard".to_string(),
+            is_rate_applicable: true,
+            legal_text: None,
+            reporting_code: None,
+            is_default: true,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: test_time,
+            updated_at: test_time,
+            deleted_at: None,
+        };
+        let taxes_resolved_print = TaxResolvedPrint::from_tax_resolved(tax_resolved, tz);
+        let pdf = self.print(&[taxes_resolved_print]).await?;
+        let mut file = File::create(path)?;
+        file.write_all(&pdf)?;
+        Ok(())
     }
 }

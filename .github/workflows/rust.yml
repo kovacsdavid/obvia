@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Build
       run: |
         cd backend
@@ -38,10 +38,10 @@ jobs:
       run: |
         set -euo pipefail
 
-        TYPST_VERSION="0.15.0"
+        TYPST_VERSION="0.15.1"
         TYPST_ARCHIVE="typst-x86_64-unknown-linux-musl.tar.xz"
         TYPST_URL="https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/${TYPST_ARCHIVE}"
-        TYPST_SHA256="59b207df01be2dab9f13e80f73d04d7ff8273ffd46b3dd1b9eef5c60f3eeabea"
+        TYPST_SHA256="a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c"
 
         curl -L "$TYPST_URL" -o "$TYPST_ARCHIVE"
         echo "${TYPST_SHA256}  ${TYPST_ARCHIVE}" | sha256sum -c -

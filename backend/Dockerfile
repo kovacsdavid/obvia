@@ -25,16 +25,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl tar coreutils xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
-ARG TYPST_VERSION=0.15.0
+ARG TYPST_VERSION=0.15.1
 
 RUN case "${TARGETPLATFORM}" in \
       "linux/amd64") \
         TYPST_ARCH="x86_64-unknown-linux-musl"; \
-        TYPST_SHA256="59b207df01be2dab9f13e80f73d04d7ff8273ffd46b3dd1b9eef5c60f3eeabea"; \
+        TYPST_SHA256="a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c"; \
         ;; \
       "linux/arm64") \
         TYPST_ARCH="aarch64-unknown-linux-musl"; \
-        TYPST_SHA256="cdf50ffc7b8ba759ed02200632eda3d78eb8b99aacb6611f4f75684990647620"; \
+        TYPST_SHA256="5aa8d74a3d906e60ea12a66ac2f37f8eef1b14cbad7182a745e393a10c23dcee"; \
         ;; \
       *) echo "Unsupported TARGETPLATFORM: ${TARGETPLATFORM}" && exit 1 ;; \
     esac \

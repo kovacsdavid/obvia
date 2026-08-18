@@ -1801,7 +1801,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "Nincs jogosultságod az erőforrás használatához"
+                "message": "Hozzáférés megtagadva!"
             }
         });
 
@@ -1835,7 +1835,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "Nincs jogosultságod az erőforrás használatához"
+                "message": "Hozzáférés megtagadva!"
             }
         });
 
@@ -2063,7 +2063,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "Nincs jogosultságod az erőforrás használatához"
+                "message": "Hozzáférés megtagadva!"
             }
         });
 
@@ -2097,7 +2097,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "Nincs jogosultságod az erőforrás használatához"
+                "message": "Hozzáférés megtagadva!"
             }
         });
 

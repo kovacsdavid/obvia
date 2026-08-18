@@ -21,7 +21,7 @@ use crate::common::config::database_config::BasicDatabaseConfig;
 use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::dto::PaginatorMeta;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::common::utils::generate_string_csprng;
 use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
@@ -29,32 +29,27 @@ use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
 use uuid::Uuid;
 
-type TenantsServiceResult<T> = Result<T, ServiceError>;
-
 pub trait TenantService {
     fn create_managed(
         &self,
         payload: &CreateTenant,
-    ) -> impl Future<Output = TenantsServiceResult<Tenant>> + Send;
+    ) -> impl Future<Output = ServiceResult<Tenant>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
-    ) -> impl Future<Output = TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<PublicTenant>)>> + Send;
     fn activate(
         &self,
         payload: &TenantIdRequest,
-    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
-    fn delete(
-        &self,
-        uuid: Uuid,
-    ) -> impl Future<Output = TenantsServiceResult<NewTokenResponse>> + Send;
+    ) -> impl Future<Output = ServiceResult<NewTokenResponse>> + Send;
+    fn delete(&self, uuid: Uuid) -> impl Future<Output = ServiceResult<NewTokenResponse>> + Send;
 }
 
 impl<'a, T> TenantService for Service<'a, T>
 where
     T: TenantsModuleInterface,
 {
-    async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
+    async fn create_managed(&self, payload: &CreateTenant) -> ServiceResult<Tenant> {
         let config = self.module().config();
         let uuid = Uuid::new_v4();
         let db_config = BasicDatabaseConfig {
@@ -105,7 +100,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TenantOrderBy, TenantFilterBy>,
-    ) -> TenantsServiceResult<(PaginatorMeta, Vec<PublicTenant>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<PublicTenant>)> {
         let (meta, data) = self
             .module()
             .tenants_repo()
@@ -118,7 +113,7 @@ where
         Ok((meta, public_tenants))
     }
 
-    async fn activate(&self, payload: &TenantIdRequest) -> TenantsServiceResult<NewTokenResponse> {
+    async fn activate(&self, payload: &TenantIdRequest) -> ServiceResult<NewTokenResponse> {
         let user_tenant = self
             .module()
             .tenants_repo()
@@ -138,7 +133,7 @@ where
         })
     }
 
-    async fn delete(&self, uuid: Uuid) -> TenantsServiceResult<NewTokenResponse> {
+    async fn delete(&self, uuid: Uuid) -> ServiceResult<NewTokenResponse> {
         let claims = self.claims()?.clone();
         self.module()
             .tenants_repo()

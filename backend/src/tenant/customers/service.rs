@@ -22,7 +22,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::customers::CustomersModuleInterface;
 use crate::tenant::customers::dto::print::CustomerResolvedPrint;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
@@ -36,42 +36,37 @@ use std::io::Write;
 use std::path::Path;
 use uuid::Uuid;
 
-type CustomersServiceResult<T> = Result<T, ServiceError>;
-
 pub trait CustomerService {
     fn insert(
         &self,
         payload: &CustomerUserInput,
-    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    ) -> impl Future<Output = ServiceResult<Customer>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = CustomersServiceResult<CustomerResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    ) -> impl Future<Output = ServiceResult<CustomerResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Customer>> + Send;
     fn update(
         &self,
         payload: &CustomerUserInput,
-    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<()>>;
+    ) -> impl Future<Output = ServiceResult<Customer>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>>;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
     fn print(
         &self,
         payload: &[CustomerResolvedPrint],
-    ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = CustomersServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Sync;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> CustomerService for Service<'a, T>
 where
     T: CustomersModuleInterface,
 {
-    async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+    async fn insert(&self, payload: &CustomerUserInput) -> ServiceResult<Customer> {
         self.module()
             .customers_repo(
                 self.claims()?
@@ -90,7 +85,7 @@ where
                 }
             })
     }
-    async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<CustomerResolved> {
         Ok(self
             .module()
             .customers_repo(
@@ -101,7 +96,7 @@ where
             .get_resolved_by_id(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Customer> {
         Ok(self
             .module()
             .customers_repo(
@@ -112,7 +107,7 @@ where
             .get_by_id(payload)
             .await?)
     }
-    async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+    async fn update(&self, payload: &CustomerUserInput) -> ServiceResult<Customer> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -128,7 +123,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .customers_repo(
@@ -142,7 +137,7 @@ where
     async fn get_paged(
         &self,
         query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         Ok(self
             .module()
             .customers_repo(
@@ -153,13 +148,13 @@ where
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

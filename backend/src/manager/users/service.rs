@@ -19,36 +19,34 @@
 
 use super::UsersModuleInterface;
 use crate::common::extractors::ClientContext;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
 use serde_json::json;
 use uuid::Uuid;
 
-pub type UsersServiceResult<T> = Result<T, ServiceError>;
-
 pub trait UserService {
     fn otp_enable(
         &self,
         client_context: &ClientContext,
-    ) -> impl Future<Output = UsersServiceResult<String>> + Send;
+    ) -> impl Future<Output = ServiceResult<String>> + Send;
     fn otp_verify(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
     fn otp_disable(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
 }
 
 impl<'a, T> UserService for Service<'a, T>
 where
     T: UsersModuleInterface,
 {
-    async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
+    async fn otp_enable(&self, client_context: &ClientContext) -> ServiceResult<String> {
         let users_repo = self.module().users_repo();
         let auth_repo = self.module().auth_repo();
         let user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
@@ -141,7 +139,7 @@ where
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> UsersServiceResult<()> {
+    ) -> ServiceResult<()> {
         let users_repo = self.module().users_repo();
         let auth_repo = self.module().auth_repo();
         let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
@@ -245,7 +243,7 @@ where
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> UsersServiceResult<()> {
+    ) -> ServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -348,7 +346,7 @@ async fn rate_limit_by_event_type<T>(
     identifier: Option<String>,
     client_context: &ClientContext,
     event_type: AccountEventType,
-) -> UsersServiceResult<()>
+) -> ServiceResult<()>
 where
     T: UsersModuleInterface + ?Sized,
 {

@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::tasks::TasksModule;
 use crate::tenant::tasks::dto::print::TaskResolvedPrint;
 use crate::tenant::tasks::dto::user_input::TaskUserInput;
@@ -37,8 +37,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-type TasksServiceResult<T> = Result<T, ServiceError>;
 
 pub enum TasksSelectLists {
     Worksheets,
@@ -62,40 +60,34 @@ impl FromStr for TasksSelectLists {
 }
 
 pub trait TaskService {
-    fn insert(
-        &self,
-        payload: &TaskUserInput,
-    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
+    fn insert(&self, payload: &TaskUserInput) -> impl Future<Output = ServiceResult<Task>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = TasksServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = TasksServiceResult<TaskResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<Task>> + Send;
-    fn update(
-        &self,
-        payload: &TaskUserInput,
-    ) -> impl Future<Output = TasksServiceResult<Task>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = TasksServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<TaskResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Task>> + Send;
+    fn update(&self, payload: &TaskUserInput) -> impl Future<Output = ServiceResult<Task>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
-    ) -> impl Future<Output = TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<TaskResolved>)>> + Send;
     fn print(
         &self,
         payload: &[TaskResolvedPrint],
-    ) -> impl Future<Output = TasksServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(&self, path: &Path) -> impl Future<Output = TasksServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> TaskService for Service<'a, T>
 where
     T: TasksModule,
 {
-    async fn insert(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+    async fn insert(&self, payload: &TaskUserInput) -> ServiceResult<Task> {
         Ok(self
             .module()
             .tasks_repo(
@@ -106,10 +98,7 @@ where
             .insert(payload, self.claims()?.sub())
             .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> TasksServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -141,7 +130,7 @@ where
             }
         })
     }
-    async fn get_resolved(&self, payload: Uuid) -> TasksServiceResult<TaskResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<TaskResolved> {
         Ok(self
             .module()
             .tasks_repo(
@@ -153,7 +142,7 @@ where
             .await?)
     }
 
-    async fn get(&self, payload: Uuid) -> TasksServiceResult<Task> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Task> {
         Ok(self
             .module()
             .tasks_repo(
@@ -164,7 +153,7 @@ where
             .get_by_id(payload)
             .await?)
     }
-    async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
+    async fn update(&self, payload: &TaskUserInput) -> ServiceResult<Task> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -180,7 +169,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> TasksServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .tasks_repo(
@@ -194,7 +183,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
-    ) -> TasksServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<TaskResolved>)> {
         Ok(self
             .module()
             .tasks_repo(
@@ -206,13 +195,13 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[TaskResolvedPrint]) -> TasksServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[TaskResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaskView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> TasksServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

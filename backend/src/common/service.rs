@@ -45,9 +45,6 @@ pub enum ServiceError {
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
 
-    #[error("Nincs jogosultságod az erőforrás használatához")]
-    AuthUnauthorized,
-
     #[error("{0}")]
     Conflict(&'static str),
 
@@ -139,13 +136,12 @@ pub enum ServiceError {
     ClaimsError(#[from] ClaimsError),
 }
 
-type ServiceResult<T> = Result<T, ServiceError>;
+pub type ServiceResult<T> = Result<T, ServiceError>;
 
 impl From<ServiceError> for AppError {
     fn from(value: ServiceError) -> Self {
         match value {
             ServiceError::Unauthorized
-            | ServiceError::AuthUnauthorized
             | ServiceError::UserNotFound
             | ServiceError::UserInactive
             | ServiceError::InvalidPassword
@@ -262,7 +258,6 @@ mod tests {
 
     #[test]
     fn auth_errors_map_to_401() {
-        assert_status(ServiceError::AuthUnauthorized, StatusCode::UNAUTHORIZED);
         assert_status(ServiceError::UserNotFound, StatusCode::UNAUTHORIZED);
         assert_status(ServiceError::TooManyAttempts(1), StatusCode::UNAUTHORIZED);
         assert_status(ServiceError::MfaAlreadyActive, StatusCode::UNAUTHORIZED);

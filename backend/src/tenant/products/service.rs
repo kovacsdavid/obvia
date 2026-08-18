@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::common::types::UuidVO;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::products::ProductsModuleInterface;
@@ -39,8 +39,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-type ProductsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum ProductsSelectLists {
     UnitsOfMeasure,
@@ -61,38 +59,37 @@ pub trait ProductService {
     fn insert(
         &self,
         payload: &mut ProductUserInput,
-    ) -> impl Future<Output = ProductsServiceResult<Product>> + Send;
+    ) -> impl Future<Output = ServiceResult<Product>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = ProductsServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = ProductsServiceResult<ProductResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = ProductsServiceResult<Product>> + Send;
+    ) -> impl Future<Output = ServiceResult<ProductResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Product>> + Send;
     fn update(
         &self,
         payload: &ProductUserInput,
-    ) -> impl Future<Output = ProductsServiceResult<Product>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = ProductsServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<Product>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
-    ) -> impl Future<Output = ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<ProductResolved>)>> + Send;
     fn print(
         &self,
         payload: &[ProductsResolvedPrint],
-    ) -> impl Future<Output = ProductsServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(&self, path: &Path)
-    -> impl Future<Output = ProductsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> ProductService for Service<'a, T>
 where
     T: ProductsModuleInterface,
 {
-    async fn insert(&self, payload: &mut ProductUserInput) -> ProductsServiceResult<Product> {
+    async fn insert(&self, payload: &mut ProductUserInput) -> ServiceResult<Product> {
         if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
             payload.unit_of_measure_id = self
                 .module()
@@ -120,10 +117,7 @@ where
             .await?)
     }
 
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> ProductsServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         match ProductsSelectLists::from_str(select_list)? {
             ProductsSelectLists::UnitsOfMeasure => Ok(self
                 .module()
@@ -137,7 +131,7 @@ where
         }
     }
 
-    async fn get_resolved(&self, payload: Uuid) -> ProductsServiceResult<ProductResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<ProductResolved> {
         Ok(self
             .module()
             .products_repo(
@@ -149,7 +143,7 @@ where
             .await?)
     }
 
-    async fn get(&self, payload: Uuid) -> ProductsServiceResult<Product> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Product> {
         Ok(self
             .module()
             .products_repo(
@@ -161,7 +155,7 @@ where
             .await?)
     }
 
-    async fn update(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
+    async fn update(&self, payload: &ProductUserInput) -> ServiceResult<Product> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -177,7 +171,7 @@ where
             .update(payload.clone())
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> ProductsServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .products_repo(
@@ -191,7 +185,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<ProductOrderBy, ProductFilterBy>,
-    ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
         Ok(self
             .module()
             .products_repo(
@@ -203,14 +197,14 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ProductsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[ProductsResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::ProductView,
             payload.to_vec(),
         )?)
     }
 
-    async fn print_snapshot(&self, path: &Path) -> ProductsServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

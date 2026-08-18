@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::inventory::InventoryModuleInterface;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::user_input::InventoryUserInput;
@@ -37,8 +37,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-pub type InventoryServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventorySelectLists {
     Products,
@@ -65,40 +63,37 @@ pub trait InventoryService {
     fn insert(
         &self,
         payload: &InventoryUserInput,
-    ) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
+    ) -> impl Future<Output = ServiceResult<Inventory>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = InventoryServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = InventoryServiceResult<InventoryResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Inventory>> + Send;
     fn update(
         &self,
         payload: &InventoryUserInput,
-    ) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = InventoryServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<Inventory>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
-    ) -> impl Future<Output = InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
     fn print(
         &self,
         payload: &[InventoryResolvedPrint],
-    ) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = InventoryServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryService for Service<'a, T>
 where
     T: InventoryModuleInterface,
 {
-    async fn insert(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
+    async fn insert(&self, payload: &InventoryUserInput) -> ServiceResult<Inventory> {
         self.module()
             .inventory_repo(
                 self.claims()?
@@ -118,10 +113,7 @@ where
             })
     }
 
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> InventoryServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -153,7 +145,7 @@ where
             }
         })
     }
-    async fn get_resolved(&self, payload: Uuid) -> InventoryServiceResult<InventoryResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<InventoryResolved> {
         Ok(self
             .module()
             .inventory_repo(
@@ -164,7 +156,7 @@ where
             .get_resolved_by_id(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> InventoryServiceResult<Inventory> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Inventory> {
         Ok(self
             .module()
             .inventory_repo(
@@ -176,7 +168,7 @@ where
             .await?)
     }
 
-    async fn update(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
+    async fn update(&self, payload: &InventoryUserInput) -> ServiceResult<Inventory> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -192,7 +184,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> InventoryServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .inventory_repo(
@@ -206,7 +198,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
-    ) -> InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
         Ok(self
             .module()
             .inventory_repo(
@@ -218,13 +210,13 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[InventoryResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> InventoryServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

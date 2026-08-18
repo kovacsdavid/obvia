@@ -31,13 +31,12 @@ use crate::{
     },
 };
 use crate::{
-    common::service::{Service, ServiceError},
+    common::service::{Service, ServiceError, ServiceResult},
     manager::{
         auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
         users::model::User,
     },
 };
-use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
@@ -59,43 +58,41 @@ use time::Duration as TimeDuration;
 use tokio::time::{Duration as TokioDuration, sleep};
 use uuid::Uuid;
 
-pub type AuthServiceResult<T> = Result<T, ServiceError>;
-
 pub trait AuthService {
     fn try_login(
         &self,
         payload: &LoginRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = AuthServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
     fn refresh(
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> impl Future<Output = AuthServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
     fn logout(
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
     fn try_register(
         &self,
         payload: &RegisterRequest,
-    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
-    fn verify_email(&self, token: &str) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    fn verify_email(&self, token: &str) -> impl Future<Output = ServiceResult<()>> + Send;
     fn resend_email_verification(
         &self,
         payload: ResendEmailValidationRequest,
-    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
     fn forgotten_password(
         &self,
         payload: ForgottenPasswordRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
     fn new_password(
         &self,
         payload: NewPasswordRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<()>> + Send;
 }
 
 impl<'a, T> AuthService for Service<'a, T>
@@ -106,7 +103,7 @@ where
         &self,
         payload: &LoginRequest,
         client_context: &ClientContext,
-    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
+    ) -> ServiceResult<(String, Claims, String, Claims, UserPublic)> {
         rate_limit_by_event_status(
             60,
             10,
@@ -447,10 +444,10 @@ where
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
+    ) -> ServiceResult<(String, Claims, String, Claims, UserPublic)> {
         let current_refresh_token = jar
             .get("refresh_token")
-            .ok_or_else(|| ServiceError::AuthUnauthorized)?
+            .ok_or_else(|| ServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
         let current_refresh_token_claims = match Claims::from_token(
@@ -500,7 +497,7 @@ where
                             .await?;
                     }
                 };
-                return Err(ServiceError::AuthUnauthorized);
+                return Err(ServiceError::Unauthorized);
             }
         };
 
@@ -526,7 +523,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::AuthUnauthorized);
+                return Err(ServiceError::Unauthorized);
             }
         };
 
@@ -571,7 +568,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::AuthUnauthorized);
+            return Err(ServiceError::Unauthorized);
         }
 
         let family_id = match current_refresh_token_claims.family_id() {
@@ -645,7 +642,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::AuthUnauthorized);
+                return Err(ServiceError::Unauthorized);
             }
         };
 
@@ -839,14 +836,10 @@ where
         ))
     }
 
-    async fn logout(
-        &self,
-        jar: CookieJar,
-        client_context: &ClientContext,
-    ) -> AuthServiceResult<()> {
+    async fn logout(&self, jar: CookieJar, client_context: &ClientContext) -> ServiceResult<()> {
         let refresh_token = jar
             .get("refresh_token")
-            .ok_or_else(|| ServiceError::AuthUnauthorized)?
+            .ok_or_else(|| ServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
         let dangerous_refresh_claims = match Claims::dangerous_from_token_allow_expired(
@@ -871,7 +864,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::AuthUnauthorized);
+                return Err(ServiceError::Unauthorized);
             }
         };
 
@@ -940,7 +933,7 @@ where
         Ok(())
     }
 
-    async fn try_register(&self, payload: &RegisterRequest) -> AuthServiceResult<()> {
+    async fn try_register(&self, payload: &RegisterRequest) -> ServiceResult<()> {
         let password_hash = generate_password_hash(payload.password.as_str()?.as_bytes())?;
 
         let user = self
@@ -963,7 +956,7 @@ where
         send_email_verification(self.module(), &user, email_verification).await?;
         Ok(())
     }
-    async fn verify_email(&self, token: &str) -> AuthServiceResult<()> {
+    async fn verify_email(&self, token: &str) -> ServiceResult<()> {
         let parsed_token =
             Uuid::parse_str(token).map_err(|_| ServiceError::InvalidEmailValidationToken)?;
         let email_verification = self
@@ -988,7 +981,7 @@ where
     async fn resend_email_verification(
         &self,
         payload: ResendEmailValidationRequest,
-    ) -> AuthServiceResult<()> {
+    ) -> ServiceResult<()> {
         let user = self
             .module()
             .auth_repo()
@@ -1012,7 +1005,7 @@ where
         &self,
         payload: ForgottenPasswordRequest,
         client_context: &ClientContext,
-    ) -> AuthServiceResult<()> {
+    ) -> ServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -1105,7 +1098,7 @@ where
         &self,
         payload: NewPasswordRequest,
         client_context: &ClientContext,
-    ) -> AuthServiceResult<()> {
+    ) -> ServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -1283,7 +1276,7 @@ pub fn gen_refresh_cookie(
     refresh_token: String,
     secure_cookie: bool,
     refresh_token_expiration_mins: u64,
-) -> AuthServiceResult<Cookie<'static>> {
+) -> ServiceResult<Cookie<'static>> {
     let max_age: i64 = refresh_token_expiration_mins.try_into().map_err(|_| {
         ServiceError::RefreshCookieError(
             "refresh_token_expiration_mins could not be converted to i64",
@@ -1306,7 +1299,7 @@ async fn rate_limit_by_event_status<T>(
     client_context: &ClientContext,
     event_status: AccountEventStatus,
     event_type: AccountEventType,
-) -> AuthServiceResult<()>
+) -> ServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1367,7 +1360,7 @@ async fn rate_limit_by_event_type<T>(
     identifier: Option<String>,
     client_context: &ClientContext,
     event_type: AccountEventType,
-) -> AuthServiceResult<()>
+) -> ServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1421,7 +1414,7 @@ where
     Ok(())
 }
 
-fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
+fn gen_exp(expiration_mins: u64) -> ServiceResult<usize> {
     (Utc::now()
         + Duration::minutes(expiration_mins.try_into().map_err(|_| {
             ServiceError::Token(
@@ -1444,7 +1437,7 @@ fn gen_jwt(
     active_tenant_id: Option<Uuid>,
     encoding_key: &[u8],
     family_id: Option<Uuid>,
-) -> AuthServiceResult<(String, Claims)> {
+) -> ServiceResult<(String, Claims)> {
     let now = Utc::now().timestamp() as usize;
     let nbf = now;
 
@@ -1473,7 +1466,7 @@ fn gen_jwt(
     ))
 }
 
-fn generate_password_hash(password: &[u8]) -> AuthServiceResult<String> {
+fn generate_password_hash(password: &[u8]) -> ServiceResult<String> {
     Argon2::default()
         .hash_password(password, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
@@ -1484,7 +1477,7 @@ async fn send_email_verification<T>(
     auth_module: &T,
     user: &User,
     email_verification: EmailVerification,
-) -> AuthServiceResult<()>
+) -> ServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1542,7 +1535,7 @@ async fn send_forgotten_password_email<T>(
     auth_module: &T,
     user: &User,
     forgotten_password: ForgottenPassword,
-) -> AuthServiceResult<()>
+) -> ServiceResult<()>
 where
     T: AuthModuleInterface,
 {

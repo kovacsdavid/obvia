@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::inventory_reservations::InventoryReservationsModuleInterface;
 use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
 use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
@@ -41,8 +41,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-pub type InventoryReservationsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventoryReservationsSelectLists {
     Worksheets,
@@ -65,45 +63,34 @@ pub trait InventoryReservationService {
     fn insert(
         &self,
         payload: &InventoryReservationUserInput,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryReservation>> + Send;
     fn update(
         &self,
         payload: &InventoryReservationUserInput,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryReservation>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservationResolved>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryReservationResolved>> + Send;
     fn get(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<InventoryReservation>> + Send;
-    fn delete(
-        &self,
-        payload: Uuid,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryReservation>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
-    ) -> impl Future<
-        Output = InventoryReservationsServiceResult<(
-            PaginatorMeta,
-            Vec<InventoryReservationResolved>,
-        )>,
-    > + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>> + Send;
     fn print(
         &self,
         payload: &[InventoryReservationResolvedPrint],
-    ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = InventoryReservationsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryReservationService for Service<'a, T>
@@ -113,7 +100,7 @@ where
     async fn insert(
         &self,
         payload: &InventoryReservationUserInput,
-    ) -> InventoryReservationsServiceResult<InventoryReservation> {
+    ) -> ServiceResult<InventoryReservation> {
         Ok(self
             .module()
             .inventory_reservations_repo(
@@ -127,7 +114,7 @@ where
     async fn update(
         &self,
         payload: &InventoryReservationUserInput,
-    ) -> InventoryReservationsServiceResult<InventoryReservation> {
+    ) -> ServiceResult<InventoryReservation> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -143,7 +130,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> InventoryReservationsServiceResult<InventoryReservation> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<InventoryReservation> {
         Ok(self
             .module()
             .inventory_reservations_repo(
@@ -155,10 +142,7 @@ where
             .await?)
     }
 
-    async fn get_resolved(
-        &self,
-        payload: Uuid,
-    ) -> InventoryReservationsServiceResult<InventoryReservationResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<InventoryReservationResolved> {
         Ok(self
             .module()
             .inventory_reservations_repo(
@@ -170,7 +154,7 @@ where
             .await?)
     }
 
-    async fn delete(&self, payload: Uuid) -> InventoryReservationsServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .inventory_reservations_repo(
@@ -186,8 +170,7 @@ where
         &self,
         get_query: &ResourceQuery<InventoryReservationOrderBy, InventoryReservationFilterBy>,
         inventory_id: Uuid,
-    ) -> InventoryReservationsServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>
-    {
+    ) -> ServiceResult<(PaginatorMeta, Vec<InventoryReservationResolved>)> {
         Ok(self
             .module()
             .inventory_reservations_repo(
@@ -199,10 +182,7 @@ where
             .await?)
     }
 
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> InventoryReservationsServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -225,16 +205,13 @@ where
         )
     }
 
-    async fn print(
-        &self,
-        payload: &[InventoryReservationResolvedPrint],
-    ) -> InventoryReservationsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[InventoryReservationResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryReservationView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> InventoryReservationsServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

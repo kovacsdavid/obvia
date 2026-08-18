@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
@@ -53,44 +53,36 @@ impl FromStr for TaxesSelectLists {
     }
 }
 
-type TaxesServiceResult<T> = Result<T, ServiceError>;
-
 pub trait TaxService {
-    fn insert(
-        &self,
-        payload: &TaxUserInput,
-    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn insert(&self, payload: &TaxUserInput) -> impl Future<Output = ServiceResult<Tax>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = TaxesServiceResult<TaxResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
-    fn update(
-        &self,
-        payload: &TaxUserInput,
-    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<TaxResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Tax>> + Send;
+    fn update(&self, payload: &TaxUserInput) -> impl Future<Output = ServiceResult<Tax>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
-    ) -> impl Future<Output = TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<TaxResolved>)>> + Send;
 
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = TaxesServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn print(
         &self,
         payload: &[TaxResolvedPrint],
-    ) -> impl Future<Output = TaxesServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(&self, path: &Path) -> impl Future<Output = TaxesServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> TaxService for Service<'a, T>
 where
     T: TaxesModuleInterface,
 {
-    async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
+    async fn insert(&self, payload: &TaxUserInput) -> ServiceResult<Tax> {
         self.module()
             .taxes_repo(
                 self.claims()?
@@ -108,7 +100,7 @@ where
             })
     }
 
-    async fn get_resolved(&self, payload: Uuid) -> TaxesServiceResult<TaxResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<TaxResolved> {
         Ok(self
             .module()
             .taxes_repo(
@@ -120,7 +112,7 @@ where
             .await?)
     }
 
-    async fn get(&self, payload: Uuid) -> TaxesServiceResult<Tax> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Tax> {
         Ok(self
             .module()
             .taxes_repo(
@@ -132,7 +124,7 @@ where
             .await?)
     }
 
-    async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
+    async fn update(&self, payload: &TaxUserInput) -> ServiceResult<Tax> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -148,7 +140,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> TaxesServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .taxes_repo(
@@ -163,7 +155,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
-    ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
         Ok(self
             .module()
             .taxes_repo(
@@ -175,10 +167,7 @@ where
             .await?)
     }
 
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> TaxesServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -192,13 +181,13 @@ where
         }
     }
 
-    async fn print(&self, payload: &[TaxResolvedPrint]) -> TaxesServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[TaxResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaxView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> TaxesServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

@@ -17,25 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
-
-type CommentsServiceResult<T> = Result<T, ServiceError>;
 
 pub trait CommentService {
     fn post(
         &self,
         payload: &CommentUserInput,
-    ) -> impl Future<Output = CommentsServiceResult<Comment>> + Send;
+    ) -> impl Future<Output = ServiceResult<Comment>> + Send;
 }
 
 impl<'a, T> CommentService for Service<'a, T>
 where
     T: CommentsModuleInterface,
 {
-    async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
+    async fn post(&self, payload: &CommentUserInput) -> ServiceResult<Comment> {
         Ok(self
             .module()
             .comments_repo(

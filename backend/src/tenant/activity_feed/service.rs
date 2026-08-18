@@ -19,7 +19,7 @@
 
 use crate::common::dto::PaginatorMeta;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::common::types::Empty;
 use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::ActivityFeedModuleInterface;
@@ -27,15 +27,13 @@ use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use uuid::Uuid;
 
-type ActivityFeedServiceResult<T> = Result<T, ServiceError>;
-
 pub trait ActivityFeedService {
     fn get_all_paged(
         &self,
         get_query: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-    ) -> impl Future<Output = ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)>> + Send;
 }
 
 impl<'a, T> ActivityFeedService for Service<'a, T>
@@ -47,7 +45,7 @@ where
         get_query: &ResourceQuery<Empty, Empty>,
         resource_id: Uuid,
         resource_type: &ValueObjectRequired<ResourceType>,
-    ) -> ActivityFeedServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<ActivityFeedResolved>)> {
         Ok(self
             .module()
             .activity_feed_repo(

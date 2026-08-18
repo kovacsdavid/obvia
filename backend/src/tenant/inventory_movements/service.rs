@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
 use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
 use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
@@ -40,8 +40,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-pub type InventoryMovementsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventoryMovementsSelectLists {
     Worksheets,
@@ -66,42 +64,31 @@ pub trait InventoryMovementService {
     fn insert(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
     fn update(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovementResolved>> + Send;
-    fn get(
-        &self,
-        payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
-    fn delete(
-        &self,
-        payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovementResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
-    ) -> impl Future<
-        Output = InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>,
-    > + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>> + Send;
     fn print(
         &self,
         payload: &[InventoryMovementsResolvedPrint],
-    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryMovementService for Service<'a, T>
@@ -111,7 +98,7 @@ where
     async fn insert(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> InventoryMovementsServiceResult<InventoryMovement> {
+    ) -> ServiceResult<InventoryMovement> {
         Ok(self
             .module()
             .inventory_movements_repo(
@@ -122,7 +109,7 @@ where
             .insert(payload, self.claims()?.sub())
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> InventoryMovementsServiceResult<InventoryMovement> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<InventoryMovement> {
         Ok(self
             .module()
             .inventory_movements_repo(
@@ -136,7 +123,7 @@ where
     async fn update(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> InventoryMovementsServiceResult<InventoryMovement> {
+    ) -> ServiceResult<InventoryMovement> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -152,10 +139,7 @@ where
             .update(payload)
             .await?)
     }
-    async fn get_resolved(
-        &self,
-        payload: Uuid,
-    ) -> InventoryMovementsServiceResult<InventoryMovementResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<InventoryMovementResolved> {
         Ok(self
             .module()
             .inventory_movements_repo(
@@ -167,7 +151,7 @@ where
             .await?)
     }
 
-    async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .inventory_movements_repo(
@@ -183,7 +167,7 @@ where
         &self,
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
-    ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
         Ok(self
             .module()
             .inventory_movements_repo(
@@ -194,10 +178,7 @@ where
             .get_paged(get_query, inventory_id)
             .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> InventoryMovementsServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -226,16 +207,13 @@ where
         )
     }
 
-    async fn print(
-        &self,
-        payload: &[InventoryMovementsResolvedPrint],
-    ) -> InventoryMovementsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[InventoryMovementsResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> InventoryMovementsServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

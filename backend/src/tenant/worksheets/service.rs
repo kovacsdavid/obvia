@@ -23,7 +23,7 @@ use crate::common::model::SelectOption;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::worksheets::WorksheetsModuleInterface;
 use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
 use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
@@ -37,8 +37,6 @@ use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
-
-type WorksheetsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum WorksheetsSelectLists {
     Customers,
@@ -59,41 +57,37 @@ pub trait WorksheetService {
     fn insert(
         &self,
         payload: &WorksheetUserInput,
-    ) -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
+    ) -> impl Future<Output = ServiceResult<Worksheet>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = WorksheetsServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = WorksheetsServiceResult<WorksheetResolved>> + Send;
-    fn get(&self, payload: Uuid)
-    -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
+    ) -> impl Future<Output = ServiceResult<WorksheetResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Worksheet>> + Send;
     fn update(
         &self,
         payload: &WorksheetUserInput,
-    ) -> impl Future<Output = WorksheetsServiceResult<Worksheet>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = WorksheetsServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<Worksheet>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-    ) -> impl Future<Output = WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)>> + Send;
     fn print(
         &self,
         payload: &[WorksheetResolvedPrint],
-    ) -> impl Future<Output = WorksheetsServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = WorksheetsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> WorksheetService for Service<'a, T>
 where
     T: WorksheetsModuleInterface,
 {
-    async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
+    async fn insert(&self, payload: &WorksheetUserInput) -> ServiceResult<Worksheet> {
         Ok(self
             .module()
             .worksheets_repo(
@@ -105,10 +99,7 @@ where
             .await?)
     }
 
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> WorksheetsServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
@@ -122,7 +113,7 @@ where
             }
         })
     }
-    async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<WorksheetResolved> {
         Ok(self
             .module()
             .worksheets_repo(
@@ -134,7 +125,7 @@ where
             .await?)
     }
 
-    async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Worksheet> {
         Ok(self
             .module()
             .worksheets_repo(
@@ -146,7 +137,7 @@ where
             .await?)
     }
 
-    async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
+    async fn update(&self, payload: &WorksheetUserInput) -> ServiceResult<Worksheet> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -162,7 +153,7 @@ where
             .update(payload.clone())
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .worksheets_repo(
@@ -177,7 +168,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
-    ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         Ok(self
             .module()
             .worksheets_repo(
@@ -189,13 +180,13 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> WorksheetsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[WorksheetResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> WorksheetsServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

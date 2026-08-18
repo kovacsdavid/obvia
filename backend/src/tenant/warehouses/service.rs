@@ -22,7 +22,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::warehouses::WarehousesModuleInterface;
 use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
 use crate::tenant::warehouses::dto::user_input::WarehouseUserInput;
@@ -36,43 +36,37 @@ use std::io::Write;
 use std::path::Path;
 use uuid::Uuid;
 
-pub type WarehousesServiceResult<T> = Result<T, ServiceError>;
-
 pub trait WarehouseService {
     fn insert(
         &self,
         payload: &WarehouseUserInput,
-    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    ) -> impl Future<Output = ServiceResult<Warehouse>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = WarehousesServiceResult<WarehouseResolved>> + Send;
-    fn get(&self, payload: Uuid)
-    -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
+    ) -> impl Future<Output = ServiceResult<WarehouseResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Warehouse>> + Send;
     fn update(
         &self,
         payload: &WarehouseUserInput,
-    ) -> impl Future<Output = WarehousesServiceResult<Warehouse>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = WarehousesServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<Warehouse>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-    ) -> impl Future<Output = WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)>> + Send;
     fn print(
         &self,
         payload: &[WarehouseResolvedPrint],
-    ) -> impl Future<Output = WarehousesServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = WarehousesServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> WarehouseService for Service<'a, T>
 where
     T: WarehousesModuleInterface,
 {
-    async fn insert(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
+    async fn insert(&self, payload: &WarehouseUserInput) -> ServiceResult<Warehouse> {
         Ok(self
             .module()
             .warehouses_repo(
@@ -83,7 +77,7 @@ where
             .insert(payload.clone(), self.claims()?.sub())
             .await?)
     }
-    async fn get_resolved(&self, payload: Uuid) -> WarehousesServiceResult<WarehouseResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<WarehouseResolved> {
         Ok(self
             .module()
             .warehouses_repo(
@@ -94,7 +88,7 @@ where
             .get_resolved_by_id(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> WarehousesServiceResult<Warehouse> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Warehouse> {
         Ok(self
             .module()
             .warehouses_repo(
@@ -106,7 +100,7 @@ where
             .await?)
     }
 
-    async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
+    async fn update(&self, payload: &WarehouseUserInput) -> ServiceResult<Warehouse> {
         if !payload.id.is_present() {
             return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
@@ -122,7 +116,7 @@ where
             .update(payload.clone())
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> WarehousesServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .warehouses_repo(
@@ -136,7 +130,7 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
-    ) -> WarehousesServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<WarehouseResolved>)> {
         Ok(self
             .module()
             .warehouses_repo(
@@ -147,13 +141,13 @@ where
             .get_paged(get_query)
             .await?)
     }
-    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> WarehousesServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[WarehouseResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WarehouseView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> WarehousesServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
             .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;

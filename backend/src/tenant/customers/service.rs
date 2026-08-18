@@ -78,7 +78,7 @@ where
             .map_err(|e| {
                 if e.is_unique_violation() {
                     ServiceError::Conflict(
-                        "A megadot e-mail címmel már létezik vevő a rendszerben!",
+                        "A megadott e-mail címmel már létezik vevő a rendszerben!",
                     )
                 } else {
                     e.into()

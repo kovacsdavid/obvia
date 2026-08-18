@@ -27,9 +27,7 @@ use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
 use uuid::Uuid;
 
-pub type ActivityFeedServiceError = ServiceError;
-
-type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
+type ActivityFeedServiceResult<T> = Result<T, ServiceError>;
 
 pub trait ActivityFeedService {
     fn get_all_paged(
@@ -55,7 +53,7 @@ where
             .activity_feed_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ActivityFeedServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query, resource_id, resource_type)
             .await?)

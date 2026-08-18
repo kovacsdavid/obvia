@@ -42,9 +42,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type InventoryReservationsServiceError = ServiceError;
-
-pub type InventoryReservationsServiceResult<T> = Result<T, InventoryReservationsServiceError>;
+pub type InventoryReservationsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventoryReservationsSelectLists {
     Worksheets,
@@ -52,13 +50,13 @@ pub enum InventoryReservationsSelectLists {
 }
 
 impl FromStr for InventoryReservationsSelectLists {
-    type Err = InventoryReservationsServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "worksheets" => Ok(Self::Worksheets),
             "inventory" => Ok(Self::Inventory),
-            _ => Err(InventoryReservationsServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
@@ -121,7 +119,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload.clone(), self.claims()?.sub())
             .await?)
@@ -131,7 +129,7 @@ where
         payload: &InventoryReservationUserInput,
     ) -> InventoryReservationsServiceResult<InventoryReservation> {
         if !payload.id.is_present() {
-            return Err(InventoryReservationsServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -140,7 +138,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -151,7 +149,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -166,7 +164,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -178,7 +176,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -195,7 +193,7 @@ where
             .inventory_reservations_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryReservationsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query, inventory_id)
             .await?)
@@ -208,7 +206,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(InventoryReservationsServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(
             match InventoryReservationsSelectLists::from_str(select_list)? {
                 InventoryReservationsSelectLists::Worksheets => {
@@ -237,41 +235,24 @@ where
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> InventoryReservationsServiceResult<()> {
-        let test_time: DateTime<Utc> =
-            "2026-01-02T11:11:11Z"
-                .parse()
-                .map_err(|e: chrono::ParseError| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                InventoryReservationsServiceError::ParseError(e.to_string())
-            })?;
-        let inventory_reservation_id =
-            "4f321721-37c6-4e91-8e42-6281c36937bc"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let inventory_id =
-            "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let created_by_id =
-            "97054cdb-781c-4f40-a489-b43373d75bf0"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let reference_id =
-            "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
+        let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
+            .parse()
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+        let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
+            .parse()
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
+            .parse()
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+        let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
+            .parse()
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_reservation_resolved = InventoryReservationResolved {
             id: inventory_reservation_id,
             inventory_id,

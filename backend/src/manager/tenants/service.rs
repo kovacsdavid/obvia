@@ -20,74 +20,16 @@
 use crate::common::config::database_config::BasicDatabaseConfig;
 use crate::common::database::{DatabaseMigrator, PoolManager};
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::utils::generate_string_csprng;
-use crate::common::value_object::ValueObjectError;
 use crate::manager::tenants::TenantsModuleInterface;
 use crate::manager::tenants::dto::{CreateTenant, NewTokenResponse, PublicTenant, TenantIdRequest};
 use crate::manager::tenants::model::Tenant;
 use crate::manager::tenants::types::{TenantFilterBy, TenantOrderBy};
-use axum::http::StatusCode;
-use serde_json::json;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Error)]
-pub enum TenantsServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Config error: {0}")]
-    Config(String),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
-    #[error("Token error: {0}")]
-    Token(String),
-
-    #[error("rng error")]
-    RngError,
-
-    #[error("ValueObjectError {0}")]
-    ValueObjectError(#[from] ValueObjectError),
-}
-
-impl From<ServiceError> for TenantsServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => TenantsServiceError::Unauthorized,
-            _ => TenantsServiceError::Repository(RepositoryError::Custom(value.to_string())),
-        }
-    }
-}
-
-impl From<TenantsServiceError> for AppError {
-    fn from(value: TenantsServiceError) -> Self {
-        match value {
-            TenantsServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
-
-type TenantsServiceResult<T> = Result<T, TenantsServiceError>;
+type TenantsServiceResult<T> = Result<T, ServiceError>;
 
 pub trait TenantService {
     fn create_managed(
@@ -119,7 +61,7 @@ where
             host: config.main_database().host.clone(),
             port: config.main_database().port,
             username: format!("tenant_{}", uuid.to_string().replace("-", "")),
-            password: generate_string_csprng(40).map_err(|_| TenantsServiceError::RngError)?,
+            password: generate_string_csprng(40).map_err(|_| ServiceError::RngError)?,
             database: format!("tenant_{}", uuid.to_string().replace("-", "")),
             max_pool_size: None,
             ssl_mode: Some(String::from("disable")),
@@ -140,7 +82,7 @@ where
         PoolManager::add_tenant_pool(
             self.module(),
             tenant.id,
-            &BasicDatabaseConfig::try_from(&tenant).map_err(TenantsServiceError::Config)?,
+            &BasicDatabaseConfig::try_from(&tenant).map_err(ServiceError::Config)?,
         )
         .await?;
 
@@ -182,7 +124,7 @@ where
             .tenants_repo()
             .get_user_active_tenant_by_id(self.claims()?.sub(), payload.uuid)
             .await?
-            .ok_or(TenantsServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         let claims = self
             .claims()?
             .clone()
@@ -191,7 +133,7 @@ where
         Ok(NewTokenResponse {
             token: claims
                 .to_token(self.module().config().auth().jwt_secret().as_bytes())
-                .map_err(TenantsServiceError::Token)?,
+                .map_err(ServiceError::Token)?,
             claims,
         })
     }
@@ -215,7 +157,7 @@ where
         Ok(NewTokenResponse {
             token: claims
                 .to_token(self.module().config().auth().jwt_secret().as_bytes())
-                .map_err(TenantsServiceError::Token)?,
+                .map_err(ServiceError::Token)?,
             claims,
         })
     }

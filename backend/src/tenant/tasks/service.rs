@@ -38,9 +38,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type TasksServiceError = ServiceError;
-
-type TasksServiceResult<T> = Result<T, TasksServiceError>;
+type TasksServiceResult<T> = Result<T, ServiceError>;
 
 pub enum TasksSelectLists {
     Worksheets,
@@ -50,7 +48,7 @@ pub enum TasksSelectLists {
 }
 
 impl FromStr for TasksSelectLists {
-    type Err = TasksServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -103,7 +101,7 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await?)
@@ -115,7 +113,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(TasksServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(match TasksSelectLists::from_str(select_list)? {
             TasksSelectLists::Worksheets => {
                 self.module()
@@ -149,7 +147,7 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -161,14 +159,14 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
     }
     async fn update(&self, payload: &TaskUserInput) -> TasksServiceResult<Task> {
         if !payload.id.is_present() {
-            return Err(TasksServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -177,7 +175,7 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -188,7 +186,7 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -202,7 +200,7 @@ where
             .tasks_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TasksServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -217,25 +215,25 @@ where
     async fn print_snapshot(&self, path: &Path) -> TasksServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let task_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let worksheet_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
             .parse()
-            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b"
             .parse()
-            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let service_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
             .parse()
-            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| TasksServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
 
         let task_resolved = TaskResolved {
             id: task_id,

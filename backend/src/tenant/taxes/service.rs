@@ -38,24 +38,22 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type TaxesServiceError = ServiceError;
-
 pub enum TaxesSelectLists {
     Countries,
 }
 
 impl FromStr for TaxesSelectLists {
-    type Err = TaxesServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "countries" => Ok(Self::Countries),
-            _ => Err(TaxesServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
 
-type TaxesServiceResult<T> = Result<T, TaxesServiceError>;
+type TaxesServiceResult<T> = Result<T, ServiceError>;
 
 pub trait TaxService {
     fn insert(
@@ -97,13 +95,13 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    TaxesServiceError::Conflict("Az adó már létrehozásra került a rendszerben")
+                    ServiceError::Conflict("Az adó már létrehozásra került a rendszerben")
                 } else {
                     e.into()
                 }
@@ -116,7 +114,7 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -128,7 +126,7 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -136,7 +134,7 @@ where
 
     async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
         if !payload.id.is_present() {
-            return Err(TaxesServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -145,7 +143,7 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -156,7 +154,7 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -171,7 +169,7 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(TaxesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -184,7 +182,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(TaxesServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         match TaxesSelectLists::from_str(select_list)? {
             TaxesSelectLists::Countries => Ok(self
                 .module()
@@ -203,16 +201,16 @@ where
     async fn print_snapshot(&self, path: &Path) -> TaxesServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let tax_resolved = TaxResolved {
             id: tax_id,
             rate: Some("10".parse().unwrap()),

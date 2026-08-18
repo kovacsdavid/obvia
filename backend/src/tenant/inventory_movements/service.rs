@@ -41,9 +41,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type InventoryMovementsServiceError = ServiceError;
-
-pub type InventoryMovementsServiceResult<T> = Result<T, InventoryMovementsServiceError>;
+pub type InventoryMovementsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventoryMovementsSelectLists {
     Worksheets,
@@ -52,14 +50,14 @@ pub enum InventoryMovementsSelectLists {
 }
 
 impl FromStr for InventoryMovementsSelectLists {
-    type Err = InventoryMovementsServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "worksheets" => Ok(Self::Worksheets),
             "taxes" => Ok(Self::Taxes),
             "inventory" => Ok(Self::Inventory),
-            _ => Err(InventoryMovementsServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
@@ -119,7 +117,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await?)
@@ -130,7 +128,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -140,7 +138,7 @@ where
         payload: &InventoryMovementUserInput,
     ) -> InventoryMovementsServiceResult<InventoryMovement> {
         if !payload.id.is_present() {
-            return Err(InventoryMovementsServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -149,7 +147,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -163,7 +161,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -175,7 +173,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -191,7 +189,7 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query, inventory_id)
             .await?)
@@ -203,7 +201,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(InventoryMovementsServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(
             match InventoryMovementsSelectLists::from_str(select_list)? {
                 InventoryMovementsSelectLists::Worksheets => {
@@ -238,32 +236,27 @@ where
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> InventoryMovementsServiceResult<()> {
-        let test_time: DateTime<Utc> =
-            "2026-01-02T11:11:11Z"
-                .parse()
-                .map_err(|e: chrono::ParseError| {
-                    InventoryMovementsServiceError::ParseError(e.to_string())
-                })?;
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                InventoryMovementsServiceError::ParseError(e.to_string())
-            })?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let inventory_movement_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_movement_resolved = InventoryMovementResolved {
             id: inventory_movement_id,
             inventory_id,

@@ -38,16 +38,14 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type WorksheetsServiceError = ServiceError;
-
-type WorksheetsServiceResult<T> = Result<T, WorksheetsServiceError>;
+type WorksheetsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum WorksheetsSelectLists {
     Customers,
 }
 
 impl FromStr for WorksheetsSelectLists {
-    type Err = WorksheetsServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -101,7 +99,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload.clone(), self.claims()?.sub())
             .await?)
@@ -114,7 +112,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(WorksheetsServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(match WorksheetsSelectLists::from_str(select_list)? {
             WorksheetsSelectLists::Customers => {
                 self.module()
@@ -130,7 +128,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -142,7 +140,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -150,7 +148,7 @@ where
 
     async fn update(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
         if !payload.id.is_present() {
-            return Err(WorksheetsServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -159,7 +157,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload.clone())
             .await?)
@@ -170,7 +168,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -185,7 +183,7 @@ where
             .worksheets_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -200,21 +198,19 @@ where
     async fn print_snapshot(&self, path: &Path) -> WorksheetsServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| WorksheetsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                WorksheetsServiceError::ParseError(e.to_string())
-            })?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
             .parse()
-            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
 
         let worksheet_resolved = WorksheetResolved {
             id: worksheet_id,

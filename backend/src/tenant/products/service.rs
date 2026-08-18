@@ -40,16 +40,14 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type ProductsServiceError = ServiceError;
-
-type ProductsServiceResult<T> = Result<T, ProductsServiceError>;
+type ProductsServiceResult<T> = Result<T, ServiceError>;
 
 pub enum ProductsSelectLists {
     UnitsOfMeasure,
 }
 
 impl FromStr for ProductsSelectLists {
-    type Err = ProductsServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -101,7 +99,7 @@ where
                 .products_repo(
                     self.claims()?
                         .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
+                        .ok_or(ServiceError::Unauthorized)?,
                 )?
                 .insert_unit_of_measure(new_unit_of_measure.as_str()?, self.claims()?.sub())
                 .await?
@@ -109,14 +107,14 @@ where
                 .to_string()
                 .parse::<ValueObjectRequired<UuidVO>>()
                 .map(Some)
-                .map_err(|_| ProductsServiceError::InvalidState)?;
+                .map_err(|_| ServiceError::InvalidState)?;
         }
         Ok(self
             .module()
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await?)
@@ -132,7 +130,7 @@ where
                 .products_repo(
                     self.claims()?
                         .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
+                        .ok_or(ServiceError::Unauthorized)?,
                 )?
                 .get_units_of_measure_select_list()
                 .await?),
@@ -145,7 +143,7 @@ where
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -157,7 +155,7 @@ where
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -165,7 +163,7 @@ where
 
     async fn update(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
         if !payload.id.is_present() {
-            return Err(ProductsServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -174,7 +172,7 @@ where
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload.clone())
             .await?)
@@ -185,7 +183,7 @@ where
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -199,7 +197,7 @@ where
             .products_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -215,19 +213,19 @@ where
     async fn print_snapshot(&self, path: &Path) -> ProductsServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| ProductsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| ProductsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let product_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let unit_of_measure_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
             .parse()
-            .map_err(|e: uuid::Error| ProductsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let product_resolved = ProductResolved {
             id: product_id,
             name: "Test product".to_string(),

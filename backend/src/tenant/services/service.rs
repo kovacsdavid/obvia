@@ -38,26 +38,24 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type ServicesServiceError = ServiceError;
-
 pub enum ServicesSelectLists {
     Currencies,
     Taxes,
 }
 
 impl FromStr for ServicesSelectLists {
-    type Err = ServicesServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "currencies" => Ok(Self::Currencies),
             "taxes" => Ok(Self::Taxes),
-            _ => Err(ServicesServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
 
-type ServicesServiceResult<T> = Result<T, ServicesServiceError>;
+type ServicesServiceResult<T> = Result<T, ServiceError>;
 
 pub trait ServiceService {
     fn insert(
@@ -102,13 +100,13 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    ServicesServiceError::Conflict(
+                    ServiceError::Conflict(
                         "A megadott névvel már létezik szolgáltatás a rendszerben!",
                     )
                 } else {
@@ -123,7 +121,7 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -135,7 +133,7 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -143,7 +141,7 @@ where
 
     async fn update(&self, payload: &ServiceUserInput) -> ServicesServiceResult<ServiceModel> {
         if !payload.id.is_present() {
-            return Err(ServicesServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -152,7 +150,7 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -163,7 +161,7 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -178,7 +176,7 @@ where
             .services_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServicesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -191,7 +189,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(ServicesServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         match ServicesSelectLists::from_str(select_list)? {
             ServicesSelectLists::Currencies => Ok(self
                 .module()
@@ -215,16 +213,16 @@ where
     async fn print_snapshot(&self, path: &Path) -> ServicesServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| ServicesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let service_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| ServicesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let service_resolved = ServiceResolved {
             id: service_id,
             name: "Test Service".to_string(),

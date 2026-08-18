@@ -36,9 +36,7 @@ use std::io::Write;
 use std::path::Path;
 use uuid::Uuid;
 
-pub type CustomersServiceError = ServiceError;
-
-type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
+type CustomersServiceResult<T> = Result<T, ServiceError>;
 
 pub trait CustomerService {
     fn insert(
@@ -78,13 +76,13 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    CustomersServiceError::Conflict(
+                    ServiceError::Conflict(
                         "A megadot e-mail címmel már létezik vevő a rendszerben!",
                     )
                 } else {
@@ -98,7 +96,7 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -109,14 +107,14 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
     }
     async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
         if !payload.id.is_present() {
-            return Err(CustomersServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -125,7 +123,7 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -136,7 +134,7 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -150,7 +148,7 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(query)
             .await?)
@@ -164,16 +162,16 @@ where
     async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let customer_resolved = CustomerResolved {
             id: customer_id,
             name: "Test Customer".to_string(),

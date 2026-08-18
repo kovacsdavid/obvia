@@ -36,9 +36,7 @@ use std::io::Write;
 use std::path::Path;
 use uuid::Uuid;
 
-pub type WarehousesServiceError = ServiceError;
-
-pub type WarehousesServiceResult<T> = Result<T, WarehousesServiceError>;
+pub type WarehousesServiceResult<T> = Result<T, ServiceError>;
 
 pub trait WarehouseService {
     fn insert(
@@ -80,7 +78,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload.clone(), self.claims()?.sub())
             .await?)
@@ -91,7 +89,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -102,7 +100,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -110,7 +108,7 @@ where
 
     async fn update(&self, payload: &WarehouseUserInput) -> WarehousesServiceResult<Warehouse> {
         if !payload.id.is_present() {
-            return Err(WarehousesServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -119,7 +117,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload.clone())
             .await?)
@@ -130,7 +128,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -144,7 +142,7 @@ where
             .warehouses_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(WarehousesServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -158,18 +156,16 @@ where
     async fn print_snapshot(&self, path: &Path) -> WarehousesServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| WarehousesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                WarehousesServiceError::ParseError(e.to_string())
-            })?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| WarehousesServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let warehouse_resolved = WarehouseResolved {
             id: warehouse_id,
             name: "Test Warehouse".to_string(),

@@ -22,9 +22,7 @@ use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
 
-pub type CommentsServiceError = ServiceError;
-
-type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
+type CommentsServiceResult<T> = Result<T, ServiceError>;
 
 pub trait CommentService {
     fn post(
@@ -43,7 +41,7 @@ where
             .comments_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CommentsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .post(payload, self.claims()?.sub())
             .await?)

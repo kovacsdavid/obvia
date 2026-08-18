@@ -32,7 +32,10 @@ use crate::common::{
     pdf::PdfGenError,
     value_object::ValueObjectError,
 };
-use crate::manager::auth::dto::claims::Claims;
+use crate::manager::{
+    auth::dto::claims::{Claims, ClaimsError},
+    users::model::UserModelError,
+};
 
 #[derive(Debug, Error)]
 pub enum ServiceError {
@@ -41,6 +44,9 @@ pub enum ServiceError {
 
     #[error("Hozzáférés megtagadva!")]
     Unauthorized,
+
+    #[error("Nincs jogosultságod az erőforrás használatához")]
+    AuthUnauthorized,
 
     #[error("{0}")]
     Conflict(&'static str),
@@ -54,6 +60,66 @@ pub enum ServiceError {
     #[error("Hiba történt az adatok feldolgozása során: {0}")]
     UnprocessableEntry(&'static str),
 
+    #[error("Hibás e-mail cím vagy jelszó")]
+    UserNotFound,
+
+    #[error("A megadott e-mail cím már foglalt!")]
+    UserExists,
+
+    #[error("A rendszer jelenleg zárt béta állapotban van. Látogass vissza később!")]
+    UserInactive,
+
+    #[error("Hibás e-mail cím vagy jelszó")]
+    InvalidPassword,
+
+    #[error("Hibás e-mail megerősítő hivatkozás")]
+    InvalidEmailValidationToken,
+
+    #[error("A megerősítő e-mail újraküldése sikertelen")]
+    EmailValidationResend,
+
+    #[error("Hash error: {0}")]
+    Hash(String),
+
+    #[error("Token generation: {0}")]
+    Token(String),
+
+    #[error("RefreshTokenError: {0}")]
+    RefreshTokenError(String),
+
+    #[error("RefreshCookieError: {0}")]
+    RefreshCookieError(&'static str),
+
+    #[error("MailTransport error: {0}")]
+    MailTransport(String),
+
+    #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
+    TooManyAttempts(i64),
+
+    #[error("totp-required")]
+    MfaRequired,
+
+    #[error("Hibás kétlépcsős azonosító kód!")]
+    MfaInvalid,
+
+    #[error("MfaToken error: {0}")]
+    MfaToken(String),
+
+    #[error("A kétlépcsős azonosításhoz hasznát kód hibás!")]
+    InvalidMfaToken,
+
+    #[error("A kétépcsős azonosítás aktiválása korábban már megtörtént!")]
+    MfaAlreadyActive,
+
+    #[error("Hibás elfelejtett jelszó hivatkozás!")]
+    InvalidForgottenPasswordToken,
+
+    #[error("Config error: {0}")]
+    Config(String),
+
+    #[error("rng error")]
+    RngError,
+
     #[error("ValueObjectError: {0}")]
     ValueObjectError(#[from] ValueObjectError),
 
@@ -65,6 +131,12 @@ pub enum ServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("UserModelError: {0}")]
+    UserModelError(#[from] UserModelError),
+
+    #[error("ClaimsError: {0}")]
+    ClaimsError(#[from] ClaimsError),
 }
 
 type ServiceResult<T> = Result<T, ServiceError>;
@@ -72,14 +144,26 @@ type ServiceResult<T> = Result<T, ServiceError>;
 impl From<ServiceError> for AppError {
     fn from(value: ServiceError) -> Self {
         match value {
-            ServiceError::Unauthorized => Self::new(
+            ServiceError::Unauthorized
+            | ServiceError::AuthUnauthorized
+            | ServiceError::UserNotFound
+            | ServiceError::UserInactive
+            | ServiceError::InvalidPassword
+            | ServiceError::InvalidEmailValidationToken
+            | ServiceError::EmailValidationResend
+            | ServiceError::TooManyAttempts(_)
+            | ServiceError::MfaRequired
+            | ServiceError::MfaInvalid
+            | ServiceError::InvalidMfaToken
+            | ServiceError::MfaAlreadyActive
+            | ServiceError::InvalidForgottenPasswordToken => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
                 file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
-            ServiceError::Conflict(_) => Self::new(
+            ServiceError::Conflict(_) | ServiceError::UserExists => Self::new(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
                 file!(),
@@ -174,6 +258,19 @@ mod tests {
             ServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)),
             StatusCode::NOT_FOUND,
         );
+    }
+
+    #[test]
+    fn auth_errors_map_to_401() {
+        assert_status(ServiceError::AuthUnauthorized, StatusCode::UNAUTHORIZED);
+        assert_status(ServiceError::UserNotFound, StatusCode::UNAUTHORIZED);
+        assert_status(ServiceError::TooManyAttempts(1), StatusCode::UNAUTHORIZED);
+        assert_status(ServiceError::MfaAlreadyActive, StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn user_exists_maps_to_409() {
+        assert_status(ServiceError::UserExists, StatusCode::CONFLICT);
     }
 
     #[test]

@@ -38,9 +38,7 @@ use std::path::Path;
 use std::str::FromStr;
 use uuid::Uuid;
 
-pub type InventoryServiceError = ServiceError;
-
-pub type InventoryServiceResult<T> = Result<T, InventoryServiceError>;
+pub type InventoryServiceResult<T> = Result<T, ServiceError>;
 
 pub enum InventorySelectLists {
     Products,
@@ -50,7 +48,7 @@ pub enum InventorySelectLists {
 }
 
 impl FromStr for InventorySelectLists {
-    type Err = InventoryServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -58,7 +56,7 @@ impl FromStr for InventorySelectLists {
             "currencies" => Ok(Self::Currencies),
             "warehouses" => Ok(Self::Warehouses),
             "taxes" => Ok(Self::Taxes),
-            _ => Err(InventoryServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
@@ -105,13 +103,13 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    InventoryServiceError::Conflict(
+                    ServiceError::Conflict(
                         "A megadott termékhez már létezik raktárkészlet ebben a raktárban!",
                     )
                 } else {
@@ -127,7 +125,7 @@ where
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(InventoryServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(match InventorySelectLists::from_str(select_list)? {
             InventorySelectLists::Products => {
                 self.module()
@@ -161,7 +159,7 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
@@ -172,7 +170,7 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -180,7 +178,7 @@ where
 
     async fn update(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
         if !payload.id.is_present() {
-            return Err(InventoryServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -189,7 +187,7 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
@@ -200,7 +198,7 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -214,7 +212,7 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
@@ -229,22 +227,22 @@ where
     async fn print_snapshot(&self, path: &Path) -> InventoryServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
             .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c"
             .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_resolved = InventoryResolved {
             id: inventory_id,
             product_id,

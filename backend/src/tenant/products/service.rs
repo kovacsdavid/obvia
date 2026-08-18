@@ -18,108 +18,29 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::{PdfGenError, PdfTemplates};
+use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::types::UuidVO;
-use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
+use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::ProductUserInput;
 use crate::tenant::products::model::{Product, ProductResolved};
 use crate::tenant::products::types::product::{ProductFilterBy, ProductOrderBy};
-use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use mockall_double::double;
-use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Error)]
-pub enum ProductsServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
-    #[error("Invalid state")]
-    InvalidState,
-
-    #[error("A lista nem létezik")]
-    InvalidSelectList,
-
-    #[error("Hiba történt az adatok feldolgozása során: {0}")]
-    UnprocessableEntry(&'static str),
-
-    #[error("ValueObjectError: {0}")]
-    ValueObjectError(#[from] ValueObjectError),
-
-    #[error("PdfGen error: {0}")]
-    PdfGenError(#[from] PdfGenError),
-
-    #[error("Parse error: {0}")]
-    ParseError(String),
-
-    #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
-}
-
-impl From<ServiceError> for ProductsServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => ProductsServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<ProductsServiceError> for AppError {
-    fn from(value: ProductsServiceError) -> Self {
-        match value {
-            ProductsServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            ProductsServiceError::UnprocessableEntry(_) => Self::new(
-                Level::DEBUG,
-                StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            ProductsServiceError::Repository(RepositoryError::Database(
-                sqlx::Error::RowNotFound,
-            )) => Self::new(
-                Level::DEBUG,
-                StatusCode::NOT_FOUND,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": "Nem található"}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
+pub type ProductsServiceError = ServiceError;
 
 type ProductsServiceResult<T> = Result<T, ProductsServiceError>;
 

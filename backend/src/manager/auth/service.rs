@@ -136,6 +136,7 @@ impl From<ServiceError> for AuthServiceError {
     fn from(value: ServiceError) -> Self {
         match value {
             ServiceError::Unauthorized => AuthServiceError::Unauthorized,
+            _ => AuthServiceError::Repository(RepositoryError::Custom(value.to_string())),
         }
     }
 }

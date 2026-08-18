@@ -18,12 +18,10 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::{PdfGenError, PdfTemplates};
+use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::tasks::TasksModule;
@@ -31,87 +29,16 @@ use crate::tenant::tasks::dto::print::TaskResolvedPrint;
 use crate::tenant::tasks::dto::user_input::TaskUserInput;
 use crate::tenant::tasks::model::{Task, TaskResolved};
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
-use axum::http::StatusCode;
 use chrono::{DateTime, Duration, Utc};
 use chrono_tz::Tz;
 use mockall_double::double;
-use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Error)]
-pub enum TasksServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
-    #[error("Hiba történt az adatok feldolgozása során: {0}")]
-    UnprocessableEntry(&'static str),
-
-    #[error("A lista nem létezik")]
-    InvalidSelectList,
-
-    #[error("PdfGen error: {0}")]
-    PdfGenError(#[from] PdfGenError),
-
-    #[error("Parse error: {0}")]
-    ParseError(String),
-
-    #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
-}
-
-impl From<ServiceError> for TasksServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => TasksServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<TasksServiceError> for AppError {
-    fn from(value: TasksServiceError) -> Self {
-        match value {
-            TasksServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            TasksServiceError::UnprocessableEntry(_) => Self::new(
-                Level::DEBUG,
-                StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            TasksServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
-                Self::new(
-                    Level::DEBUG,
-                    StatusCode::NOT_FOUND,
-                    file!(),
-                    AppErrorVisibility::UserFacing,
-                    json!({"message": "Nem található"}),
-                )
-            }
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
+pub type TasksServiceError = ServiceError;
 
 type TasksServiceResult<T> = Result<T, TasksServiceError>;
 

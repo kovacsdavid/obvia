@@ -61,6 +61,7 @@ impl From<ServiceError> for TenantsServiceError {
     fn from(value: ServiceError) -> Self {
         match value {
             ServiceError::Unauthorized => TenantsServiceError::Unauthorized,
+            _ => TenantsServiceError::Repository(RepositoryError::Custom(value.to_string())),
         }
     }
 }

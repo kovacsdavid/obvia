@@ -59,6 +59,7 @@ impl From<ServiceError> for UsersServiceError {
     fn from(value: ServiceError) -> Self {
         match value {
             ServiceError::Unauthorized => UsersServiceError::Unauthorized,
+            _ => UsersServiceError::Repository(RepositoryError::Custom(value.to_string())),
         }
     }
 }

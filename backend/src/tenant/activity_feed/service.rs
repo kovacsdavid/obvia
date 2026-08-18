@@ -18,8 +18,6 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::common::types::Empty;
@@ -27,58 +25,9 @@ use crate::common::value_object::ValueObjectRequired;
 use crate::tenant::activity_feed::ActivityFeedModuleInterface;
 use crate::tenant::activity_feed::model::ActivityFeedResolved;
 use crate::tenant::activity_feed::types::ResourceType;
-use axum::http::StatusCode;
-use serde_json::json;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
 
-#[derive(Debug, Error)]
-pub enum ActivityFeedServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-}
-
-impl From<ServiceError> for ActivityFeedServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => ActivityFeedServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<ActivityFeedServiceError> for AppError {
-    fn from(value: ActivityFeedServiceError) -> Self {
-        match value {
-            ActivityFeedServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            ActivityFeedServiceError::Repository(RepositoryError::Database(
-                sqlx::Error::RowNotFound,
-            )) => Self::new(
-                Level::DEBUG,
-                StatusCode::NOT_FOUND,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": "Nem található"}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
+pub type ActivityFeedServiceError = ServiceError;
 
 type ActivityFeedServiceResult<T> = Result<T, ActivityFeedServiceError>;
 

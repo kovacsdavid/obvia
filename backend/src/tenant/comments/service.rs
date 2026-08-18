@@ -17,54 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::CommentUserInput;
 use crate::tenant::comments::model::Comment;
-use axum::http::StatusCode;
-use serde_json::json;
-use thiserror::Error;
-use tracing::Level;
 
-#[derive(Debug, Error)]
-pub enum CommentsServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-}
-
-impl From<ServiceError> for CommentsServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => CommentsServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<CommentsServiceError> for AppError {
-    fn from(value: CommentsServiceError) -> Self {
-        match value {
-            CommentsServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
+pub type CommentsServiceError = ServiceError;
 
 type CommentsServiceResult<T> = Result<T, CommentsServiceError>;
 

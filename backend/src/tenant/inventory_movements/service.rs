@@ -18,15 +18,12 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::AppError;
-use crate::common::error::v2::AppErrorVisibility;
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::{PdfGenError, PdfTemplates};
+use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::inventory_movements::InventoryMovementsModuleInterface;
 use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
 use crate::tenant::inventory_movements::dto::user_input::InventoryMovementUserInput;
@@ -34,90 +31,15 @@ use crate::tenant::inventory_movements::model::{InventoryMovement, InventoryMove
 use crate::tenant::inventory_movements::types::{
     InventoryMovementFilterBy, InventoryMovementOrderBy,
 };
-use axum::http::StatusCode;
 use chrono::DateTime;
 use chrono::Utc;
 use chrono_tz::Tz;
 use mockall_double::double;
-use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
-
-#[derive(Debug, Error)]
-pub enum InventoryMovementsServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
-    #[error("Hiba történt az adatok feldolgozása során: {0}")]
-    UnprocessableEntry(&'static str),
-
-    #[error("A lista nem létezik")]
-    InvalidSelectList,
-
-    #[error("PdfGen error: {0}")]
-    PdfGenError(#[from] PdfGenError),
-
-    #[error("Parse error: {0}")]
-    ParseError(String),
-
-    #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
-}
-
-impl From<ServiceError> for InventoryMovementsServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => InventoryMovementsServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<InventoryMovementsServiceError> for AppError {
-    fn from(value: InventoryMovementsServiceError) -> Self {
-        match value {
-            InventoryMovementsServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            InventoryMovementsServiceError::UnprocessableEntry(_) => Self::new(
-                Level::DEBUG,
-                StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            InventoryMovementsServiceError::Repository(RepositoryError::Database(
-                sqlx::Error::RowNotFound,
-            )) => Self::new(
-                Level::DEBUG,
-                StatusCode::NOT_FOUND,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": "Nem található"}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
-
-pub type InventoryMovementsServiceResult<T> = Result<T, InventoryMovementsServiceError>;
 
 pub enum InventoryMovementsSelectLists {
     Worksheets,
@@ -126,14 +48,14 @@ pub enum InventoryMovementsSelectLists {
 }
 
 impl FromStr for InventoryMovementsSelectLists {
-    type Err = InventoryMovementsServiceError;
+    type Err = ServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "worksheets" => Ok(Self::Worksheets),
             "taxes" => Ok(Self::Taxes),
             "inventory" => Ok(Self::Inventory),
-            _ => Err(InventoryMovementsServiceError::InvalidSelectList),
+            _ => Err(ServiceError::InvalidSelectList),
         }
     }
 }
@@ -142,42 +64,31 @@ pub trait InventoryMovementService {
     fn insert(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
     fn update(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovementResolved>> + Send;
-    fn get(
-        &self,
-        payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<InventoryMovement>> + Send;
-    fn delete(
-        &self,
-        payload: Uuid,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Send;
+    ) -> impl Future<Output = ServiceResult<InventoryMovementResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<InventoryMovement>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
-    ) -> impl Future<
-        Output = InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>,
-    > + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>> + Send;
     fn print(
         &self,
         payload: &[InventoryMovementsResolvedPrint],
-    ) -> impl Future<Output = InventoryMovementsServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = InventoryMovementsServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryMovementService for Service<'a, T>
@@ -187,24 +98,24 @@ where
     async fn insert(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> InventoryMovementsServiceResult<InventoryMovement> {
+    ) -> ServiceResult<InventoryMovement> {
         Ok(self
             .module()
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> InventoryMovementsServiceResult<InventoryMovement> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<InventoryMovement> {
         Ok(self
             .module()
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
@@ -212,9 +123,9 @@ where
     async fn update(
         &self,
         payload: &InventoryMovementUserInput,
-    ) -> InventoryMovementsServiceResult<InventoryMovement> {
+    ) -> ServiceResult<InventoryMovement> {
         if !payload.id.is_present() {
-            return Err(InventoryMovementsServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -223,33 +134,30 @@ where
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
     }
-    async fn get_resolved(
-        &self,
-        payload: Uuid,
-    ) -> InventoryMovementsServiceResult<InventoryMovementResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<InventoryMovementResolved> {
         Ok(self
             .module()
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
     }
 
-    async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -259,25 +167,22 @@ where
         &self,
         get_query: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
         inventory_id: Uuid,
-    ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
         Ok(self
             .module()
             .inventory_movements_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(get_query, inventory_id)
             .await?)
     }
-    async fn get_select_list_items(
-        &self,
-        select_list: &str,
-    ) -> InventoryMovementsServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(InventoryMovementsServiceError::Unauthorized)?;
+            .ok_or(ServiceError::Unauthorized)?;
         Ok(
             match InventoryMovementsSelectLists::from_str(select_list)? {
                 InventoryMovementsSelectLists::Worksheets => {
@@ -302,42 +207,34 @@ where
         )
     }
 
-    async fn print(
-        &self,
-        payload: &[InventoryMovementsResolvedPrint],
-    ) -> InventoryMovementsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[InventoryMovementsResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryMovementView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> InventoryMovementsServiceResult<()> {
-        let test_time: DateTime<Utc> =
-            "2026-01-02T11:11:11Z"
-                .parse()
-                .map_err(|e: chrono::ParseError| {
-                    InventoryMovementsServiceError::ParseError(e.to_string())
-                })?;
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
+        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
+            .parse()
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                InventoryMovementsServiceError::ParseError(e.to_string())
-            })?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let inventory_movement_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b"
             .parse()
-            .map_err(|e: uuid::Error| InventoryMovementsServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let inventory_movement_resolved = InventoryMovementResolved {
             id: inventory_movement_id,
             inventory_id,

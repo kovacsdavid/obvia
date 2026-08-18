@@ -18,183 +18,98 @@
  */
 
 use crate::common::dto::PaginatorMeta;
-use crate::common::error::RepositoryError;
-use crate::common::error::v2::{AppError, AppErrorVisibility};
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::{PdfGenError, PdfTemplates};
+use crate::common::pdf::PdfTemplates;
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError};
+use crate::common::service::{Service, ServiceError, ServiceResult};
 use crate::tenant::customers::CustomersModuleInterface;
 use crate::tenant::customers::dto::print::CustomerResolvedPrint;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
-use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use mockall_double::double;
-use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-use thiserror::Error;
-use tracing::Level;
 use uuid::Uuid;
-
-#[derive(Debug, Error)]
-pub enum CustomersServiceError {
-    #[error("Repository error: {0}")]
-    Repository(#[from] RepositoryError),
-
-    #[error("Hozzáférés megtagadva!")]
-    Unauthorized,
-
-    #[error("Hiba történt az adatok feldolgozása során: {0}")]
-    UnprocessableEntry(&'static str),
-
-    #[error("A megadot e-mail címmel már létezik vevő a rendszerben!")]
-    CustomerExists,
-
-    #[error("PdfGen error: {0}")]
-    PdfGenError(#[from] PdfGenError),
-
-    #[error("Parse error: {0}")]
-    ParseError(String),
-
-    #[error("IO error: {0}")]
-    IOError(#[from] std::io::Error),
-}
-
-impl From<ServiceError> for CustomersServiceError {
-    fn from(value: ServiceError) -> Self {
-        match value {
-            ServiceError::Unauthorized => CustomersServiceError::Unauthorized,
-        }
-    }
-}
-
-impl From<CustomersServiceError> for AppError {
-    fn from(value: CustomersServiceError) -> Self {
-        match value {
-            CustomersServiceError::Unauthorized => Self::new(
-                Level::DEBUG,
-                StatusCode::UNAUTHORIZED,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            CustomersServiceError::CustomerExists => Self::new(
-                Level::DEBUG,
-                StatusCode::CONFLICT,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            CustomersServiceError::UnprocessableEntry(_) => Self::new(
-                Level::DEBUG,
-                StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
-            CustomersServiceError::Repository(RepositoryError::Database(
-                sqlx::Error::RowNotFound,
-            )) => Self::new(
-                Level::DEBUG,
-                StatusCode::NOT_FOUND,
-                file!(),
-                AppErrorVisibility::UserFacing,
-                json!({"message": "Nem található"}),
-            ),
-            _ => Self::new(
-                Level::ERROR,
-                StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
-                AppErrorVisibility::Internal,
-                json!({"message": value.to_string()}),
-            ),
-        }
-    }
-}
-
-type CustomersServiceResult<T> = Result<T, CustomersServiceError>;
 
 pub trait CustomerService {
     fn insert(
         &self,
         payload: &CustomerUserInput,
-    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    ) -> impl Future<Output = ServiceResult<Customer>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = CustomersServiceResult<CustomerResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
+    ) -> impl Future<Output = ServiceResult<CustomerResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Customer>> + Send;
     fn update(
         &self,
         payload: &CustomerUserInput,
-    ) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<()>>;
+    ) -> impl Future<Output = ServiceResult<Customer>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>>;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
     fn print(
         &self,
         payload: &[CustomerResolvedPrint],
-    ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
-    fn print_snapshot(
-        &self,
-        path: &Path,
-    ) -> impl Future<Output = CustomersServiceResult<()>> + Sync;
+    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Sync;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
 }
 
 impl<'a, T> CustomerService for Service<'a, T>
 where
     T: CustomersModuleInterface,
 {
-    async fn insert(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+    async fn insert(&self, payload: &CustomerUserInput) -> ServiceResult<Customer> {
         self.module()
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    CustomersServiceError::CustomerExists
+                    ServiceError::Conflict(
+                        "A megadott e-mail címmel már létezik vevő a rendszerben!",
+                    )
                 } else {
                     e.into()
                 }
             })
     }
-    async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<CustomerResolved> {
         Ok(self
             .module()
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
+    async fn get(&self, payload: Uuid) -> ServiceResult<Customer> {
         Ok(self
             .module()
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
     }
-    async fn update(&self, payload: &CustomerUserInput) -> CustomersServiceResult<Customer> {
+    async fn update(&self, payload: &CustomerUserInput) -> ServiceResult<Customer> {
         if !payload.id.is_present() {
-            return Err(CustomersServiceError::UnprocessableEntry(
+            return Err(ServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -203,18 +118,18 @@ where
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
         Ok(self
             .module()
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -222,36 +137,36 @@ where
     async fn get_paged(
         &self,
         query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
+    ) -> ServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
         Ok(self
             .module()
             .customers_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
+                    .ok_or(ServiceError::Unauthorized)?,
             )?
             .get_paged(query)
             .await?)
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[CustomerResolvedPrint]) -> ServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
         let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
         let customer_resolved = CustomerResolved {
             id: customer_id,
             name: "Test Customer".to_string(),

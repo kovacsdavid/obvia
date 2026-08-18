@@ -102,10 +102,10 @@ pub enum ServiceError {
     #[error("MfaToken error: {0}")]
     MfaToken(String),
 
-    #[error("A kétlépcsős azonosításhoz hasznát kód hibás!")]
+    #[error("A kétlépcsős azonosításhoz használt kód hibás!")]
     InvalidMfaToken,
 
-    #[error("A kétépcsős azonosítás aktiválása korábban már megtörtént!")]
+    #[error("A kétlépcsős azonosítás aktiválása korábban már megtörtént!")]
     MfaAlreadyActive,
 
     #[error("Hibás elfelejtett jelszó hivatkozás!")]

@@ -531,7 +531,7 @@ mod tests {
                 eq(Some("127.0.0.1".parse().unwrap())),
                 eq(None),
                 eq(Some(json!({
-                    "error": "A kétlépcsős azonosításhoz hasznát kód hibás!".to_string()
+                    "error": "A kétlépcsős azonosításhoz használt kód hibás!".to_string()
                 }))),
             )
             .returning(
@@ -603,7 +603,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "A kétlépcsős azonosításhoz hasznát kód hibás!"
+                "message": "A kétlépcsős azonosításhoz használt kód hibás!"
             }
         });
 
@@ -1012,7 +1012,7 @@ mod tests {
                 eq(Some("127.0.0.1".parse().unwrap())),
                 eq(None),
                 eq(Some(json!({
-                    "error": "A kétlépcsős azonosításhoz hasznát kód hibás!".to_string()
+                    "error": "A kétlépcsős azonosításhoz használt kód hibás!".to_string()
                 }))),
             )
             .returning(
@@ -1084,7 +1084,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "error": {
-                "message": "A kétlépcsős azonosításhoz hasznát kód hibás!"
+                "message": "A kétlépcsős azonosításhoz használt kód hibás!"
             }
         });
 

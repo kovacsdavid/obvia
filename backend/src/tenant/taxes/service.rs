@@ -18,115 +18,208 @@
  */
 
 use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::PdfTemplates;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError, ServiceResult};
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::taxes::TaxesModuleInterface;
 use crate::tenant::taxes::dto::print::TaxResolvedPrint;
 use crate::tenant::taxes::dto::user_input::TaxUserInput;
 use crate::tenant::taxes::model::{Tax, TaxResolved};
 use crate::tenant::taxes::types::{TaxFilterBy, TaxOrderBy};
+use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use mockall_double::double;
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
+use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum TaxesServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Hozzáférés megtagadva!")]
+    Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
+    #[error("Az adó már létrehozásra került a rendszerben")]
+    TaxExists,
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
+}
+
+impl From<ServiceError> for TaxesServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => TaxesServiceError::Unauthorized,
+        }
+    }
+}
+
+impl From<TaxesServiceError> for AppError {
+    fn from(value: TaxesServiceError) -> Self {
+        match value {
+            TaxesServiceError::Unauthorized => Self::new(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            TaxesServiceError::TaxExists => Self::new(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            TaxesServiceError::UnprocessableEntry(_) => Self::new(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            TaxesServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
+                Self::new(
+                    Level::DEBUG,
+                    StatusCode::NOT_FOUND,
+                    file!(),
+                    AppErrorVisibility::UserFacing,
+                    json!({"message": "Nem található"}),
+                )
+            }
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
+        }
+    }
+}
 
 pub enum TaxesSelectLists {
     Countries,
 }
 
 impl FromStr for TaxesSelectLists {
-    type Err = ServiceError;
+    type Err = TaxesServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "countries" => Ok(Self::Countries),
-            _ => Err(ServiceError::InvalidSelectList),
+            _ => Err(TaxesServiceError::InvalidSelectList),
         }
     }
 }
 
+type TaxesServiceResult<T> = Result<T, TaxesServiceError>;
+
 pub trait TaxService {
-    fn insert(&self, payload: &TaxUserInput) -> impl Future<Output = ServiceResult<Tax>> + Send;
+    fn insert(
+        &self,
+        payload: &TaxUserInput,
+    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = ServiceResult<TaxResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Tax>> + Send;
-    fn update(&self, payload: &TaxUserInput) -> impl Future<Output = ServiceResult<Tax>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = TaxesServiceResult<TaxResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn update(
+        &self,
+        payload: &TaxUserInput,
+    ) -> impl Future<Output = TaxesServiceResult<Tax>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = TaxesServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
-    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<TaxResolved>)>> + Send;
+    ) -> impl Future<Output = TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)>> + Send;
 
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = TaxesServiceResult<Vec<SelectOption>>> + Send;
     fn print(
         &self,
         payload: &[TaxResolvedPrint],
-    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
+    ) -> impl Future<Output = TaxesServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(&self, path: &Path) -> impl Future<Output = TaxesServiceResult<()>> + Sync;
 }
 
 impl<'a, T> TaxService for Service<'a, T>
 where
     T: TaxesModuleInterface,
 {
-    async fn insert(&self, payload: &TaxUserInput) -> ServiceResult<Tax> {
+    async fn insert(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
         self.module()
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    ServiceError::Conflict("Az adó már létrehozásra került a rendszerben")
+                    TaxesServiceError::TaxExists
                 } else {
                     e.into()
                 }
             })
     }
 
-    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<TaxResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> TaxesServiceResult<TaxResolved> {
         Ok(self
             .module()
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
     }
 
-    async fn get(&self, payload: Uuid) -> ServiceResult<Tax> {
+    async fn get(&self, payload: Uuid) -> TaxesServiceResult<Tax> {
         Ok(self
             .module()
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
     }
 
-    async fn update(&self, payload: &TaxUserInput) -> ServiceResult<Tax> {
+    async fn update(&self, payload: &TaxUserInput) -> TaxesServiceResult<Tax> {
         if !payload.id.is_present() {
-            return Err(ServiceError::UnprocessableEntry(
+            return Err(TaxesServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -135,18 +228,18 @@ where
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> TaxesServiceResult<()> {
         Ok(self
             .module()
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -155,23 +248,26 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
-    ) -> ServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
+    ) -> TaxesServiceResult<(PaginatorMeta, Vec<TaxResolved>)> {
         Ok(self
             .module()
             .taxes_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(TaxesServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
     }
 
-    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> TaxesServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(ServiceError::Unauthorized)?;
+            .ok_or(TaxesServiceError::Unauthorized)?;
         match TaxesSelectLists::from_str(select_list)? {
             TaxesSelectLists::Countries => Ok(self
                 .module()
@@ -181,25 +277,25 @@ where
         }
     }
 
-    async fn print(&self, payload: &[TaxResolvedPrint]) -> ServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[TaxResolvedPrint]) -> TaxesServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::TaxView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> TaxesServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| TaxesServiceError::ParseError(e.to_string()))?;
         let tax_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| TaxesServiceError::ParseError(e.to_string()))?;
         let tax_resolved = TaxResolved {
             id: tax_id,
             rate: Some("10".parse().unwrap()),

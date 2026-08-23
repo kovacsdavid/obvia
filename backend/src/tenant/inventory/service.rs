@@ -18,25 +18,112 @@
  */
 
 use crate::common::dto::PaginatorMeta;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::model::SelectOption;
 #[double]
 use crate::common::pdf::PdfGenerator;
-use crate::common::pdf::PdfTemplates;
+use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
-use crate::common::service::{Service, ServiceError, ServiceResult};
+use crate::common::service::{Service, ServiceError};
 use crate::tenant::inventory::InventoryModuleInterface;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
+use axum::http::StatusCode;
 use chrono::{DateTime, Utc};
 use chrono_tz::Tz;
 use mockall_double::double;
+use serde_json::json;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
 use std::str::FromStr;
+use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum InventoryServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Hozzáférés megtagadva!")]
+    Unauthorized,
+
+    #[error("Hiba történt az adatok feldolgozása során: {0}")]
+    UnprocessableEntry(&'static str),
+
+    #[error("A lista nem létezik")]
+    InvalidSelectList,
+
+    #[error("A megadott termékhez már létezik raktárkészlet ebben a raktárban!")]
+    InventoryExists,
+
+    #[error("PdfGen error: {0}")]
+    PdfGenError(#[from] PdfGenError),
+
+    #[error("Parse error: {0}")]
+    ParseError(String),
+
+    #[error("IO error: {0}")]
+    IOError(#[from] std::io::Error),
+}
+
+impl From<ServiceError> for InventoryServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => InventoryServiceError::Unauthorized,
+        }
+    }
+}
+
+impl From<InventoryServiceError> for AppError {
+    fn from(value: InventoryServiceError) -> Self {
+        match value {
+            InventoryServiceError::Unauthorized => Self::new(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            InventoryServiceError::InventoryExists => Self::new(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            InventoryServiceError::UnprocessableEntry(_) => Self::new(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            InventoryServiceError::Repository(RepositoryError::Database(
+                sqlx::Error::RowNotFound,
+            )) => Self::new(
+                Level::DEBUG,
+                StatusCode::NOT_FOUND,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": "Nem található"}),
+            ),
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
+        }
+    }
+}
+
+pub type InventoryServiceResult<T> = Result<T, InventoryServiceError>;
 
 pub enum InventorySelectLists {
     Products,
@@ -46,7 +133,7 @@ pub enum InventorySelectLists {
 }
 
 impl FromStr for InventorySelectLists {
-    type Err = ServiceError;
+    type Err = InventoryServiceError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -54,7 +141,7 @@ impl FromStr for InventorySelectLists {
             "currencies" => Ok(Self::Currencies),
             "warehouses" => Ok(Self::Warehouses),
             "taxes" => Ok(Self::Taxes),
-            _ => Err(ServiceError::InvalidSelectList),
+            _ => Err(InventoryServiceError::InvalidSelectList),
         }
     }
 }
@@ -63,61 +150,65 @@ pub trait InventoryService {
     fn insert(
         &self,
         payload: &InventoryUserInput,
-    ) -> impl Future<Output = ServiceResult<Inventory>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
     fn get_select_list_items(
         &self,
         select_list: &str,
-    ) -> impl Future<Output = ServiceResult<Vec<SelectOption>>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<Vec<SelectOption>>> + Send;
     fn get_resolved(
         &self,
         payload: Uuid,
-    ) -> impl Future<Output = ServiceResult<InventoryResolved>> + Send;
-    fn get(&self, payload: Uuid) -> impl Future<Output = ServiceResult<Inventory>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<InventoryResolved>> + Send;
+    fn get(&self, payload: Uuid) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
     fn update(
         &self,
         payload: &InventoryUserInput,
-    ) -> impl Future<Output = ServiceResult<Inventory>> + Send;
-    fn delete(&self, payload: Uuid) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<Inventory>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = InventoryServiceResult<()>> + Send;
     fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
-    ) -> impl Future<Output = ServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
+    ) -> impl Future<Output = InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
     fn print(
         &self,
         payload: &[InventoryResolvedPrint],
-    ) -> impl Future<Output = ServiceResult<Vec<u8>>> + Send;
-    fn print_snapshot(&self, path: &Path) -> impl Future<Output = ServiceResult<()>> + Sync;
+    ) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
+    fn print_snapshot(
+        &self,
+        path: &Path,
+    ) -> impl Future<Output = InventoryServiceResult<()>> + Sync;
 }
 
 impl<'a, T> InventoryService for Service<'a, T>
 where
     T: InventoryModuleInterface,
 {
-    async fn insert(&self, payload: &InventoryUserInput) -> ServiceResult<Inventory> {
+    async fn insert(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
         self.module()
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .insert(payload, self.claims()?.sub())
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    ServiceError::Conflict(
-                        "A megadott termékhez már létezik raktárkészlet ebben a raktárban!",
-                    )
+                    InventoryServiceError::InventoryExists
                 } else {
                     e.into()
                 }
             })
     }
 
-    async fn get_select_list_items(&self, select_list: &str) -> ServiceResult<Vec<SelectOption>> {
+    async fn get_select_list_items(
+        &self,
+        select_list: &str,
+    ) -> InventoryServiceResult<Vec<SelectOption>> {
         let active_tenant = self
             .claims()?
             .active_tenant()
-            .ok_or(ServiceError::Unauthorized)?;
+            .ok_or(InventoryServiceError::Unauthorized)?;
         Ok(match InventorySelectLists::from_str(select_list)? {
             InventorySelectLists::Products => {
                 self.module()
@@ -145,32 +236,32 @@ where
             }
         })
     }
-    async fn get_resolved(&self, payload: Uuid) -> ServiceResult<InventoryResolved> {
+    async fn get_resolved(&self, payload: Uuid) -> InventoryServiceResult<InventoryResolved> {
         Ok(self
             .module()
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .get_resolved_by_id(payload)
             .await?)
     }
-    async fn get(&self, payload: Uuid) -> ServiceResult<Inventory> {
+    async fn get(&self, payload: Uuid) -> InventoryServiceResult<Inventory> {
         Ok(self
             .module()
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .get_by_id(payload)
             .await?)
     }
 
-    async fn update(&self, payload: &InventoryUserInput) -> ServiceResult<Inventory> {
+    async fn update(&self, payload: &InventoryUserInput) -> InventoryServiceResult<Inventory> {
         if !payload.id.is_present() {
-            return Err(ServiceError::UnprocessableEntry(
+            return Err(InventoryServiceError::UnprocessableEntry(
                 "Az azonosító megadása kötelező!",
             ));
         }
@@ -179,18 +270,18 @@ where
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .update(payload)
             .await?)
     }
-    async fn delete(&self, payload: Uuid) -> ServiceResult<()> {
+    async fn delete(&self, payload: Uuid) -> InventoryServiceResult<()> {
         Ok(self
             .module()
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .delete_by_id(payload)
             .await?)
@@ -198,43 +289,43 @@ where
     async fn get_paged(
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
-    ) -> ServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
+    ) -> InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)> {
         Ok(self
             .module()
             .inventory_repo(
                 self.claims()?
                     .active_tenant()
-                    .ok_or(ServiceError::Unauthorized)?,
+                    .ok_or(InventoryServiceError::Unauthorized)?,
             )?
             .get_paged(get_query)
             .await?)
     }
 
-    async fn print(&self, payload: &[InventoryResolvedPrint]) -> ServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryView,
             payload.to_vec(),
         )?)
     }
-    async fn print_snapshot(&self, path: &Path) -> ServiceResult<()> {
+    async fn print_snapshot(&self, path: &Path) -> InventoryServiceResult<()> {
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
             .parse()
-            .map_err(|e: chrono::ParseError| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
         let tz: Tz = "Europe/Budapest"
             .parse()
-            .map_err(|e: chrono_tz::ParseError| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: chrono_tz::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
         let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
         let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
         let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
             .parse()
-            .map_err(|e: uuid::Error| ServiceError::ParseError(e.to_string()))?;
+            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
         let inventory_resolved = InventoryResolved {
             id: inventory_id,
             product_id,

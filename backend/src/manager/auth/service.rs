@@ -22,25 +22,34 @@ use super::{
     dto::{claims::Claims, login::UserPublic},
 };
 use crate::manager::auth::dto::register::{ForgottenPasswordRequest, NewPasswordRequest};
-use crate::manager::auth::model::ForgottenPassword;
+use crate::{common::error::RepositoryError, manager::auth::model::ForgottenPassword};
 use crate::{
-    common::extractors::ClientContext,
-    manager::auth::{
-        dto::{login::LoginRequest, register::RegisterRequest},
-        model::{AccountEventStatus, AccountEventType},
-    },
+    common::service::{Service, ServiceError},
+    manager::{auth::dto::claims::ClaimsError, users::model::UserModelError},
 };
 use crate::{
-    common::service::{Service, ServiceError, ServiceResult},
+    common::value_object::ValueObjectError,
     manager::{
         auth::{dto::register::ResendEmailValidationRequest, model::EmailVerification},
         users::model::User,
     },
 };
+use crate::{
+    common::{
+        error::v2::{AppError, AppErrorVisibility},
+        extractors::ClientContext,
+    },
+    manager::auth::{
+        dto::{login::LoginRequest, register::RegisterRequest},
+        model::{AccountEventStatus, AccountEventType},
+    },
+};
+use anyhow::Result;
 use argon2::{
     Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{Duration, Utc};
@@ -54,45 +63,157 @@ use lettre::{
 };
 use rand::RngExt;
 use serde_json::json;
+use thiserror::Error;
 use time::Duration as TimeDuration;
 use tokio::time::{Duration as TokioDuration, sleep};
+use tracing::Level;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum AuthServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("Hibás e-mail cím vagy jelszó")]
+    UserNotFound,
+
+    #[error("A megadott e-mail cím már foglalt!")]
+    UserExists,
+
+    #[error("A rendszer jelenleg zárt béta állapotban van. Látogass vissza később!")]
+    UserInactive,
+
+    #[error("Hibás e-mail cím vagy jelszó")]
+    InvalidPassword,
+
+    #[error("Hibás e-mail megerősítő hivatkozás")]
+    InvalidEmailValidationToken,
+
+    #[error("A megerősítő e-mail újraküldése sikertelen")]
+    EmailValidationResend,
+
+    #[error("Hash error: {0}")]
+    Hash(String),
+
+    #[error("Token generation: {0}")]
+    Token(String),
+
+    #[error("RefreshTokenError: {0}")]
+    RefreshTokenError(String),
+
+    #[error("RefreshCookieError: {0}")]
+    RefreshCookieError(&'static str),
+
+    #[error("MailTransport error: {0}")]
+    MailTransport(String),
+
+    #[error("Nincs jogosultságod az erőforrás használatához")]
+    Unauthorized,
+
+    #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
+    TooManyAttempts(i64),
+
+    #[error("totp-required")]
+    MfaRequired,
+
+    #[error("Hibás kétlépcsős azonosító kód!")]
+    MfaInvalid,
+
+    #[error("Hibás elfelejtett jelszó hivatkozás!")]
+    InvalidForgottenPasswordToken,
+
+    #[error("Unexpected ValueObjectError: {0}")]
+    UnexpectedValueObjectError(#[from] ValueObjectError),
+
+    #[error("UserModelError: {0}")]
+    UserModelError(#[from] UserModelError),
+
+    #[error("ClaimsError: {0}")]
+    ClaimsError(#[from] ClaimsError),
+}
+
+impl From<ServiceError> for AuthServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => AuthServiceError::Unauthorized,
+        }
+    }
+}
+
+impl From<AuthServiceError> for AppError {
+    fn from(value: AuthServiceError) -> Self {
+        match value {
+            AuthServiceError::UserNotFound
+            | AuthServiceError::InvalidPassword
+            | AuthServiceError::UserInactive
+            | AuthServiceError::EmailValidationResend
+            | AuthServiceError::InvalidEmailValidationToken
+            | AuthServiceError::Unauthorized
+            | AuthServiceError::TooManyAttempts(_)
+            | AuthServiceError::MfaRequired
+            | AuthServiceError::MfaInvalid
+            | AuthServiceError::InvalidForgottenPasswordToken => Self::new(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            AuthServiceError::UserExists => Self::new(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
+        }
+    }
+}
+
+pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
 
 pub trait AuthService {
     fn try_login(
         &self,
         payload: &LoginRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
     fn refresh(
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<(String, Claims, String, Claims, UserPublic)>> + Send;
     fn logout(
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
     fn try_register(
         &self,
         payload: &RegisterRequest,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
-    fn verify_email(&self, token: &str) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
+    fn verify_email(&self, token: &str) -> impl Future<Output = AuthServiceResult<()>> + Send;
     fn resend_email_verification(
         &self,
         payload: ResendEmailValidationRequest,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
     fn forgotten_password(
         &self,
         payload: ForgottenPasswordRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
     fn new_password(
         &self,
         payload: NewPasswordRequest,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = AuthServiceResult<()>> + Send;
 }
 
 impl<'a, T> AuthService for Service<'a, T>
@@ -103,7 +224,7 @@ where
         &self,
         payload: &LoginRequest,
         client_context: &ClientContext,
-    ) -> ServiceResult<(String, Claims, String, Claims, UserPublic)> {
+    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
         rate_limit_by_event_status(
             60,
             10,
@@ -137,7 +258,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::UserNotFound);
+                return Err(AuthServiceError::UserNotFound);
             }
         };
 
@@ -156,7 +277,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::UserInactive);
+            return Err(AuthServiceError::UserInactive);
         }
 
         let parsed_hash = match PasswordHash::new(&user.password_hash) {
@@ -176,7 +297,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Hash(e.to_string()));
+                return Err(AuthServiceError::Hash(e.to_string()));
             }
         };
 
@@ -197,7 +318,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::InvalidPassword);
+                return Err(AuthServiceError::InvalidPassword);
             }
         };
 
@@ -221,11 +342,11 @@ where
                                     })),
                                 )
                                 .await?;
-                            return Err(ServiceError::MfaInvalid);
+                            return Err(AuthServiceError::MfaInvalid);
                         }
                     };
                 }
-                None => return Err(ServiceError::MfaRequired),
+                None => return Err(AuthServiceError::MfaRequired),
             }
         }
 
@@ -306,7 +427,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Token(e.to_string()));
+                return Err(AuthServiceError::Token(e.to_string()));
             }
         };
 
@@ -361,7 +482,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Token(e.to_string()));
+                return Err(AuthServiceError::Token(e.to_string()));
             }
         };
 
@@ -444,10 +565,10 @@ where
         &self,
         jar: CookieJar,
         client_context: &ClientContext,
-    ) -> ServiceResult<(String, Claims, String, Claims, UserPublic)> {
+    ) -> AuthServiceResult<(String, Claims, String, Claims, UserPublic)> {
         let current_refresh_token = jar
             .get("refresh_token")
-            .ok_or_else(|| ServiceError::Unauthorized)?
+            .ok_or_else(|| AuthServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
         let current_refresh_token_claims = match Claims::from_token(
@@ -497,7 +618,7 @@ where
                             .await?;
                     }
                 };
-                return Err(ServiceError::Unauthorized);
+                return Err(AuthServiceError::Unauthorized);
             }
         };
 
@@ -523,7 +644,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Unauthorized);
+                return Err(AuthServiceError::Unauthorized);
             }
         };
 
@@ -568,7 +689,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::Unauthorized);
+            return Err(AuthServiceError::Unauthorized);
         }
 
         let family_id = match current_refresh_token_claims.family_id() {
@@ -588,7 +709,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::RefreshTokenError(
+                return Err(AuthServiceError::RefreshTokenError(
                     "missing family_id".to_string(),
                 ));
             }
@@ -642,7 +763,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Unauthorized);
+                return Err(AuthServiceError::Unauthorized);
             }
         };
 
@@ -723,7 +844,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Token(e.to_string()));
+                return Err(AuthServiceError::Token(e.to_string()));
             }
         };
 
@@ -754,7 +875,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Token(e.to_string()));
+                return Err(AuthServiceError::Token(e.to_string()));
             }
         };
 
@@ -836,10 +957,14 @@ where
         ))
     }
 
-    async fn logout(&self, jar: CookieJar, client_context: &ClientContext) -> ServiceResult<()> {
+    async fn logout(
+        &self,
+        jar: CookieJar,
+        client_context: &ClientContext,
+    ) -> AuthServiceResult<()> {
         let refresh_token = jar
             .get("refresh_token")
-            .ok_or_else(|| ServiceError::Unauthorized)?
+            .ok_or_else(|| AuthServiceError::Unauthorized)?
             .value_trimmed()
             .to_string();
         let dangerous_refresh_claims = match Claims::dangerous_from_token_allow_expired(
@@ -864,7 +989,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::Unauthorized);
+                return Err(AuthServiceError::Unauthorized);
             }
         };
 
@@ -885,7 +1010,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::RefreshTokenError(
+                return Err(AuthServiceError::RefreshTokenError(
                     "missing family_id".to_string(),
                 ));
             }
@@ -933,7 +1058,7 @@ where
         Ok(())
     }
 
-    async fn try_register(&self, payload: &RegisterRequest) -> ServiceResult<()> {
+    async fn try_register(&self, payload: &RegisterRequest) -> AuthServiceResult<()> {
         let password_hash = generate_password_hash(payload.password.as_str()?.as_bytes())?;
 
         let user = self
@@ -943,7 +1068,7 @@ where
             .await
             .map_err(|e| {
                 if e.is_unique_violation() {
-                    ServiceError::UserExists
+                    AuthServiceError::UserExists
                 } else {
                     e.into()
                 }
@@ -956,15 +1081,15 @@ where
         send_email_verification(self.module(), &user, email_verification).await?;
         Ok(())
     }
-    async fn verify_email(&self, token: &str) -> ServiceResult<()> {
+    async fn verify_email(&self, token: &str) -> AuthServiceResult<()> {
         let parsed_token =
-            Uuid::parse_str(token).map_err(|_| ServiceError::InvalidEmailValidationToken)?;
+            Uuid::parse_str(token).map_err(|_| AuthServiceError::InvalidEmailValidationToken)?;
         let email_verification = self
             .module()
             .auth_repo()
             .get_email_verification(parsed_token)
             .await
-            .map_err(|_| ServiceError::InvalidEmailValidationToken)?;
+            .map_err(|_| AuthServiceError::InvalidEmailValidationToken)?;
         let mut user = self
             .module()
             .auth_repo()
@@ -981,13 +1106,13 @@ where
     async fn resend_email_verification(
         &self,
         payload: ResendEmailValidationRequest,
-    ) -> ServiceResult<()> {
+    ) -> AuthServiceResult<()> {
         let user = self
             .module()
             .auth_repo()
             .get_user_by_email(payload.email.as_str()?)
             .await
-            .map_err(|_| ServiceError::EmailValidationResend)?;
+            .map_err(|_| AuthServiceError::EmailValidationResend)?;
         if user.need_email_verification() {
             let email_verification = self
                 .module()
@@ -997,7 +1122,7 @@ where
             send_email_verification(self.module(), &user, email_verification).await?;
             Ok(())
         } else {
-            Err(ServiceError::EmailValidationResend)
+            Err(AuthServiceError::EmailValidationResend)
         }
     }
 
@@ -1005,7 +1130,7 @@ where
         &self,
         payload: ForgottenPasswordRequest,
         client_context: &ClientContext,
-    ) -> ServiceResult<()> {
+    ) -> AuthServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -1098,7 +1223,7 @@ where
         &self,
         payload: NewPasswordRequest,
         client_context: &ClientContext,
-    ) -> ServiceResult<()> {
+    ) -> AuthServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -1141,7 +1266,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::InvalidForgottenPasswordToken);
+                return Err(AuthServiceError::InvalidForgottenPasswordToken);
             }
         };
 
@@ -1167,7 +1292,7 @@ where
                         })),
                     )
                     .await?;
-                return Err(ServiceError::InvalidForgottenPasswordToken);
+                return Err(AuthServiceError::InvalidForgottenPasswordToken);
             }
         };
 
@@ -1267,7 +1392,7 @@ where
                     })),
                 )
                 .await?;
-            Err(ServiceError::UserInactive)
+            Err(AuthServiceError::UserInactive)
         }
     }
 }
@@ -1276,9 +1401,9 @@ pub fn gen_refresh_cookie(
     refresh_token: String,
     secure_cookie: bool,
     refresh_token_expiration_mins: u64,
-) -> ServiceResult<Cookie<'static>> {
+) -> AuthServiceResult<Cookie<'static>> {
     let max_age: i64 = refresh_token_expiration_mins.try_into().map_err(|_| {
-        ServiceError::RefreshCookieError(
+        AuthServiceError::RefreshCookieError(
             "refresh_token_expiration_mins could not be converted to i64",
         )
     })?;
@@ -1299,7 +1424,7 @@ async fn rate_limit_by_event_status<T>(
     client_context: &ClientContext,
     event_status: AccountEventStatus,
     event_type: AccountEventType,
-) -> ServiceResult<()>
+) -> AuthServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1328,7 +1453,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
         }
     };
 
@@ -1344,11 +1469,11 @@ where
                 client_context.user_agent.clone(),
                 Some(json!({
                     "error":
-                        ServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                        AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
                 })),
             )
             .await?;
-        return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+        return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
     }
     Ok(())
 }
@@ -1360,7 +1485,7 @@ async fn rate_limit_by_event_type<T>(
     identifier: Option<String>,
     client_context: &ClientContext,
     event_type: AccountEventType,
-) -> ServiceResult<()>
+) -> AuthServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1389,7 +1514,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+            return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
         }
     };
 
@@ -1405,25 +1530,25 @@ where
                 client_context.user_agent.clone(),
                 Some(json!({
                     "error":
-                        ServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                        AuthServiceError::TooManyAttempts(attempt_interval_mins).to_string()
                 })),
             )
             .await?;
-        return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+        return Err(AuthServiceError::TooManyAttempts(attempt_interval_mins));
     }
     Ok(())
 }
 
-fn gen_exp(expiration_mins: u64) -> ServiceResult<usize> {
+fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
     (Utc::now()
         + Duration::minutes(expiration_mins.try_into().map_err(|_| {
-            ServiceError::Token(
+            AuthServiceError::Token(
                 "refresh_token_expiration_mins can not be converted to i64".to_string(),
             )
         })?))
     .timestamp()
     .try_into()
-    .map_err(|_| ServiceError::Token("exp can not be converted to usize".to_string()))
+    .map_err(|_| AuthServiceError::Token("exp can not be converted to usize".to_string()))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1437,7 +1562,7 @@ fn gen_jwt(
     active_tenant_id: Option<Uuid>,
     encoding_key: &[u8],
     family_id: Option<Uuid>,
-) -> ServiceResult<(String, Claims)> {
+) -> AuthServiceResult<(String, Claims)> {
     let now = Utc::now().timestamp() as usize;
     let nbf = now;
 
@@ -1461,23 +1586,23 @@ fn gen_jwt(
             &claims,
             &EncodingKey::from_secret(encoding_key),
         )
-        .map_err(|e| ServiceError::Token(e.to_string()))?,
+        .map_err(|e| AuthServiceError::Token(e.to_string()))?,
         claims,
     ))
 }
 
-fn generate_password_hash(password: &[u8]) -> ServiceResult<String> {
+fn generate_password_hash(password: &[u8]) -> AuthServiceResult<String> {
     Argon2::default()
         .hash_password(password, &SaltString::generate(&mut OsRng))
         .map(|hash| hash.to_string())
-        .map_err(|e| ServiceError::Hash(e.to_string()))
+        .map_err(|e| AuthServiceError::Hash(e.to_string()))
 }
 
 async fn send_email_verification<T>(
     auth_module: &T,
     user: &User,
     email_verification: EmailVerification,
-) -> ServiceResult<()>
+) -> AuthServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1493,13 +1618,13 @@ where
                 .mail()
                 .default_from()
                 .parse()
-                .map_err(|e: AddressError| ServiceError::MailTransport(e.to_string()))?,
+                .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
         ))
         .to(Mailbox::new(
             None,
             user.email
                 .parse()
-                .map_err(|e: AddressError| ServiceError::MailTransport(e.to_string()))?,
+                .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
         ))
         .subject("Kérlek, erősítsd meg az e-mail címedet!")
         .header(ContentType::TEXT_HTML)
@@ -1521,13 +1646,13 @@ where
                         "verification_link": verification_link,
                     }),
                 )
-                .map_err(|e| ServiceError::MailTransport(e.to_string()))?,
+                .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?,
         )
-        .map_err(|e| ServiceError::MailTransport(e.to_string()))?;
+        .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?;
 
     match auth_module.send(email).await {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServiceError::MailTransport(e.to_string())),
+        Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
     }
 }
 
@@ -1535,7 +1660,7 @@ async fn send_forgotten_password_email<T>(
     auth_module: &T,
     user: &User,
     forgotten_password: ForgottenPassword,
-) -> ServiceResult<()>
+) -> AuthServiceResult<()>
 where
     T: AuthModuleInterface,
 {
@@ -1552,14 +1677,14 @@ where
                     .mail()
                     .default_from()
                     .parse()
-                    .map_err(|e: AddressError| ServiceError::MailTransport(e.to_string()))?,
+                    .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
             ))
             .to(Mailbox::new(
                 None,
                 user
                     .email
                     .parse()
-                    .map_err(|e: AddressError| ServiceError::MailTransport(e.to_string()))?,
+                    .map_err(|e: AddressError| AuthServiceError::MailTransport(e.to_string()))?,
             ))
             .subject("Elfelejtett jelszó")
             .header(ContentType::TEXT_HTML)
@@ -1587,13 +1712,13 @@ where
                             .default_notification_email()
                         }),
                     )
-                    .map_err(|e| ServiceError::MailTransport(e.to_string()))?,
+                    .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?,
             )
-            .map_err(|e| ServiceError::MailTransport(e.to_string()))?;
+            .map_err(|e| AuthServiceError::MailTransport(e.to_string()))?;
 
     match auth_module.send(email).await {
         Ok(_) => Ok(()),
-        Err(e) => Err(ServiceError::MailTransport(e.to_string())),
+        Err(e) => Err(AuthServiceError::MailTransport(e.to_string())),
     }
 }
 

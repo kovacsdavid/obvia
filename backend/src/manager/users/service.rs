@@ -18,35 +18,98 @@
  */
 
 use super::UsersModuleInterface;
+use crate::common::error::RepositoryError;
+use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::extractors::ClientContext;
-use crate::common::service::{Service, ServiceError, ServiceResult};
+use crate::common::service::{Service, ServiceError};
+use crate::common::value_object::ValueObjectError;
 use crate::manager::auth::dto::login::OtpUserInput;
 use crate::manager::auth::model::{AccountEventStatus, AccountEventType};
+use axum::http::StatusCode;
 use serde_json::json;
+use thiserror::Error;
+use tracing::Level;
 use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum UsersServiceError {
+    #[error("Repository error: {0}")]
+    Repository(#[from] RepositoryError),
+
+    #[error("MfaToken error: {0}")]
+    MfaToken(String),
+
+    #[error("A kétlépcsős azonosításhoz hasznát kód hibás!")]
+    InvalidMfaToken,
+
+    #[error("A kétépcsős azonosítás aktiválása korábban már megtörtént!")]
+    MfaAlreadyActive,
+
+    #[error("Túl sok próbálkozás történt. Próbáld újra {0} perc múlva!")]
+    TooManyAttempts(i64),
+
+    #[error("ValueObjectError: {0}")]
+    ValueObjectError(#[from] ValueObjectError),
+
+    #[error("Hozzáférés megtagadva!")]
+    Unauthorized,
+}
+
+impl From<ServiceError> for UsersServiceError {
+    fn from(value: ServiceError) -> Self {
+        match value {
+            ServiceError::Unauthorized => UsersServiceError::Unauthorized,
+        }
+    }
+}
+
+impl From<UsersServiceError> for AppError {
+    fn from(value: UsersServiceError) -> Self {
+        match value {
+            UsersServiceError::InvalidMfaToken
+            | UsersServiceError::TooManyAttempts(_)
+            | UsersServiceError::MfaAlreadyActive => Self::new(
+                Level::DEBUG,
+                StatusCode::UNAUTHORIZED,
+                file!(),
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
+            _ => Self::new(
+                Level::ERROR,
+                StatusCode::INTERNAL_SERVER_ERROR,
+                file!(),
+                AppErrorVisibility::Internal,
+                json!({"message": value.to_string()}),
+            ),
+        }
+    }
+}
+
+pub type UsersServiceResult<T> = Result<T, UsersServiceError>;
 
 pub trait UserService {
     fn otp_enable(
         &self,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<String>> + Send;
+    ) -> impl Future<Output = UsersServiceResult<String>> + Send;
     fn otp_verify(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
     fn otp_disable(
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> impl Future<Output = ServiceResult<()>> + Send;
+    ) -> impl Future<Output = UsersServiceResult<()>> + Send;
 }
 
 impl<'a, T> UserService for Service<'a, T>
 where
     T: UsersModuleInterface,
 {
-    async fn otp_enable(&self, client_context: &ClientContext) -> ServiceResult<String> {
+    async fn otp_enable(&self, client_context: &ClientContext) -> UsersServiceResult<String> {
         let users_repo = self.module().users_repo();
         let auth_repo = self.module().auth_repo();
         let user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
@@ -79,11 +142,11 @@ where
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
                     Some(json!({
-                        "error": ServiceError::MfaAlreadyActive.to_string()
+                        "error": UsersServiceError::MfaAlreadyActive.to_string()
                     })),
                 )
                 .await?;
-            return Err(ServiceError::MfaAlreadyActive);
+            return Err(UsersServiceError::MfaAlreadyActive);
         }
 
         let user = user.init_mfa_secret();
@@ -91,7 +154,7 @@ where
         let new_mfa_secret = match user
             .mfa_secret
             .clone()
-            .ok_or_else(|| ServiceError::MfaToken("missing secret".to_string()))
+            .ok_or_else(|| UsersServiceError::MfaToken("missing secret".to_string()))
         {
             Ok(v) => v,
             Err(e) => {
@@ -139,7 +202,7 @@ where
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> ServiceResult<()> {
+    ) -> UsersServiceResult<()> {
         let users_repo = self.module().users_repo();
         let auth_repo = self.module().auth_repo();
         let mut user = match users_repo.get_user_by_id(self.claims()?.sub()).await {
@@ -172,16 +235,16 @@ where
                     Some(client_context.ip),
                     client_context.user_agent.clone(),
                     Some(json!({
-                        "error": ServiceError::MfaAlreadyActive.to_string()
+                        "error": UsersServiceError::MfaAlreadyActive.to_string()
                     })),
                 )
                 .await?;
-            return Err(ServiceError::MfaAlreadyActive);
+            return Err(UsersServiceError::MfaAlreadyActive);
         }
 
         match user
             .check_mfa_token(payload.otp.as_str()?)
-            .map_err(|_| ServiceError::InvalidMfaToken)
+            .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),
             Err(e) => {
@@ -243,7 +306,7 @@ where
         &self,
         payload: &OtpUserInput,
         client_context: &ClientContext,
-    ) -> ServiceResult<()> {
+    ) -> UsersServiceResult<()> {
         rate_limit_by_event_type(
             120,
             5,
@@ -278,7 +341,7 @@ where
 
         match user
             .check_mfa_token(payload.otp.as_str()?)
-            .map_err(|_| ServiceError::InvalidMfaToken)
+            .map_err(|_| UsersServiceError::InvalidMfaToken)
         {
             Ok(_) => (),
             Err(e) => {
@@ -346,7 +409,7 @@ async fn rate_limit_by_event_type<T>(
     identifier: Option<String>,
     client_context: &ClientContext,
     event_type: AccountEventType,
-) -> ServiceResult<()>
+) -> UsersServiceResult<()>
 where
     T: UsersModuleInterface + ?Sized,
 {
@@ -375,7 +438,7 @@ where
                     })),
                 )
                 .await?;
-            return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+            return Err(UsersServiceError::TooManyAttempts(attempt_interval_mins));
         }
     };
 
@@ -391,11 +454,11 @@ where
                 client_context.user_agent.clone(),
                 Some(json!({
                     "error":
-                        ServiceError::TooManyAttempts(attempt_interval_mins).to_string()
+                        UsersServiceError::TooManyAttempts(attempt_interval_mins).to_string()
                 })),
             )
             .await?;
-        return Err(ServiceError::TooManyAttempts(attempt_interval_mins));
+        return Err(UsersServiceError::TooManyAttempts(attempt_interval_mins));
     }
     Ok(())
 }

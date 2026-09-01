@@ -34,6 +34,10 @@ use uuid::Uuid;
 pub trait TasksRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Task>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved>;
+    async fn get_resolved_by_worksheet_id(
+        &self,
+        worksheet_id: Uuid,
+    ) -> RepositoryResult<Vec<TaskResolved>>;
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
@@ -58,7 +62,6 @@ impl TasksRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<TaskResolved> {
         Ok(sqlx::query_as::<_, TaskResolved>(
             r#"
@@ -93,6 +96,46 @@ impl TasksRepository for PgPool {
         )
         .bind(id)
         .fetch_one(self)
+        .await?)
+    }
+    async fn get_resolved_by_worksheet_id(
+        &self,
+        worksheet_id: Uuid,
+    ) -> RepositoryResult<Vec<TaskResolved>> {
+        Ok(sqlx::query_as::<_, TaskResolved>(
+            r#"
+            SELECT
+                tasks.id as id,
+                tasks.worksheet_id as worksheet_id,
+                worksheets.name as worksheet,
+                tasks.service_id as service_id,
+                services.name as service,
+                tasks.currency_code as currency_code,
+                tasks.quantity as quantity,
+                tasks.price as price,
+                tasks.tax_id as tax_id,
+                taxes.description as tax,
+                tasks.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                tasks.status as status,
+                tasks.priority as priority,
+                tasks.due_date as due_date,
+                tasks.created_at as created_at,
+                tasks.updated_at as updated_at,
+                tasks.deleted_at as deleted_at,
+                tasks.description as description
+            FROM tasks
+            LEFT JOIN worksheets ON tasks.worksheet_id = worksheets.id
+            LEFT JOIN services ON tasks.service_id = services.id
+            LEFT JOIN taxes ON tasks.tax_id = taxes.id
+            LEFT JOIN users ON tasks.created_by_id = users.id
+            WHERE tasks.deleted_at IS NULL
+                AND tasks.status = 'active'
+                AND worsheets.id = $1
+            "#,
+        )
+        .bind(worksheet_id)
+        .fetch_all(self)
         .await?)
     }
     async fn get_paged(

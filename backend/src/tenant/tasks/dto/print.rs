@@ -135,7 +135,7 @@ mod tests {
         common::TEST_TZ,
         tenant::{
             services::model::tests::test_service_resolved_builder,
-            tasks::model::test_task_resolved_builder,
+            tasks::model::tests::test_task_resolved_builder,
         },
     };
 

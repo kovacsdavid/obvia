@@ -33,7 +33,8 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let tasks = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let task = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let service = task.service
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,34 +42,31 @@
   inset: 8pt,
 )
 
-#for task in tasks [
-  #v(0.5cm)
+#v(0.5cm)
 
-  #align(center)[
-    #text(size: 16pt, weight: "bold")[Feladat adatai]
-  ]
-
-  #v(0.5cm)
-
-  #table(
-    columns: (1fr, 2fr),
-    table.header([*Mező*], [*Érték*]),
-
-    ..row("Azonosító", field(task, "id")),
-    ..row("Munkalap", field(task, "worksheet")),
-    ..row("Szolgáltatás", field(task, "service")),
-    ..row("Leírás", field(task, "description")),
-    ..row("Pénznem", field(task, "currency_code")),
-    ..row("Munkaóra", field(task, "quantity")),
-    ..row("Ár", field(task, "price")),
-    ..row("Adó", field(task, "tax")),
-    ..row("Státusz", field(task, "status")),
-    ..row("Prioritás", field(task, "priority")),
-    ..row("Határidő", field(task, "due_date")),
-    ..row("Létrehozta", field(task, "created_by")),
-    ..row("Létrehozva", field(task, "created_at")),
-    ..row("Frissítve", field(task, "updated_at")),
-  )
-
-  #pagebreak(weak: true)
+#align(center)[
+  #text(size: 16pt, weight: "bold")[Feladat adatai]
 ]
+
+#v(0.5cm)
+
+#table(
+  columns: (1fr, 2fr),
+  table.header([*Mező*], [*Érték*]),
+
+  ..row("Azonosító", field(task, "id")),
+  ..row("Szolgáltatás", field(service, "name")),
+  ..row("Leírás", field(task, "description")),
+  ..row("Pénznem", field(task, "currency_code")),
+  ..row("Munkaóra", field(task, "quantity")),
+  ..row("Ár", field(task, "price")),
+  ..row("Adó", field(task, "tax")),
+  ..row("Státusz", field(task, "status")),
+  ..row("Prioritás", field(task, "priority")),
+  ..row("Határidő", field(task, "due_date")),
+  ..row("Létrehozta", field(task, "created_by")),
+  ..row("Létrehozva", field(task, "created_at")),
+  ..row("Frissítve", field(task, "updated_at")),
+)
+
+#pagebreak(weak: true)

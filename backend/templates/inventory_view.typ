@@ -34,6 +34,8 @@
 }
 
 #let inventory = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let product = inventory.product
+#let warehouse = inventory.warehouse
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,33 +43,31 @@
   inset: 8pt,
 )
 
-#for item in inventory [
-  #v(0.5cm)
+#v(0.5cm)
 
-  #align(center)[
-    #text(size: 16pt, weight: "bold")[Raktárkészlet adatai]
-  ]
-
-  #v(0.5cm)
-
-  #table(
-    columns: (1fr, 2fr),
-    table.header([*Mező*], [*Érték*]),
-
-    ..row("Azonosító", field(item, "id")),
-    ..row("Termék", field(item, "product")),
-    ..row("Raktár", field(item, "warehouse")),
-    ..row("Készlet (raktáron)", field(item, "quantity_on_hand")),
-    ..row("Foglalt", field(item, "quantity_reserved")),
-    ..row("Rendelkezésre álló", field(item, "quantity_available")),
-    ..row("Minimum készlet", field(item, "minimum_stock")),
-    ..row("Maximum készlet", field(item, "maximum_stock")),
-    ..row("Státusz", field(item, "status")),
-    ..row("Pénznem", field(item, "currency")),
-    ..row("Létrehozta", field(item, "created_by")),
-    ..row("Létrehozva", field(item, "created_at")),
-    ..row("Frissítve", field(item, "updated_at")),
-  )
-
-  #pagebreak(weak: true)
+#align(center)[
+  #text(size: 16pt, weight: "bold")[Raktárkészlet adatai]
 ]
+
+#v(0.5cm)
+
+#table(
+  columns: (1fr, 2fr),
+  table.header([*Mező*], [*Érték*]),
+
+  ..row("Azonosító", field(inventory, "id")),
+  ..row("Termék", field(product, "name")),
+  ..row("Raktár", field(warehouse, "name")),
+  ..row("Készlet (raktáron)", field(inventory, "quantity_on_hand")),
+  ..row("Foglalt", field(inventory, "quantity_reserved")),
+  ..row("Rendelkezésre álló", field(inventory, "quantity_available")),
+  ..row("Minimum készlet", field(inventory, "minimum_stock")),
+  ..row("Maximum készlet", field(inventory, "maximum_stock")),
+  ..row("Státusz", field(inventory, "status")),
+  ..row("Pénznem", field(inventory, "currency")),
+  ..row("Létrehozta", field(inventory, "created_by")),
+  ..row("Létrehozva", field(inventory, "created_at")),
+  ..row("Frissítve", field(inventory, "updated_at")),
+)
+
+#pagebreak(weak: true)

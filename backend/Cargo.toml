@@ -35,6 +35,7 @@ async-trait = "0.1.89"
 chrono-tz = "0.10.4"
 mockall_double = "0.3.1"
 clap = { version = "4.6.2", features = ["derive"] }
+derive_builder = "0.20.2"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

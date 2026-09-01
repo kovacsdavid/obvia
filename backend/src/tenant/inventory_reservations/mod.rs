@@ -22,6 +22,8 @@ use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_reservations::repository::InventoryReservationsRepository;
+use crate::tenant::products::repository::ProductsRepository;
+use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use lettre::{
     AsyncTransport,
@@ -52,6 +54,14 @@ pub trait InventoryReservationsModuleInterface: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
 }
 
 impl<P, T> InventoryReservationsModuleInterface for AppState<P, T>
@@ -78,6 +88,18 @@ where
     ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 #[cfg(test)]
@@ -93,28 +115,36 @@ pub mod tests {
     use mockall::mock;
 
     mock!(
-        pub InventoryReservationsModule {}
-        impl ConfigProvider for InventoryReservationsModule {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for InventoryReservationsModule {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl BaseModule for InventoryReservationsModule {}
-        impl InventoryReservationsModuleInterface for InventoryReservationsModule {
-            fn inventory_reservations_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
-            fn worksheets_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
-            fn inventory_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
-        }
-    );
+    pub InventoryReservationsModule {}
+    impl ConfigProvider for InventoryReservationsModule {
+        type Cfg = AppConfig;
+        fn config(&self) -> &<Self as ConfigProvider>::Cfg;
+    }
+    impl MailTransporter for InventoryReservationsModule {
+        async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
+    }
+    impl BaseModule for InventoryReservationsModule {}
+    impl InventoryReservationsModuleInterface for InventoryReservationsModule {
+        fn inventory_reservations_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn InventoryReservationsRepository + Send + Sync>>;
+        fn worksheets_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+        fn inventory_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+        fn products_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+        fn warehouses_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
+            }
+        );
 }

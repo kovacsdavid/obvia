@@ -266,8 +266,7 @@ where
             updated_at: test_time,
             deleted_at: None,
         };
-        let customer_resolved_print =
-            CustomerResolvedPrint::from_customer_revolved(customer_resolved, tz);
+        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
         let pdf = self.print(&[customer_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

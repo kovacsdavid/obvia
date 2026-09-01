@@ -19,6 +19,7 @@
 
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -38,7 +39,7 @@ pub struct Service {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct ServiceResolved {
     pub id: Uuid,
     pub name: String,
@@ -53,4 +54,31 @@ pub struct ServiceResolved {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_service_resolved_builder() -> ServiceResolvedBuilder {
+        let mut builder = ServiceResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .name("Test service".to_string())
+            .description(Some("Test description".to_string()))
+            .default_price(None)
+            .default_tax_id(None)
+            .default_tax(None)
+            .currency_code(Some("HUF".to_string()))
+            .status("active".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
+    }
 }

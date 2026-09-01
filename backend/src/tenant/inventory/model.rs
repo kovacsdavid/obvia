@@ -19,6 +19,7 @@
 
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -41,7 +42,7 @@ pub struct Inventory {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct InventoryResolved {
     pub id: Uuid,
     pub product_id: Uuid,
@@ -61,4 +62,36 @@ pub struct InventoryResolved {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_inventory_resolved_builder() -> InventoryResolvedBuilder {
+        let mut builder = InventoryResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .product_id(Uuid::new_v4())
+            .product("Test product".to_string())
+            .warehouse_id(Uuid::new_v4())
+            .warehouse("Test warehouse".to_string())
+            .quantity_on_hand("10".parse().unwrap())
+            .quantity_reserved("20".parse().unwrap())
+            .quantity_available("30".parse().unwrap())
+            .maximum_stock(None)
+            .minimum_stock(None)
+            .currency_code("HUF".to_string())
+            .currency("Forint".to_string())
+            .status("active".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
+    }
 }

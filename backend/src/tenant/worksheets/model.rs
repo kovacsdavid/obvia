@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -36,7 +38,7 @@ pub struct Worksheet {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct WorksheetResolved {
     pub id: Uuid,
     pub name: String,
@@ -55,4 +57,35 @@ pub struct WorksheetResolved {
     pub gross_material_cost: BigDecimal,
     pub net_work_cost: BigDecimal,
     pub gross_work_cost: BigDecimal,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_worksheet_resolved_builder() -> WorksheetResolvedBuilder {
+        let mut builder = WorksheetResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .name("Test worksheet".to_string())
+            .description(Some("Test description".to_string()))
+            .customer_id(Uuid::new_v4())
+            .customer("Test Customer".to_string())
+            .project_id(None)
+            .project(None)
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .status("active".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None)
+            .net_material_cost("10".parse().unwrap())
+            .gross_material_cost("20".parse().unwrap())
+            .net_work_cost("30".parse().unwrap())
+            .gross_work_cost("40".parse().unwrap());
+
+        builder
+    }
 }

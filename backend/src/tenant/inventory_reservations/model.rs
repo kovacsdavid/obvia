@@ -18,6 +18,7 @@
  */
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -36,7 +37,7 @@ pub struct InventoryReservation {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct InventoryReservationResolved {
     pub id: Uuid,
     pub inventory_id: Uuid,
@@ -49,4 +50,29 @@ pub struct InventoryReservationResolved {
     pub created_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_inventory_reservation_resolved_builder() -> InventoryReservationResolvedBuilder {
+        let mut builder = InventoryReservationResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .inventory_id(Uuid::new_v4())
+            .quantity("10".parse().unwrap())
+            .reference_type(Some("worksheets".to_string()))
+            .reference_id(Some(Uuid::new_v4()))
+            .reserved_until(Some(*TEST_TIME))
+            .status("active".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME);
+
+        builder
+    }
 }

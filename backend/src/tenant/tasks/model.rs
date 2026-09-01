@@ -16,8 +16,11 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
+use crate::common::CommonBuilderError;
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -41,7 +44,8 @@ pub struct Task {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct TaskResolved {
     pub id: Uuid,
     pub worksheet_id: Uuid,
@@ -62,4 +66,37 @@ pub struct TaskResolved {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub description: Option<String>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_task_resolved_builder() -> TaskResolvedBuilder {
+        let mut builder = TaskResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .worksheet_id(Uuid::new_v4())
+            .worksheet("Test worksheet".to_string())
+            .service_id(Uuid::new_v4())
+            .service("Test service".to_string())
+            .currency_code("HUF".to_string())
+            .quantity(Some("10".parse().unwrap()))
+            .price(Some("1000".parse().unwrap()))
+            .tax_id(Uuid::new_v4())
+            .tax("Test tax".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .status("active".to_string())
+            .priority(Some("normal".to_string()))
+            .due_date(Some(*TEST_TIME))
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None)
+            .description(Some("Test description".to_string()));
+
+        builder
+    }
 }

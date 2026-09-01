@@ -17,17 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::{
+    common::{CommonBuilderError, TEST_TIME_TZ},
+    tenant::inventory::dto::print::InventoryResolvedPrint,
+};
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
 use crate::tenant::inventory_reservations::model::InventoryReservationResolved;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct InventoryReservationResolvedPrint {
     pub id: Uuid,
-    pub inventory_id: Uuid,
+    pub inventory: InventoryResolvedPrint,
     pub quantity: BigDecimal,
     pub reference_type: Option<String>,
     pub reference_id: Option<Uuid>,
@@ -40,14 +46,15 @@ pub struct InventoryReservationResolvedPrint {
 }
 
 impl InventoryReservationResolvedPrint {
-    pub fn from_inventory_reservation_resolved(
+    pub fn new(
         inventory_reservation_resolved: InventoryReservationResolved,
+        inventory_resolved_print: InventoryResolvedPrint,
         tz: Tz,
     ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: inventory_reservation_resolved.id,
-            inventory_id: inventory_reservation_resolved.inventory_id,
+            inventory: inventory_resolved_print,
             quantity: inventory_reservation_resolved.quantity,
             reference_type: inventory_reservation_resolved
                 .reference_type
@@ -90,9 +97,37 @@ impl InventoryReservationResolvedPrint {
     }
 }
 
+pub fn test_inventory_reservation_resolved_print_builder(
+    inventory_resolved_print: InventoryResolvedPrint,
+) -> InventoryReservationResolvedPrintBuilder {
+    let mut builder = InventoryReservationResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .inventory(inventory_resolved_print)
+        .quantity("10".parse().unwrap())
+        .reference_type(Some("Munkalap".to_string()))
+        .reference_id(Some(Uuid::new_v4()))
+        .reserved_until(Some(TEST_TIME_TZ.clone()))
+        .status("Aktív".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone());
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
-    use chrono::{DateTime, Utc};
+    use crate::{
+        common::TEST_TZ,
+        tenant::{
+            inventory::dto::print::test_inventory_resolved_print_builder,
+            inventory_reservations::model::tests::test_inventory_reservation_resolved_builder,
+            products::dto::print::test_product_resolved_print_builder,
+            warehouses::dto::print::test_warehouse_resolved_print_builder,
+        },
+    };
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -103,39 +138,36 @@ mod tests {
         let inventory_id = Uuid::new_v4();
         let reference_id = Some(Uuid::new_v4());
         let created_by_id = Uuid::new_v4();
-        let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
-        let tz: Tz = "Europe/Budapest".parse().unwrap();
-        let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
-        let inventory_reservation_resolved = InventoryReservationResolved {
-            id: inventory_reservation_id,
-            inventory_id,
-            quantity: "10".parse().unwrap(),
-            reference_type: Some("worksheets".to_string()),
-            reference_id,
-            reserved_until: Some(input_date),
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: input_date,
-            updated_at: input_date,
-        };
-        let inventory_resevation_resolved_print =
-            InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-                inventory_reservation_resolved,
-                tz,
-            );
+        let inventory_resolved_print = test_inventory_resolved_print_builder(
+            test_product_resolved_print_builder().build().unwrap(),
+            test_warehouse_resolved_print_builder().build().unwrap(),
+        )
+        .id(inventory_id)
+        .build()
+        .unwrap();
+        let inventory_reservation_resolved = test_inventory_reservation_resolved_builder()
+            .id(inventory_reservation_id)
+            .reference_id(reference_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let inventory_resevation_resolved_print = InventoryReservationResolvedPrint::new(
+            inventory_reservation_resolved,
+            inventory_resolved_print.clone(),
+            *TEST_TZ,
+        );
         let inventory_resevation_resolved_print_expected = InventoryReservationResolvedPrint {
             id: inventory_reservation_id,
-            inventory_id,
+            inventory: inventory_resolved_print,
             quantity: "10".parse().unwrap(),
             reference_type: Some("Munkalap".to_string()),
             reference_id,
-            reserved_until: Some(output_date.clone()),
+            reserved_until: Some(TEST_TIME_TZ.clone()),
             status: "Aktív".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
-            created_at: output_date.clone(),
-            updated_at: output_date,
+            created_at: TEST_TIME_TZ.clone(),
+            updated_at: TEST_TIME_TZ.clone(),
         };
         assert_eq!(
             inventory_resevation_resolved_print,

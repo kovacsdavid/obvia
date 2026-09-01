@@ -17,13 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
 use crate::tenant::services::model::ServiceResolved;
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct ServicesResolvedPrint {
     pub id: Uuid,
     pub name: String,
@@ -41,7 +45,7 @@ pub struct ServicesResolvedPrint {
 }
 
 impl ServicesResolvedPrint {
-    pub fn from_service_resolved(service_resolved: ServiceResolved, tz: Tz) -> Self {
+    pub fn new(service_resolved: ServiceResolved, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: service_resolved.id,
@@ -79,6 +83,26 @@ impl ServicesResolvedPrint {
     }
 }
 
+pub fn test_service_resolved_print_builder() -> ServicesResolvedPrintBuilder {
+    let mut builder = ServicesResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .name("Test service".to_string())
+        .description(Some("Test description".to_string()))
+        .default_price(Some("10".parse().unwrap()))
+        .default_tax_id(Some(Uuid::new_v4()))
+        .default_tax(Some("Test tax".to_string()))
+        .currency_code(Some("HUF".to_string()))
+        .status("active".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,8 +132,7 @@ mod tests {
             updated_at: input_date,
             deleted_at: None,
         };
-        let service_resolved_print =
-            ServicesResolvedPrint::from_service_resolved(service_resolved, tz);
+        let service_resolved_print = ServicesResolvedPrint::new(service_resolved, tz);
         let service_resolved_print_expected = ServicesResolvedPrint {
             id: service_id,
             name: "Test service".to_string(),

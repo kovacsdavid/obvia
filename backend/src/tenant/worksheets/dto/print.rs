@@ -17,20 +17,26 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::{CommonBuilderError, TEST_TIME_TZ};
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::tenant::worksheets::model::WorksheetResolved;
+use crate::tenant::{
+    customers::dto::print::CustomerResolvedPrint,
+    inventory_movements::dto::print::InventoryMovementsResolvedPrint,
+    tasks::dto::print::TaskResolvedPrint, worksheets::model::WorksheetResolved,
+};
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct WorksheetResolvedPrint {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub customer_id: Uuid,
-    pub customer: String,
+    pub customer: CustomerResolvedPrint,
     pub project_id: Option<Uuid>,
     pub project: Option<String>,
     pub created_by_id: Uuid,
@@ -43,17 +49,24 @@ pub struct WorksheetResolvedPrint {
     pub gross_material_cost: BigDecimal,
     pub net_work_cost: BigDecimal,
     pub gross_work_cost: BigDecimal,
+    pub tasks: Vec<TaskResolvedPrint>,
+    pub materials: Vec<InventoryMovementsResolvedPrint>,
 }
 
 impl WorksheetResolvedPrint {
-    pub fn from_worksheet_resolved(worksheet_resolved: WorksheetResolved, tz: Tz) -> Self {
+    pub fn new(
+        worksheet_resolved: WorksheetResolved,
+        customer_resolved_print: CustomerResolvedPrint,
+        tasks: Vec<TaskResolvedPrint>,
+        materials: Vec<InventoryMovementsResolvedPrint>,
+        tz: Tz,
+    ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: worksheet_resolved.id,
             name: worksheet_resolved.name,
             description: worksheet_resolved.description,
-            customer_id: worksheet_resolved.customer_id,
-            customer: worksheet_resolved.customer,
+            customer: customer_resolved_print,
             project_id: worksheet_resolved.project_id,
             project: worksheet_resolved.project,
             created_by_id: worksheet_resolved.created_by_id,
@@ -76,6 +89,8 @@ impl WorksheetResolvedPrint {
             gross_material_cost: worksheet_resolved.gross_material_cost,
             net_work_cost: worksheet_resolved.net_work_cost,
             gross_work_cost: worksheet_resolved.gross_work_cost,
+            tasks,
+            materials,
         }
     }
     fn map_status(status: &str) -> String {
@@ -88,8 +103,39 @@ impl WorksheetResolvedPrint {
     }
 }
 
+pub fn test_worksheet_resolved_print_builder(
+    customer_resolved_print: CustomerResolvedPrint,
+    tasks: Vec<TaskResolvedPrint>,
+    materials: Vec<InventoryMovementsResolvedPrint>,
+) -> WorksheetResolvedPrintBuilder {
+    let mut builder = WorksheetResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .name("Test worksheet".to_string())
+        .description(Some("Test description".to_string()))
+        .customer(customer_resolved_print)
+        .project_id(Some(Uuid::new_v4()))
+        .project(Some("Test project".to_string()))
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .status("Aktív".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None)
+        .net_material_cost("10".parse().unwrap())
+        .gross_material_cost("20".parse().unwrap())
+        .net_work_cost("30".parse().unwrap())
+        .gross_work_cost("40".parse().unwrap())
+        .tasks(tasks)
+        .materials(materials);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::tenant::customers::model::CustomerResolved;
+
     use super::*;
     use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
@@ -122,14 +168,33 @@ mod tests {
             net_work_cost: "30".parse().unwrap(),
             gross_work_cost: "40".parse().unwrap(),
         };
-        let worksheet_resolved_print =
-            WorksheetResolvedPrint::from_worksheet_resolved(worksheet_resolved, tz);
+        let customer_resolved = CustomerResolved {
+            id: customer_id,
+            name: "Test Customer".to_string(),
+            contact_name: None,
+            email: "test.customer@example.com".to_string(),
+            phone_number: Some("+36301234567".to_string()),
+            status: "active".to_string(),
+            customer_type: "natural".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
+        let worksheet_resolved_print = WorksheetResolvedPrint::new(
+            worksheet_resolved,
+            customer_resolved_print.clone(),
+            vec![], // TODO: add some test data here
+            vec![], // TODO: add some test data here
+            tz,
+        );
         let worksheet_resolved_print_expected = WorksheetResolvedPrint {
             id: worksheet_id,
             name: "Test worksheet".to_string(),
             description: None,
-            customer_id,
-            customer: "Test customer".to_string(),
+            customer: customer_resolved_print,
             project_id,
             project: Some("Test project".to_string()),
             created_by_id,
@@ -142,6 +207,8 @@ mod tests {
             gross_material_cost: "20".parse().unwrap(),
             net_work_cost: "30".parse().unwrap(),
             gross_work_cost: "40".parse().unwrap(),
+            tasks: vec![],
+            materials: vec![],
         };
         assert_eq!(worksheet_resolved_print, worksheet_resolved_print_expected);
     }

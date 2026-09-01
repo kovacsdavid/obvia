@@ -17,12 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
 use crate::tenant::customers::model::CustomerResolved;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct CustomerResolvedPrint {
     id: Uuid,
     name: String,
@@ -39,7 +43,7 @@ pub struct CustomerResolvedPrint {
 }
 
 impl CustomerResolvedPrint {
-    pub fn from_customer_revolved(customer_resolved: CustomerResolved, tz: Tz) -> Self {
+    pub fn new(customer_resolved: CustomerResolved, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: customer_resolved.id,
@@ -90,8 +94,28 @@ impl CustomerResolvedPrint {
     }
 }
 
+pub fn test_customer_resolved_print_builder() -> CustomerResolvedPrintBuilder {
+    let mut builder = CustomerResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .name("Test Customer".to_string())
+        .contact_name(None)
+        .email("test.customer@example.com".to_string())
+        .phone_number(Some("+36301234567".to_string()))
+        .status("Aktív".to_string())
+        .customer_type("Természetes személy".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
+
     use super::*;
     use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
@@ -117,8 +141,7 @@ mod tests {
             updated_at: input_date,
             deleted_at: None,
         };
-        let customer_resolved_print =
-            CustomerResolvedPrint::from_customer_revolved(customer_resolved, tz);
+        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
         let customer_resolved_print_expected = CustomerResolvedPrint {
             id: customer_id,
             name: "Teszt Elek".to_string(),

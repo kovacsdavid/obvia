@@ -17,20 +17,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::tenant::inventory::model::InventoryResolved;
+use crate::tenant::{
+    inventory::model::InventoryResolved, products::dto::print::ProductsResolvedPrint,
+    warehouses::dto::print::WarehouseResolvedPrint,
+};
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct InventoryResolvedPrint {
     pub id: Uuid,
-    pub product_id: Uuid,
-    pub product: String,
-    pub warehouse_id: Uuid,
-    pub warehouse: String,
+    pub product: ProductsResolvedPrint,
+    pub warehouse: WarehouseResolvedPrint,
     pub quantity_on_hand: BigDecimal,
     pub quantity_reserved: BigDecimal,
     pub quantity_available: BigDecimal,
@@ -47,14 +52,17 @@ pub struct InventoryResolvedPrint {
 }
 
 impl InventoryResolvedPrint {
-    pub fn from_inventory_resolved(inventory_resolved: InventoryResolved, tz: Tz) -> Self {
+    pub fn new(
+        inventory_resolved: InventoryResolved,
+        product_resolved_print: ProductsResolvedPrint,
+        warehouse_resolved_print: WarehouseResolvedPrint,
+        tz: Tz,
+    ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: inventory_resolved.id,
-            product_id: inventory_resolved.product_id,
-            product: inventory_resolved.product,
-            warehouse_id: inventory_resolved.warehouse_id,
-            warehouse: inventory_resolved.warehouse,
+            product: product_resolved_print,
+            warehouse: warehouse_resolved_print,
             quantity_on_hand: inventory_resolved.quantity_on_hand,
             quantity_reserved: inventory_resolved.quantity_reserved,
             quantity_available: inventory_resolved.quantity_available,
@@ -91,8 +99,36 @@ impl InventoryResolvedPrint {
     }
 }
 
+pub fn test_inventory_resolved_print_builder(
+    product_resolved_print: ProductsResolvedPrint,
+    warehouse_resolved_print: WarehouseResolvedPrint,
+) -> InventoryResolvedPrintBuilder {
+    let mut builder = InventoryResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .product(product_resolved_print)
+        .warehouse(warehouse_resolved_print)
+        .quantity_on_hand("10".parse().unwrap())
+        .quantity_reserved("20".parse().unwrap())
+        .quantity_available("30".parse().unwrap())
+        .minimum_stock(Some("40".parse().unwrap()))
+        .maximum_stock(Some("50".parse().unwrap()))
+        .currency_code("HUF".parse().unwrap())
+        .currency("Forint".parse().unwrap())
+        .status("active".parse().unwrap())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::tenant::{products::model::ProductResolved, warehouses::model::WarehouseResolved};
+
     use super::*;
     use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
@@ -103,6 +139,7 @@ mod tests {
         let product_id = Uuid::new_v4();
         let warehouse_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
+        let unit_of_measure_id = Uuid::new_v4();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
@@ -126,14 +163,45 @@ mod tests {
             updated_at: input_date,
             deleted_at: None,
         };
-        let inventory_resolved_print =
-            InventoryResolvedPrint::from_inventory_resolved(inventory_resolved, tz);
+        let product_resolved = ProductResolved {
+            id: product_id,
+            name: "Test product".to_string(),
+            description: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let product_resolved_print = ProductsResolvedPrint::new(product_resolved, tz);
+
+        let warehouse_resolved = WarehouseResolved {
+            id: warehouse_id,
+            name: "Test warehouse".to_string(),
+            contact_name: None,
+            contact_phone: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let warehouse_resolved_print = WarehouseResolvedPrint::new(warehouse_resolved, tz);
+
+        let inventory_resolved_print = InventoryResolvedPrint::new(
+            inventory_resolved,
+            product_resolved_print.clone(),
+            warehouse_resolved_print.clone(),
+            tz,
+        );
         let inventory_resolved_print_expected = InventoryResolvedPrint {
             id: inventory_id,
-            product_id,
-            product: "Teszt termék".to_string(),
-            warehouse_id,
-            warehouse: "Teszt raktár".to_string(),
+            product: product_resolved_print,
+            warehouse: warehouse_resolved_print,
             quantity_on_hand: "10".parse().unwrap(),
             quantity_reserved: "20".parse().unwrap(),
             quantity_available: "30".parse().unwrap(),

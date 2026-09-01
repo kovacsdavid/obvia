@@ -17,19 +17,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::tenant::tasks::model::TaskResolved;
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
+use crate::tenant::{services::dto::print::ServicesResolvedPrint, tasks::model::TaskResolved};
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct TaskResolvedPrint {
     pub id: Uuid,
-    pub worksheet_id: Uuid,
-    pub worksheet: String,
-    pub service_id: Uuid,
-    pub service: String,
+    pub service: ServicesResolvedPrint,
     pub currency_code: String,
     pub quantity: Option<BigDecimal>,
     pub price: Option<BigDecimal>,
@@ -47,14 +48,15 @@ pub struct TaskResolvedPrint {
 }
 
 impl TaskResolvedPrint {
-    pub fn from_task_resolved(task_resolved: TaskResolved, tz: Tz) -> Self {
+    pub fn new(
+        task_resolved: TaskResolved,
+        service_resolved_print: ServicesResolvedPrint,
+        tz: Tz,
+    ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: task_resolved.id,
-            worksheet_id: task_resolved.worksheet_id,
-            worksheet: task_resolved.worksheet,
-            service_id: task_resolved.service_id,
-            service: task_resolved.service,
+            service: service_resolved_print,
             currency_code: task_resolved.currency_code,
             quantity: task_resolved.quantity,
             price: task_resolved.price,
@@ -102,62 +104,74 @@ impl TaskResolvedPrint {
     }
 }
 
+pub fn test_task_resolved_print_builder(
+    service_resolved_print: ServicesResolvedPrint,
+) -> TaskResolvedPrintBuilder {
+    let mut builder = TaskResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .service(service_resolved_print)
+        .currency_code("HUF".to_string())
+        .quantity(Some("10".parse().unwrap()))
+        .price(Some("1000".parse().unwrap()))
+        .tax_id(Uuid::new_v4())
+        .tax("Test tax".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .status("active".to_string())
+        .priority(Some("normal".to_string()))
+        .due_date(Some(TEST_TIME_TZ.clone()))
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None)
+        .description(Some("Test description".to_string()));
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::{
+        common::TEST_TZ,
+        tenant::{
+            services::model::tests::test_service_resolved_builder,
+            tasks::model::test_task_resolved_builder,
+        },
+    };
+
     use super::*;
-    use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_from_task_resolved() {
+    fn test_task_resolved_print_from_task_resolved() {
         let task_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
         let tax_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
-        let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
-        let tz: Tz = "Europe/Budapest".parse().unwrap();
-        let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
-        let task_resolved = TaskResolved {
-            id: task_id,
-            worksheet_id,
-            worksheet: "Test worksheet".to_string(),
-            service_id,
-            service: "Test service".to_string(),
-            currency_code: "HUF".to_string(),
-            quantity: Some("10".parse().unwrap()),
-            price: Some("20".parse().unwrap()),
-            tax_id,
-            tax: "Test tax".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            status: "active".to_string(),
-            priority: Some("normal".to_string()),
-            due_date: Some(input_date),
-            created_at: input_date,
-            updated_at: input_date,
-            deleted_at: None,
-            description: Some("Test description".to_string()),
-        };
-        let task_resolved_print = TaskResolvedPrint::from_task_resolved(task_resolved, tz);
+        let task_resolved = test_task_resolved_builder()
+            .id(task_id)
+            .tax_id(tax_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let service_resolved = test_service_resolved_builder().build().unwrap();
+        let service_resolved_print = ServicesResolvedPrint::new(service_resolved, *TEST_TZ);
+        let task_resolved_print =
+            TaskResolvedPrint::new(task_resolved, service_resolved_print.clone(), *TEST_TZ);
         let task_resolved_print_expected = TaskResolvedPrint {
             id: task_id,
-            worksheet_id,
-            worksheet: "Test worksheet".to_string(),
-            service_id,
-            service: "Test service".to_string(),
+            service: service_resolved_print,
             currency_code: "HUF".to_string(),
             quantity: Some("10".parse().unwrap()),
-            price: Some("20".parse().unwrap()),
+            price: Some("1000".parse().unwrap()),
             tax_id,
             tax: "Test tax".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
             status: "Aktív".to_string(),
             priority: Some("Normál".to_string()),
-            due_date: Some(output_date.clone()),
-            created_at: output_date.clone(),
-            updated_at: output_date,
+            due_date: Some(TEST_TIME_TZ.clone()),
+            created_at: TEST_TIME_TZ.clone(),
+            updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,
             description: Some("Test description".to_string()),
         };

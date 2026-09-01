@@ -320,8 +320,7 @@ where
             updated_at: test_time,
             deleted_at: None,
         };
-        let products_resolved_print =
-            ProductsResolvedPrint::from_product_resolved(product_resolved, tz);
+        let products_resolved_print = ProductsResolvedPrint::new(product_resolved, tz);
         let pdf = self.print(&[products_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

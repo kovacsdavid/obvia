@@ -19,6 +19,7 @@
 
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -39,7 +40,7 @@ pub struct InventoryMovement {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct InventoryMovementResolved {
     pub id: Uuid,
     pub inventory_id: Uuid,
@@ -55,4 +56,32 @@ pub struct InventoryMovementResolved {
     pub created_by_id: Uuid,
     pub created_by: String,
     pub created_at: DateTime<Utc>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_inventory_movement_resolved_builder() -> InventoryMovementResolvedBuilder {
+        let mut builder = InventoryMovementResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .inventory_id(Uuid::new_v4())
+            .movement_type("in".to_string())
+            .quantity("10".parse().expect("could not parse quantity"))
+            .reference_type(Some("worksheets".to_string()))
+            .reference_id(Some(Uuid::new_v4()))
+            .unit_price(Some("20".parse().expect("could not parse unit_price")))
+            .total_price(Some("30".parse().expect("could not parse total_price")))
+            .tax_id(Uuid::new_v4())
+            .tax(Some("Test tax".to_string()))
+            .movement_date(*TEST_TIME)
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME);
+
+        builder
+    }
 }

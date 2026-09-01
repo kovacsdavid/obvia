@@ -17,13 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
+use crate::tenant::warehouses::model::WarehouseResolved;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::tenant::warehouses::model::WarehouseResolved;
-
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct WarehouseResolvedPrint {
     pub id: Uuid,
     pub name: String,
@@ -38,7 +41,7 @@ pub struct WarehouseResolvedPrint {
 }
 
 impl WarehouseResolvedPrint {
-    pub fn from_warehouse_resolved(warehouse_resolved: WarehouseResolved, tz: Tz) -> Self {
+    pub fn new(warehouse_resolved: WarehouseResolved, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: warehouse_resolved.id,
@@ -75,6 +78,23 @@ impl WarehouseResolvedPrint {
     }
 }
 
+pub fn test_warehouse_resolved_print_builder() -> WarehouseResolvedPrintBuilder {
+    let mut builder = WarehouseResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .name("Test warehouse".to_string())
+        .contact_name(Some("Test Contact".to_string()))
+        .contact_phone(Some("+36301234567".to_string()))
+        .status("active".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,8 +120,7 @@ mod tests {
             updated_at: input_date,
             deleted_at: None,
         };
-        let warehouse_resolved_print =
-            WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
+        let warehouse_resolved_print = WarehouseResolvedPrint::new(warehouse_resolved, tz);
         let warehouse_resolved_print_expected = WarehouseResolvedPrint {
             id: warehouse_id,
             name: "Test warehouse".to_string(),

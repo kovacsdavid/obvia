@@ -24,7 +24,6 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::worksheets::WorksheetsModuleInterface;
-use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
 use crate::tenant::worksheets::dto::user_input::{WorksheetUserInput, WorksheetUserInputHelper};
 use crate::tenant::worksheets::service::WorksheetService;
 use crate::tenant::worksheets::types::worksheet::{WorksheetFilterBy, WorksheetOrderBy};
@@ -199,19 +198,7 @@ pub async fn print<M: WorksheetsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
-    let worksheet_resolved_print = WorksheetResolvedPrint::from_worksheet_resolved(
-        map_handler_err(
-            service.get_resolved(payload.uuid).await,
-            worksheets_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), worksheets_module.clone()).await?,
-    );
-    let pdf = map_handler_err(
-        service.print(&[worksheet_resolved_print]).await,
-        worksheets_module,
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(payload.uuid).await, worksheets_module).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -226,6 +213,7 @@ pub async fn print<M: WorksheetsModuleInterface>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::TEST_TZ;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
@@ -234,7 +222,34 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+    use crate::tenant::customers::model::tests::test_customer_resolved_builder;
+    use crate::tenant::customers::repository::MockCustomersRepository;
+    use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
+    use crate::tenant::inventory::model::InventoryResolved;
+    use crate::tenant::inventory::model::tests::test_inventory_resolved_builder;
+    use crate::tenant::inventory::repository::MockInventoryRepository;
+    use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
+    use crate::tenant::inventory_movements::model::tests::test_inventory_movement_resolved_builder;
+    use crate::tenant::inventory_movements::repository::MockInventoryMovementsRepository;
+    use crate::tenant::products::dto::print::ProductsResolvedPrint;
+    use crate::tenant::products::model::ProductResolved;
+    use crate::tenant::products::model::tests::test_product_resolved_builder;
+    use crate::tenant::products::repository::MockProductsRepository;
+    use crate::tenant::services::dto::print::ServicesResolvedPrint;
+    use crate::tenant::services::model::ServiceResolved;
+    use crate::tenant::services::model::tests::test_service_resolved_builder;
+    use crate::tenant::services::repository::MockServicesRepository;
+    use crate::tenant::tasks::dto::print::TaskResolvedPrint;
+    use crate::tenant::tasks::model::tests::test_task_resolved_builder;
+    use crate::tenant::tasks::repository::MockTasksRepository;
+    use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+    use crate::tenant::warehouses::model::WarehouseResolved;
+    use crate::tenant::warehouses::model::tests::test_warehouse_resolved_builder;
+    use crate::tenant::warehouses::repository::MockWarehousesRepository;
+    use crate::tenant::worksheets::dto::print::WorksheetResolvedPrint;
     use crate::tenant::worksheets::model::WorksheetResolved;
+    use crate::tenant::worksheets::model::tests::test_worksheet_resolved_builder;
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::worksheets::{
@@ -244,7 +259,7 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{DateTime, Utc};
+    use chrono::Utc;
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1737,30 +1752,17 @@ mod tests {
         let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
-        let worksheet_resolved = WorksheetResolved {
-            id: worksheet_id,
-            name: "Test worksheet".to_string(),
-            description: None,
-            customer_id,
-            customer: "Test customer".to_string(),
-            project_id: None,
-            project: None,
-            created_by_id,
-            created_by: "Test user".to_string(),
-            status: "active".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-            net_material_cost: "10".parse().unwrap(),
-            gross_material_cost: "20".parse().unwrap(),
-            net_work_cost: "30".parse().unwrap(),
-            gross_work_cost: "40".parse().unwrap(),
-        };
+        let worksheet_resolved = test_worksheet_resolved_builder()
+            .id(worksheet_id)
+            .customer_id(customer_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
 
-        let mut repo = MockWorksheetsRepository::new();
-        repo.expect_get_resolved_by_id()
+        let mut worksheets_repo = MockWorksheetsRepository::new();
+        worksheets_repo
+            .expect_get_resolved_by_id()
             .times(1)
             .with(eq(worksheet_id))
             .returning({
@@ -1768,28 +1770,309 @@ mod tests {
                 move |_| Ok(worksheet_resolved.clone())
             });
 
+        let tasks_resolved = vec![
+            test_task_resolved_builder()
+                .service("Test service 1".to_string())
+                .build()
+                .unwrap(),
+            test_task_resolved_builder()
+                .service("Test service 2".to_string())
+                .build()
+                .unwrap(),
+            test_task_resolved_builder()
+                .service("Test service 3".to_string())
+                .build()
+                .unwrap(),
+        ];
+
+        let mut tasks_repo = MockTasksRepository::new();
+        tasks_repo
+            .expect_get_resolved_by_worksheet_id()
+            .times(1)
+            .with(eq(worksheet_id))
+            .returning({
+                let tasks_resolved = tasks_resolved.clone();
+                move |_| Ok(tasks_resolved.clone())
+            });
+
+        let service_ids: Vec<Uuid> = tasks_resolved.iter().map(|v| v.service_id).collect();
+
+        let services_resolved = service_ids
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| {
+                let name = format!("Test task {}", idx + 1);
+                test_service_resolved_builder()
+                    .id(*id)
+                    .name(name)
+                    .build()
+                    .unwrap()
+            })
+            .collect::<Vec<ServiceResolved>>();
+
+        let mut services_repo = MockServicesRepository::new();
+        services_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(service_ids))
+            .returning({
+                let services_resolved = services_resolved.clone();
+                move |_| Ok(services_resolved.clone())
+            });
+
+        let inventory_movements_resolved = vec![
+            test_inventory_movement_resolved_builder().build().unwrap(),
+            test_inventory_movement_resolved_builder().build().unwrap(),
+        ];
+        let inventory_ids: Vec<Uuid> = inventory_movements_resolved
+            .iter()
+            .map(|v| v.inventory_id)
+            .collect();
+        let mut inventory_movements_repo = MockInventoryMovementsRepository::new();
+        inventory_movements_repo
+            .expect_get_resolved_by_worksheet_id()
+            .times(1)
+            .with(eq(worksheet_id))
+            .returning({
+                let inventory_movements_resolved = inventory_movements_resolved.clone();
+                move |_| Ok(inventory_movements_resolved.clone())
+            });
+        let inventories_resolved = inventory_ids
+            .iter()
+            .map(|id| test_inventory_resolved_builder().id(*id).build().unwrap())
+            .collect::<Vec<InventoryResolved>>();
+        let product_ids = inventories_resolved
+            .iter()
+            .map(|v| v.product_id)
+            .collect::<Vec<Uuid>>();
+        let warehouse_ids = inventories_resolved
+            .iter()
+            .map(|v| v.warehouse_id)
+            .collect::<Vec<Uuid>>();
+
+        let mut inventory_repo = MockInventoryRepository::new();
+        inventory_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(inventory_ids))
+            .returning({
+                let inventories_resolved = inventories_resolved.clone();
+                move |_| Ok(inventories_resolved.clone())
+            });
+
+        let products_resolved = product_ids
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| {
+                let name = format!("Test material {}", idx + 1);
+                test_product_resolved_builder()
+                    .id(*id)
+                    .name(name)
+                    .build()
+                    .unwrap()
+            })
+            .collect::<Vec<ProductResolved>>();
+
+        let mut products_repo = MockProductsRepository::new();
+        products_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(product_ids))
+            .returning({
+                let products_resolved = products_resolved.clone();
+                move |_| Ok(products_resolved.clone())
+            });
+
+        let warehouses_resolved = warehouse_ids
+            .iter()
+            .enumerate()
+            .map(|(idx, id)| {
+                let name = format!("Test warehouse {}", idx + 1);
+                test_warehouse_resolved_builder()
+                    .id(*id)
+                    .name(name)
+                    .build()
+                    .unwrap()
+            })
+            .collect::<Vec<WarehouseResolved>>();
+
+        let mut warehouses_repo = MockWarehousesRepository::new();
+        warehouses_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(warehouse_ids))
+            .returning({
+                let warehouses_resolved = warehouses_resolved.clone();
+                move |_| Ok(warehouses_resolved.clone())
+            });
+
+        let mut customers_repo = MockCustomersRepository::new();
+        let customer_resolved = test_customer_resolved_builder()
+            .id(worksheet_resolved.customer_id)
+            .build()
+            .unwrap();
+        customers_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(worksheet_resolved.customer_id))
+            .returning({
+                let customer_resolved = customer_resolved.clone();
+                move |_| Ok(customer_resolved.clone())
+            });
+
         let mut app_state = MockWorksheetsModule::new();
-        let repo = Arc::new(repo);
+        let worksheets_repo = Arc::new(worksheets_repo);
+        let tasks_repo = Arc::new(tasks_repo);
+        let inventory_movements_repo = Arc::new(inventory_movements_repo);
+        let inventory_repo = Arc::new(inventory_repo);
+        let services_repo = Arc::new(services_repo);
+        let products_repo = Arc::new(products_repo);
+        let warehouses_repo = Arc::new(warehouses_repo);
+        let customers_repo = Arc::new(customers_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
             .times(1)
-            .returning(move |_| Ok(repo.clone()));
+            .returning(move |_| Ok(worksheets_repo.clone()));
+        app_state
+            .expect_tasks_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(tasks_repo.clone()));
+        app_state
+            .expect_services_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(services_repo.clone()));
+        app_state
+            .expect_inventory_movements_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(inventory_movements_repo.clone()));
+        app_state
+            .expect_inventory_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(inventory_repo.clone()));
+        app_state
+            .expect_products_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(products_repo.clone()));
+        app_state
+            .expect_warehouses_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(warehouses_repo.clone()));
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(customers_repo.clone()));
         app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![WorksheetResolvedPrint::from_worksheet_resolved(
+        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, *TEST_TZ);
+
+        let mut services_resolved_print_map = HashMap::new();
+
+        for service_resolved in services_resolved.into_iter() {
+            services_resolved_print_map.insert(
+                service_resolved.id,
+                ServicesResolvedPrint::new(service_resolved, *TEST_TZ),
+            );
+        }
+
+        let tasks = tasks_resolved
+            .into_iter()
+            .map(|task_resolved| {
+                // NOTE: Need to copy because task_resolved will be moved
+                let service_id = task_resolved.service_id;
+                TaskResolvedPrint::new(
+                    task_resolved,
+                    services_resolved_print_map
+                        .get(&service_id)
+                        .unwrap()
+                        .clone(),
+                    *TEST_TZ,
+                )
+            })
+            .collect::<Vec<TaskResolvedPrint>>();
+
+        let mut products_resolved_print_map = HashMap::new();
+
+        for product_resolved in products_resolved.into_iter() {
+            products_resolved_print_map.insert(
+                product_resolved.id,
+                ProductsResolvedPrint::new(product_resolved, *TEST_TZ),
+            );
+        }
+
+        let mut warehouses_resovled_print_map = HashMap::new();
+
+        for warehouse_resolved in warehouses_resolved {
+            warehouses_resovled_print_map.insert(
+                warehouse_resolved.id,
+                WarehouseResolvedPrint::new(warehouse_resolved, *TEST_TZ),
+            );
+        }
+
+        let mut inventories_resolved_print_map = HashMap::new();
+
+        for inventory_resolved in inventories_resolved.into_iter() {
+            // NOTE: Need to copy because inventory_resolved will be moved
+            let warehouse_id = inventory_resolved.warehouse_id;
+            let product_id = inventory_resolved.product_id;
+
+            inventories_resolved_print_map.insert(
+                inventory_resolved.id,
+                InventoryResolvedPrint::new(
+                    inventory_resolved,
+                    products_resolved_print_map
+                        .get(&product_id)
+                        .unwrap()
+                        .clone(),
+                    warehouses_resovled_print_map
+                        .get(&warehouse_id)
+                        .unwrap()
+                        .clone(),
+                    *TEST_TZ,
+                ),
+            );
+        }
+
+        let materials = inventory_movements_resolved
+            .into_iter()
+            .map(|inventory_movement_resolved| {
+                // NOTE: Need to copy because inventory_movement_resolved will be moved
+                let inventory_id = inventory_movement_resolved.inventory_id;
+
+                InventoryMovementsResolvedPrint::new(
+                    inventory_movement_resolved,
+                    inventories_resolved_print_map
+                        .get(&inventory_id)
+                        .unwrap()
+                        .clone(),
+                    *TEST_TZ,
+                )
+            })
+            .collect::<Vec<InventoryMovementsResolvedPrint>>();
+
+        let pdf_gen_payload_expected = WorksheetResolvedPrint::new(
             worksheet_resolved,
-            "Europe/Budapest".parse().unwrap(),
-        )];
+            customer_resolved_print,
+            tasks,
+            materials,
+            *TEST_TZ,
+        );
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<WorksheetResolvedPrint>>()
+            .expect::<WorksheetResolvedPrint>()
             .times(1)
             .with(
                 eq(PdfTemplates::WorksheetView),

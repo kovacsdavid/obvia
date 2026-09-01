@@ -172,7 +172,7 @@ pub async fn print<M: WarehousesModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
-    let warehouse_resolved_print = WarehouseResolvedPrint::from_warehouse_resolved(
+    let warehouse_resolved_print = WarehouseResolvedPrint::new(
         map_handler_err(
             service.get_resolved(payload.uuid).await,
             warehouses_module.clone(),
@@ -1718,7 +1718,7 @@ mod tests {
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![WarehouseResolvedPrint::from_warehouse_resolved(
+        let pdf_gen_payload_expected = vec![WarehouseResolvedPrint::new(
             warehouse_resolved,
             "Europe/Budapest".parse().unwrap(),
         )];

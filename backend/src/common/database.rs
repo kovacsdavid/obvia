@@ -30,7 +30,6 @@ use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgSslMode};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
 use tracing::{error, info};
 use uuid::Uuid;
 
@@ -51,7 +50,7 @@ pub trait PoolManager: Send + Sync {
 
 pub struct PgPoolManager {
     main_pool: Arc<PgPool>,
-    tenant_pools: Arc<RwLock<HashMap<String, Arc<PgPool>>>>,
+    tenant_pools: Arc<RwLock<HashMap<Uuid, Arc<PgPool>>>>,
 }
 
 impl PgPoolManager {
@@ -60,7 +59,6 @@ impl PgPoolManager {
     ) -> Result<PgPoolManager, RepositoryError> {
         let main_pool = PgPoolOptions::new()
             .max_connections(main_database_config.max_pool_size())
-            .acquire_timeout(Duration::from_secs(3))
             .connect(&main_database_config.url())
             .await?;
         Ok(Self {
@@ -92,13 +90,12 @@ impl PoolManager for PgPoolManager {
         self.main_pool.clone()
     }
     fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError> {
-        let _tenant_id_string = tenant_id.to_string();
         let guard = self
             .tenant_pools
             .read()
             .map_err(|e| RepositoryError::RwLockReadGuard(e.to_string()))?;
         Ok(guard
-            .get(&tenant_id.to_string())
+            .get(&tenant_id)
             .ok_or(RepositoryError::TenantPoolNotFound)?
             .clone())
     }
@@ -109,7 +106,6 @@ impl PoolManager for PgPoolManager {
     ) -> Result<Uuid, RepositoryError> {
         let pool = PgPoolOptions::new()
             .max_connections(config.max_pool_size())
-            .acquire_timeout(Duration::from_secs(3))
             .connect(&config.url())
             .await?;
 
@@ -118,7 +114,7 @@ impl PoolManager for PgPoolManager {
                 .tenant_pools
                 .write()
                 .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
-            pools.insert(tenant_id.to_string(), Arc::new(pool));
+            pools.insert(tenant_id, Arc::new(pool));
         }
         Ok(tenant_id)
     }
@@ -127,7 +123,7 @@ impl PoolManager for PgPoolManager {
             .tenant_pools
             .write()
             .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
-        pools.remove(&tenant_id.to_string());
+        pools.remove(&tenant_id);
         Ok(())
     }
 }
@@ -155,7 +151,6 @@ impl ConnectionTester for PgConnectionTester {
         let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
         let pool = PgPoolOptions::new()
             .max_connections(config.max_pool_size())
-            .acquire_timeout(Duration::from_secs(3))
             .connect_with(conn)
             .await?;
         Ok(pool)

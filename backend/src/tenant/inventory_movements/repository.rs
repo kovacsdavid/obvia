@@ -36,6 +36,10 @@ use uuid::Uuid;
 pub trait InventoryMovementsRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovement>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryMovementResolved>;
+    async fn get_resolved_by_worksheet_id(
+        &self,
+        worksheet_id: Uuid,
+    ) -> RepositoryResult<Vec<InventoryMovementResolved>>;
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,
@@ -96,7 +100,39 @@ impl InventoryMovementsRepository for PgPool {
         .fetch_one(self)
         .await?)
     }
-
+    async fn get_resolved_by_worksheet_id(
+        &self,
+        worksheet_id: Uuid,
+    ) -> RepositoryResult<Vec<InventoryMovementResolved>> {
+        Ok(sqlx::query_as::<_, InventoryMovementResolved>(
+            r#"
+            SELECT
+                inventory_movements.id,
+                inventory_movements.inventory_id,
+                inventory_movements.movement_type,
+                inventory_movements.quantity,
+                inventory_movements.reference_type,
+                inventory_movements.reference_id,
+                inventory_movements.unit_price,
+                inventory_movements.total_price,
+                inventory_movements.tax_id,
+                taxes.description as tax,
+                inventory_movements.movement_date,
+                inventory_movements.created_by_id,
+                (users.last_name || ' ' || users.first_name) AS created_by,
+                inventory_movements.created_at
+            FROM inventory_movements
+            LEFT JOIN taxes ON inventory_movements.tax_id = taxes.id
+            LEFT JOIN users ON inventory_movements.created_by_id = users.id
+            WHERE inventory_movements.reference_id = $1
+            AND inventory_movements.reference_type = 'worksheets'
+            AND inventory_movements.movement_type = 'out'
+            "#,
+        )
+        .bind(worksheet_id)
+        .fetch_all(self)
+        .await?)
+    }
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<InventoryMovementOrderBy, InventoryMovementFilterBy>,

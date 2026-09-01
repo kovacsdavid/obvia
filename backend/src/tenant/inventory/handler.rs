@@ -24,7 +24,6 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory::InventoryModuleInterface;
-use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::user_input::{InventoryUserInput, InventoryUserInputHelper};
 use crate::tenant::inventory::service::InventoryService;
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
@@ -193,19 +192,7 @@ pub async fn print<M: InventoryModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
-    let inventory_resolved_print = InventoryResolvedPrint::from_inventory_resolved(
-        map_handler_err(
-            service.get_resolved(payload.uuid).await,
-            inventory_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), inventory_module.clone()).await?,
-    );
-    let pdf = map_handler_err(
-        service.print(&[inventory_resolved_print]).await,
-        inventory_module.clone(),
-    )
-    .await?;
+    let pdf = map_handler_err(service.print(payload.uuid).await, inventory_module.clone()).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -224,6 +211,7 @@ mod tests {
     use std::path::Path;
 
     use super::*;
+    use crate::common::TEST_TZ;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
@@ -232,7 +220,15 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
     use crate::tenant::inventory::model::InventoryResolved;
+    use crate::tenant::inventory::model::tests::test_inventory_resolved_builder;
+    use crate::tenant::products::dto::print::ProductsResolvedPrint;
+    use crate::tenant::products::model::tests::test_product_resolved_builder;
+    use crate::tenant::products::repository::MockProductsRepository;
+    use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+    use crate::tenant::warehouses::model::tests::test_warehouse_resolved_builder;
+    use crate::tenant::warehouses::repository::MockWarehousesRepository;
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::inventory::{
@@ -241,7 +237,7 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{DateTime, Utc};
+    use chrono::Utc;
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1793,31 +1789,18 @@ mod tests {
         let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse().unwrap();
         let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
-        let inventory_resolved = InventoryResolved {
-            id: inventory_id,
-            product_id,
-            product: "Test product".to_string(),
-            warehouse_id,
-            warehouse: "Test warehouse".to_string(),
-            quantity_on_hand: "10".parse().unwrap(),
-            quantity_reserved: "20".parse().unwrap(),
-            quantity_available: "30".parse().unwrap(),
-            minimum_stock: None,
-            maximum_stock: None,
-            currency_code: "HUF".to_string(),
-            currency: "Forint".to_string(),
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
+        let inventory_resolved = test_inventory_resolved_builder()
+            .id(inventory_id)
+            .created_by_id(created_by_id)
+            .product_id(product_id)
+            .warehouse_id(warehouse_id)
+            .build()
+            .unwrap();
 
-        let mut repo = MockInventoryRepository::new();
-        repo.expect_get_resolved_by_id()
+        let mut inventory_repo = MockInventoryRepository::new();
+        inventory_repo
+            .expect_get_resolved_by_id()
             .times(1)
             .with(eq(inventory_id))
             .returning({
@@ -1825,28 +1808,72 @@ mod tests {
                 move |_| Ok(inventory_resolved.clone())
             });
 
+        let product_resolved = test_product_resolved_builder()
+            .id(product_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let mut products_repo = MockProductsRepository::new();
+        products_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(inventory_resolved.product_id))
+            .returning({
+                let product_resolved = product_resolved.clone();
+                move |_| Ok(product_resolved.clone())
+            });
+
+        let warehouse_resolved = test_warehouse_resolved_builder()
+            .id(warehouse_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let mut warehouses_repo = MockWarehousesRepository::new();
+        warehouses_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(inventory_resolved.warehouse_id))
+            .returning({
+                let warehouse_resolved = warehouse_resolved.clone();
+                move |_| Ok(warehouse_resolved.clone())
+            });
+
         let mut app_state = MockInventoryModule::new();
-        let repo = Arc::new(repo);
+        let inventory_repo = Arc::new(inventory_repo);
+        let products_repo = Arc::new(products_repo);
+        let warehouses_repo = Arc::new(warehouses_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
             .times(1)
-            .returning(move |_| Ok(repo.clone()));
+            .returning(move |_| Ok(inventory_repo.clone()));
+        app_state
+            .expect_products_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(products_repo.clone()));
+        app_state
+            .expect_warehouses_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(warehouses_repo.clone()));
         app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![InventoryResolvedPrint::from_inventory_resolved(
+        let pdf_gen_payload_expected = InventoryResolvedPrint::new(
             inventory_resolved,
-            "Europe/Budapest".parse().unwrap(),
-        )];
+            ProductsResolvedPrint::new(product_resolved, *TEST_TZ),
+            WarehouseResolvedPrint::new(warehouse_resolved, *TEST_TZ),
+            *TEST_TZ,
+        );
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<InventoryResolvedPrint>>()
+            .expect::<InventoryResolvedPrint>()
             .times(1)
             .with(
                 eq(PdfTemplates::InventoryView),

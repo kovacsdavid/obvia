@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,8 +27,14 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::manager::auth::dto::claims::ClaimsError;
+use crate::tenant::inventory::dto::print::{
+    InventoryResolvedPrint, test_inventory_resolved_print_builder,
+};
 use crate::tenant::inventory_reservations::InventoryReservationsModuleInterface;
-use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
+use crate::tenant::inventory_reservations::dto::print::{
+    InventoryReservationResolvedPrint, test_inventory_reservation_resolved_print_builder,
+};
 use crate::tenant::inventory_reservations::dto::user_input::InventoryReservationUserInput;
 use crate::tenant::inventory_reservations::model::{
     InventoryReservation, InventoryReservationResolved,
@@ -35,9 +42,15 @@ use crate::tenant::inventory_reservations::model::{
 use crate::tenant::inventory_reservations::types::{
     InventoryReservationFilterBy, InventoryReservationOrderBy,
 };
+use crate::tenant::products::dto::print::{
+    ProductsResolvedPrint, test_product_resolved_print_builder,
+};
+use crate::tenant::products::model::ProductResolved;
+use crate::tenant::warehouses::dto::print::{
+    WarehouseResolvedPrint, test_warehouse_resolved_print_builder,
+};
+use crate::tenant::warehouses::model::WarehouseResolved;
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
 use std::fs::File;
@@ -70,6 +83,15 @@ pub enum InventoryReservationsServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("Claims error: {0}")]
+    ClaimsError(#[from] ClaimsError),
+
+    #[error("BuilderError: {0}")]
+    BuilderError(#[from] CommonBuilderError),
+
+    #[error("UuidError: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for InventoryReservationsServiceError {
@@ -173,7 +195,7 @@ pub trait InventoryReservationService {
     > + Send;
     fn print(
         &self,
-        payload: &[InventoryReservationResolvedPrint],
+        payload: Uuid,
     ) -> impl Future<Output = InventoryReservationsServiceResult<Vec<u8>>> + Send;
     fn print_snapshot(
         &self,
@@ -300,70 +322,83 @@ where
         )
     }
 
-    async fn print(
-        &self,
-        payload: &[InventoryReservationResolvedPrint],
-    ) -> InventoryReservationsServiceResult<Vec<u8>> {
+    async fn print(&self, payload: Uuid) -> InventoryReservationsServiceResult<Vec<u8>> {
+        let tz = self.claims()?.tz()?;
+
+        let inventory_reservation_resolved = self.get_resolved(payload).await?;
+
+        let inventory_resolved = self
+            .module()
+            .inventory_repo(self.active_tenant()?)?
+            .get_resolved_by_id(inventory_reservation_resolved.inventory_id)
+            .await?;
+
+        let get_product_resolved =
+            async || -> InventoryReservationsServiceResult<ProductResolved> {
+                Ok(self
+                    .module()
+                    .products_repo(self.active_tenant()?)?
+                    .get_resolved_by_id(inventory_resolved.product_id)
+                    .await?)
+            };
+
+        let get_warehouse_resolved =
+            async || -> InventoryReservationsServiceResult<WarehouseResolved> {
+                Ok(self
+                    .module()
+                    .warehouses_repo(self.active_tenant()?)?
+                    .get_resolved_by_id(inventory_resolved.warehouse_id)
+                    .await?)
+            };
+
+        let (product_resolved, warehouse_resolved) =
+            tokio::try_join!(get_product_resolved(), get_warehouse_resolved())?;
+
+        let product_resolved_print = ProductsResolvedPrint::new(product_resolved, tz);
+
+        let warehouse_resolved_print = WarehouseResolvedPrint::new(warehouse_resolved, tz);
+
+        let inventory_resolved_print = InventoryResolvedPrint::new(
+            inventory_resolved,
+            product_resolved_print,
+            warehouse_resolved_print,
+            tz,
+        );
+
+        let inventory_reservation_resolved_print = InventoryReservationResolvedPrint::new(
+            inventory_reservation_resolved,
+            inventory_resolved_print,
+            tz,
+        );
+
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryReservationView,
-            payload.to_vec(),
+            inventory_reservation_resolved_print,
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> InventoryReservationsServiceResult<()> {
-        let test_time: DateTime<Utc> =
-            "2026-01-02T11:11:11Z"
-                .parse()
-                .map_err(|e: chrono::ParseError| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let tz: Tz = "Europe/Budapest"
-            .parse()
-            .map_err(|e: chrono_tz::ParseError| {
-                InventoryReservationsServiceError::ParseError(e.to_string())
-            })?;
-        let inventory_reservation_id =
-            "4f321721-37c6-4e91-8e42-6281c36937bc"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let inventory_id =
-            "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let created_by_id =
-            "97054cdb-781c-4f40-a489-b43373d75bf0"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let reference_id =
-            "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
-                .parse()
-                .map_err(|e: uuid::Error| {
-                    InventoryReservationsServiceError::ParseError(e.to_string())
-                })?;
-        let inventory_reservation_resolved = InventoryReservationResolved {
-            id: inventory_reservation_id,
-            inventory_id,
-            quantity: "10".parse().unwrap(),
-            reference_type: Some("worksheets".to_string()),
-            reference_id: Some(reference_id),
-            reserved_until: None,
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-        };
+        // NOTE: Values here must match the values in the tests!
+        let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+        let reference_id = Some("fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?);
         let inventory_reservation_resolved_print =
-            InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-                inventory_reservation_resolved,
-                tz,
-            );
-        let pdf = self.print(&[inventory_reservation_resolved_print]).await?;
+            test_inventory_reservation_resolved_print_builder(
+                test_inventory_resolved_print_builder(
+                    test_product_resolved_print_builder().build()?,
+                    test_warehouse_resolved_print_builder().build()?,
+                )
+                .build()?,
+            )
+            .id(inventory_reservation_id)
+            .reference_id(reference_id)
+            .created_by_id(created_by_id)
+            .build()?;
+
+        let pdf = PdfGenerator::gen_pdf_temporary(
+            &PdfTemplates::InventoryReservationView,
+            inventory_reservation_resolved_print,
+        )?;
+
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;
         Ok(())

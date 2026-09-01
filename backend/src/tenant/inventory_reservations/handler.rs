@@ -24,7 +24,6 @@ use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::inventory_reservations::InventoryReservationsModuleInterface;
-use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
 use crate::tenant::inventory_reservations::dto::user_input::{
     InventoryReservationUserInput, InventoryReservationUserInputHelper,
     InventoryReservationsRawQuery,
@@ -224,19 +223,8 @@ pub async fn print<M: InventoryReservationsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_reservations_module.clone());
-    let inventory_reservations_resolved_print =
-        InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-            map_handler_err(
-                service.get_resolved(payload.uuid).await,
-                inventory_reservations_module.clone(),
-            )
-            .await?,
-            map_handler_err(claims.tz(), inventory_reservations_module.clone()).await?,
-        );
     let pdf = map_handler_err(
-        service
-            .print(&[inventory_reservations_resolved_print])
-            .await,
+        service.print(payload.uuid).await,
         inventory_reservations_module,
     )
     .await?;
@@ -254,6 +242,7 @@ pub async fn print<M: InventoryReservationsModuleInterface>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::TEST_TZ;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
@@ -262,7 +251,18 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
+    use crate::tenant::inventory::model::tests::test_inventory_resolved_builder;
+    use crate::tenant::inventory::repository::MockInventoryRepository;
+    use crate::tenant::inventory_reservations::dto::print::InventoryReservationResolvedPrint;
     use crate::tenant::inventory_reservations::model::InventoryReservationResolved;
+    use crate::tenant::inventory_reservations::model::tests::test_inventory_reservation_resolved_builder;
+    use crate::tenant::products::dto::print::ProductsResolvedPrint;
+    use crate::tenant::products::model::tests::test_product_resolved_builder;
+    use crate::tenant::products::repository::MockProductsRepository;
+    use crate::tenant::warehouses::dto::print::WarehouseResolvedPrint;
+    use crate::tenant::warehouses::model::tests::test_warehouse_resolved_builder;
+    use crate::tenant::warehouses::repository::MockWarehousesRepository;
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::inventory_reservations::{
@@ -272,7 +272,7 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::{Duration, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1850,24 +1850,19 @@ mod tests {
         let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
         let reference_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
+        let product_id = "4f882e4a-5e44-4b46-bbfd-d813ccffdae3".parse().unwrap();
+        let warehouse_id = "c8b67f0a-2613-4dca-ba9c-3e411ac3fb23".parse().unwrap();
 
-        let inventory_reservation_resolved = InventoryReservationResolved {
-            id: inventory_reservation_id,
-            inventory_id,
-            quantity: "10".parse().unwrap(),
-            reference_type: Some("worksheets".to_string()),
-            reference_id: Some(reference_id),
-            reserved_until: None,
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-        };
+        let inventory_reservation_resolved = test_inventory_reservation_resolved_builder()
+            .id(inventory_reservation_id)
+            .reference_id(Some(reference_id))
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
 
-        let mut repo = MockInventoryReservationsRepository::new();
-        repo.expect_get_resolved_by_id()
+        let mut inventory_reservations_repo = MockInventoryReservationsRepository::new();
+        inventory_reservations_repo
+            .expect_get_resolved_by_id()
             .times(1)
             .with(eq(inventory_reservation_id))
             .returning({
@@ -1875,36 +1870,107 @@ mod tests {
                 move |_| Ok(inventory_reservation_resolved.clone())
             });
 
+        let inventory_resolved = test_inventory_resolved_builder()
+            .id(inventory_id)
+            .created_by_id(created_by_id)
+            .product_id(product_id)
+            .warehouse_id(warehouse_id)
+            .build()
+            .unwrap();
+
+        let mut inventory_repo = MockInventoryRepository::new();
+        inventory_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(inventory_reservation_resolved.inventory_id))
+            .returning({
+                let inventory_resolved = inventory_resolved.clone();
+                move |_| Ok(inventory_resolved.clone())
+            });
+
+        let product_resolved = test_product_resolved_builder()
+            .id(product_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let mut products_repo = MockProductsRepository::new();
+        products_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(inventory_resolved.product_id))
+            .returning({
+                let product_resolved = product_resolved.clone();
+                move |_| Ok(product_resolved.clone())
+            });
+
+        let warehouse_resolved = test_warehouse_resolved_builder()
+            .id(warehouse_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+        let mut warehouses_repo = MockWarehousesRepository::new();
+        warehouses_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(inventory_resolved.warehouse_id))
+            .returning({
+                let warehouse_resolved = warehouse_resolved.clone();
+                move |_| Ok(warehouse_resolved.clone())
+            });
+
         let mut app_state = MockInventoryReservationsModule::new();
-        let repo = Arc::new(repo);
+        let inventory_reservations_repo = Arc::new(inventory_reservations_repo);
+        let inventory_repo = Arc::new(inventory_repo);
+        let products_repo = Arc::new(products_repo);
+        let warehouses_repo = Arc::new(warehouses_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
             .times(1)
-            .returning(move |_| Ok(repo.clone()));
+            .returning(move |_| Ok(inventory_reservations_repo.clone()));
+        app_state
+            .expect_inventory_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(inventory_repo.clone()));
+        app_state
+            .expect_products_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(products_repo.clone()));
+        app_state
+            .expect_warehouses_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(warehouses_repo.clone()));
         app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![
-            InventoryReservationResolvedPrint::from_inventory_reservation_resolved(
-                inventory_reservation_resolved,
-                "Europe/Budapest".parse().unwrap(),
+        let pdf_gen_payload_expected = InventoryReservationResolvedPrint::new(
+            inventory_reservation_resolved,
+            InventoryResolvedPrint::new(
+                inventory_resolved,
+                ProductsResolvedPrint::new(product_resolved, *TEST_TZ),
+                WarehouseResolvedPrint::new(warehouse_resolved, *TEST_TZ),
+                *TEST_TZ,
             ),
-        ];
+            *TEST_TZ,
+        );
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<InventoryReservationResolvedPrint>>()
+            .expect::<InventoryReservationResolvedPrint>()
             .times(1)
             .with(
                 eq(PdfTemplates::InventoryReservationView),
-                eq(pdf_gen_payload_expected),
+                eq(pdf_gen_payload_expected.clone()),
             )
-            .returning(|template, payload| {
+            .returning(move |template, payload| {
+                assert_eq!(pdf_gen_payload_expected, payload);
                 Ok(PdfGenerator::gen_pdf_temporary(template, payload).unwrap())
             });
 

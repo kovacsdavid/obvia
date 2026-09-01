@@ -198,7 +198,7 @@ pub async fn print<M: ProductsModuleInterface>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let product_resolved_print = ProductsResolvedPrint::from_product_resolved(
+    let product_resolved_print = ProductsResolvedPrint::new(
         map_handler_err(
             service.get_resolved(payload.uuid).await,
             products_module.clone(),
@@ -1774,7 +1774,7 @@ mod tests {
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![ProductsResolvedPrint::from_product_resolved(
+        let pdf_gen_payload_expected = vec![ProductsResolvedPrint::new(
             product_resolved,
             "Europe/Budapest".parse().unwrap(),
         )];

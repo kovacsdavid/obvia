@@ -17,16 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::tenant::inventory_movements::model::InventoryMovementResolved;
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
+use crate::tenant::{
+    inventory::dto::print::InventoryResolvedPrint,
+    inventory_movements::model::InventoryMovementResolved,
+};
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct InventoryMovementsResolvedPrint {
     id: Uuid,
-    inventory_id: Uuid,
+    inventory: InventoryResolvedPrint,
     movement_type: String,
     quantity: BigDecimal,
     reference_type: Option<String>,
@@ -42,14 +49,15 @@ pub struct InventoryMovementsResolvedPrint {
 }
 
 impl InventoryMovementsResolvedPrint {
-    pub fn from_inventory_movements_resolved(
+    pub fn new(
         inventory_movement_resolved: InventoryMovementResolved,
+        inventory_resolved_print: InventoryResolvedPrint,
         tz: Tz,
     ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: inventory_movement_resolved.id,
-            inventory_id: inventory_movement_resolved.inventory_id,
+            inventory: inventory_resolved_print,
             movement_type: Self::map_movement_type(&inventory_movement_resolved.movement_type),
             quantity: inventory_movement_resolved.quantity,
             reference_type: inventory_movement_resolved
@@ -91,8 +99,37 @@ impl InventoryMovementsResolvedPrint {
     }
 }
 
+pub fn test_inventory_movement_resolved_print_builder(
+    inventory_resolved_print: InventoryResolvedPrint,
+) -> InventoryMovementsResolvedPrintBuilder {
+    let mut builder = InventoryMovementsResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .inventory(inventory_resolved_print)
+        .movement_type("Bevétel".to_string())
+        .quantity("10".parse().unwrap())
+        .reference_type(Some("Munkalap".to_string()))
+        .reference_id(Some(Uuid::new_v4()))
+        .unit_price(Some("20".parse().unwrap()))
+        .total_price(Some("30".parse().unwrap()))
+        .tax_id(Uuid::new_v4())
+        .tax(Some("Test tax".to_string()))
+        .movement_date(TEST_TIME_TZ.clone())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone());
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::tenant::{
+        inventory::model::InventoryResolved,
+        products::{dto::print::ProductsResolvedPrint, model::ProductResolved},
+        warehouses::{dto::print::WarehouseResolvedPrint, model::WarehouseResolved},
+    };
+
     use super::*;
     use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
@@ -103,7 +140,10 @@ mod tests {
         let inventory_id = Uuid::new_v4();
         let reference_id = Some(Uuid::new_v4());
         let tax_id = Uuid::new_v4();
+        let product_id = Uuid::new_v4();
+        let warehouse_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
+        let unit_of_measure_id = Uuid::new_v4();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
@@ -124,14 +164,69 @@ mod tests {
             created_by: "Test User".to_string(),
             created_at: input_date,
         };
-        let inventory_movement_resolved_print =
-            InventoryMovementsResolvedPrint::from_inventory_movements_resolved(
-                inventory_movement_resolved,
-                tz,
-            );
+        let inventory_resolved = InventoryResolved {
+            id: inventory_id,
+            product_id,
+            product: "Teszt termék".to_string(),
+            warehouse_id,
+            warehouse: "Teszt raktár".to_string(),
+            quantity_on_hand: "10".parse().unwrap(),
+            quantity_reserved: "20".parse().unwrap(),
+            quantity_available: "30".parse().unwrap(),
+            minimum_stock: Some("40".parse().unwrap()),
+            maximum_stock: Some("50".parse().unwrap()),
+            currency_code: "HUF".to_string(),
+            currency: "Forint".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let product_resolved = ProductResolved {
+            id: product_id,
+            name: "Test product".to_string(),
+            description: None,
+            unit_of_measure_id,
+            unit_of_measure: "cm".to_string(),
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let product_resolved_print = ProductsResolvedPrint::new(product_resolved, tz);
+
+        let warehouse_resolved = WarehouseResolved {
+            id: warehouse_id,
+            name: "Test warehouse".to_string(),
+            contact_name: None,
+            contact_phone: None,
+            status: "active".to_string(),
+            created_by_id,
+            created_by: "Test User".to_string(),
+            created_at: input_date,
+            updated_at: input_date,
+            deleted_at: None,
+        };
+        let warehouse_resolved_print = WarehouseResolvedPrint::new(warehouse_resolved, tz);
+
+        let inventory_resolved_print = InventoryResolvedPrint::new(
+            inventory_resolved,
+            product_resolved_print.clone(),
+            warehouse_resolved_print.clone(),
+            tz,
+        );
+        let inventory_movement_resolved_print = InventoryMovementsResolvedPrint::new(
+            inventory_movement_resolved,
+            inventory_resolved_print.clone(),
+            tz,
+        );
         let inventory_movement_resolved_print_expected = InventoryMovementsResolvedPrint {
             id: inventory_movement_id,
-            inventory_id,
+            inventory: inventory_resolved_print,
             movement_type: "Bevétel".to_string(),
             quantity: "10".parse().unwrap(),
             reference_type: Some("Munkalap".to_string()),

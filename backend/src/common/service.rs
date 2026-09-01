@@ -19,6 +19,7 @@
 
 use std::sync::Arc;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::manager::auth::dto::claims::Claims;
 
@@ -50,5 +51,10 @@ where
     }
     pub fn module(&self) -> &T {
         &self.module
+    }
+    pub fn active_tenant(&self) -> ServiceResult<Uuid> {
+        self.claims()?
+            .active_tenant()
+            .ok_or(ServiceError::Unauthorized)
     }
 }

@@ -252,8 +252,7 @@ where
             updated_at: test_time,
             deleted_at: None,
         };
-        let warehouse_resolved_print =
-            WarehouseResolvedPrint::from_warehouse_resolved(warehouse_resolved, tz);
+        let warehouse_resolved_print = WarehouseResolvedPrint::new(warehouse_resolved, tz);
         let pdf = self.print(&[warehouse_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

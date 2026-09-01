@@ -33,7 +33,8 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let inventory_movements = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let inventory_movement = json(bytes(sys.inputs.at("payload", default: "{}")))
+#let inventory = inventory_movement.inventory
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,7 +42,6 @@
   inset: 8pt,
 )
 
-#for item in inventory_movements [
   #v(0.5cm)
 
   #align(center)[
@@ -54,19 +54,18 @@
     columns: (1fr, 2fr),
     table.header([*Mező*], [*Érték*]),
 
-    ..row("Azonosító", field(item, "id")),
-    ..row("Raktárkészlet", field(item, "inventory_id")),
-    ..row("Típus", field(item, "movement_type")),
-    ..row("Mennyiség", field(item, "quantity")),
-    ..row("Egységár", field(item, "unit_price")),
-    ..row("Összeg", field(item, "total_price")),
-    ..row("Adó", field(item, "tax")),
-    ..row("Mozgás dátuma", field(item, "movement_date")),
-    ..row("Létrehozta", field(item, "created_by")),
-    ..row("Létrehozva", field(item, "created_at")),
-    ..row("Hivatkozás típusa", field(item, "reference_type")),
-    ..row("Hivatkozás azonosító", field(item, "reference_id")),
+    ..row("Azonosító", field(inventory_movement, "id")),
+    ..row("Raktárkészlet", field(inventory, "id")),
+    ..row("Típus", field(inventory_movement, "movement_type")),
+    ..row("Mennyiség", field(inventory_movement, "quantity")),
+    ..row("Egységár", field(inventory_movement, "unit_price")),
+    ..row("Összeg", field(inventory_movement, "total_price")),
+    ..row("Adó", field(inventory_movement, "tax")),
+    ..row("Mozgás dátuma", field(inventory_movement, "movement_date")),
+    ..row("Létrehozta", field(inventory_movement, "created_by")),
+    ..row("Létrehozva", field(inventory_movement, "created_at")),
+    ..row("Hivatkozás típusa", field(inventory_movement, "reference_type")),
+    ..row("Hivatkozás azonosító", field(inventory_movement, "reference_id")),
   )
 
   #pagebreak(weak: true)
-]

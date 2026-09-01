@@ -21,6 +21,12 @@ use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
+use crate::tenant::inventory::repository::InventoryRepository;
+use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
+use crate::tenant::products::repository::ProductsRepository;
+use crate::tenant::services::repository::ServicesRepository;
+use crate::tenant::tasks::repository::TasksRepository;
+use crate::tenant::warehouses::repository::WarehousesRepository;
 use crate::tenant::worksheets::repository::WorksheetsRepository;
 use lettre::{
     AsyncTransport,
@@ -47,6 +53,30 @@ pub trait WorksheetsModuleInterface: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+    fn tasks_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
+    fn services_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
 }
 
 impl<P, T> WorksheetsModuleInterface for AppState<P, T>
@@ -65,6 +95,42 @@ where
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn tasks_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn services_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_movements_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn inventory_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn products_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn warehouses_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
@@ -100,6 +166,30 @@ pub mod tests {
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            fn tasks_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
+            fn services_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+            fn inventory_movements_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryMovementsRepository + Send + Sync>>;
+            fn inventory_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn InventoryRepository + Send + Sync>>;
+            fn products_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn ProductsRepository + Send + Sync>>;
+            fn warehouses_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn WarehousesRepository + Send + Sync>>;
         }
     );
 }

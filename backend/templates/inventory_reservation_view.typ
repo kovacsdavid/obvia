@@ -33,7 +33,7 @@
   if value == none or value == "" { default } else { value }
 }
 
-#let inventory_reservations = json(bytes(sys.inputs.at("payload", default: "[]")))
+#let inventory_reservation = json(bytes(sys.inputs.at("payload", default: "{}")))
 
 #set table(
   fill: (_, y) => if calc.odd(y) { rgb("F2F2F2") },
@@ -41,30 +41,28 @@
   inset: 8pt,
 )
 
-#for item in inventory_reservations [
-  #v(0.5cm)
+#v(0.5cm)
 
-  #align(center)[
-    #text(size: 16pt, weight: "bold")[Készletfoglalás adatai]
-  ]
-
-  #v(0.5cm)
-
-  #table(
-    columns: (1fr, 2fr),
-    table.header([*Mező*], [*Érték*]),
-
-    ..row("Azonosító", field(item, "id")),
-    ..row("Raktárkészlet", field(item, "inventory_id")),
-    ..row("Mennyiség", field(item, "quantity")),
-    ..row("Hivatkozás típusa", field(item, "reference_type")),
-    ..row("Hivatkozás azonosító", field(item, "reference_id")),
-    ..row("Lefoglalva eddig", field(item, "reserved_until")),
-    ..row("Státusz", field(item, "status")),
-    ..row("Létrehozta", field(item, "created_by")),
-    ..row("Létrehozva", field(item, "created_at")),
-    ..row("Módosítva", field(item, "updated_at")),
-  )
-
-  #pagebreak(weak: true)
+#align(center)[
+  #text(size: 16pt, weight: "bold")[Készletfoglalás adatai]
 ]
+
+#v(0.5cm)
+
+#table(
+  columns: (1fr, 2fr),
+  table.header([*Mező*], [*Érték*]),
+
+  ..row("Azonosító", field(inventory_reservation, "id")),
+  ..row("Raktárkészlet", field(inventory_reservation, "inventory_id")),
+  ..row("Mennyiség", field(inventory_reservation, "quantity")),
+  ..row("Hivatkozás típusa", field(inventory_reservation, "reference_type")),
+  ..row("Hivatkozás azonosító", field(inventory_reservation, "reference_id")),
+  ..row("Lefoglalva eddig", field(inventory_reservation, "reserved_until")),
+  ..row("Státusz", field(inventory_reservation, "status")),
+  ..row("Létrehozta", field(inventory_reservation, "created_by")),
+  ..row("Létrehozva", field(inventory_reservation, "created_at")),
+  ..row("Módosítva", field(inventory_reservation, "updated_at")),
+)
+
+#pagebreak(weak: true)

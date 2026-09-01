@@ -17,12 +17,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
+use crate::common::TEST_TIME_TZ;
 use crate::tenant::products::model::ProductResolved;
 use chrono_tz::Tz;
+use derive_builder::Builder;
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, PartialEq, Debug)]
+#[derive(Clone, Serialize, PartialEq, Debug, Builder)]
+#[builder(build_fn(error = "CommonBuilderError"))]
 pub struct ProductsResolvedPrint {
     pub id: Uuid,
     pub name: String,
@@ -38,7 +42,7 @@ pub struct ProductsResolvedPrint {
 }
 
 impl ProductsResolvedPrint {
-    pub fn from_product_resolved(product_resolved: ProductResolved, tz: Tz) -> Self {
+    pub fn new(product_resolved: ProductResolved, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
             id: product_resolved.id,
@@ -75,6 +79,24 @@ impl ProductsResolvedPrint {
     }
 }
 
+pub fn test_product_resolved_print_builder() -> ProductsResolvedPrintBuilder {
+    let mut builder = ProductsResolvedPrintBuilder::default();
+    builder
+        .id(Uuid::new_v4())
+        .name("Test product".to_string())
+        .description(Some("Test description".to_string()))
+        .unit_of_measure_id(Uuid::new_v4())
+        .unit_of_measure("cm".to_string())
+        .status("active".to_string())
+        .created_by_id(Uuid::new_v4())
+        .created_by("Test User".to_string())
+        .created_at(TEST_TIME_TZ.clone())
+        .updated_at(TEST_TIME_TZ.clone())
+        .deleted_at(None);
+
+    builder
+}
+
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, Utc};
@@ -103,8 +125,7 @@ mod tests {
             updated_at: input_date,
             deleted_at: None,
         };
-        let product_resolved_print =
-            ProductsResolvedPrint::from_product_resolved(product_resolved, tz);
+        let product_resolved_print = ProductsResolvedPrint::new(product_resolved, tz);
         let product_resolved_print_expected = ProductsResolvedPrint {
             id: product_id,
             name: "Test product".to_string(),

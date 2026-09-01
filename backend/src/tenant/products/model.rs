@@ -18,6 +18,7 @@
  */
 
 use chrono::{DateTime, Utc};
+use derive_builder::Builder;
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
@@ -35,7 +36,7 @@ pub struct Product {
     pub deleted_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct ProductResolved {
     pub id: Uuid,
     pub name: String,
@@ -56,4 +57,30 @@ pub struct UnitOfMeasure {
     pub unit_of_measure: String,
     pub created_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+}
+
+#[cfg(test)]
+pub mod tests {
+    use crate::common::TEST_TIME;
+
+    use super::*;
+
+    pub fn test_product_resolved_builder() -> ProductResolvedBuilder {
+        let mut builder = ProductResolvedBuilder::default();
+
+        builder
+            .id(Uuid::new_v4())
+            .name("Test product".to_string())
+            .description(Some("Test description".to_string()))
+            .unit_of_measure_id(Uuid::new_v4())
+            .unit_of_measure("cm".to_string())
+            .status("active".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
+    }
 }

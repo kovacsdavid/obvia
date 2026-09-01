@@ -21,6 +21,7 @@ use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
 use crate::tenant::currencies::repository::CurrenciesRepository;
+use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::repository::TasksRepository;
 use crate::tenant::taxes::repository::TaxesRepository;
@@ -62,6 +63,10 @@ pub trait TasksModule: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
 }
 
 impl<P, T> TasksModule for AppState<P, T>
@@ -100,6 +105,12 @@ where
     ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
+    fn customers_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
 }
 
 #[cfg(test)]
@@ -115,36 +126,40 @@ pub mod tests {
     use mockall::mock;
 
     mock!(
-        pub TasksModule {}
-        impl ConfigProvider for TasksModule {
-            type Cfg = AppConfig;
-            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
-        }
-        impl MailTransporter for TasksModule {
-            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
-        }
-        impl BaseModule for TasksModule {}
-        impl TasksModule for TasksModule {
-            fn tasks_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
-            fn currencies_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
-            fn taxes_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
-            fn services_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
-            fn worksheets_repo(
-                &self,
-                tenant_id: Uuid,
-            ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
-        }
-    );
+    pub TasksModule {}
+    impl ConfigProvider for TasksModule {
+        type Cfg = AppConfig;
+        fn config(&self) -> &<Self as ConfigProvider>::Cfg;
+    }
+    impl MailTransporter for TasksModule {
+        async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
+    }
+    impl BaseModule for TasksModule {}
+    impl TasksModule for TasksModule {
+        fn tasks_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn TasksRepository + Send + Sync>>;
+        fn currencies_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn CurrenciesRepository + Send + Sync>>;
+        fn taxes_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn TaxesRepository + Send + Sync>>;
+        fn services_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn ServicesRepository + Send + Sync>>;
+        fn worksheets_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn WorksheetsRepository + Send + Sync>>;
+        fn customers_repo(
+            &self,
+            tenant_id: Uuid,
+        ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            }
+        );
 }

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,14 +27,21 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
+use crate::manager::auth::dto::claims::ClaimsError;
 use crate::tenant::inventory::InventoryModuleInterface;
-use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
+use crate::tenant::inventory::dto::print::{
+    InventoryResolvedPrint, test_inventory_resolved_print_builder,
+};
 use crate::tenant::inventory::dto::user_input::InventoryUserInput;
 use crate::tenant::inventory::model::{Inventory, InventoryResolved};
 use crate::tenant::inventory::types::inventory::{InventoryFilterBy, InventoryOrderBy};
+use crate::tenant::products::dto::print::{
+    ProductsResolvedPrint, test_product_resolved_print_builder,
+};
+use crate::tenant::warehouses::dto::print::{
+    WarehouseResolvedPrint, test_warehouse_resolved_print_builder,
+};
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
 use std::fs::File;
@@ -69,6 +77,15 @@ pub enum InventoryServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("Claims error: {0}")]
+    ClaimsError(#[from] ClaimsError),
+
+    #[error("BuilderError: {0}")]
+    BuilderError(#[from] CommonBuilderError),
+
+    #[error("UuidError: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for InventoryServiceError {
@@ -169,10 +186,7 @@ pub trait InventoryService {
         &self,
         get_query: &ResourceQuery<InventoryOrderBy, InventoryFilterBy>,
     ) -> impl Future<Output = InventoryServiceResult<(PaginatorMeta, Vec<InventoryResolved>)>> + Send;
-    fn print(
-        &self,
-        payload: &[InventoryResolvedPrint],
-    ) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
+    fn print(&self, payload: Uuid) -> impl Future<Output = InventoryServiceResult<Vec<u8>>> + Send;
     fn print_snapshot(
         &self,
         path: &Path,
@@ -301,54 +315,67 @@ where
             .await?)
     }
 
-    async fn print(&self, payload: &[InventoryResolvedPrint]) -> InventoryServiceResult<Vec<u8>> {
+    async fn print(&self, payload: Uuid) -> InventoryServiceResult<Vec<u8>> {
+        let active_tenant = self
+            .claims()?
+            .active_tenant()
+            .ok_or(InventoryServiceError::Unauthorized)?;
+        let tz = self.claims()?.tz()?;
+        let inventory_resolved = self.get_resolved(payload).await?;
+        let get_product_resolved_print =
+            async || -> InventoryServiceResult<ProductsResolvedPrint> {
+                Ok(ProductsResolvedPrint::new(
+                    self.module()
+                        .products_repo(active_tenant)?
+                        .get_resolved_by_id(inventory_resolved.product_id)
+                        .await?,
+                    tz,
+                ))
+            };
+        let get_warehouse_resolved_print =
+            async || -> InventoryServiceResult<WarehouseResolvedPrint> {
+                Ok(WarehouseResolvedPrint::new(
+                    self.module()
+                        .warehouses_repo(active_tenant)?
+                        .get_resolved_by_id(inventory_resolved.warehouse_id)
+                        .await?,
+                    tz,
+                ))
+            };
+        let (product_resolved_print, warehouse_resolved_print) =
+            tokio::try_join!(get_product_resolved_print(), get_warehouse_resolved_print())?;
+
+        let inventory_resolved_print = InventoryResolvedPrint::new(
+            inventory_resolved,
+            product_resolved_print,
+            warehouse_resolved_print,
+            tz,
+        );
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::InventoryView,
-            payload.to_vec(),
+            inventory_resolved_print,
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> InventoryServiceResult<()> {
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
-            .parse()
-            .map_err(|e: chrono::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
-        let tz: Tz = "Europe/Budapest"
-            .parse()
-            .map_err(|e: chrono_tz::ParseError| InventoryServiceError::ParseError(e.to_string()))?;
-        let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
-            .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
-        let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7"
-            .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
-        let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c"
-            .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
-            .parse()
-            .map_err(|e: uuid::Error| InventoryServiceError::ParseError(e.to_string()))?;
-        let inventory_resolved = InventoryResolved {
-            id: inventory_id,
-            product_id,
-            product: "Test product".to_string(),
-            warehouse_id,
-            warehouse: "Test warehouse".to_string(),
-            quantity_on_hand: "10".parse().unwrap(),
-            quantity_reserved: "20".parse().unwrap(),
-            quantity_available: "30".parse().unwrap(),
-            minimum_stock: None,
-            maximum_stock: None,
-            currency_code: "HUF".to_string(),
-            currency: "Forint".to_string(),
-            status: "active".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
-        let inventory_resolved_print =
-            InventoryResolvedPrint::from_inventory_resolved(inventory_resolved, tz);
-        let pdf = self.print(&[inventory_resolved_print]).await?;
+        let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+        let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse()?;
+        let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c".parse()?;
+
+        let inventory_resolved_print = test_inventory_resolved_print_builder(
+            test_product_resolved_print_builder()
+                .id(product_id)
+                .build()?,
+            test_warehouse_resolved_print_builder()
+                .id(warehouse_id)
+                .build()?,
+        )
+        .id(inventory_id)
+        .build()?;
+
+        let pdf = PdfGenerator::gen_pdf_temporary(
+            &PdfTemplates::InventoryView,
+            inventory_resolved_print,
+        )?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;
         Ok(())

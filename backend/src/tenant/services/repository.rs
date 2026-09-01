@@ -35,6 +35,7 @@ use uuid::Uuid;
 pub trait ServicesRepository: Send + Sync + 'static {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Service>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<ServiceResolved>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<ServiceResolved>>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_paged(
         &self,
@@ -60,7 +61,7 @@ impl ServicesRepository for PgPool {
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<ServiceResolved> {
         let service = sqlx::query_as::<_, ServiceResolved>(
             r#"
-            SELECT 
+            SELECT
                 services.id,
                 services.name,
                 services.description,
@@ -84,6 +85,36 @@ impl ServicesRepository for PgPool {
         )
         .bind(id)
         .fetch_one(self)
+        .await?;
+        Ok(service)
+    }
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<ServiceResolved>> {
+        let service = sqlx::query_as::<_, ServiceResolved>(
+            r#"
+            SELECT
+                services.id,
+                services.name,
+                services.description,
+                services.default_price,
+                services.default_tax_id,
+                taxes.description as default_tax,
+                services.currency_code,
+                currencies.code as currency,
+                services.status,
+                services.created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                services.created_at,
+                services.updated_at,
+                services.deleted_at
+            FROM services
+            LEFT JOIN users ON services.created_by_id = users.id
+            LEFT JOIN taxes ON services.default_tax_id = taxes.id
+            LEFT JOIN currencies ON services.currency_code = currencies.code
+            WHERE services.id = ANY($1) AND services.deleted_at IS NULL
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(self)
         .await?;
         Ok(service)
     }

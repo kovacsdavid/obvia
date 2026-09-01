@@ -35,6 +35,8 @@ use uuid::Uuid;
 pub trait WarehousesRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Warehouse>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<WarehouseResolved>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>)
+    -> RepositoryResult<Vec<WarehouseResolved>>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_paged(
         &self,
@@ -84,6 +86,33 @@ impl WarehousesRepository for PgPool {
         )
         .bind(id)
         .fetch_one(self)
+        .await?)
+    }
+    async fn get_resolved_by_ids(
+        &self,
+        ids: Vec<Uuid>,
+    ) -> RepositoryResult<Vec<WarehouseResolved>> {
+        Ok(sqlx::query_as::<_, WarehouseResolved>(
+            r#"
+            SELECT
+                warehouses.id as id,
+                warehouses.name as name,
+                warehouses.contact_name as contact_name,
+                warehouses.contact_phone as contact_phone,
+                warehouses.status as status,
+                warehouses.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                warehouses.created_at as created_at,
+                warehouses.updated_at as updated_at,
+                warehouses.deleted_at as deleted_at
+            FROM warehouses
+            LEFT JOIN users ON warehouses.created_by_id = users.id
+            WHERE warehouses.deleted_at IS NULL
+                AND warehouses.id = ANY($1)
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(self)
         .await?)
     }
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {

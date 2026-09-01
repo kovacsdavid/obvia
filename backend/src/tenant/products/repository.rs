@@ -35,6 +35,7 @@ use uuid::Uuid;
 pub trait ProductsRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Product>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<ProductResolved>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<ProductResolved>>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_paged(
         &self,
@@ -91,6 +92,32 @@ impl ProductsRepository for PgPool {
         )
         .bind(id)
         .fetch_one(self)
+        .await?)
+    }
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<ProductResolved>> {
+        Ok(sqlx::query_as::<_, ProductResolved>(
+            r#"
+            SELECT
+                products.id as id,
+                products.name as name,
+                products.description as description,
+                products.unit_of_measure_id as unit_of_measure_id,
+                units_of_measure.unit_of_measure as unit_of_measure,
+                products.status as status,
+                products.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                products.created_at as created_at,
+                products.updated_at as updated_at,
+                products.deleted_at as deleted_at
+            FROM products
+            LEFT JOIN units_of_measure ON products.unit_of_measure_id = units_of_measure.id
+            LEFT JOIN users ON products.created_by_id = users.id
+            WHERE products.deleted_at IS NULL
+                AND products.id = ANY($1)
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(self)
         .await?)
     }
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {

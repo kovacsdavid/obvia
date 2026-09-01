@@ -35,6 +35,8 @@ use uuid::Uuid;
 pub trait InventoryRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Inventory>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<InventoryResolved>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>)
+    -> RepositoryResult<Vec<InventoryResolved>>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_paged(
         &self,
@@ -97,6 +99,45 @@ impl InventoryRepository for PgPool {
         )
         .bind(id)
         .fetch_one(self)
+        .await?)
+    }
+
+    async fn get_resolved_by_ids(
+        &self,
+        ids: Vec<Uuid>,
+    ) -> RepositoryResult<Vec<InventoryResolved>> {
+        Ok(sqlx::query_as::<_, InventoryResolved>(
+            r#"
+            SELECT
+                inventory.id as id,
+                inventory.product_id as product_id,
+                products.name as product,
+                inventory.warehouse_id as warehouse_id,
+                warehouses.name as warehouse,
+                inventory.quantity_on_hand as quantity_on_hand,
+                inventory.quantity_reserved as quantity_reserved,
+                inventory.quantity_available as quantity_available,
+                inventory.minimum_stock as minimum_stock,
+                inventory.maximum_stock as maximum_stock,
+                inventory.currency_code as currency_code,
+                currencies.code as currency,
+                inventory.status as status,
+                inventory.created_by_id as created_by_id,
+                users.last_name || ' ' || users.first_name as created_by,
+                inventory.created_at as created_at,
+                inventory.updated_at as updated_at,
+                inventory.deleted_at as deleted_at
+            FROM inventory
+            LEFT JOIN products ON inventory.product_id = products.id
+            LEFT JOIN warehouses ON inventory.warehouse_id = warehouses.id
+            LEFT JOIN currencies ON inventory.currency_code = currencies.code
+            LEFT JOIN users ON inventory.created_by_id = users.id
+            WHERE inventory.deleted_at IS NULL
+                AND inventory.id = ANY($1)
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(self)
         .await?)
     }
 

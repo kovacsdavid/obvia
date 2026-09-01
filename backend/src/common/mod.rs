@@ -17,10 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use derive_builder::UninitializedFieldError;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
-use std::{fmt::Debug, sync::Arc};
+use std::{
+    fmt::{Debug, Display},
+    sync::Arc,
+};
+use thiserror::Error;
 use uuid::Uuid;
 
 use crate::{
@@ -31,11 +36,14 @@ use crate::{
     },
     manager::tenants::model::Tenant,
 };
+use chrono::{DateTime, Utc};
+use chrono_tz::Tz;
 use lettre::{
     AsyncTransport, Message,
     message::header::{Subject, To},
     transport::smtp::{Error, response::Response},
 };
+use std::sync::LazyLock;
 use tracing::{error, info};
 
 pub mod config;
@@ -195,3 +203,28 @@ where
     T::Error: Debug,
 {
 }
+
+#[derive(Debug, Error)]
+pub struct CommonBuilderError(String);
+
+impl From<UninitializedFieldError> for CommonBuilderError {
+    fn from(value: UninitializedFieldError) -> Self {
+        Self(value.to_string())
+    }
+}
+
+impl Display for CommonBuilderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+pub static TEST_TIME: LazyLock<DateTime<Utc>> =
+    LazyLock::new(|| "2026-01-02T11:11:11Z".parse().unwrap());
+pub static TEST_TZ: LazyLock<Tz> = LazyLock::new(|| "Europe/Budapest".parse().unwrap());
+pub static TEST_TIME_TZ: LazyLock<String> = LazyLock::new(|| {
+    TEST_TIME
+        .with_timezone(&*TEST_TZ)
+        .format(&format!("%Y. %m. %d. %H:%M:%S ({})", *TEST_TZ))
+        .to_string()
+});

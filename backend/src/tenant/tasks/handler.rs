@@ -24,7 +24,6 @@ use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::tasks::TasksModule;
-use crate::tenant::tasks::dto::print::TaskResolvedPrint;
 use crate::tenant::tasks::dto::user_input::{TaskUserInput, TaskUserInputHelper};
 use crate::tenant::tasks::service::TaskService;
 use crate::tenant::tasks::types::task::{TaskFilterBy, TaskOrderBy};
@@ -192,15 +191,7 @@ pub async fn print<M: TasksModule>(
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
-    let task_resolved_print = TaskResolvedPrint::from_task_resolved(
-        map_handler_err(
-            service.get_resolved(payload.uuid).await,
-            tasks_module.clone(),
-        )
-        .await?,
-        map_handler_err(claims.tz(), tasks_module.clone()).await?,
-    );
-    let pdf = map_handler_err(service.print(&[task_resolved_print]).await, tasks_module).await?;
+    let pdf = map_handler_err(service.print(payload.uuid).await, tasks_module).await?;
     let mut headers = HeaderMap::new();
     headers.insert(header::CONTENT_TYPE, "application/pdf".parse().unwrap());
     headers.insert(
@@ -215,6 +206,7 @@ pub async fn print<M: TasksModule>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::common::TEST_TZ;
     use crate::common::dto::PaginatorMeta;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::{
@@ -223,7 +215,12 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::tenant::services::dto::print::ServicesResolvedPrint;
+    use crate::tenant::services::model::tests::test_service_resolved_builder;
+    use crate::tenant::services::repository::MockServicesRepository;
+    use crate::tenant::tasks::dto::print::TaskResolvedPrint;
     use crate::tenant::tasks::model::TaskResolved;
+    use crate::tenant::tasks::model::tests::test_task_resolved_builder;
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::tasks::{
@@ -232,7 +229,7 @@ mod tests {
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{DateTime, Duration, Utc};
+    use chrono::{Duration, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -1838,35 +1835,18 @@ mod tests {
         let active_tenant_id = Uuid::new_v4();
         let task_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let worksheet_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
-        let tax_id = "86097a0b-3f05-42f4-a98d-fd8a4669f02b".parse().unwrap();
         let service_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse().unwrap();
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
-        let task_resolved = TaskResolved {
-            id: task_id,
-            worksheet_id,
-            worksheet: "Test worksheet".to_string(),
-            service_id,
-            service: "Test service".to_string(),
-            currency_code: "HUF".to_string(),
-            quantity: None,
-            price: None,
-            tax_id,
-            tax: "Test tax".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            status: "active".to_string(),
-            priority: Some("normal".to_string()),
-            due_date: Some(test_time + Duration::weeks(1)),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-            description: None,
-        };
+        let task_resolved = test_task_resolved_builder()
+            .id(task_id)
+            .worksheet_id(worksheet_id)
+            .service_id(service_id)
+            .build()
+            .unwrap();
 
-        let mut repo = MockTasksRepository::new();
-        repo.expect_get_resolved_by_id()
+        let mut tasks_repo = MockTasksRepository::new();
+        tasks_repo
+            .expect_get_resolved_by_id()
             .times(1)
             .with(eq(task_id))
             .returning({
@@ -1874,28 +1854,48 @@ mod tests {
                 move |_| Ok(task_resolved.clone())
             });
 
+        let service_resolved = test_service_resolved_builder()
+            .id(service_id)
+            .build()
+            .unwrap();
+        let mut services_repo = MockServicesRepository::new();
+        services_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(service_id))
+            .returning({
+                let service_resolved = service_resolved.clone();
+                move |_| Ok(service_resolved.clone())
+            });
+
         let mut app_state = MockTasksModule::new();
-        let repo = Arc::new(repo);
+        let tasks_repo = Arc::new(tasks_repo);
+        let services_repo = Arc::new(services_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
             .times(1)
-            .returning(move |_| Ok(repo.clone()));
+            .returning(move |_| Ok(tasks_repo.clone()));
+        app_state
+            .expect_services_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(services_repo.clone()));
         app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let pdf_gen_payload_expected = vec![TaskResolvedPrint::from_task_resolved(
-            task_resolved,
-            "Europe/Budapest".parse().unwrap(),
-        )];
+        let service_resolved_print = ServicesResolvedPrint::new(service_resolved, *TEST_TZ);
+
+        let pdf_gen_payload_expected =
+            TaskResolvedPrint::new(task_resolved, service_resolved_print, *TEST_TZ);
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();
         pdf_gen
-            .expect::<Vec<TaskResolvedPrint>>()
+            .expect::<TaskResolvedPrint>()
             .times(1)
             .with(eq(PdfTemplates::TaskView), eq(pdf_gen_payload_expected))
             .returning(|template, payload| {

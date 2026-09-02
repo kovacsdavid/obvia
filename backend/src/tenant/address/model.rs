@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published

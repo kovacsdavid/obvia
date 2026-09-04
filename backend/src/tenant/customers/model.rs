@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct Customer {
     pub id: Uuid,
     pub name: String,
@@ -36,6 +36,8 @@ pub struct Customer {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub billing_address: Option<Uuid>,
+    pub mailing_address: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder)]
@@ -52,6 +54,8 @@ pub struct CustomerResolved {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub billing_address: Option<Uuid>,
+    pub mailing_address: Option<Uuid>,
 }
 
 #[cfg(test)]
@@ -59,6 +63,26 @@ pub mod tests {
     use crate::common::TEST_TIME;
 
     use super::*;
+
+    pub fn test_customer_builder() -> CustomerBuilder {
+        let mut builder = CustomerBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .name("Test Customer".to_string())
+            .contact_name(None)
+            .email("test.customer@example.com".to_string())
+            .phone_number(Some("+36301234567".to_string()))
+            .status("active".to_string())
+            .customer_type("natural".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None)
+            .billing_address(None)
+            .mailing_address(None);
+
+        builder
+    }
 
     pub fn test_customer_resolved_builder() -> CustomerResolvedBuilder {
         let mut builder = CustomerResolvedBuilder::default();
@@ -74,7 +98,9 @@ pub mod tests {
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None);
+            .deleted_at(None)
+            .billing_address(None)
+            .mailing_address(None);
 
         builder
     }

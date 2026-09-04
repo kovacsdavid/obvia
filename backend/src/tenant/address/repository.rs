@@ -19,15 +19,19 @@
 
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
+use crate::tenant::address::model::AddressResolved;
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait AddressRepository: Send + Sync {
     async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<AddressResolved>;
+    async fn get_resolved_by_ids(&self, id: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>>;
 }
 
 #[async_trait]
@@ -38,5 +42,11 @@ impl AddressRepository for PgPool {
         )
         .fetch_all(self)
         .await?)
+    }
+    async fn get_resolved_by_id(&self, _id: Uuid) -> RepositoryResult<AddressResolved> {
+        todo!()
+    }
+    async fn get_resolved_by_ids(&self, _id: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>> {
+        todo!()
     }
 }

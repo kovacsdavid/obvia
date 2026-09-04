@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,13 +27,13 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModuleInterface;
-use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+use crate::tenant::customers::dto::print::{
+    CustomerResolvedPrint, test_customer_resolved_print_builder,
+};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
 use std::fs::File;
@@ -64,6 +65,12 @@ pub enum CustomersServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("BuilderError: {0}")]
+    BuilderError(#[from] CommonBuilderError),
+
+    #[error("UuidError: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for CustomersServiceError {
@@ -240,33 +247,12 @@ where
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
-            .parse()
-            .map_err(|e: chrono::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
-        let tz: Tz = "Europe/Budapest"
-            .parse()
-            .map_err(|e: chrono_tz::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
-        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
-            .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
-            .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
+        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+        let customer_resolved_print = test_customer_resolved_print_builder()
+            .id(customer_id)
+            .created_by_id(created_by_id)
+            .build()?;
         let pdf = self.print(&[customer_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

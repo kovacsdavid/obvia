@@ -134,74 +134,54 @@ pub fn test_worksheet_resolved_print_builder(
 
 #[cfg(test)]
 mod tests {
-    use crate::tenant::customers::model::CustomerResolved;
+    use crate::{
+        common::TEST_TZ,
+        tenant::{
+            customers::model::tests::test_customer_resolved_builder,
+            worksheets::model::tests::test_worksheet_resolved_builder,
+        },
+    };
 
     use super::*;
-    use chrono::{DateTime, Utc};
     use pretty_assertions::assert_eq;
 
     #[test]
     fn test_from_worksheet_resolved() {
         let worksheet_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let project_id = Some(Uuid::new_v4());
         let created_by_id = Uuid::new_v4();
-        let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
-        let tz: Tz = "Europe/Budapest".parse().unwrap();
-        let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();
-        let worksheet_resolved = WorksheetResolved {
-            id: worksheet_id,
-            name: "Test worksheet".to_string(),
-            description: None,
-            customer_id,
-            customer: "Test customer".to_string(),
-            project_id,
-            project: Some("Test project".to_string()),
-            created_by_id,
-            created_by: "Test user".to_string(),
-            status: "active".to_string(),
-            created_at: input_date,
-            updated_at: input_date,
-            deleted_at: None,
-            net_material_cost: "10".parse().unwrap(),
-            gross_material_cost: "20".parse().unwrap(),
-            net_work_cost: "30".parse().unwrap(),
-            gross_work_cost: "40".parse().unwrap(),
-        };
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: input_date,
-            updated_at: input_date,
-            deleted_at: None,
-        };
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
+
+        let worksheet_resolved = test_worksheet_resolved_builder()
+            .id(worksheet_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .build()
+            .unwrap();
+
+        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, *TEST_TZ);
         let worksheet_resolved_print = WorksheetResolvedPrint::new(
             worksheet_resolved,
             customer_resolved_print.clone(),
             vec![], // TODO: add some test data here
             vec![], // TODO: add some test data here
-            tz,
+            *TEST_TZ,
         );
         let worksheet_resolved_print_expected = WorksheetResolvedPrint {
             id: worksheet_id,
             name: "Test worksheet".to_string(),
-            description: None,
+            description: Some("Test description".to_string()),
             customer: customer_resolved_print,
-            project_id,
-            project: Some("Test project".to_string()),
+            project_id: None,
+            project: None,
             created_by_id,
-            created_by: "Test user".to_string(),
+            created_by: "Test User".to_string(),
             status: "Aktív".to_string(),
-            created_at: output_date.clone(),
-            updated_at: output_date,
+            created_at: TEST_TIME_TZ.clone(),
+            updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,
             net_material_cost: "10".parse().unwrap(),
             gross_material_cost: "20".parse().unwrap(),

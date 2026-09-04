@@ -41,6 +41,7 @@ pub struct Address {
     pub stairway: Option<String>,
     pub floor: Option<String>,
     pub door: Option<String>,
+    pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -134,6 +135,8 @@ pub struct AddressResolved {
     pub stairway: Option<String>,
     pub floor: Option<String>,
     pub door: Option<String>,
+    pub created_by_id: Uuid,
+    pub created_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
@@ -236,6 +239,7 @@ mod tests {
             .stairway(Some("B".to_string()))
             .floor(Some("1".to_string()))
             .door(Some("2".to_string()))
+            .created_by_id(Uuid::new_v4())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -263,6 +267,7 @@ mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
+            .created_by_id(Uuid::new_v4())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -290,6 +295,7 @@ mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
+            .created_by_id(Uuid::new_v4())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -319,6 +325,8 @@ mod tests {
             .stairway(Some("B".to_string()))
             .floor(Some("1".to_string()))
             .door(Some("2".to_string()))
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -347,6 +355,8 @@ mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -375,6 +385,8 @@ mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)

@@ -94,6 +94,9 @@ pub enum WorksheetsServiceError {
 
     #[error("BuilderError: {0}")]
     BuilderError(#[from] CommonBuilderError),
+
+    #[error("UuidError: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for WorksheetsServiceError {
@@ -478,12 +481,8 @@ where
 
     async fn print_snapshot(&self, path: &Path) -> WorksheetsServiceResult<()> {
         // NOTE: Values here must match the values in the tests!
-        let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
-            .parse()
-            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
-        let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd"
-            .parse()
-            .map_err(|e: uuid::Error| WorksheetsServiceError::ParseError(e.to_string()))?;
+        let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+        let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
 
         let mut tasks = vec![];
 

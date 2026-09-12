@@ -20,7 +20,7 @@
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
-use crate::tenant::address::types::country::CountryCode;
+use crate::tenant::address::types::CountryCode;
 use crate::tenant::taxes::types::legal_text::LegalText;
 use crate::tenant::taxes::types::reporting_code::ReportingCode;
 use crate::tenant::taxes::types::{

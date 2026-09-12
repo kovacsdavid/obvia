@@ -169,7 +169,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 impl<T> ValueObjectRequired<T>
 where
     T: ValueObjectData<DataType = i32>,
@@ -253,7 +252,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 impl<T> ValueObjectOptional<T>
 where
     T: ValueObjectData<DataType = u16>,

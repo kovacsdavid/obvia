@@ -207,16 +207,17 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
-    use crate::tenant::customers::model::CustomerResolved;
+    use crate::tenant::customers::model::tests::{
+        test_customer_builder, test_customer_resolved_builder,
+    };
     use crate::{
         common::config::tests::AppConfigBuilder,
         tenant::customers::{
-            self, model::Customer, repository::MockCustomersRepository, tests::MockCustomersModule,
+            self, repository::MockCustomersRepository, tests::MockCustomersModule,
         },
     };
     use axum::body::Body;
     use axum::{Router, http::Request};
-    use chrono::{DateTime, Utc};
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
@@ -227,22 +228,8 @@ mod tests {
     async fn test_get_success() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
 
-        let customer = Customer {
-            id: customer_id,
-            name: "Test customer".to_string(),
-            contact_name: None,
-            email: "test_customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_at: utc_now,
-            updated_at: utc_now,
-            deleted_at: None,
-        };
+        let customer = test_customer_builder().id(customer_id).build().unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_by_id()
@@ -462,23 +449,11 @@ mod tests {
     async fn test_get_resolved_success() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
 
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test customer".to_string(),
-            contact_name: None,
-            email: "test_customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: utc_now,
-            updated_at: utc_now,
-            deleted_at: None,
-        };
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .build()
+            .unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_resolved_by_id()
@@ -698,28 +673,16 @@ mod tests {
     async fn test_list_success() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
 
         let paginator_meta = PaginatorMeta {
             page: 1,
             limit: 25,
             total: 100,
         };
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test customer".to_string(),
-            contact_name: None,
-            email: "test_customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: utc_now,
-            updated_at: utc_now,
-            deleted_at: None,
-        };
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .build()
+            .unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_paged()
@@ -938,8 +901,6 @@ mod tests {
         let active_tenant_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -952,19 +913,7 @@ mod tests {
         };
         let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
 
-        let customer = Customer {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_at: utc_now,
-            updated_at: utc_now,
-            deleted_at: None,
-        };
+        let customer = test_customer_builder().id(customer_id).build().unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_insert()
@@ -1227,8 +1176,6 @@ mod tests {
         let active_tenant_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
         let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let utc_now = Utc::now();
 
         let user_input_helper = CustomerUserInputHelper {
             id: Some(customer_id.to_string()),
@@ -1241,19 +1188,7 @@ mod tests {
         };
         let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
 
-        let customer = Customer {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_at: utc_now,
-            updated_at: utc_now,
-            deleted_at: None,
-        };
+        let customer = test_customer_builder().id(customer_id).build().unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_update()
@@ -1703,23 +1638,11 @@ mod tests {
     async fn test_print_success() {
         let active_tenant_id = Uuid::new_v4();
         let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
-        let created_by_id: Uuid = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
 
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .build()
+            .unwrap();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_resolved_by_id()

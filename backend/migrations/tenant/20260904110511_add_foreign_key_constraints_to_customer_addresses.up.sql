@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -17,7 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod dto;
-pub(crate) mod model;
-pub(crate) mod repository;
-pub(crate) mod types;
+ALTER TABLE customers
+ADD CONSTRAINT fk_customers_billing_address
+FOREIGN KEY (billing_address)
+REFERENCES address (id);
+
+ALTER TABLE customers
+ADD CONSTRAINT fk_customers_mailing_address
+FOREIGN KEY (mailing_address)
+REFERENCES address (id);
+
+CREATE INDEX idx_customers_billing_address ON customers(billing_address);
+CREATE INDEX idx_customers_mailing_address ON customers(mailing_address);

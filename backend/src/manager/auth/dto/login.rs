@@ -78,10 +78,6 @@ impl LoginResponse {
             token,
         }
     }
-    #[allow(dead_code)]
-    pub fn token(&self) -> &String {
-        &self.token
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]

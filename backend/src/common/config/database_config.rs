@@ -46,11 +46,6 @@ pub trait DatabasePoolSizeProvider {
     fn max_pool_size(&self) -> Self::MaxPoolSizeType;
 }
 
-#[allow(dead_code)]
-pub trait DatabasePgSslModeProvider {
-    fn pg_ssl_mode(&self) -> Result<PgSslMode, String>;
-}
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
 {
@@ -61,19 +56,6 @@ pub struct DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseTy
     pub database: DatabaseType,
     pub max_pool_size: Option<MaxPoolSizeType>,
     pub ssl_mode: Option<String>,
-}
-
-impl<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
-    DatabasePgSslModeProvider
-    for DatabaseConfig<HostType, PortType, UserType, PasswordType, DatabaseType, MaxPoolSizeType>
-{
-    fn pg_ssl_mode(&self) -> Result<PgSslMode, String> {
-        if let Some(ssl_mode) = &self.ssl_mode {
-            Ok(PgSslMode::from_str(ssl_mode).map_err(|_| "Invalid SSL mode".to_string())?)
-        } else {
-            Ok(PgSslMode::VerifyFull)
-        }
-    }
 }
 
 impl From<TenantDatabaseConfig> for BasicDatabaseConfig {

@@ -103,7 +103,6 @@ impl From<ValueObjectError> for InventoryMovementUserInputError {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct InventoryMovementUserInput {
-    #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,
     pub inventory_id: ValueObjectRequired<UuidVO>,
     pub movement_type: ValueObjectRequired<InventoryMovementType>,

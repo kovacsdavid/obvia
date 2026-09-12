@@ -87,13 +87,14 @@ impl AddressUserInputError {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
 #[expect(unused)]
 pub struct AddressUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub address_type: ValueObjectRequired<AddressType>,
     pub country_code: ValueObjectRequired<CountryCode>,
     pub postal_code: ValueObjectRequired<PostalCode>,
-    pub settlement: ValueObjectOptional<Settlement>,
+    pub settlement: ValueObjectRequired<Settlement>,
     pub mailbox: ValueObjectOptional<Mailbox>,
     pub topographic_number: ValueObjectOptional<TopographicNumber>,
     pub name_of_public_space: ValueObjectOptional<NameOfPublicSpace>,
@@ -103,4 +104,119 @@ pub struct AddressUserInput {
     pub stairway: ValueObjectOptional<Stairway>,
     pub floor: ValueObjectOptional<Floor>,
     pub door: ValueObjectOptional<Door>,
+}
+
+impl TryFrom<AddressUserInputHelper> for AddressUserInput {
+    type Error = AddressUserInputError;
+    #[expect(unused)]
+    fn try_from(value: AddressUserInputHelper) -> Result<Self, Self::Error> {
+        let mut error = AddressUserInputError::default();
+
+        let id = value
+            .id
+            .unwrap_or("".to_owned())
+            .parse::<ValueObjectOptional<UuidVO>>()
+            .inspect_err(|e| {
+                error.id = Some(e.to_string());
+            });
+
+        let address_type = value
+            .address_type
+            .parse::<ValueObjectRequired<AddressType>>()
+            .inspect_err(|e| {
+                error.address_type = Some(e.to_string());
+            });
+
+        let country_code = value
+            .country_code
+            .parse::<ValueObjectRequired<CountryCode>>()
+            .inspect_err(|e| {
+                error.country_code = Some(e.to_string());
+            });
+
+        let postal_code = value
+            .postal_code
+            .parse::<ValueObjectRequired<PostalCode>>()
+            .inspect_err(|e| {
+                error.postal_code = Some(e.to_string());
+            });
+
+        let settlement = value
+            .settlement
+            .parse::<ValueObjectRequired<Settlement>>()
+            .inspect_err(|e| {
+                error.settlement = Some(e.to_string());
+            });
+
+        let mailbox = value
+            .mailbox
+            .parse::<ValueObjectOptional<Mailbox>>()
+            .inspect_err(|e| {
+                error.mailbox = Some(e.to_string());
+            });
+
+        let topographic_number = value
+            .topographic_number
+            .parse::<ValueObjectOptional<TopographicNumber>>()
+            .inspect_err(|e| {
+                error.topographic_number = Some(e.to_string());
+            });
+
+        if mailbox.is_ok() && topographic_number.is_ok() {
+            let error_msg = "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
+            error.mailbox = Some(error_msg.clone());
+            error.topographic_number = Some(error_msg);
+        }
+
+        let name_of_public_space = value
+            .name_of_public_space
+            .parse::<ValueObjectOptional<NameOfPublicSpace>>()
+            .inspect_err(|e| {
+                error.name_of_public_space = Some(e.to_string());
+            });
+
+        let type_of_public_space = value
+            .type_of_public_space
+            .parse::<ValueObjectOptional<TypeOfPublicSpace>>()
+            .inspect_err(|e| {
+                error.type_of_public_space = Some(e.to_string());
+            });
+
+        let house_number = value
+            .house_number
+            .parse::<ValueObjectOptional<HouseNumber>>()
+            .inspect_err(|e| {
+                error.house_number = Some(e.to_string());
+            });
+
+        let building = value
+            .building
+            .parse::<ValueObjectOptional<Building>>()
+            .inspect_err(|e| {
+                error.building = Some(e.to_string());
+            });
+
+        let stairway = value
+            .stairway
+            .parse::<ValueObjectOptional<Stairway>>()
+            .inspect_err(|e| {
+                error.stairway = Some(e.to_string());
+            });
+
+        let floor = value
+            .floor
+            .parse::<ValueObjectOptional<Floor>>()
+            .inspect_err(|e| {
+                error.floor = Some(e.to_string());
+            });
+
+        let door = value
+            .door
+            .parse::<ValueObjectOptional<Door>>()
+            .inspect_err(|e| {
+                error.door = Some(e.to_string());
+            });
+
+        todo!()
+    }
 }

@@ -29,6 +29,9 @@ use uuid::Uuid;
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct Address {
     pub id: Uuid,
+    #[serde(rename = "type")]
+    #[sqlx(rename = "type")]
+    pub address_type: String,
     pub country_code: String,
     pub postal_code: String,
     pub settlement: String,
@@ -122,6 +125,9 @@ impl Display for Address {
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct AddressResolved {
     pub id: Uuid,
+    #[serde(rename = "type")]
+    #[sqlx(rename = "type")]
+    pub address_type: String,
     pub country_code: String,
     pub country: String,
     pub postal_code: String,
@@ -227,6 +233,7 @@ mod tests {
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
             .settlement("Budapest".to_string())
@@ -255,6 +262,7 @@ mod tests {
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
             .settlement("Budapest".to_string())
@@ -283,6 +291,7 @@ mod tests {
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
             .settlement("Budapest".to_string())
@@ -312,6 +321,7 @@ mod tests {
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
             .postal_code("1132".to_string())
@@ -342,6 +352,7 @@ mod tests {
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
             .postal_code("1132".to_string())
@@ -372,6 +383,7 @@ mod tests {
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
             .id(Uuid::new_v4())
+            .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
             .postal_code("1132".to_string())

@@ -910,6 +910,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
         let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -993,6 +995,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "activee".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1048,6 +1052,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1097,6 +1103,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1146,6 +1154,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let app_state = MockCustomersModule::new();
@@ -1185,6 +1195,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
         let user_input = CustomerUserInput::try_from(user_input_helper.clone()).unwrap();
 
@@ -1257,6 +1269,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1308,6 +1322,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1357,6 +1373,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let mut app_state = MockCustomersModule::new();
@@ -1406,6 +1424,8 @@ mod tests {
             phone_number: "+36301234567".to_string(),
             status: "active".to_string(),
             customer_type: "natural".to_string(),
+            billing_address: None,
+            mailing_address: None,
         };
 
         let app_state = MockCustomersModule::new();

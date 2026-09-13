@@ -20,6 +20,9 @@
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::{Email, UuidVO};
 use crate::common::value_object::*;
+use crate::tenant::address::dto::user_input::{
+    AddressUserInput, AddressUserInputError, AddressUserInputHelper,
+};
 use crate::tenant::customers::types::customer::*;
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -36,6 +39,8 @@ pub struct CustomerUserInputHelper {
     pub phone_number: String,
     pub status: String,
     pub customer_type: String,
+    pub billing_address: Option<AddressUserInputHelper>,
+    pub mailing_address: Option<AddressUserInputHelper>,
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -47,6 +52,8 @@ pub struct CustomerUserInputError {
     pub phone_number: Option<String>,
     pub status: Option<String>,
     pub customer_type: Option<String>,
+    pub billing_address: AddressUserInputError,
+    pub mailing_address: AddressUserInputError,
 }
 
 impl CustomerUserInputError {
@@ -58,6 +65,8 @@ impl CustomerUserInputError {
             && self.phone_number.is_none()
             && self.status.is_none()
             && self.customer_type.is_none()
+            && self.billing_address.is_empty()
+            && self.mailing_address.is_empty()
     }
 }
 
@@ -91,6 +100,12 @@ impl From<ValueObjectError> for CustomerUserInputError {
     }
 }
 
+impl From<AddressUserInputError> for CustomerUserInputError {
+    fn from(_: AddressUserInputError) -> Self {
+        CustomerUserInputError::default()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct CustomerUserInput {
     pub id: ValueObjectOptional<UuidVO>,
@@ -100,6 +115,8 @@ pub struct CustomerUserInput {
     pub phone_number: ValueObjectOptional<CustomerPhoneNumber>,
     pub status: ValueObjectRequired<CustomerStatus>,
     pub customer_type: ValueObjectRequired<CustomerType>,
+    pub billing_address: Option<AddressUserInput>,
+    pub mailing_address: Option<AddressUserInput>,
 }
 
 impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
@@ -164,6 +181,24 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
             Ok(None)
         };
 
+        let billing_address = if let Some(billing_address) = value.billing_address {
+            AddressUserInput::try_from(billing_address)
+                .inspect_err(|e| {
+                    error.billing_address = e.clone();
+                })
+                .ok()
+        } else {
+            None
+        };
+
+        let mailing_address = if let Some(mailing_address) = value.mailing_address {
+            AddressUserInput::try_from(mailing_address)
+                .inspect_err(|e| error.mailing_address = e.clone())
+                .ok()
+        } else {
+            None
+        };
+
         if error.is_empty() {
             Ok(CustomerUserInput {
                 id: id?,
@@ -173,6 +208,8 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
                 phone_number: phone_number?,
                 status: status?,
                 customer_type: customer_type?,
+                billing_address,
+                mailing_address,
             })
         } else {
             Err(error)
@@ -194,6 +231,8 @@ mod tests {
             phone_number: String::from("+36301234567"),
             status: String::from("active"),
             customer_type: String::from("natural"),
+            billing_address: None,
+            mailing_address: None,
         })
         .unwrap();
         assert_eq!(cui.id.as_uuid(), None);
@@ -215,6 +254,8 @@ mod tests {
             phone_number: String::from("+36301234567"),
             status: String::from("active"),
             customer_type: String::from("legal"),
+            billing_address: None,
+            mailing_address: None,
         })
         .unwrap();
         assert_eq!(cui.id.as_uuid(), None);
@@ -235,6 +276,8 @@ mod tests {
             phone_number: String::from("+36@301234567"),
             status: String::from("activee"),
             customer_type: String::from("natural"),
+            billing_address: None,
+            mailing_address: None,
         })
         .unwrap_err();
         assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
@@ -259,6 +302,8 @@ mod tests {
             phone_number: String::from("+3630a234567"),
             status: String::from(""),
             customer_type: String::from("legal"),
+            billing_address: None,
+            mailing_address: None,
         })
         .unwrap_err();
         assert_eq!(cuie.id, None);

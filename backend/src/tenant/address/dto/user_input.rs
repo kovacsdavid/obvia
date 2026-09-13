@@ -49,7 +49,7 @@ pub struct AddressUserInputHelper {
     pub door: String,
 }
 
-#[derive(Debug, Serialize, Default, Builder, PartialEq)]
+#[derive(Clone, Debug, Serialize, Default, Builder, PartialEq)]
 pub struct AddressUserInputError {
     pub id: Option<String>,
     pub address_type: Option<String>,

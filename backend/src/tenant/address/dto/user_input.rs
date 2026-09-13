@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::{
         types::UuidVO,
-        value_object::{ValueObjectOptional, ValueObjectRequired},
+        value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired},
     },
     tenant::address::types::{
         AddressType, Building, CountryCode, Door, Floor, HouseNumber, Mailbox, NameOfPublicSpace,
@@ -49,7 +49,7 @@ pub struct AddressUserInputHelper {
     pub door: String,
 }
 
-#[derive(Debug, Serialize, Default, Builder)]
+#[derive(Debug, Serialize, Default, Builder, PartialEq)]
 pub struct AddressUserInputError {
     pub id: Option<String>,
     pub address_type: Option<String>,
@@ -68,7 +68,6 @@ pub struct AddressUserInputError {
 }
 
 impl AddressUserInputError {
-    #[expect(unused)]
     pub fn is_empty(&self) -> bool {
         self.id.is_none()
             && self.address_type.is_none()
@@ -87,8 +86,13 @@ impl AddressUserInputError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
-#[expect(unused)]
+impl From<ValueObjectError> for AddressUserInputError {
+    fn from(_: ValueObjectError) -> Self {
+        AddressUserInputError::default()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Builder)]
 pub struct AddressUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub address_type: ValueObjectRequired<AddressType>,
@@ -108,7 +112,6 @@ pub struct AddressUserInput {
 
 impl TryFrom<AddressUserInputHelper> for AddressUserInput {
     type Error = AddressUserInputError;
-    #[expect(unused)]
     fn try_from(value: AddressUserInputHelper) -> Result<Self, Self::Error> {
         let mut error = AddressUserInputError::default();
 
@@ -162,7 +165,11 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 error.topographic_number = Some(e.to_string());
             });
 
-        if mailbox.is_ok() && topographic_number.is_ok() {
+        if let Ok(mailbox) = &mailbox
+            && let Ok(topographic_number) = &topographic_number
+            && mailbox.is_present()
+            && topographic_number.is_present()
+        {
             let error_msg = "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
             error.mailbox = Some(error_msg.clone());
             error.topographic_number = Some(error_msg);
@@ -217,6 +224,79 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 error.door = Some(e.to_string());
             });
 
-        todo!()
+        if error.is_empty() {
+            Ok(AddressUserInput {
+                id: id?,
+                address_type: address_type?,
+                country_code: country_code?,
+                postal_code: postal_code?,
+                settlement: settlement?,
+                mailbox: mailbox?,
+                topographic_number: topographic_number?,
+                name_of_public_space: name_of_public_space?,
+                type_of_public_space: type_of_public_space?,
+                house_number: house_number?,
+                building: building?,
+                stairway: stairway?,
+                floor: floor?,
+                door: door?,
+            })
+        } else {
+            Err(error)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use pretty_assertions::assert_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_valid_full_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let mut address_user_input_builder = AddressUserInputBuilder::default();
+        let expected_address_user_input = address_user_input_builder
+            .id("".parse().unwrap())
+            .address_type("mailing".parse().unwrap())
+            .country_code("HU".parse().unwrap())
+            .postal_code("1011".parse().unwrap())
+            .settlement("Budapest".parse().unwrap())
+            .mailbox("".parse().unwrap())
+            .topographic_number("".parse().unwrap())
+            .name_of_public_space("Váci".parse().unwrap())
+            .type_of_public_space("út".parse().unwrap())
+            .house_number("1111".parse().unwrap())
+            .building("A".parse().unwrap())
+            .stairway("B".parse().unwrap())
+            .floor("1".parse().unwrap())
+            .door("2".parse().unwrap())
+            .build()
+            .unwrap();
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_ok());
+        assert_eq!(expected_address_user_input, address_user_input.unwrap());
     }
 }

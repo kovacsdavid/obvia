@@ -165,16 +165,6 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 error.topographic_number = Some(e.to_string());
             });
 
-        if let Ok(mailbox) = &mailbox
-            && let Ok(topographic_number) = &topographic_number
-            && mailbox.is_present()
-            && topographic_number.is_present()
-        {
-            let error_msg = "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
-            error.mailbox = Some(error_msg.clone());
-            error.topographic_number = Some(error_msg);
-        }
-
         let name_of_public_space = value
             .name_of_public_space
             .parse::<ValueObjectOptional<NameOfPublicSpace>>()
@@ -225,7 +215,7 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
             });
 
         if error.is_empty() {
-            Ok(AddressUserInput {
+            let address_user_input = AddressUserInput {
                 id: id?,
                 address_type: address_type?,
                 country_code: country_code?,
@@ -240,7 +230,58 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 stairway: stairway?,
                 floor: floor?,
                 door: door?,
-            })
+            };
+
+            if address_user_input.mailbox.is_present()
+                && address_user_input.topographic_number.is_present()
+            {
+                let error_msg =
+                    "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
+                error.mailbox = Some(error_msg.clone());
+                error.topographic_number = Some(error_msg);
+                return Err(error);
+            }
+
+            let is_full_address = address_user_input.name_of_public_space.is_present()
+                || address_user_input.type_of_public_space.is_present()
+                || address_user_input.house_number.is_present()
+                || address_user_input.building.is_present()
+                || address_user_input.stairway.is_present()
+                || address_user_input.floor.is_present()
+                || address_user_input.door.is_present();
+
+            if address_user_input.mailbox.is_present() && is_full_address {
+                error.mailbox =
+                    Some("Postafiók nem adható meg, ha ki van töltve a teljes cím".to_string());
+                return Err(error);
+            }
+
+            if address_user_input.topographic_number.is_present() && is_full_address {
+                error.topographic_number = Some(
+                    "Helyrajzi szám nem adható meg, ha ki van töltve a teljes cím".to_string(),
+                );
+                return Err(error);
+            }
+
+            if is_full_address
+                && (!address_user_input.name_of_public_space.is_present()
+                    || !address_user_input.type_of_public_space.is_present()
+                    || !address_user_input.house_number.is_present())
+            {
+                let error_msg = "A mező kitöltése kötelező".to_string();
+                if !address_user_input.name_of_public_space.is_present() {
+                    error.name_of_public_space = Some(error_msg.clone());
+                }
+                if !address_user_input.type_of_public_space.is_present() {
+                    error.type_of_public_space = Some(error_msg.clone());
+                }
+                if !address_user_input.house_number.is_present() {
+                    error.house_number = Some(error_msg.clone())
+                }
+                return Err(error);
+            }
+
+            Ok(address_user_input)
         } else {
             Err(error)
         }
@@ -298,5 +339,430 @@ mod tests {
 
         assert!(address_user_input.is_ok());
         assert_eq!(expected_address_user_input, address_user_input.unwrap());
+    }
+
+    #[test]
+    fn test_valid_topographic_number_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("111/A".to_string())
+            .name_of_public_space("".to_string())
+            .type_of_public_space("".to_string())
+            .house_number("".to_string())
+            .building("".to_string())
+            .stairway("".to_string())
+            .floor("".to_string())
+            .door("".to_string())
+            .build()
+            .unwrap();
+
+        let mut address_user_input_builder = AddressUserInputBuilder::default();
+        let expected_address_user_input = address_user_input_builder
+            .id("".parse().unwrap())
+            .address_type("mailing".parse().unwrap())
+            .country_code("HU".parse().unwrap())
+            .postal_code("1011".parse().unwrap())
+            .settlement("Budapest".parse().unwrap())
+            .mailbox("".parse().unwrap())
+            .topographic_number("111/A".parse().unwrap())
+            .name_of_public_space("".parse().unwrap())
+            .type_of_public_space("".parse().unwrap())
+            .house_number("".parse().unwrap())
+            .building("".parse().unwrap())
+            .stairway("".parse().unwrap())
+            .floor("".parse().unwrap())
+            .door("".parse().unwrap())
+            .build()
+            .unwrap();
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_ok());
+        assert_eq!(expected_address_user_input, address_user_input.unwrap());
+    }
+
+    #[test]
+    fn test_valid_mailbox_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("111".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("".to_string())
+            .type_of_public_space("".to_string())
+            .house_number("".to_string())
+            .building("".to_string())
+            .stairway("".to_string())
+            .floor("".to_string())
+            .door("".to_string())
+            .build()
+            .unwrap();
+
+        let mut address_user_input_builder = AddressUserInputBuilder::default();
+        let expected_address_user_input = address_user_input_builder
+            .id("".parse().unwrap())
+            .address_type("mailing".parse().unwrap())
+            .country_code("HU".parse().unwrap())
+            .postal_code("1011".parse().unwrap())
+            .settlement("Budapest".parse().unwrap())
+            .mailbox("111".parse().unwrap())
+            .topographic_number("".parse().unwrap())
+            .name_of_public_space("".parse().unwrap())
+            .type_of_public_space("".parse().unwrap())
+            .house_number("".parse().unwrap())
+            .building("".parse().unwrap())
+            .stairway("".parse().unwrap())
+            .floor("".parse().unwrap())
+            .door("".parse().unwrap())
+            .build()
+            .unwrap();
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_ok());
+        assert_eq!(expected_address_user_input, address_user_input.unwrap());
+    }
+
+    #[test]
+    fn test_mailbox_topographic_number_cant_be_present_together() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("111".to_string())
+            .topographic_number("111/A".to_string())
+            .name_of_public_space("".to_string())
+            .type_of_public_space("".to_string())
+            .house_number("".to_string())
+            .building("".to_string())
+            .stairway("".to_string())
+            .floor("".to_string())
+            .door("".to_string())
+            .build()
+            .unwrap();
+
+        let error_msg = "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: Some(error_msg.clone()),
+            topographic_number: Some(error_msg),
+            name_of_public_space: None,
+            type_of_public_space: None,
+            house_number: None,
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_mailbox_and_full_address_cant_be_present_together() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("111".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: Some("Postafiók nem adható meg, ha ki van töltve a teljes cím".to_string()),
+            topographic_number: None,
+            name_of_public_space: None,
+            type_of_public_space: None,
+            house_number: None,
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_topographic_number_and_full_address_cant_be_present_together() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("111/A".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: None,
+            topographic_number: Some(
+                "Helyrajzi szám nem adható meg, ha ki van töltve a teljes cím".to_string(),
+            ),
+            name_of_public_space: None,
+            type_of_public_space: None,
+            house_number: None,
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_name_of_public_space_required_if_full_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: None,
+            topographic_number: None,
+            name_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            type_of_public_space: None,
+            house_number: None,
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_type_of_public_space_required_if_full_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: None,
+            topographic_number: None,
+            name_of_public_space: None,
+            type_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            house_number: None,
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_house_number_required_if_full_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: None,
+            topographic_number: None,
+            name_of_public_space: None,
+            type_of_public_space: None,
+            house_number: Some("A mező kitöltése kötelező".to_string()),
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_all_required_if_full_address() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("".to_string())
+            .type_of_public_space("".to_string())
+            .house_number("".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: None,
+            settlement: None,
+            mailbox: None,
+            topographic_number: None,
+            name_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            type_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            house_number: Some("A mező kitöltése kötelező".to_string()),
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
     }
 }

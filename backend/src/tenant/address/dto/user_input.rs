@@ -110,6 +110,18 @@ pub struct AddressUserInput {
     pub door: ValueObjectOptional<Door>,
 }
 
+impl AddressUserInput {
+    pub fn is_full_address(&self) -> bool {
+        self.name_of_public_space.is_present()
+            || self.type_of_public_space.is_present()
+            || self.house_number.is_present()
+            || self.building.is_present()
+            || self.stairway.is_present()
+            || self.floor.is_present()
+            || self.door.is_present()
+    }
+}
+
 impl TryFrom<AddressUserInputHelper> for AddressUserInput {
     type Error = AddressUserInputError;
     fn try_from(value: AddressUserInputHelper) -> Result<Self, Self::Error> {
@@ -242,28 +254,22 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 return Err(error);
             }
 
-            let is_full_address = address_user_input.name_of_public_space.is_present()
-                || address_user_input.type_of_public_space.is_present()
-                || address_user_input.house_number.is_present()
-                || address_user_input.building.is_present()
-                || address_user_input.stairway.is_present()
-                || address_user_input.floor.is_present()
-                || address_user_input.door.is_present();
-
-            if address_user_input.mailbox.is_present() && is_full_address {
+            if address_user_input.mailbox.is_present() && address_user_input.is_full_address() {
                 error.mailbox =
                     Some("Postafiók nem adható meg, ha ki van töltve a teljes cím".to_string());
                 return Err(error);
             }
 
-            if address_user_input.topographic_number.is_present() && is_full_address {
+            if address_user_input.topographic_number.is_present()
+                && address_user_input.is_full_address()
+            {
                 error.topographic_number = Some(
                     "Helyrajzi szám nem adható meg, ha ki van töltve a teljes cím".to_string(),
                 );
                 return Err(error);
             }
 
-            if is_full_address
+            if address_user_input.is_full_address()
                 && (!address_user_input.name_of_public_space.is_present()
                     || !address_user_input.type_of_public_space.is_present()
                     || !address_user_input.house_number.is_present())

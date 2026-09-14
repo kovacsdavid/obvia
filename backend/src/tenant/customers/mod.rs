@@ -20,6 +20,7 @@
 use crate::common::database::PoolManager;
 use crate::common::error::RepositoryResult;
 use crate::common::{AppState, BaseModule};
+use crate::tenant::address::repository::AddressRepository;
 use crate::tenant::customers::repository::CustomersRepository;
 use lettre::{
     AsyncTransport,
@@ -42,6 +43,10 @@ pub trait CustomersModuleInterface: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
 }
 
 impl<P, T> CustomersModuleInterface for AppState<P, T>
@@ -54,6 +59,12 @@ where
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
 }
@@ -86,6 +97,10 @@ pub mod tests {
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            fn address_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
         }
     );
 }

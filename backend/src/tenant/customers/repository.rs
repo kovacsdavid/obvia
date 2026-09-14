@@ -21,6 +21,8 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
+use crate::tenant::address::dto::user_input::AddressUserInput;
+use crate::tenant::address::model::Address;
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
@@ -213,27 +215,117 @@ impl CustomersRepository for PgPool {
     }
 
     async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer> {
+        let mut tx = self.begin().await?;
         let contact_name = match &customer.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
-        Ok(sqlx::query_as::<_, Customer>(
-            "INSERT INTO customers (name, contact_name, email, phone_number, status, customer_type, created_by_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+        let mut insert_address = async |address: &AddressUserInput| -> RepositoryResult<Address> {
+            Ok(sqlx::query_as::<_, Address>(
+                r#"
+                    INSERT INTO address (
+                        type,
+                        country_code, 
+                        postal_code,
+                        settlement,
+                        mailbox,
+                        topographic_number,
+                        name_of_public_space,
+                        type_of_public_space,
+                        house_number,
+                        building,
+                        stairway,
+                        floor,
+                        door,
+                        created_by_id
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4,
+                        $5,
+                        $6,
+                        $7,
+                        $8,
+                        $9,
+                        $10,
+                        $11,
+                        $12,
+                        $13,
+                        $14
+                    )
+                    RETURNING *
+                "#,
+            )
+            .bind(address.address_type.as_str()?)
+            .bind(address.country_code.as_str()?)
+            .bind(address.postal_code.as_str()?)
+            .bind(address.settlement.as_str()?)
+            .bind(address.mailbox.as_str())
+            .bind(address.topographic_number.as_str())
+            .bind(address.name_of_public_space.as_str())
+            .bind(address.type_of_public_space.as_str())
+            .bind(address.house_number.as_str())
+            .bind(address.building.as_str())
+            .bind(address.stairway.as_str())
+            .bind(address.floor.as_str())
+            .bind(address.door.as_str())
+            .bind(sub)
+            .fetch_one(&mut *tx)
+            .await?)
+        };
+
+        let billing_address = if let Some(billing_address) = &customer.billing_address {
+            insert_address(billing_address).await.ok()
+        } else {
+            None
+        };
+
+        let mailing_address = if let Some(mailing_address) = &customer.mailing_address {
+            insert_address(mailing_address).await.ok()
+        } else {
+            None
+        };
+        let customer = sqlx::query_as::<_, Customer>(
+            r#"
+                INSERT INTO customers (
+                    name,
+                    contact_name,
+                    email,
+                    phone_number,
+                    status,
+                    customer_type,
+                    created_by_id,
+                    billing_address,
+                    mailing_address
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9
+                ) RETURNING *
+            "#,
         )
         .bind(customer.name.as_str()?)
         .bind(contact_name)
         .bind(customer.email.as_str()?)
-        .bind(
-            customer
-                .phone_number
-                    .as_str()
-        )
+        .bind(customer.phone_number.as_str())
         .bind(customer.status.as_str()?)
         .bind(customer.customer_type.as_str()?)
         .bind(sub)
-        .fetch_one(self)
-        .await?)
+        .bind(billing_address.map(|v| v.id))
+        .bind(mailing_address.map(|v| v.id))
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(customer)
     }
 
     async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer> {

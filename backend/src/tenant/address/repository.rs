@@ -128,7 +128,7 @@ impl AddressRepository for PgPool {
                     stairway,
                     floor,
                     door,
-                    created_by_id,
+                    created_by_id
                 ) VALUES (
                     $1,
                     $2,
@@ -143,10 +143,7 @@ impl AddressRepository for PgPool {
                     $11,
                     $12,
                     $13,
-                    $14,
-                    $15,
-                    $16,
-                    $17
+                    $14
                 )
                 RETURNING *
             "#,

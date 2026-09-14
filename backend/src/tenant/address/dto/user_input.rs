@@ -295,11 +295,53 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
 
     use pretty_assertions::assert_eq;
 
     use super::*;
+
+    pub fn test_address_user_input_helper_builder() -> AddressUserInputHelperBuilder {
+        let mut builder = AddressUserInputHelperBuilder::default();
+        builder
+            .id(None)
+            .address_type("mailing".to_string())
+            .country_code("HU".to_string())
+            .postal_code("1011".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox("".to_string())
+            .topographic_number("".to_string())
+            .name_of_public_space("Váci".to_string())
+            .type_of_public_space("út".to_string())
+            .house_number("1111".to_string())
+            .building("A".to_string())
+            .stairway("B".to_string())
+            .floor("1".to_string())
+            .door("2".to_string());
+
+        builder
+    }
+
+    pub fn test_address_user_input_builder() -> AddressUserInputBuilder {
+        let mut builder = AddressUserInputBuilder::default();
+        builder
+            .id("".parse().unwrap())
+            .address_type("mailing".parse().unwrap())
+            .country_code("HU".parse().unwrap())
+            .postal_code("1011".parse().unwrap())
+            .settlement("Budapest".parse().unwrap())
+            .mailbox("".parse().unwrap())
+            .topographic_number("".parse().unwrap())
+            .name_of_public_space("Váci".parse().unwrap())
+            .type_of_public_space("út".parse().unwrap())
+            .house_number("1111".parse().unwrap())
+            .building("A".parse().unwrap())
+            .stairway("B".parse().unwrap())
+            .floor("1".parse().unwrap())
+            .door("2".parse().unwrap());
+
+        builder
+    }
 
     #[test]
     fn test_valid_full_address() {

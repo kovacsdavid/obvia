@@ -43,7 +43,7 @@ pub struct CustomerUserInputHelper {
     pub mailing_address: Option<AddressUserInputHelper>,
 }
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Serialize, Default, PartialEq)]
 pub struct CustomerUserInputError {
     pub id: Option<String>,
     pub name: Option<String>,
@@ -219,11 +219,21 @@ impl TryFrom<CustomerUserInputHelper> for CustomerUserInput {
 
 #[cfg(test)]
 mod tests {
+
+    use pretty_assertions::assert_eq;
+
+    use crate::tenant::address::{
+        dto::user_input::tests::{
+            test_address_user_input_builder, test_address_user_input_helper_builder,
+        },
+        types::CountryCode,
+    };
+
     use super::*;
 
     #[test]
     fn valid_customer_user_input_natural() {
-        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+        let customer_user_input = CustomerUserInput::try_from(CustomerUserInputHelper {
             id: None,
             name: String::from("Teszt Elek"),
             contact_name: String::from(""),
@@ -231,22 +241,28 @@ mod tests {
             phone_number: String::from("+36301234567"),
             status: String::from("active"),
             customer_type: String::from("natural"),
-            billing_address: None,
+            billing_address: Some(test_address_user_input_helper_builder().build().unwrap()),
             mailing_address: None,
-        })
-        .unwrap();
-        assert_eq!(cui.id.as_uuid(), None);
-        assert_eq!(cui.name.as_str().unwrap(), "Teszt Elek");
-        assert_eq!(cui.contact_name, None);
-        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
-        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
-        assert_eq!(cui.status.as_str().unwrap(), "active");
-        assert_eq!(cui.customer_type.as_str().unwrap(), "natural");
+        });
+        let expected_customer_user_input = CustomerUserInput {
+            id: "".parse().unwrap(),
+            name: "Teszt Elek".parse().unwrap(),
+            contact_name: None,
+            email: "teszt.elek@example.com".parse().unwrap(),
+            phone_number: "+36301234567".parse().unwrap(),
+            status: "active".parse().unwrap(),
+            customer_type: "natural".parse().unwrap(),
+            billing_address: Some(test_address_user_input_builder().build().unwrap()),
+            mailing_address: None,
+        };
+
+        assert!(customer_user_input.is_ok());
+        assert_eq!(expected_customer_user_input, customer_user_input.unwrap());
     }
 
     #[test]
     fn valid_customer_user_input_legal() {
-        let cui = CustomerUserInput::try_from(CustomerUserInputHelper {
+        let customer_user_input = CustomerUserInput::try_from(CustomerUserInputHelper {
             id: None,
             name: String::from("Teszt Kft."),
             contact_name: String::from("Teszt Elek"),
@@ -254,21 +270,26 @@ mod tests {
             phone_number: String::from("+36301234567"),
             status: String::from("active"),
             customer_type: String::from("legal"),
-            billing_address: None,
+            billing_address: Some(test_address_user_input_helper_builder().build().unwrap()),
             mailing_address: None,
-        })
-        .unwrap();
-        assert_eq!(cui.id.as_uuid(), None);
-        assert_eq!(cui.name.as_str().unwrap(), "Teszt Kft.");
-        assert_eq!(cui.contact_name.unwrap().as_str().unwrap(), "Teszt Elek");
-        assert_eq!(cui.email.as_str().unwrap(), "teszt.elek@example.com");
-        assert_eq!(cui.phone_number.as_str(), Some("+36301234567"));
-        assert_eq!(cui.status.as_str().unwrap(), "active");
-        assert_eq!(cui.customer_type.as_str().unwrap(), "legal");
+        });
+        let expected_customer_user_input = CustomerUserInput {
+            id: "".parse().unwrap(),
+            name: "Teszt Kft.".parse().unwrap(),
+            contact_name: Some("Teszt Elek".parse().unwrap()),
+            email: "teszt.elek@example.com".parse().unwrap(),
+            phone_number: "+36301234567".parse().unwrap(),
+            status: "active".parse().unwrap(),
+            customer_type: "legal".parse().unwrap(),
+            billing_address: Some(test_address_user_input_builder().build().unwrap()),
+            mailing_address: None,
+        };
+        assert!(customer_user_input.is_ok());
+        assert_eq!(expected_customer_user_input, customer_user_input.unwrap());
     }
     #[test]
     fn invalid_customer_user_input_natural() {
-        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+        let customer_user_input = CustomerUserInput::try_from(CustomerUserInputHelper {
             id: Some(String::from("asd")),
             name: String::from(""),
             contact_name: String::from(""),
@@ -276,25 +297,66 @@ mod tests {
             phone_number: String::from("+36@301234567"),
             status: String::from("activee"),
             customer_type: String::from("natural"),
-            billing_address: None,
+            billing_address: Some(
+                test_address_user_input_helper_builder()
+                    .country_code("HUN".to_string())
+                    .build()
+                    .unwrap(),
+            ),
             mailing_address: None,
-        })
-        .unwrap_err();
-        assert_eq!(cuie.id.unwrap(), UuidVO::PARSE_ERROR);
-        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(cuie.contact_name, None);
-        assert_eq!(cuie.email.unwrap(), Email::VALIDATION_ERROR);
+        });
+
+        let expected_customer_user_input_error = CustomerUserInputError {
+            id: Some(UuidVO::PARSE_ERROR.to_string()),
+            name: Some(ValueObjectError::REQUIRED.to_string()),
+            contact_name: None,
+            email: Some(Email::VALIDATION_ERROR.to_string()),
+            phone_number: Some(CustomerPhoneNumber::VALIDATION_ERROR.to_string()),
+            status: Some(CustomerStatus::VALIDATION_ERROR.to_string()),
+            customer_type: None,
+            billing_address: AddressUserInputError {
+                id: None,
+                address_type: None,
+                country_code: Some(CountryCode::VALIDATION_ERROR.to_string()),
+                postal_code: None,
+                settlement: None,
+                mailbox: None,
+                topographic_number: None,
+                name_of_public_space: None,
+                type_of_public_space: None,
+                house_number: None,
+                building: None,
+                stairway: None,
+                floor: None,
+                door: None,
+            },
+            mailing_address: AddressUserInputError {
+                id: None,
+                address_type: None,
+                country_code: None,
+                postal_code: None,
+                settlement: None,
+                mailbox: None,
+                topographic_number: None,
+                name_of_public_space: None,
+                type_of_public_space: None,
+                house_number: None,
+                building: None,
+                stairway: None,
+                floor: None,
+                door: None,
+            },
+        };
+        assert!(customer_user_input.is_err());
         assert_eq!(
-            cuie.phone_number.unwrap(),
-            CustomerPhoneNumber::VALIDATION_ERROR
+            expected_customer_user_input_error,
+            customer_user_input.unwrap_err()
         );
-        assert_eq!(cuie.status.unwrap(), CustomerStatus::VALIDATION_ERROR);
-        assert_eq!(cuie.customer_type, None);
     }
 
     #[test]
     fn invalid_customer_user_input_legal() {
-        let cuie = CustomerUserInput::try_from(CustomerUserInputHelper {
+        let customer_user_input = CustomerUserInput::try_from(CustomerUserInputHelper {
             id: None,
             name: String::from(""),
             contact_name: String::from(""),
@@ -302,19 +364,61 @@ mod tests {
             phone_number: String::from("+3630a234567"),
             status: String::from(""),
             customer_type: String::from("legal"),
-            billing_address: None,
+            billing_address: Some(
+                test_address_user_input_helper_builder()
+                    .country_code("HUN".to_string())
+                    .build()
+                    .unwrap(),
+            ),
             mailing_address: None,
-        })
-        .unwrap_err();
-        assert_eq!(cuie.id, None);
-        assert_eq!(cuie.name.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(cuie.contact_name.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(cuie.email.unwrap(), ValueObjectError::REQUIRED);
+        });
+
+        let expected_customer_user_input_error = CustomerUserInputError {
+            id: None,
+            name: Some(ValueObjectError::REQUIRED.to_string()),
+            contact_name: Some(ValueObjectError::REQUIRED.to_string()),
+            email: Some(ValueObjectError::REQUIRED.to_string()),
+            phone_number: Some(CustomerPhoneNumber::VALIDATION_ERROR.to_string()),
+            status: Some(ValueObjectError::REQUIRED.to_string()),
+            customer_type: None,
+            billing_address: AddressUserInputError {
+                id: None,
+                address_type: None,
+                country_code: Some(CountryCode::VALIDATION_ERROR.to_string()),
+                postal_code: None,
+                settlement: None,
+                mailbox: None,
+                topographic_number: None,
+                name_of_public_space: None,
+                type_of_public_space: None,
+                house_number: None,
+                building: None,
+                stairway: None,
+                floor: None,
+                door: None,
+            },
+            mailing_address: AddressUserInputError {
+                id: None,
+                address_type: None,
+                country_code: None,
+                postal_code: None,
+                settlement: None,
+                mailbox: None,
+                topographic_number: None,
+                name_of_public_space: None,
+                type_of_public_space: None,
+                house_number: None,
+                building: None,
+                stairway: None,
+                floor: None,
+                door: None,
+            },
+        };
+
+        assert!(customer_user_input.is_err());
         assert_eq!(
-            cuie.phone_number.unwrap(),
-            CustomerPhoneNumber::VALIDATION_ERROR
+            expected_customer_user_input_error,
+            customer_user_input.unwrap_err()
         );
-        assert_eq!(cuie.status.unwrap(), ValueObjectError::REQUIRED);
-        assert_eq!(cuie.customer_type, None);
     }
 }

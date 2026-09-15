@@ -31,11 +31,12 @@ use crate::tenant::customers::dto::print::{
     CustomerResolvedPrint, test_customer_resolved_print_builder,
 };
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
-use crate::tenant::customers::model::{Customer, CustomerResolved};
+use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::http::StatusCode;
 use mockall_double::double;
 use serde_json::json;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -136,6 +137,10 @@ pub trait CustomerService {
         &self,
         payload: Uuid,
     ) -> impl Future<Output = CustomersServiceResult<CustomerResolved>> + Send;
+    fn get_full(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = CustomersServiceResult<CustomerFull>> + Send;
     fn get(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
     fn update(
         &self,
@@ -180,13 +185,58 @@ where
     async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .get_resolved_by_id(payload)
             .await?)
+    }
+    async fn get_full(&self, payload: Uuid) -> CustomersServiceResult<CustomerFull> {
+        let customer_resolved = self
+            .module()
+            .customers_repo(self.active_tenant()?)?
+            .get_resolved_by_id(payload)
+            .await?;
+
+        let mut address_ids = vec![];
+        if let Some(billing_address) = customer_resolved.billing_address {
+            address_ids.push(billing_address);
+        }
+        if let Some(mailing_address) = customer_resolved.mailing_address {
+            address_ids.push(mailing_address);
+        }
+
+        let mut addresses = if !address_ids.is_empty() {
+            let mut map = HashMap::new();
+            for address in self
+                .module()
+                .address_repo(self.active_tenant()?)?
+                .get_resolved_by_ids(address_ids)
+                .await?
+            {
+                map.insert(address.id, address);
+            }
+            map
+        } else {
+            HashMap::new()
+        };
+
+        Ok(
+            match (
+                customer_resolved.billing_address,
+                customer_resolved.mailing_address,
+            ) {
+                (None, None) => customer_resolved.into_full(None, None),
+                (None, Some(mailing_address)) => {
+                    customer_resolved.into_full(None, addresses.remove(&mailing_address))
+                }
+                (Some(billing_address), None) => {
+                    customer_resolved.into_full(addresses.remove(&billing_address), None)
+                }
+                (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
+                    addresses.remove(&billing_address),
+                    addresses.remove(&mailing_address),
+                ),
+            },
+        )
     }
     async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
         Ok(self

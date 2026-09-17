@@ -53,6 +53,9 @@ pub enum RepositoryError {
 
     #[error("Tenant pool not found")]
     TenantPoolNotFound,
+
+    #[error("InvalidState error: {0}")]
+    InvalidState(&'static str),
 }
 
 impl From<ValueObjectError> for RepositoryError {

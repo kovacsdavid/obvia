@@ -338,7 +338,65 @@ impl CustomersRepository for PgPool {
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
 
-        Ok(sqlx::query_as::<_, Customer>(
+        let mut tx = self.begin().await?;
+
+        let mut update_address = async |address: &AddressUserInput| -> RepositoryResult<Address> {
+            let address_id = address
+                .id
+                .as_uuid()
+                .ok_or_else(|| RepositoryError::InvalidInput("address_id".to_string()))?;
+            Ok(sqlx::query_as::<_, Address>(
+                r#"
+                    UPDATE address
+                    SET type = $1,
+                        country_code = $2,
+                        postal_code = $3,
+                        settlement = $4,
+                        mailbox = $5,
+                        topographic_number = $6,
+                        name_of_public_space = $7,
+                        type_of_public_space = $8,
+                        house_number = $9,
+                        building = $10,
+                        stairway = $11,
+                        floor = $12,
+                        door = $13
+                    WHERE id = $14
+                        AND deleted_at IS NULL
+                    RETURNING *
+                "#,
+            )
+            .bind(address.address_type.as_str()?)
+            .bind(address.country_code.as_str()?)
+            .bind(address.postal_code.as_str()?)
+            .bind(address.settlement.as_str()?)
+            .bind(address.mailbox.as_str())
+            .bind(address.topographic_number.as_str())
+            .bind(address.name_of_public_space.as_str())
+            .bind(address.type_of_public_space.as_str())
+            .bind(address.house_number.as_str())
+            .bind(address.building.as_str())
+            .bind(address.stairway.as_str())
+            .bind(address.floor.as_str())
+            .bind(address.door.as_str())
+            .bind(address_id)
+            .fetch_one(&mut *tx)
+            .await?)
+        };
+
+        let billing_address = if let Some(billing_address) = &customer.billing_address {
+            update_address(billing_address).await.ok()
+        } else {
+            None
+        };
+
+        let mailing_address = if let Some(mailing_address) = &customer.mailing_address {
+            update_address(mailing_address).await.ok()
+        } else {
+            None
+        };
+
+        let customer = sqlx::query_as::<_, Customer>(
             r#"
             UPDATE customers 
             SET name = $1,
@@ -359,8 +417,60 @@ impl CustomersRepository for PgPool {
         .bind(customer.status.as_str()?)
         .bind(customer.customer_type.as_str()?)
         .bind(id)
-        .fetch_one(self)
-        .await?)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        match (customer.billing_address, billing_address) {
+            (None, None) => (),
+            (None, Some(_)) => {
+                tx.rollback().await?;
+                return Err(RepositoryError::InvalidState(
+                    "it seems this billing_address is not related to this customer",
+                ));
+            }
+            (Some(_), None) => {
+                tx.rollback().await?;
+                return Err(RepositoryError::InvalidState(
+                    "billing_address for this customer record is not exists",
+                ));
+            }
+            (Some(customer_billing_address_id), Some(update_billing_address)) => {
+                if customer_billing_address_id != update_billing_address.id {
+                    tx.rollback().await?;
+                    return Err(RepositoryError::InvalidState(
+                        "billing_address id missmatch",
+                    ));
+                }
+            }
+        };
+
+        match (customer.mailing_address, mailing_address) {
+            (None, None) => (),
+            (None, Some(_)) => {
+                tx.rollback().await?;
+                return Err(RepositoryError::InvalidState(
+                    "it seems this mailing_address is not related to this customer",
+                ));
+            }
+            (Some(_), None) => {
+                tx.rollback().await?;
+                return Err(RepositoryError::InvalidState(
+                    "mailing_address for this customer record is not exists",
+                ));
+            }
+            (Some(customer_mailing_address_id), Some(update_mailing_address)) => {
+                if customer_mailing_address_id != update_mailing_address.id {
+                    tx.rollback().await?;
+                    return Err(RepositoryError::InvalidState(
+                        "mailing_address id missmatch",
+                    ));
+                }
+            }
+        }
+
+        tx.commit().await?;
+
+        Ok(customer)
     }
 
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {

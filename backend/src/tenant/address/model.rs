@@ -221,11 +221,38 @@ impl Display for AddressResolved {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::common::TEST_TIME;
 
     use super::*;
     use pretty_assertions::assert_eq;
+
+    pub fn test_address_resolved_builder() -> AddressResolvedBuilder {
+        let mut builder = AddressResolvedBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .address_type("billing".to_string())
+            .country_code("HU".to_string())
+            .country("Magyarország".to_string())
+            .postal_code("1132".to_string())
+            .settlement("Budapest".to_string())
+            .mailbox(None)
+            .topographic_number(None)
+            .name_of_public_space(Some("Váci".to_string()))
+            .type_of_public_space(Some("út".to_string()))
+            .house_number(Some("1111".to_string()))
+            .building(Some("A".to_string()))
+            .stairway(Some("B".to_string()))
+            .floor(Some("1".to_string()))
+            .door(Some("2".to_string()))
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None);
+
+        builder
+    }
 
     #[test]
     fn test_full_address_display() {

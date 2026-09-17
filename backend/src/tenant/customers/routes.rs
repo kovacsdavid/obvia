@@ -31,6 +31,7 @@ pub fn routes<M: CustomersModuleInterface>(customers_module: Arc<M>) -> Router {
         Router::new()
             .route("/get", get(handler::get::<M>))
             .route("/get_resolved", get(handler::get_resolved::<M>))
+            .route("/get_full", get(handler::get_full::<M>))
             .route("/list", get(handler::list::<M>))
             .route("/create", post(handler::create::<M>))
             .route("/update", put(handler::update::<M>))

@@ -56,6 +56,28 @@ pub async fn get_resolved<M: CustomersModuleInterface>(
     .into_response())
 }
 
+pub async fn get_full<M: CustomersModuleInterface>(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(customers_module): State<Arc<M>>,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let service = Service::new(Some(&claims), customers_module.clone());
+    let result = map_handler_err(
+        service.get_full(payload.uuid).await,
+        customers_module.clone(),
+    )
+    .await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(result)
+            .build(),
+        customers_module,
+    )
+    .await?
+    .into_response())
+}
+
 pub async fn get<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -207,6 +229,8 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
+    use crate::tenant::address::model::tests::test_address_resolved_builder;
+    use crate::tenant::address::repository::MockAddressRepository;
     use crate::tenant::customers::model::tests::{
         test_customer_builder, test_customer_resolved_builder,
     };
@@ -647,6 +671,267 @@ mod tests {
             .header("Content-Type", "application/json")
             .method("GET")
             .uri(format!("/api/customers/get_resolved?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem található"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_get_full_success() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+        let billing_address_id = Uuid::new_v4();
+        let mailing_address_id = Uuid::new_v4();
+
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .billing_address(Some(billing_address_id))
+            .mailing_address(Some(mailing_address_id))
+            .build()
+            .unwrap();
+
+        let address_ids = vec![billing_address_id, mailing_address_id];
+
+        let billing_address = test_address_resolved_builder()
+            .id(billing_address_id)
+            .build()
+            .unwrap();
+        let mailing_address = test_address_resolved_builder()
+            .id(mailing_address_id)
+            .build()
+            .unwrap();
+
+        let addresses = vec![billing_address.clone(), mailing_address.clone()];
+
+        let mut customers_repo = MockCustomersRepository::new();
+        customers_repo
+            .expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(customer_id))
+            .returning({
+                let customer_full = customer_resolved.clone();
+                move |_| Ok(customer_full.clone())
+            });
+
+        let mut address_repo = MockAddressRepository::new();
+        address_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(address_ids))
+            .returning({
+                let addresses = addresses.clone();
+                move |_| Ok(addresses.clone())
+            });
+
+        let mut app_state = MockCustomersModule::new();
+        let customers_repo = Arc::new(customers_repo);
+        let address_repo = Arc::new(address_repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(customers_repo.clone()));
+        app_state
+            .expect_address_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(address_repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(None, Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_full?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let customer_full =
+            customer_resolved.into_full(Some(billing_address), Some(mailing_address));
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": customer_full
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_get_full_unauthorized_expired() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_full?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_get_full_unauthorized_invalid_signature() {
+        let customer_id = Uuid::new_v4();
+
+        let mut app_state = MockCustomersModule::new();
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_full?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_get_full_unauthorized_missing() {
+        let customer_id = Uuid::new_v4();
+        let app_state = MockCustomersModule::new();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_full?uuid={customer_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(customers::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
+    }
+    #[tokio::test]
+    async fn test_get_full_not_found() {
+        let active_tenant_id = Uuid::new_v4();
+        let customer_id = Uuid::new_v4();
+
+        let mut repo = MockCustomersRepository::new();
+        repo.expect_get_resolved_by_id()
+            .times(1)
+            .with(eq(customer_id))
+            .returning(|_| Err(RepositoryError::Database(sqlx::Error::RowNotFound)));
+
+        let mut app_state = MockCustomersModule::new();
+        let repo = Arc::new(repo);
+        let test_config = AppConfigBuilder::default().build().unwrap();
+        app_state
+            .expect_customers_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(None, Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("GET")
+            .uri(format!("/api/customers/get_full?uuid={customer_id}"))
             .body("".to_string())
             .unwrap();
 

@@ -44,6 +44,7 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import Address from "@/components/modules/address/Address";
 
 interface EditProps {
     showCard?: boolean;
@@ -397,6 +398,7 @@ export default function Edit({
                             </Field>
                         </FieldGroup>
                     </FieldSet>
+                    <Address />
                     <Field orientation="horizontal">
                         <div className="text-right mt-8 w-full">
                             <Button

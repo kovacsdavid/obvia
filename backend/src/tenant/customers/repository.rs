@@ -78,7 +78,9 @@ impl CustomersRepository for PgPool {
                 users.last_name || ' ' || users.first_name as created_by,
                 customers.created_at as created_at,
                 customers.updated_at as updated_at,
-                customers.deleted_at as deleted_at
+                customers.deleted_at as deleted_at,
+                customers.billing_address as billing_address,
+                customers.mailing_address as mailing_address
             FROM customers
             LEFT JOIN users ON customers.created_by_id = users.id
             WHERE customers.deleted_at IS NULL
@@ -145,7 +147,9 @@ impl CustomersRepository for PgPool {
                             users.last_name || ' ' || users.first_name as created_by,
                             customers.created_at as created_at,
                             customers.updated_at as updated_at,
-                            customers.deleted_at as deleted_at
+                            customers.deleted_at as deleted_at,
+                            customers.billing_address as billing_address,
+                            customers.mailing_address as mailing_address
                         FROM customers
                         LEFT JOIN users ON customers.created_by_id = users.id
                         WHERE customers.deleted_at IS NULL
@@ -178,7 +182,9 @@ impl CustomersRepository for PgPool {
                             users.last_name || ' ' || users.first_name as created_by,
                             customers.created_at as created_at,
                             customers.updated_at as updated_at,
-                            customers.deleted_at as deleted_at
+                            customers.deleted_at as deleted_at,
+                            customers.billing_address as billing_address,
+                            customers.mailing_address as mailing_address
                         FROM customers
                         LEFT JOIN users ON customers.created_by_id = users.id
                         WHERE customers.deleted_at IS NULL

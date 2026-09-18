@@ -17,4 +17,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-DROP TABLE IF EXISTS worksheets CASCADE;
+DROP TABLE IF EXISTS worksheets;
+
+CREATE TABLE worksheets
+(
+    id            uuid primary key      default uuid_generate_v4(),
+    name          varchar(255) not null,
+    description   text,
+    project_id    uuid         not null,
+    created_by_id uuid         not null,
+    status        varchar(50)  not null default 'draft',
+    created_at    timestamptz  not null default now(),
+    updated_at    timestamptz  not null default now(),
+    deleted_at    timestamptz,
+    foreign key (project_id) references projects (id),
+    foreign key (created_by_id) references users (id)
+);
+
+CREATE INDEX idx_worksheets_project_id ON worksheets (project_id);
+CREATE INDEX idx_worksheets_created_by_id ON worksheets (created_by_id);
+CREATE INDEX idx_worksheets_created_at ON worksheets (created_at);
+CREATE INDEX idx_worksheets_updated_at ON worksheets (updated_at);
+CREATE INDEX idx_worksheets_deleted_at ON worksheets (deleted_at);
+
+CREATE TRIGGER update_updated_at_on_worksheets_table
+    BEFORE UPDATE
+    ON worksheets
+    FOR EACH ROW
+EXECUTE FUNCTION update_updated_at();

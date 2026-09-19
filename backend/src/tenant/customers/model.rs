@@ -23,7 +23,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+use crate::tenant::address::model::AddressResolved;
+
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
 pub struct Customer {
     pub id: Uuid,
     pub name: String,
@@ -36,6 +38,8 @@ pub struct Customer {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub billing_address: Option<Uuid>,
+    pub mailing_address: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder)]
@@ -52,6 +56,51 @@ pub struct CustomerResolved {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
+    pub billing_address: Option<Uuid>,
+    pub mailing_address: Option<Uuid>,
+}
+
+impl CustomerResolved {
+    pub fn into_full(
+        self,
+        billing_address: Option<AddressResolved>,
+        mailing_address: Option<AddressResolved>,
+    ) -> CustomerFull {
+        CustomerFull {
+            id: self.id,
+            name: self.name,
+            contact_name: self.contact_name,
+            email: self.email,
+            phone_number: self.phone_number,
+            status: self.status,
+            customer_type: self.customer_type,
+            created_by_id: self.created_by_id,
+            created_by: self.created_by,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+            deleted_at: self.deleted_at,
+            billing_address,
+            mailing_address,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Builder)]
+pub struct CustomerFull {
+    pub id: Uuid,
+    pub name: String,
+    pub contact_name: Option<String>,
+    pub email: String,
+    pub phone_number: Option<String>,
+    pub status: String,
+    pub customer_type: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub billing_address: Option<AddressResolved>,
+    pub mailing_address: Option<AddressResolved>,
 }
 
 #[cfg(test)]
@@ -59,6 +108,26 @@ pub mod tests {
     use crate::common::TEST_TIME;
 
     use super::*;
+
+    pub fn test_customer_builder() -> CustomerBuilder {
+        let mut builder = CustomerBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .name("Test Customer".to_string())
+            .contact_name(None)
+            .email("test.customer@example.com".to_string())
+            .phone_number(Some("+36301234567".to_string()))
+            .status("active".to_string())
+            .customer_type("natural".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None)
+            .billing_address(None)
+            .mailing_address(None);
+
+        builder
+    }
 
     pub fn test_customer_resolved_builder() -> CustomerResolvedBuilder {
         let mut builder = CustomerResolvedBuilder::default();
@@ -74,8 +143,30 @@ pub mod tests {
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None);
+            .deleted_at(None)
+            .billing_address(None)
+            .mailing_address(None);
 
+        builder
+    }
+
+    pub fn test_customer_full_builder() -> CustomerFullBuilder {
+        let mut builder = CustomerFullBuilder::default();
+        builder
+            .id(Uuid::new_v4())
+            .name("Test Customer".to_string())
+            .contact_name(None)
+            .email("test.customer@example.com".to_string())
+            .phone_number(Some("+36301234567".to_string()))
+            .status("active".to_string())
+            .customer_type("natural".to_string())
+            .created_by_id(Uuid::new_v4())
+            .created_by("Test User".to_string())
+            .created_at(*TEST_TIME)
+            .updated_at(*TEST_TIME)
+            .deleted_at(None)
+            .billing_address(None)
+            .mailing_address(None);
         builder
     }
 }

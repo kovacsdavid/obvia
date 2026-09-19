@@ -90,7 +90,6 @@ impl From<ValueObjectError> for CommentUserInputError {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct CommentUserInput {
-    #[allow(dead_code)]
     pub id: ValueObjectOptional<UuidVO>,
     pub commentable_type: ValueObjectRequired<CommentableType>,
     pub commentable_id: ValueObjectRequired<UuidVO>,

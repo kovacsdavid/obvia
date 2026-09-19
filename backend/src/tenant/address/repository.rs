@@ -19,15 +19,21 @@
 
 use crate::common::error::RepositoryResult;
 use crate::common::model::SelectOption;
+use crate::tenant::address::dto::user_input::AddressUserInput;
+use crate::tenant::address::model::{Address, AddressResolved};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait AddressRepository: Send + Sync {
     async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<AddressResolved>;
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>>;
+    async fn insert(&self, address: &AddressUserInput, sub: Uuid) -> RepositoryResult<Address>;
 }
 
 #[async_trait]
@@ -37,6 +43,126 @@ impl AddressRepository for PgPool {
             r#"SELECT code as value, name as title FROM countries"#,
         )
         .fetch_all(self)
+        .await?)
+    }
+    async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<AddressResolved> {
+        Ok(sqlx::query_as::<_, AddressResolved>(
+            r#"
+                SELECT
+                    address.id as id,
+                    address.type as type,
+                    address.country_code as country_code,
+                    address.postal_code as postal_code,
+                    address.settlement as settlement,
+                    address.mailbox as mailbox,
+                    address.topographic_number as topographic_number,
+                    address.name_of_public_space as name_of_public_space,
+                    address.type_of_public_space as type_of_public_space,
+                    address.house_number as house_number,
+                    address.building as building,
+                    address.stairway as stairway,
+                    address.floor as floor,
+                    address.door as door,
+                    address.created_by_id as created_by_id,
+                    users.last_name || ' ' || users.first_name as created_by,
+                    address.created_at as created_at,
+                    address.updated_at as updated_at,
+                    address.deleted_at as deleted_at
+                FROM address
+                LEFT JOIN users ON address.created_by_id = users.id
+                WHERE address.deleted_at IS NULL
+                    AND address.id = $1
+            "#,
+        )
+        .bind(id)
+        .fetch_one(self)
+        .await?)
+    }
+    async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>> {
+        Ok(sqlx::query_as::<_, AddressResolved>(
+            r#"
+                SELECT
+                    address.id as id,
+                    address.type as type,
+                    address.country_code as country_code,
+                    address.postal_code as postal_code,
+                    address.settlement as settlement,
+                    address.mailbox as mailbox,
+                    address.topographic_number as topographic_number,
+                    address.name_of_public_space as name_of_public_space,
+                    address.type_of_public_space as type_of_public_space,
+                    address.house_number as house_number,
+                    address.building as building,
+                    address.stairway as stairway,
+                    address.floor as floor,
+                    address.door as door,
+                    address.created_by_id as created_by_id,
+                    users.last_name || ' ' || users.first_name as created_by,
+                    address.created_at as created_at,
+                    address.updated_at as updated_at,
+                    address.deleted_at as deleted_at
+                FROM address
+                LEFT JOIN users ON address.created_by_id = users.id
+                WHERE address.deleted_at IS NULL
+                    AND address.id = ANY($1)
+            "#,
+        )
+        .bind(ids)
+        .fetch_all(self)
+        .await?)
+    }
+    async fn insert(&self, address: &AddressUserInput, sub: Uuid) -> RepositoryResult<Address> {
+        Ok(sqlx::query_as::<_, Address>(
+            r#"
+                INSERT INTO address (
+                    type,
+                    country_code, 
+                    postal_code,
+                    settlement,
+                    mailbox,
+                    topographic_number,
+                    name_of_public_space,
+                    type_of_public_space,
+                    house_number,
+                    building,
+                    stairway,
+                    floor,
+                    door,
+                    created_by_id
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9,
+                    $10,
+                    $11,
+                    $12,
+                    $13,
+                    $14
+                )
+                RETURNING *
+            "#,
+        )
+        .bind(address.address_type.as_str()?)
+        .bind(address.country_code.as_str()?)
+        .bind(address.postal_code.as_str()?)
+        .bind(address.settlement.as_str()?)
+        .bind(address.mailbox.as_str())
+        .bind(address.topographic_number.as_str())
+        .bind(address.name_of_public_space.as_str())
+        .bind(address.type_of_public_space.as_str())
+        .bind(address.house_number.as_str())
+        .bind(address.building.as_str())
+        .bind(address.stairway.as_str())
+        .bind(address.floor.as_str())
+        .bind(address.door.as_str())
+        .bind(sub)
+        .fetch_one(self)
         .await?)
     }
 }

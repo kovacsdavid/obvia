@@ -111,7 +111,7 @@ impl ValueObjectData for DbHost {
 /// - Some unstable features (e.g., `is_benchmarking`, `is_reserved`) are commented
 ///   out, as they are not currently supported in the Rust standard library.
 /// - You can replace this function after rust stabilizes it in standard library: https://github.com/rust-lang/rust/issues/27709
-#[allow(clippy::manual_range_contains)]
+#[expect(clippy::manual_range_contains)]
 fn is_global(ip: &IpAddr) -> bool {
     match ip {
         IpAddr::V4(ipv4) => {

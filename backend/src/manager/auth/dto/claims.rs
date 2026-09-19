@@ -116,7 +116,7 @@ impl Claims {
     /// # Returns
     ///
     /// Returns a new instance populated with the provided values.
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub fn new(
         sub: Uuid,
         exp: usize,
@@ -229,51 +229,43 @@ impl Claims {
     }
     /// Returns a reference to the `exp` field of the object.
     /// `exp` The expiration timestamp of the token in UNIX time. Indicates the time after which the token is no longer valid.
-    #[allow(dead_code)]
     pub fn exp(&self) -> usize {
         self.exp
     }
     /// Returns a reference to the `iat` field of the object.
     /// `iat` The issued-at timestamp of the token in UNIX time. Specifies when the token was created.
-    #[allow(dead_code)]
     pub fn iat(&self) -> usize {
         self.iat
     }
     /// Returns a reference to the `nbf` field of the object.
     /// `nbf` The "not valid before" timestamp in UNIX time. Indicates the time before which the token is not considered valid.
-    #[allow(dead_code)]
     pub fn nbf(&self) -> usize {
         self.nbf
     }
     /// Returns a reference to the `iss` field of the object.
     /// `iss` The issuer of the token, typically representing the domain or service name that issued the token
-    #[allow(dead_code)]
     pub fn iss(&self) -> &String {
         &self.iss
     }
     /// Returns a reference to the `aud` field of the object.
     /// `aud` The audience for the token, identifying the intended recipient(s) of the token (e.g., frontend client ID or domain).
-    #[allow(dead_code)]
     pub fn aud(&self) -> &String {
         &self.aud
     }
     /// Returns a reference to the `jti` field of the object.
     /// `jti` A unique identifier for the token, typically a UUID, which ensures that each token is unique. This can help prevent token reuse or replay attacks.
-    #[allow(dead_code)]
     pub fn jti(&self) -> Uuid {
         self.jti
     }
 
     /// Returns the user's locale
     /// `tz` The user's locale.
-    #[allow(dead_code)]
     pub fn loc(&self) -> &String {
         &self.loc
     }
 
     /// Returns the user's timezone
     /// `tz` The user's timezone.
-    #[allow(dead_code)]
     pub fn tz(&self) -> ClaimsResult<Tz> {
         self.tz
             .parse::<Tz>()

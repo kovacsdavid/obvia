@@ -38,7 +38,6 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait TenantsRepository: Send + Sync {
-    #[allow(dead_code)]
     async fn get_by_uuid(&self, uuid: Uuid) -> RepositoryResult<Tenant>;
 
     async fn setup_managed(
@@ -49,7 +48,6 @@ pub trait TenantsRepository: Send + Sync {
         claims: &Claims,
         app_config: &AppConfig,
     ) -> RepositoryResult<Tenant>;
-    #[allow(dead_code)]
     async fn get_all_by_user_id(
         &self,
         user_uuid: Uuid,

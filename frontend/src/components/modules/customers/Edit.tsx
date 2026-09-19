@@ -18,7 +18,13 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import {
+    Button,
+    Checkbox,
+    FieldError,
+    GlobalError,
+    Input,
+} from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -44,6 +50,8 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import Address from "@/components/modules/address/Address";
+import { type Address as AddressInterface } from "@/components/modules/address/lib/interface";
 
 interface EditProps {
     showCard?: boolean;
@@ -64,12 +72,42 @@ export default function Edit({
     const [email, setEmail] = React.useState("");
     const [phoneNumber, setPhoneNumber] = React.useState("");
     const [status, setStatus] = React.useState<string | undefined>("active");
+    const defaultAddress = () => ({
+        id: "",
+        type: "full_address",
+        country_code: "HU",
+        postal_code: "",
+        settlement: "",
+        mailbox: "",
+        topographic_number: "",
+        name_of_public_space: "",
+        type_of_public_space: "",
+        house_number: "",
+        building: "",
+        stairway: "",
+        floor: "",
+        door: "",
+    });
+    const [billingAddress, setBillingAddress] = React.useState<
+        AddressInterface | undefined
+    >(defaultAddress());
+    const [mailingAddress, setMailingAddress] = React.useState<
+        AddressInterface | undefined
+    >(undefined);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
         useFormError();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
+
+    const handleNeedMailingAddressChange = () => {
+        if (typeof mailingAddress === "undefined") {
+            setMailingAddress(defaultAddress());
+        } else {
+            setMailingAddress(undefined);
+        }
+    };
 
     const handleCreate = useCallback(() => {
         dispatch(
@@ -397,6 +435,34 @@ export default function Edit({
                             </Field>
                         </FieldGroup>
                     </FieldSet>
+                    <div className="mt-8">
+                        <Address
+                            label="Számlázási cím"
+                            value={billingAddress}
+                            onChange={setBillingAddress}
+                        />
+                    </div>
+
+                    <FieldGroup className="mt-8">
+                        <Field orientation="horizontal">
+                            <Checkbox
+                                id="need_mailing_address"
+                                checked={typeof mailingAddress !== "undefined"}
+                                onCheckedChange={() =>
+                                    handleNeedMailingAddressChange()
+                                }
+                            />
+                            <FieldLabel htmlFor="need_mailing_address">
+                                Levelezési cím eltér
+                            </FieldLabel>
+                        </Field>
+                    </FieldGroup>
+
+                    <Address
+                        label="Levelezési cím"
+                        value={mailingAddress}
+                        onChange={setMailingAddress}
+                    />
                     <Field orientation="horizontal">
                         <div className="text-right mt-8 w-full">
                             <Button

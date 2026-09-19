@@ -17,5 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-ALTER TABLE products ALTER COLUMN updated_at DROP NOT NULL;
-ALTER TABLE products ALTER COLUMN created_at DROP NOT NULL;
+ALTER TABLE customers
+ADD CONSTRAINT fk_customers_billing_address
+FOREIGN KEY (billing_address)
+REFERENCES address (id);
+
+ALTER TABLE customers
+ADD CONSTRAINT fk_customers_mailing_address
+FOREIGN KEY (mailing_address)
+REFERENCES address (id);
+
+CREATE INDEX idx_customers_billing_address ON customers(billing_address);
+CREATE INDEX idx_customers_mailing_address ON customers(mailing_address);

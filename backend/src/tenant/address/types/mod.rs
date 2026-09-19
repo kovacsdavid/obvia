@@ -17,4 +17,30 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub(crate) mod country;
+pub(crate) mod address_type;
+pub(crate) mod building;
+pub(crate) mod country_code;
+pub(crate) mod door;
+pub(crate) mod floor;
+pub(crate) mod house_number;
+pub(crate) mod mailbox;
+pub(crate) mod name_of_public_space;
+pub(crate) mod postal_code;
+pub(crate) mod settlement;
+pub(crate) mod stairway;
+pub(crate) mod topographic_number;
+pub(crate) mod type_of_public_space;
+
+pub(crate) use address_type::AddressType;
+pub(crate) use building::Building;
+pub(crate) use country_code::CountryCode;
+pub(crate) use door::Door;
+pub(crate) use floor::Floor;
+pub(crate) use house_number::HouseNumber;
+pub(crate) use mailbox::Mailbox;
+pub(crate) use name_of_public_space::NameOfPublicSpace;
+pub(crate) use postal_code::PostalCode;
+pub(crate) use settlement::Settlement;
+pub(crate) use stairway::Stairway;
+pub(crate) use topographic_number::TopographicNumber;
+pub(crate) use type_of_public_space::TypeOfPublicSpace;

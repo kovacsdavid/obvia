@@ -115,7 +115,7 @@ export default function Edit({
         }
     };
 
-    const handleCreate = useCallback(() => {
+    const handleCreate = () => {
         dispatch(
             create({
                 id,
@@ -150,20 +150,7 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        contactName,
-        customerType,
-        dispatch,
-        email,
-        id,
-        name,
-        navigate,
-        onSuccess,
-        phoneNumber,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -177,7 +164,7 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
+    const handleUpdate = () => {
         dispatch(
             update({
                 id,
@@ -205,19 +192,7 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        contactName,
-        customerType,
-        dispatch,
-        email,
-        id,
-        name,
-        navigate,
-        phoneNumber,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     useEffect(() => {
         if (typeof id === "string") {

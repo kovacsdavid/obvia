@@ -49,7 +49,7 @@ interface AddressProps {
     label?: string;
 }
 
-let defaultAddressErrors = {
+const defaultAddressErrors = {
     id: null,
     type: null,
     country_code: null,
@@ -74,7 +74,7 @@ export default function Address({
     disabled = false,
     label = "Cím",
 }: AddressProps) {
-    let setField = <K extends keyof Address>(field: K, newValue: string) => {
+    const setField = <K extends keyof Address>(field: K, newValue: string) => {
         if (typeof value !== "undefined") {
             onChange({
                 ...value,
@@ -82,7 +82,7 @@ export default function Address({
             });
         }
     };
-    let setError = <T extends keyof AddressErrors>(
+    const setError = <T extends keyof AddressErrors>(
         value: string | null,
         field: T,
     ) => {

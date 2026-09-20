@@ -55,6 +55,8 @@ export async function create(
         phoneNumber,
         status,
         customerType,
+        billingAddress,
+        mailingAddress,
     }: CustomerUserInput,
     token: string | null,
 ): Promise<ProcessedJsonResponse<CreateCustomerResponse>> {
@@ -74,11 +76,14 @@ export async function create(
             status: typeof status === "undefined" ? null : status,
             customer_type:
                 typeof customerType === "undefined" ? null : customerType,
+            billing_address: billingAddress ?? null,
+            mailing_address: mailingAddress ?? null,
         }),
     }).then(async (response: Response) => {
         return (
-            (await ProcessJsonResponse(response, isCreateCustomerResponse)) ??
-            unexpectedFormError
+            (await ProcessJsonResponse(response, (data: unknown) =>
+                isCreateCustomerResponse(data),
+            )) ?? unexpectedFormError
         );
     });
 }

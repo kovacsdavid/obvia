@@ -19,11 +19,16 @@
 
 import {
     type CommonResponse,
-    type FormError,
+    type FormErrorV2,
     type PaginatedDataResponse,
     type SimpleError,
     type SimpleMessageData,
 } from "@/lib/interface.ts";
+import {
+    type Address,
+    type AddressErrors,
+    type Address as AddressInterface,
+} from "@/components/modules/address/lib/interface";
 
 export interface CustomerUserInput {
     id: string | null;
@@ -33,6 +38,8 @@ export interface CustomerUserInput {
     phoneNumber: string;
     status: string | undefined;
     customerType: string | undefined;
+    billingAddress: AddressInterface | undefined;
+    mailingAddress: AddressInterface | undefined;
 }
 
 export interface Customer {
@@ -47,6 +54,24 @@ export interface Customer {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    billing_address: Address | null;
+    mailing_address: Address | null;
+}
+
+export interface CustomerErrors {
+    id: string | null;
+    name: string | null;
+    contact_name: string | null;
+    email: string | null;
+    phone_number: string | null;
+    status: string | null;
+    customer_type: string | null;
+    created_by_id: string | null;
+    created_at: string | null;
+    updated_at: string | null;
+    deleted_at: string | null;
+    billing_address: AddressErrors;
+    mailing_address: AddressErrors;
 }
 
 export interface CustomerResolved {
@@ -64,8 +89,14 @@ export interface CustomerResolved {
     deleted_at: string | null;
 }
 
-export type CreateCustomerResponse = CommonResponse<Customer, FormError>;
-export type UpdateCustomerResponse = CommonResponse<Customer, FormError>;
+export type CreateCustomerResponse = CommonResponse<
+    Customer,
+    FormErrorV2<CustomerErrors>
+>;
+export type UpdateCustomerResponse = CommonResponse<
+    Customer,
+    FormErrorV2<CustomerErrors>
+>;
 export type DeleteCustomerResponse = CommonResponse<
     SimpleMessageData,
     SimpleError

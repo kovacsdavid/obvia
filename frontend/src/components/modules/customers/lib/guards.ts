@@ -20,6 +20,7 @@
 import {
     isCommonResponse,
     isFormError,
+    isFormErrorV2,
     isPaginatedDataResponse,
     isSimpleError,
     isSimpleMessageData,
@@ -27,6 +28,7 @@ import {
 import type {
     CreateCustomerResponse,
     Customer,
+    CustomerErrors,
     CustomerResolved,
     CustomerResolvedList,
     CustomerResolvedResponse,
@@ -35,11 +37,14 @@ import type {
     PaginatedCustomerResolvedListResponse,
     UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
+import { isAddressError } from "@/components/modules/address/lib/guards";
 
 export function isCreateCustomerResponse(
     data: unknown,
 ): data is CreateCustomerResponse {
-    return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, (data: unknown) =>
+        isFormErrorV2<CustomerErrors>(data, isCustomerErrors),
+    );
 }
 
 export function isUpdateCustomerResponse(
@@ -137,3 +142,38 @@ export function isCustomer(data: unknown): data is Customer {
 export function isCustomerResponse(data: unknown): data is CustomerResponse {
     return isCommonResponse(data, isCustomer, isSimpleError);
 }
+
+export const isCustomerErrors = (data: unknown): data is CustomerErrors => {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        (data.id === null || typeof data.id === "string") &&
+        "name" in data &&
+        (data.name === null || typeof data.name === "string") &&
+        "contact_name" in data &&
+        (data.contact_name === null || typeof data.contact_name === "string") &&
+        "email" in data &&
+        (data.email === null || typeof data.email === "string") &&
+        "phone_number" in data &&
+        (data.phone_number === null || typeof data.phone_number === "string") &&
+        "status" in data &&
+        (data.status === null || typeof data.status === "string") &&
+        "customer_type" in data &&
+        (data.customer_type === null ||
+            typeof data.customer_type === "string") &&
+        "created_by_id" in data &&
+        (data.created_by_id === null ||
+            typeof data.created_by_id === "string") &&
+        "created_at" in data &&
+        (data.created_at === null || typeof data.created_at === "string") &&
+        "updated_at" in data &&
+        (data.updated_at === null || typeof data.updated_at === "string") &&
+        "deleted_at" in data &&
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "billing_address" in data &&
+        isAddressError(data.billing_address) &&
+        "mailing_address" in data &&
+        isAddressError(data.mailing_address)
+    );
+};

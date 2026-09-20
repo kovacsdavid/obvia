@@ -151,6 +151,20 @@ function FieldError({ error, field }: FieldErrorProps) {
     );
 }
 
+interface FieldErrorV2Props {
+    error: string | null | undefined;
+}
+
+function FieldErrorV2({ error }: FieldErrorV2Props) {
+    return (
+        <>
+            {typeof error === "string" ? (
+                <BaseFieldError>{error}</BaseFieldError>
+            ) : null}
+        </>
+    );
+}
+
 export {
     Alert,
     AlertTitle,
@@ -159,4 +173,5 @@ export {
     GlobalSuccess,
     GlobalNotification,
     FieldError,
+    FieldErrorV2,
 };

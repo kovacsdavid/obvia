@@ -27,7 +27,7 @@ export interface Address {
     topographic_number: string | null;
     name_of_public_space: string | null;
     type_of_public_space: string | null;
-    house_number?: string | null;
+    house_number: string | null;
     building: string | null;
     stairway: string | null;
     floor: string | null;
@@ -44,7 +44,7 @@ export interface AddressErrors {
     topographic_number: string | null;
     name_of_public_space: string | null;
     type_of_public_space: string | null;
-    house_number?: string | null;
+    house_number: string | null;
     building: string | null;
     stairway: string | null;
     floor: string | null;

@@ -24,7 +24,7 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
-import { Input } from "@/components/ui";
+import { Input, FieldErrorV2 } from "@/components/ui";
 import {
     type Address,
     type AddressErrors,
@@ -40,12 +40,16 @@ import {
 interface AddressProps {
     value: Address | undefined;
     onChange: (next: Address) => void;
-    errors?: AddressErrors;
+    errors?: AddressErrors | undefined;
+    setErrors?: <T extends keyof AddressErrors>(
+        value: string | null,
+        field: T,
+    ) => void;
     disabled?: boolean;
     label?: string;
 }
 
-const defaultAddressErrors: AddressErrors = {
+let defaultAddressErrors = {
     id: null,
     type: null,
     country_code: null,
@@ -66,6 +70,7 @@ export default function Address({
     value,
     onChange,
     errors = defaultAddressErrors,
+    setErrors,
     disabled = false,
     label = "Cím",
 }: AddressProps) {
@@ -77,6 +82,14 @@ export default function Address({
             });
         }
     };
+    let setError = <T extends keyof AddressErrors>(
+        value: string | null,
+        field: T,
+    ) => {
+        if (setErrors) {
+            setErrors(value, field);
+        }
+    };
     return (
         <>
             {typeof value !== "undefined" ? (
@@ -84,15 +97,24 @@ export default function Address({
                     <FieldSet>
                         <FieldLegend>{label}</FieldLegend>
                         <FieldGroup>
-                            <Field>
+                            <Field
+                                data-invalid={typeof errors?.type === "string"}
+                            >
                                 <FieldLabel htmlFor="type">Típus</FieldLabel>
                                 <Select
                                     value={value.type}
                                     onValueChange={(val) => {
+                                        setError(null, "type");
                                         setField("type", val);
                                     }}
+                                    disabled={disabled}
                                 >
-                                    <SelectTrigger className={"w-full"}>
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={
+                                            typeof errors?.type === "string"
+                                        }
+                                    >
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -107,9 +129,14 @@ export default function Address({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
+                                <FieldErrorV2 error={errors?.type} />
                             </Field>
 
-                            <Field>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.country_code === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="country_code">
                                     Ország kód
                                 </FieldLabel>
@@ -119,15 +146,25 @@ export default function Address({
                                     placeholder="HU"
                                     value={value.country_code}
                                     onChange={(e) => {
+                                        setError(null, "country_code");
                                         setField(
                                             "country_code",
                                             e.target.value,
                                         );
                                     }}
+                                    aria-invalid={
+                                        typeof errors?.country_code === "string"
+                                    }
+                                    disabled={disabled}
                                 />
+                                <FieldErrorV2 error={errors?.country_code} />
                             </Field>
 
-                            <Field>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.postal_code === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="postal_code">
                                     Irányítószám
                                 </FieldLabel>
@@ -137,12 +174,22 @@ export default function Address({
                                     placeholder="1132"
                                     value={value.postal_code}
                                     onChange={(e) => {
+                                        setError(null, "postal_code");
                                         setField("postal_code", e.target.value);
                                     }}
+                                    aria-invalid={
+                                        typeof errors?.postal_code === "string"
+                                    }
+                                    disabled={disabled}
                                 />
+                                <FieldErrorV2 error={errors?.postal_code} />
                             </Field>
 
-                            <Field>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.settlement === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="settlement">
                                     Település
                                 </FieldLabel>
@@ -152,13 +199,23 @@ export default function Address({
                                     placeholder="Budapest"
                                     value={value.settlement}
                                     onChange={(e) => {
+                                        setError(null, "settlement");
                                         setField("settlement", e.target.value);
                                     }}
+                                    aria-invalid={
+                                        typeof errors?.settlement === "string"
+                                    }
+                                    disabled={disabled}
                                 />
+                                <FieldErrorV2 error={errors?.settlement} />
                             </Field>
 
                             {value.type === "mailbox" ? (
-                                <Field>
+                                <Field
+                                    data-invalid={
+                                        typeof errors?.mailbox === "string"
+                                    }
+                                >
                                     <FieldLabel htmlFor="mailbox">
                                         Postafiók
                                     </FieldLabel>
@@ -168,14 +225,25 @@ export default function Address({
                                         placeholder="123"
                                         value={value.mailbox ?? ""}
                                         onChange={(e) => {
+                                            setError(null, "mailbox");
                                             setField("mailbox", e.target.value);
                                         }}
+                                        aria-invalid={
+                                            typeof errors?.mailbox === "string"
+                                        }
+                                        disabled={disabled}
                                     />
+                                    <FieldErrorV2 error={errors?.mailbox} />
                                 </Field>
                             ) : null}
 
                             {value.type === "topographic_number" ? (
-                                <Field>
+                                <Field
+                                    data-invalid={
+                                        typeof errors?.topographic_number ===
+                                        "string"
+                                    }
+                                >
                                     <FieldLabel htmlFor="topographic_number">
                                         Helyrajzi szám
                                     </FieldLabel>
@@ -185,18 +253,35 @@ export default function Address({
                                         placeholder="123/A"
                                         value={value.topographic_number ?? ""}
                                         onChange={(e) => {
+                                            setError(
+                                                null,
+                                                "topographic_number",
+                                            );
                                             setField(
                                                 "topographic_number",
                                                 e.target.value,
                                             );
                                         }}
+                                        aria-invalid={
+                                            typeof errors?.topographic_number ===
+                                            "string"
+                                        }
+                                        disabled={disabled}
+                                    />
+                                    <FieldErrorV2
+                                        error={errors?.topographic_number}
                                     />
                                 </Field>
                             ) : null}
 
                             {value.type === "full_address" ? (
                                 <>
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.name_of_public_space ===
+                                            "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="name_of_public_space">
                                             Közterület neve
                                         </FieldLabel>
@@ -208,15 +293,32 @@ export default function Address({
                                                 value.name_of_public_space ?? ""
                                             }
                                             onChange={(e) => {
+                                                setError(
+                                                    null,
+                                                    "name_of_public_space",
+                                                );
                                                 setField(
                                                     "name_of_public_space",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.name_of_public_space ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
+                                        />
+                                        <FieldErrorV2
+                                            error={errors?.name_of_public_space}
                                         />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.type_of_public_space ===
+                                            "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="type_of_public_space">
                                             Közterület neve
                                         </FieldLabel>
@@ -228,15 +330,32 @@ export default function Address({
                                                 value.type_of_public_space ?? ""
                                             }
                                             onChange={(e) => {
+                                                setError(
+                                                    null,
+                                                    "type_of_public_space",
+                                                );
                                                 setField(
                                                     "type_of_public_space",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.type_of_public_space ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
+                                        />
+                                        <FieldErrorV2
+                                            error={errors?.type_of_public_space}
                                         />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.house_number ===
+                                            "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="house_number">
                                             Házszám
                                         </FieldLabel>
@@ -246,15 +365,28 @@ export default function Address({
                                             placeholder="1234"
                                             value={value.house_number ?? ""}
                                             onChange={(e) => {
+                                                setError(null, "house_number");
                                                 setField(
                                                     "house_number",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.house_number ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
+                                        />
+                                        <FieldErrorV2
+                                            error={errors?.house_number}
                                         />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.building === "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="building">
                                             Épület
                                         </FieldLabel>
@@ -264,15 +396,28 @@ export default function Address({
                                             placeholder="A"
                                             value={value.building ?? ""}
                                             onChange={(e) => {
+                                                setError(null, "building");
                                                 setField(
                                                     "building",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.building ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
+                                        />
+                                        <FieldErrorV2
+                                            error={errors?.building}
                                         />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.stairway === "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="stairway">
                                             Lépcsőház
                                         </FieldLabel>
@@ -282,15 +427,28 @@ export default function Address({
                                             placeholder="1"
                                             value={value.stairway ?? ""}
                                             onChange={(e) => {
+                                                setError(null, "stairway");
                                                 setField(
                                                     "stairway",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.stairway ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
+                                        />
+                                        <FieldErrorV2
+                                            error={errors?.stairway}
                                         />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.floor === "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="floor">
                                             Emelet
                                         </FieldLabel>
@@ -300,15 +458,26 @@ export default function Address({
                                             placeholder="2"
                                             value={value.floor ?? ""}
                                             onChange={(e) => {
+                                                setError(null, "floor");
                                                 setField(
                                                     "floor",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.floor ===
+                                                "string"
+                                            }
+                                            disabled={disabled}
                                         />
+                                        <FieldErrorV2 error={errors?.floor} />
                                     </Field>
 
-                                    <Field>
+                                    <Field
+                                        data-invalid={
+                                            typeof errors?.door === "string"
+                                        }
+                                    >
                                         <FieldLabel htmlFor="door">
                                             Ajtó
                                         </FieldLabel>
@@ -318,12 +487,18 @@ export default function Address({
                                             placeholder="3"
                                             value={value.door ?? ""}
                                             onChange={(e) => {
+                                                setError(null, "door");
                                                 setField(
                                                     "door",
                                                     e.target.value,
                                                 );
                                             }}
+                                            aria-invalid={
+                                                typeof errors?.door === "string"
+                                            }
+                                            disabled={disabled}
                                         />
+                                        <FieldErrorV2 error={errors?.door} />
                                     </Field>
                                 </>
                             ) : null}

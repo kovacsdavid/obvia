@@ -40,7 +40,7 @@ impl ValueObjectData for AddressType {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "billing" | "mailing" => Ok(()),
+            "full_address" | "topographic_number" | "mailbox" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }
@@ -62,10 +62,10 @@ mod tests {
 
     #[test]
     fn test_valid_address_type() {
-        let code = "billing"
+        let code = "full_address"
             .parse::<ValueObjectRequired<AddressType>>()
             .unwrap();
-        assert_eq!(code.as_str().unwrap(), "billing");
+        assert_eq!(code.as_str().unwrap(), "full_address");
     }
 
     #[test]

@@ -114,13 +114,10 @@ pub struct AddressUserInput {
 
 impl AddressUserInput {
     pub fn is_full_address(&self) -> bool {
-        self.name_of_public_space.is_present()
-            || self.type_of_public_space.is_present()
-            || self.house_number.is_present()
-            || self.building.is_present()
-            || self.stairway.is_present()
-            || self.floor.is_present()
-            || self.door.is_present()
+        match self.address_type.as_str() {
+            Ok(v) => v == "full_address",
+            Err(_) => false,
+        }
     }
 }
 
@@ -228,8 +225,55 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 error.door = Some(e.to_string());
             });
 
+        if let Ok(mailbox) = &mailbox
+            && let Ok(topographic_number) = &topographic_number
+            && mailbox.is_present()
+            && topographic_number.is_present()
+        {
+            let error_msg = "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
+            error.mailbox = Some(error_msg.clone());
+            error.topographic_number = Some(error_msg);
+        }
+
+        if let Ok(address_type) = &address_type
+            && let Ok(address_type) = address_type.as_str()
+            && address_type == "full_address"
+        {
+            if let Ok(mailbox) = &mailbox
+                && mailbox.is_present()
+            {
+                error.mailbox =
+                    Some("Postafiók nem adható meg, ha ki van töltve a teljes cím".to_string());
+            }
+
+            if let Ok(topographic_number) = &topographic_number
+                && topographic_number.is_present()
+            {
+                error.topographic_number = Some(
+                    "Helyrajzi szám nem adható meg, ha ki van töltve a teljes cím".to_string(),
+                );
+            }
+
+            let error_msg = "A mező kitöltése kötelező".to_string();
+            if let Ok(name_of_public_space) = &name_of_public_space
+                && !name_of_public_space.is_present()
+            {
+                error.name_of_public_space = Some(error_msg.clone());
+            }
+            if let Ok(type_of_public_space) = &type_of_public_space
+                && !type_of_public_space.is_present()
+            {
+                error.type_of_public_space = Some(error_msg.clone());
+            }
+            if let Ok(house_number) = &house_number
+                && !house_number.is_present()
+            {
+                error.house_number = Some(error_msg.clone());
+            }
+        }
+
         if error.is_empty() {
-            let address_user_input = AddressUserInput {
+            Ok(AddressUserInput {
                 id: id?,
                 address_type: address_type?,
                 country_code: country_code?,
@@ -244,52 +288,7 @@ impl TryFrom<AddressUserInputHelper> for AddressUserInput {
                 stairway: stairway?,
                 floor: floor?,
                 door: door?,
-            };
-
-            if address_user_input.mailbox.is_present()
-                && address_user_input.topographic_number.is_present()
-            {
-                let error_msg =
-                    "A postafiók és a helyrajzi szám nem adható meg egyszerre".to_string();
-                error.mailbox = Some(error_msg.clone());
-                error.topographic_number = Some(error_msg);
-                return Err(error);
-            }
-
-            if address_user_input.mailbox.is_present() && address_user_input.is_full_address() {
-                error.mailbox =
-                    Some("Postafiók nem adható meg, ha ki van töltve a teljes cím".to_string());
-                return Err(error);
-            }
-
-            if address_user_input.topographic_number.is_present()
-                && address_user_input.is_full_address()
-            {
-                error.topographic_number = Some(
-                    "Helyrajzi szám nem adható meg, ha ki van töltve a teljes cím".to_string(),
-                );
-                return Err(error);
-            }
-
-            if address_user_input.is_full_address()
-                && (!address_user_input.name_of_public_space.is_present()
-                    || !address_user_input.type_of_public_space.is_present()
-                    || !address_user_input.house_number.is_present())
-            {
-                let error_msg = "A mező kitöltése kötelező".to_string();
-                if !address_user_input.name_of_public_space.is_present() {
-                    error.name_of_public_space = Some(error_msg.clone());
-                }
-                if !address_user_input.type_of_public_space.is_present() {
-                    error.type_of_public_space = Some(error_msg.clone());
-                }
-                if !address_user_input.house_number.is_present() {
-                    error.house_number = Some(error_msg.clone())
-                }
-                return Err(error);
-            }
-
-            Ok(address_user_input)
+            })
         } else {
             Err(error)
         }
@@ -307,7 +306,7 @@ pub mod tests {
         let mut builder = AddressUserInputHelperBuilder::default();
         builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -328,7 +327,7 @@ pub mod tests {
         let mut builder = AddressUserInputBuilder::default();
         builder
             .id("".parse().unwrap())
-            .address_type("mailing".parse().unwrap())
+            .address_type("full_address".parse().unwrap())
             .country_code("HU".parse().unwrap())
             .postal_code("1011".parse().unwrap())
             .settlement("Budapest".parse().unwrap())
@@ -350,7 +349,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -369,7 +368,7 @@ pub mod tests {
         let mut address_user_input_builder = AddressUserInputBuilder::default();
         let expected_address_user_input = address_user_input_builder
             .id("".parse().unwrap())
-            .address_type("mailing".parse().unwrap())
+            .address_type("full_address".parse().unwrap())
             .country_code("HU".parse().unwrap())
             .postal_code("1011".parse().unwrap())
             .settlement("Budapest".parse().unwrap())
@@ -396,7 +395,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("topographic_number".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -415,7 +414,7 @@ pub mod tests {
         let mut address_user_input_builder = AddressUserInputBuilder::default();
         let expected_address_user_input = address_user_input_builder
             .id("".parse().unwrap())
-            .address_type("mailing".parse().unwrap())
+            .address_type("topographic_number".parse().unwrap())
             .country_code("HU".parse().unwrap())
             .postal_code("1011".parse().unwrap())
             .settlement("Budapest".parse().unwrap())
@@ -442,7 +441,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("mailbox".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -461,7 +460,7 @@ pub mod tests {
         let mut address_user_input_builder = AddressUserInputBuilder::default();
         let expected_address_user_input = address_user_input_builder
             .id("".parse().unwrap())
-            .address_type("mailing".parse().unwrap())
+            .address_type("mailbox".parse().unwrap())
             .country_code("HU".parse().unwrap())
             .postal_code("1011".parse().unwrap())
             .settlement("Budapest".parse().unwrap())
@@ -488,7 +487,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("topographic_number".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -537,7 +536,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -584,7 +583,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -633,7 +632,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -680,7 +679,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -727,7 +726,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -774,7 +773,7 @@ pub mod tests {
         let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
         let address_user_input_helper = address_user_input_helper_builder
             .id(None)
-            .address_type("mailing".to_string())
+            .address_type("full_address".to_string())
             .country_code("HU".to_string())
             .postal_code("1011".to_string())
             .settlement("Budapest".to_string())
@@ -796,6 +795,53 @@ pub mod tests {
             country_code: None,
             postal_code: None,
             settlement: None,
+            mailbox: None,
+            topographic_number: None,
+            name_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            type_of_public_space: Some("A mező kitöltése kötelező".to_string()),
+            house_number: Some("A mező kitöltése kötelező".to_string()),
+            building: None,
+            stairway: None,
+            floor: None,
+            door: None,
+        };
+
+        let address_user_input = AddressUserInput::try_from(address_user_input_helper);
+
+        assert!(address_user_input.is_err());
+        assert_eq!(
+            expected_address_user_input_error,
+            address_user_input.unwrap_err()
+        );
+    }
+
+    #[test]
+    fn test_full_address_manual_testing_error_1() {
+        let mut address_user_input_helper_builder = AddressUserInputHelperBuilder::default();
+        let address_user_input_helper = address_user_input_helper_builder
+            .id(None)
+            .building("".to_string())
+            .country_code("HU".to_string())
+            .door("".to_string())
+            .floor("".to_string())
+            .house_number("".to_string())
+            .mailbox("".to_string())
+            .name_of_public_space("".to_string())
+            .postal_code("".to_string())
+            .settlement("".to_string())
+            .stairway("".to_string())
+            .topographic_number("".to_string())
+            .address_type("full_address".to_string())
+            .type_of_public_space("".to_string())
+            .build()
+            .unwrap();
+
+        let expected_address_user_input_error = AddressUserInputError {
+            id: None,
+            address_type: None,
+            country_code: None,
+            postal_code: Some("A mező kitöltése kötelező".to_string()),
+            settlement: Some("A mező kitöltése kötelező".to_string()),
             mailbox: None,
             topographic_number: None,
             name_of_public_space: Some("A mező kitöltése kötelező".to_string()),

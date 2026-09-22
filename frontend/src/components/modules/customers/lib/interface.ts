@@ -54,8 +54,8 @@ export interface Customer {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
-    billing_address: Address | null;
-    mailing_address: Address | null;
+    billing_address: string | null;
+    mailing_address: string | null;
 }
 
 export interface CustomerErrors {
@@ -66,10 +66,6 @@ export interface CustomerErrors {
     phone_number: string | null;
     status: string | null;
     customer_type: string | null;
-    created_by_id: string | null;
-    created_at: string | null;
-    updated_at: string | null;
-    deleted_at: string | null;
     billing_address: AddressErrors;
     mailing_address: AddressErrors;
 }
@@ -87,6 +83,8 @@ export interface CustomerResolved {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    billing_address: Address | null;
+    mailing_address: Address | null;
 }
 
 export type CreateCustomerResponse = CommonResponse<

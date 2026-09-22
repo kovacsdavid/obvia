@@ -37,7 +37,7 @@ import type {
     PaginatedCustomerResolvedListResponse,
     UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
-import { isAddressError } from "@/components/modules/address/lib/guards";
+import { isAddress, isAddressError } from "@/components/modules/address/lib/guards";
 
 export function isCreateCustomerResponse(
     data: unknown,
@@ -86,7 +86,11 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "billing_address" in data &&
+        (data.billing_address === null || isAddress(data.billing_address)) &&
+        "mailing_address" in data &&
+        (data.mailing_address === null || isAddress(data.mailing_address))
     );
 }
 
@@ -135,7 +139,11 @@ export function isCustomer(data: unknown): data is Customer {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "billing_address" in data &&
+        (data.billing_address === null || typeof data.billing_address === "string") &&
+        "mailing_address" in data &&
+        (data.mailing_address === null || typeof data.mailing_address === "string")
     );
 }
 
@@ -162,15 +170,6 @@ export const isCustomerErrors = (data: unknown): data is CustomerErrors => {
         "customer_type" in data &&
         (data.customer_type === null ||
             typeof data.customer_type === "string") &&
-        "created_by_id" in data &&
-        (data.created_by_id === null ||
-            typeof data.created_by_id === "string") &&
-        "created_at" in data &&
-        (data.created_at === null || typeof data.created_at === "string") &&
-        "updated_at" in data &&
-        (data.updated_at === null || typeof data.updated_at === "string") &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string") &&
         "billing_address" in data &&
         isAddressError(data.billing_address) &&
         "mailing_address" in data &&

@@ -34,6 +34,7 @@ use crate::{
 #[derive(Clone, Debug, Deserialize, Serialize, Builder)]
 pub struct AddressUserInputHelper {
     pub id: Option<String>,
+    #[serde(rename = "type")]
     pub address_type: String,
     pub country_code: String,
     pub postal_code: String,
@@ -52,6 +53,7 @@ pub struct AddressUserInputHelper {
 #[derive(Clone, Debug, Serialize, Default, Builder, PartialEq)]
 pub struct AddressUserInputError {
     pub id: Option<String>,
+    #[serde(rename = "type")]
     pub address_type: Option<String>,
     pub country_code: Option<String>,
     pub postal_code: Option<String>,

@@ -14,6 +14,6 @@
             "@/*": ["./src/*"]
         },
         "jsx": "react-jsx",
-        "strict": true,
+        "strict": true
     }
 }

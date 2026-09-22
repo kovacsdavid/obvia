@@ -30,7 +30,9 @@ const ForgottenPassword = lazy(
 const EmailVerification = lazy(
     () => import("@/components/modules/auth/EmailVerification"),
 );
-const Dashboard = lazy(() => import("@/components/modules/dashboard/Dashboard"));
+const Dashboard = lazy(
+    () => import("@/components/modules/dashboard/Dashboard"),
+);
 const Settings = lazy(() => import("@/components/modules/users/Settings"));
 
 const CustomerEdit = lazy(() => import("@/components/modules/customers/Edit"));
@@ -79,9 +81,15 @@ const WarehousesView = lazy(
     () => import("@/components/modules/warehouses/View"),
 );
 
-const WorksheetsEdit = lazy(() => import("@/components/modules/worksheets/Edit"));
-const WorksheetsList = lazy(() => import("@/components/modules/worksheets/List"));
-const WorksheetsView = lazy(() => import("@/components/modules/worksheets/View"));
+const WorksheetsEdit = lazy(
+    () => import("@/components/modules/worksheets/Edit"),
+);
+const WorksheetsList = lazy(
+    () => import("@/components/modules/worksheets/List"),
+);
+const WorksheetsView = lazy(
+    () => import("@/components/modules/worksheets/View"),
+);
 
 const TenantsEdit = lazy(() => import("@/components/modules/databases/Edit"));
 const TenantsList = lazy(() => import("@/components/modules/databases/List"));
@@ -118,7 +126,11 @@ function crudRoutes(
 }
 
 const ROUTE_CONFIGS: RouteConfig[] = [
-    { path: "/", element: () => <Navigate to="/bejelentkezes" replace />, isPrivate: false },
+    {
+        path: "/",
+        element: () => <Navigate to="/bejelentkezes" replace />,
+        isPrivate: false,
+    },
     { path: "/bejelentkezes", element: Login, isPrivate: false },
     { path: "/regisztracio", element: Register, isPrivate: false },
     {
@@ -236,7 +248,10 @@ export default function App() {
                             <Route
                                 key={path}
                                 path={path}
-                                element={createRouteElement(Component, isPrivate)}
+                                element={createRouteElement(
+                                    Component,
+                                    isPrivate,
+                                )}
                             />
                         ),
                     )}

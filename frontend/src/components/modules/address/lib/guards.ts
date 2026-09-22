@@ -17,7 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import type { Address, AddressErrors } from "@/components/modules/address/lib/interface";
+import type {
+    Address,
+    AddressErrors,
+} from "@/components/modules/address/lib/interface";
 
 export const isAddress = (data: unknown): data is Address => {
     return (

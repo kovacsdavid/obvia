@@ -37,7 +37,10 @@ import type {
     PaginatedCustomerResolvedListResponse,
     UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
-import { isAddress, isAddressError } from "@/components/modules/address/lib/guards";
+import {
+    isAddress,
+    isAddressError,
+} from "@/components/modules/address/lib/guards";
 
 export function isCreateCustomerResponse(
     data: unknown,
@@ -103,9 +106,7 @@ export function isCustomerResolvedResponse(
 export function isCustomerResolvedList(
     data: unknown,
 ): data is CustomerResolvedList {
-    return (
-        Array.isArray(data) && data.every((item) => isCustomerFull(item))
-    );
+    return Array.isArray(data) && data.every((item) => isCustomerFull(item));
 }
 
 export function isPaginatedCustomerResolvedListResponse(
@@ -141,9 +142,11 @@ export function isCustomer(data: unknown): data is Customer {
         "deleted_at" in data &&
         (data.deleted_at === null || typeof data.deleted_at === "string") &&
         "billing_address" in data &&
-        (data.billing_address === null || typeof data.billing_address === "string") &&
+        (data.billing_address === null ||
+            typeof data.billing_address === "string") &&
         "mailing_address" in data &&
-        (data.mailing_address === null || typeof data.mailing_address === "string")
+        (data.mailing_address === null ||
+            typeof data.mailing_address === "string")
     );
 }
 

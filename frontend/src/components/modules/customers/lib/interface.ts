@@ -70,7 +70,7 @@ export interface CustomerErrors {
     mailing_address: AddressErrors;
 }
 
-export interface CustomerResolved {
+export interface CustomerFull {
     id: string;
     name: string;
     contact_name: string | null;
@@ -99,10 +99,10 @@ export type DeleteCustomerResponse = CommonResponse<
     SimpleMessageData,
     SimpleError
 >;
-export type CustomerResolvedList = CustomerResolved[];
+export type CustomerResolvedList = CustomerFull[];
 export type CustomerResponse = CommonResponse<Customer, SimpleError>;
 export type CustomerResolvedResponse = CommonResponse<
-    CustomerResolved,
+    CustomerFull,
     SimpleError
 >;
 export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<

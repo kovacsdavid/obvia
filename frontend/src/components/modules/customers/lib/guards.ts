@@ -29,7 +29,7 @@ import type {
     CreateCustomerResponse,
     Customer,
     CustomerErrors,
-    CustomerResolved,
+    CustomerFull,
     CustomerResolvedList,
     CustomerResolvedResponse,
     CustomerResponse,
@@ -59,7 +59,7 @@ export function isDeleteCustomerResponse(
     return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }
 
-export function isCustomerResolved(data: unknown): data is CustomerResolved {
+export function isCustomerFull(data: unknown): data is CustomerFull {
     return (
         typeof data === "object" &&
         data !== null &&
@@ -97,14 +97,14 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
 export function isCustomerResolvedResponse(
     data: unknown,
 ): data is CustomerResolvedResponse {
-    return isCommonResponse(data, isCustomerResolved, isSimpleError);
+    return isCommonResponse(data, isCustomerFull, isSimpleError);
 }
 
 export function isCustomerResolvedList(
     data: unknown,
 ): data is CustomerResolvedList {
     return (
-        Array.isArray(data) && data.every((item) => isCustomerResolved(item))
+        Array.isArray(data) && data.every((item) => isCustomerFull(item))
     );
 }
 

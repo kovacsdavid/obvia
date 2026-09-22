@@ -964,13 +964,21 @@ mod tests {
             limit: 25,
             total: 100,
         };
+
+        let billing_address = test_address_resolved_builder().build().unwrap();
+        let mailing_address = test_address_resolved_builder().build().unwrap();
+        let address_ids = vec![billing_address.id, mailing_address.id];
+
         let customer_resolved = test_customer_resolved_builder()
             .id(customer_id)
+            .billing_address(Some(billing_address.id))
+            .mailing_address(Some(mailing_address.id))
             .build()
             .unwrap();
 
-        let mut repo = MockCustomersRepository::new();
-        repo.expect_get_paged()
+        let mut customers_repo = MockCustomersRepository::new();
+        customers_repo
+            .expect_get_paged()
             .times(1)
             .with(eq(""
                 .parse::<ResourceQuery<CustomerOrderBy, CustomerFilterBy>>()
@@ -980,14 +988,32 @@ mod tests {
                 move |_| Ok((paginator_meta, vec![customer_resolved.clone()]))
             });
 
+        let mut address_repo = MockAddressRepository::new();
+        address_repo
+            .expect_get_resolved_by_ids()
+            .times(1)
+            .with(eq(address_ids))
+            .returning({
+                let billing_address = billing_address.clone();
+                let mailing_address = mailing_address.clone();
+                let result = vec![billing_address, mailing_address];
+                move |_| Ok(result.clone())
+            });
+
         let mut app_state = MockCustomersModule::new();
-        let repo = Arc::new(repo);
+        let customers_repo = Arc::new(customers_repo);
+        let address_repo = Arc::new(address_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
             .times(1)
-            .returning(move |_| Ok(repo.clone()));
+            .returning(move |_| Ok(customers_repo.clone()));
+        app_state
+            .expect_address_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(address_repo.clone()));
         app_state
             .expect_config()
             .times(1)
@@ -1015,10 +1041,13 @@ mod tests {
 
         assert_eq!(response.status(), StatusCode::OK);
 
+        let customer_full =
+            customer_resolved.into_full(Some(billing_address), Some(mailing_address));
+
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "meta": paginator_meta,
-            "data": vec![customer_resolved]
+            "data": vec![customer_full]
         });
 
         assert_eq!(response_body, expected_body);

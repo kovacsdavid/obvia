@@ -150,7 +150,7 @@ pub trait CustomerService {
     fn get_paged(
         &self,
         get_query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerFull>)>> + Send;
     fn print(
         &self,
         payload: &[CustomerResolvedPrint],
@@ -279,16 +279,49 @@ where
     async fn get_paged(
         &self,
         query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-        Ok(self
+    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerFull>)> {
+        let (meta, customers) = self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .get_paged(query)
-            .await?)
+            .await?;
+        let mut address_ids = vec![];
+        for customer in customers.iter() {
+            if let Some(billing_address) = customer.billing_address {
+                address_ids.push(billing_address);
+            }
+            if let Some(mailing_address) = customer.mailing_address {
+                address_ids.push(mailing_address);
+            }
+        }
+
+        let mut addresses = HashMap::new();
+        for address in self
+            .module()
+            .address_repo(self.active_tenant()?)?
+            .get_resolved_by_ids(address_ids)
+            .await?
+        {
+            addresses.insert(address.id, address);
+        }
+
+        let mut customers_full = vec![];
+        // NOTE: Every address should be unique. If this changes in the future
+        // the HashMap remove()-s should be changed to get() + clone() otherwise this will fail
+        // with an error. I use remove() now because I can transfer ownership with it without
+        // cloneing the addresses which would be more expensive.
+        for customer in customers.into_iter() {
+            customers_full.push(match (customer.billing_address, customer.mailing_address) {
+                (None, None) => customer.into_full(None, None),
+                (None, Some(m)) => customer.into_full(None, addresses.remove(&m)),
+                (Some(b), None) => customer.into_full(addresses.remove(&b), None),
+                (Some(b), Some(m)) => {
+                    customer.into_full(addresses.remove(&b), addresses.remove(&m))
+                }
+            })
+        }
+
+        Ok((meta, customers_full))
     }
     async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(

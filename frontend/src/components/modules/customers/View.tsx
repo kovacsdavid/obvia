@@ -21,7 +21,7 @@ import { useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { get_resolved } from "@/components/modules/customers/lib/slice.ts";
-import { type CustomerResolved } from "@/components/modules/customers/lib/interface.ts";
+import { type CustomerFull } from "@/components/modules/customers/lib/interface.ts";
 import {
     Table,
     TableBody,
@@ -44,7 +44,7 @@ import Type from "./Type";
 import { useAuth } from "@/hooks/use_auth";
 
 export default function View() {
-    const [data, setData] = React.useState<CustomerResolved | null>(null);
+    const [data, setData] = React.useState<CustomerFull | null>(null);
     const { errors, setErrors, unexpectedError } = useSimpleError();
     const dispatch = useAppDispatch();
     const params = useParams();

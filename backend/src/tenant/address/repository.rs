@@ -52,6 +52,7 @@ impl AddressRepository for PgPool {
                     address.id as id,
                     address.type as type,
                     address.country_code as country_code,
+                    countries.name as country,
                     address.postal_code as postal_code,
                     address.settlement as settlement,
                     address.mailbox as mailbox,
@@ -70,6 +71,7 @@ impl AddressRepository for PgPool {
                     address.deleted_at as deleted_at
                 FROM address
                 LEFT JOIN users ON address.created_by_id = users.id
+                LEFT JOIN countries ON address.country_code = countries.code
                 WHERE address.deleted_at IS NULL
                     AND address.id = $1
             "#,
@@ -85,6 +87,7 @@ impl AddressRepository for PgPool {
                     address.id as id,
                     address.type as type,
                     address.country_code as country_code,
+                    countries.name as country,
                     address.postal_code as postal_code,
                     address.settlement as settlement,
                     address.mailbox as mailbox,
@@ -103,6 +106,7 @@ impl AddressRepository for PgPool {
                     address.deleted_at as deleted_at
                 FROM address
                 LEFT JOIN users ON address.created_by_id = users.id
+                LEFT JOIN countries ON address.country_code = countries.code
                 WHERE address.deleted_at IS NULL
                     AND address.id = ANY($1)
             "#,

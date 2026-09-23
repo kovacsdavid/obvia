@@ -81,13 +81,13 @@ export const get = createAsyncThunk(
     },
 );
 
-export const get_resolved = createAsyncThunk(
-    "customers/get_resolved",
+export const get_full = createAsyncThunk(
+    "customers/get_full",
     async (uuid: string, { getState, dispatch }) => {
         await dispatch(refreshAccessToken());
         const rootState = getState() as RootState;
         const token = rootState.auth.login.token;
-        return await customersApi.get_resolved(uuid, token);
+        return await customersApi.get_full(uuid, token);
     },
 );
 

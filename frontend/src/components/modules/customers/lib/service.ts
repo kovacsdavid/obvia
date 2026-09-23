@@ -24,7 +24,7 @@ import {
 } from "@/services/utils/consts.ts";
 import {
     type CreateCustomerResponse,
-    type CustomerResolvedResponse,
+    type CustomerFullResponse,
     type CustomerResponse,
     type CustomerUserInput,
     type DeleteCustomerResponse,
@@ -150,11 +150,11 @@ export async function list(
     });
 }
 
-export async function get_resolved(
+export async function get_full(
     uuid: string,
     token: string | null,
-): Promise<ProcessedJsonResponse<CustomerResolvedResponse>> {
-    return await fetch(`/api/customers/get_resolved?uuid=${uuid}`, {
+): Promise<ProcessedJsonResponse<CustomerFullResponse>> {
+    return await fetch(`/api/customers/get_full?uuid=${uuid}`, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",

@@ -31,7 +31,7 @@ import type {
     CustomerErrors,
     CustomerFull,
     CustomerResolvedList,
-    CustomerResolvedResponse,
+    CustomerFullResponse,
     CustomerResponse,
     DeleteCustomerResponse,
     PaginatedCustomerResolvedListResponse,
@@ -99,7 +99,7 @@ export function isCustomerFull(data: unknown): data is CustomerFull {
 
 export function isCustomerResolvedResponse(
     data: unknown,
-): data is CustomerResolvedResponse {
+): data is CustomerFullResponse {
     return isCommonResponse(data, isCustomerFull, isSimpleError);
 }
 

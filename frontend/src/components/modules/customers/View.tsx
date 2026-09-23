@@ -20,7 +20,7 @@
 import { useParams } from "react-router";
 import React, { useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { get_resolved } from "@/components/modules/customers/lib/slice.ts";
+import { get_full } from "@/components/modules/customers/lib/slice.ts";
 import { type CustomerFull } from "@/components/modules/customers/lib/interface.ts";
 import {
     Table,
@@ -42,6 +42,7 @@ import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import Type from "./Type";
 import { useAuth } from "@/hooks/use_auth";
+import AddressView from "@/components/modules/address/AddressView";
 
 export default function View() {
     const [data, setData] = React.useState<CustomerFull | null>(null);
@@ -53,8 +54,8 @@ export default function View() {
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
-            dispatch(get_resolved(params["id"])).then(async (response) => {
-                if (get_resolved.fulfilled.match(response)) {
+            dispatch(get_full(params["id"])).then(async (response) => {
+                if (get_full.fulfilled.match(response)) {
                     if (response.payload.statusCode === 200) {
                         if (
                             typeof response.payload.jsonData?.data !==
@@ -128,6 +129,22 @@ export default function View() {
                                         <TableCell>Státusz</TableCell>
                                         <TableCell>
                                             <Status status={data.status} />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Számlázási cím</TableCell>
+                                        <TableCell>
+                                            <AddressView
+                                                value={data.billing_address}
+                                            />
+                                        </TableCell>
+                                    </TableRow>
+                                    <TableRow>
+                                        <TableCell>Levelezési cím</TableCell>
+                                        <TableCell>
+                                            <AddressView
+                                                value={data.mailing_address}
+                                            />
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>

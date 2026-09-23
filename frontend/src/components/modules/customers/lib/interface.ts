@@ -101,10 +101,7 @@ export type DeleteCustomerResponse = CommonResponse<
 >;
 export type CustomerResolvedList = CustomerFull[];
 export type CustomerResponse = CommonResponse<Customer, SimpleError>;
-export type CustomerResolvedResponse = CommonResponse<
-    CustomerFull,
-    SimpleError
->;
+export type CustomerFullResponse = CommonResponse<CustomerFull, SimpleError>;
 export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<
     CustomerResolvedList,
     SimpleError

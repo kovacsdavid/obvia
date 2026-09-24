@@ -21,7 +21,7 @@ use chrono_tz::Tz;
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 use thiserror::Error;
-use totp_rs::{Algorithm, Secret, TOTP};
+use totp_rs::{Builder, Secret, Totp};
 use uuid::Uuid;
 
 #[derive(Debug, Error)]
@@ -71,28 +71,19 @@ impl User {
         self.is_mfa_enabled
     }
     pub fn init_mfa_secret(mut self) -> Self {
-        self.mfa_secret = Some(Secret::default().to_encoded().to_string());
+        self.mfa_secret = Some(Secret::default().to_base32());
         self
     }
     pub fn get_mfa_token(&self) -> Result<String, UserModelError> {
-        let totp = TOTP::new(
-            Algorithm::SHA1,
-            6,
-            1,
-            30,
-            Secret::Encoded(
-                self.mfa_secret
-                    .clone()
-                    .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?,
-            )
-            .to_bytes()
-            .map_err(|e| UserModelError::MfaToken(e.to_string()))?,
-            Some("obvia".to_string()),
-            self.email.clone(),
-        )
-        .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
-        totp.generate_current()
-            .map_err(|e| UserModelError::MfaToken(e.to_string()))
+        let secret = self
+            .mfa_secret
+            .clone()
+            .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?;
+        let totp: Totp = Builder::new()
+            .with_secret(Secret::from(secret.as_bytes()))
+            .build()
+            .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
+        Ok(totp.generate_current().to_string())
     }
     pub fn check_mfa_token(&self, token_to_test: &str) -> UserModelResult<()> {
         match self.get_mfa_token() {

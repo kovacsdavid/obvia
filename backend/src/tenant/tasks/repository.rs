@@ -131,7 +131,7 @@ impl TasksRepository for PgPool {
             LEFT JOIN users ON tasks.created_by_id = users.id
             WHERE tasks.deleted_at IS NULL
                 AND tasks.status = 'active'
-                AND worsheets.id = $1
+                AND worksheets.id = $1
             "#,
         )
         .bind(worksheet_id)

@@ -67,7 +67,9 @@ describe("AddressView", () => {
             />,
         );
 
-        expect(screen.getByText("HU1011 Budapest, PF. 123")).toBeInTheDocument();
+        expect(
+            screen.getByText("HU1011 Budapest, PF. 123"),
+        ).toBeInTheDocument();
     });
 
     it("renders topographic number when provided", () => {
@@ -80,7 +82,9 @@ describe("AddressView", () => {
             />,
         );
 
-        expect(screen.getByText("HU1011 Budapest, HRSZ.: 123/A")).toBeInTheDocument();
+        expect(
+            screen.getByText("HU1011 Budapest, HRSZ.: 123/A"),
+        ).toBeInTheDocument();
     });
 
     it("renders public space name, type, and house number", () => {
@@ -133,7 +137,9 @@ describe("AddressView", () => {
         );
 
         expect(
-            screen.getByText("HU1011 Budapest, Váci út 1111. A épület, B lépcsőház"),
+            screen.getByText(
+                "HU1011 Budapest, Váci út 1111. A épület, B lépcsőház",
+            ),
         ).toBeInTheDocument();
     });
 
@@ -152,7 +158,9 @@ describe("AddressView", () => {
         );
 
         expect(
-            screen.getByText("HU1011 Budapest, Váci út 1111. A épület, C lépcsőház"),
+            screen.getByText(
+                "HU1011 Budapest, Váci út 1111. A épület, C lépcsőház",
+            ),
         ).toBeInTheDocument();
     });
 
@@ -171,7 +179,9 @@ describe("AddressView", () => {
         );
 
         expect(
-            screen.getByText("HU1011 Budapest, Váci út 1111. C lépcsőház, 12 ajtó"),
+            screen.getByText(
+                "HU1011 Budapest, Váci út 1111. C lépcsőház, 12 ajtó",
+            ),
         ).toBeInTheDocument();
     });
 
@@ -188,7 +198,9 @@ describe("AddressView", () => {
             />,
         );
 
-        expect(screen.getByText("HU1011 Budapest, Váci út 1111. 7 ajtó")).toBeInTheDocument();
+        expect(
+            screen.getByText("HU1011 Budapest, Váci út 1111. 7 ajtó"),
+        ).toBeInTheDocument();
     });
 
     it("renders a full address", () => {

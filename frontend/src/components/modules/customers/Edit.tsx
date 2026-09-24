@@ -566,6 +566,7 @@ export default function Edit({
                         label="Levelezési cím"
                         value={mailingAddress}
                         onChange={setMailingAddress}
+                        errors={errors?.fields?.mailing_address}
                         setErrors={<T extends keyof AddressErrors>(
                             value: string | null,
                             field: T,

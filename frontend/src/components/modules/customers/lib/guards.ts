@@ -19,7 +19,6 @@
 
 import {
     isCommonResponse,
-    isFormError,
     isFormErrorV2,
     isPaginatedDataResponse,
     isSimpleError,
@@ -53,7 +52,9 @@ export function isCreateCustomerResponse(
 export function isUpdateCustomerResponse(
     data: unknown,
 ): data is UpdateCustomerResponse {
-    return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, (data: unknown) =>
+        isFormErrorV2<CustomerErrors>(data, isCustomerErrors),
+    );
 }
 
 export function isDeleteCustomerResponse(

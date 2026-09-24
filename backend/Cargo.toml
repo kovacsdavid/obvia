@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 axum = { version = "0.8.4", features = ["macros"] }
 axum-extra = { version = "0.12.2", features = ["cookie", "cookie-key-expansion", "cookie-private", "cookie-signed", "typed-header"] }
-jsonwebtoken = { version = "10.0.0", features = ["aws_lc_rs"] }
+jsonwebtoken = { version = "11.1.0", features = ["aws_lc_rs"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 tokio = { version = "1.52.1", features = ["full"] }
@@ -17,7 +17,7 @@ sqlx = { version = "0.9.0", features = ["runtime-tokio", "postgres", "uuid", "ch
 chrono = { version = "0.4.41", features = ["serde"] }
 anyhow = "1.0.98"
 thiserror = "2.0.12"
-argon2 = "0.5.3"
+argon2 = "0.6.0"
 config = "0.15.11"
 headers = "0.4.1"
 regex = "1.11.1"
@@ -29,7 +29,7 @@ handlebars = "6.3.2"
 lettre = { version = "0.11.19", default-features = false, features = ["builder", "hostname", "smtp-transport","tokio1", "tokio1-rustls-tls"] }
 time = "0.3.49"
 ipnetwork = { version = "0.21.1", features = ["serde"] }
-totp-rs = { version = "5.7.0", features = ["gen_secret", "otpauth"] }
+totp-rs = { version = "6.0.0", features = ["gen_secret", "otpauth"] }
 tempfile = "3.27.0"
 async-trait = "0.1.89"
 chrono-tz = "0.10.4"
@@ -40,7 +40,7 @@ derive_builder = "0.20.2"
 [dev-dependencies]
 pretty_assertions = "1.4.1"
 mockall = "0.15.0"
-lopdf = "0.44.0"
+lopdf = "0.45.0"
 
 [package.metadata]
 clippy = { deny = ["unsafe_code"] }

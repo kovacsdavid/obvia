@@ -45,10 +45,7 @@ use crate::{
     },
 };
 use anyhow::Result;
-use argon2::{
-    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-    password_hash::{SaltString, rand_core::OsRng},
-};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use axum::http::StatusCode;
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
@@ -1593,7 +1590,7 @@ fn gen_jwt(
 
 fn generate_password_hash(password: &[u8]) -> AuthServiceResult<String> {
     Argon2::default()
-        .hash_password(password, &SaltString::generate(&mut OsRng))
+        .hash_password(password)
         .map(|hash| hash.to_string())
         .map_err(|e| AuthServiceError::Hash(e.to_string()))
 }

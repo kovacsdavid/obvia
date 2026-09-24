@@ -59,7 +59,7 @@ impl InventoryMovementsResolvedPrint {
             id: inventory_movement_resolved.id,
             inventory: inventory_resolved_print,
             movement_type: Self::map_movement_type(&inventory_movement_resolved.movement_type),
-            quantity: inventory_movement_resolved.quantity,
+            quantity: inventory_movement_resolved.quantity.abs(),
             reference_type: inventory_movement_resolved
                 .reference_type
                 .map(|v| Self::map_reference_type(&v)),

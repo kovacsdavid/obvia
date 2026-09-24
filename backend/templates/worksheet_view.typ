@@ -127,7 +127,7 @@
 #row("Számlázás cím", customer.billing_address)
 #row("Levelezési cím", customer.mailing_address)
 
-#v(0.25cm)
+#pagebreak()
 
 // Performed services section
 #section("Elvégzett szolgáltatások")
@@ -204,11 +204,7 @@
   width: 100%,
   height: 3cm,
 )[
-  #text(9pt, fill: rgb("000000"))[
-    Példa megjegyzés:
-    A készülék túlmelegedési problémával érkezett. A tisztítást és az újrapasztázást követően
-    a hőmérsékleti értékek stabilizálódtak. Az SSD-csere és a rendszer újratelepítése sikeresen megtörtént.
-  ]
+  #text(9pt, fill: rgb("000000"))[]
 ]
 
 #v(0.8cm)
@@ -229,15 +225,3 @@
   ],
 )
 
-#v(0.8cm)
-
-// Footer note about document origin
-#block(
-  stroke: (paint: rgb("CCCCCC"), thickness: 0.8pt),
-  inset: 10pt,
-  radius: 4pt,
-)[
-  #text(9pt, fill: rgb("000000"))[
-    Megjegyzés: Ez a dokumentum az Obvia ERP rendszerből előállított munkalapnézet.
-  ]
-]

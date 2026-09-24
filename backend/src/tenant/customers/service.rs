@@ -27,9 +27,7 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModuleInterface;
-use crate::tenant::customers::dto::print::{
-    CustomerResolvedPrint, test_customer_resolved_print_builder,
-};
+use crate::tenant::customers::dto::print::{CustomerFullPrint, test_customer_full_print_builder};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
@@ -153,7 +151,7 @@ pub trait CustomerService {
     ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerFull>)>> + Send;
     fn print(
         &self,
-        payload: &[CustomerResolvedPrint],
+        payload: &[CustomerFullPrint],
     ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
     fn print_snapshot(
         &self,
@@ -190,53 +188,11 @@ where
             .await?)
     }
     async fn get_full(&self, payload: Uuid) -> CustomersServiceResult<CustomerFull> {
-        let customer_resolved = self
+        Ok(self
             .module()
             .customers_repo(self.active_tenant()?)?
-            .get_resolved_by_id(payload)
-            .await?;
-
-        let mut address_ids = vec![];
-        if let Some(billing_address) = customer_resolved.billing_address {
-            address_ids.push(billing_address);
-        }
-        if let Some(mailing_address) = customer_resolved.mailing_address {
-            address_ids.push(mailing_address);
-        }
-
-        let mut addresses = if !address_ids.is_empty() {
-            let mut map = HashMap::new();
-            for address in self
-                .module()
-                .address_repo(self.active_tenant()?)?
-                .get_resolved_by_ids(address_ids)
-                .await?
-            {
-                map.insert(address.id, address);
-            }
-            map
-        } else {
-            HashMap::new()
-        };
-
-        Ok(
-            match (
-                customer_resolved.billing_address,
-                customer_resolved.mailing_address,
-            ) {
-                (None, None) => customer_resolved.into_full(None, None),
-                (None, Some(mailing_address)) => {
-                    customer_resolved.into_full(None, addresses.remove(&mailing_address))
-                }
-                (Some(billing_address), None) => {
-                    customer_resolved.into_full(addresses.remove(&billing_address), None)
-                }
-                (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
-                    addresses.remove(&billing_address),
-                    addresses.remove(&mailing_address),
-                ),
-            },
-        )
+            .get_full(payload)
+            .await?)
     }
     async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
         Ok(self
@@ -315,7 +271,7 @@ where
 
         Ok((meta, customers_full))
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[CustomerFullPrint]) -> CustomersServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
@@ -324,7 +280,7 @@ where
     async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
         let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
-        let customer_resolved_print = test_customer_resolved_print_builder()
+        let customer_resolved_print = test_customer_full_print_builder()
             .id(customer_id)
             .created_by_id(created_by_id)
             .build()?;

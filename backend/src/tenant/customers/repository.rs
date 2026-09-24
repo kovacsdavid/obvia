@@ -17,13 +17,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::collections::HashMap;
+
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::address::repository::{delete_address_by_id, insert_address, update_address};
+use crate::tenant::address::repository::{
+    delete_address_by_id, get_resolved_addresses_by_ids, insert_address, update_address,
+};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
-use crate::tenant::customers::model::{Customer, CustomerResolved};
+use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
@@ -37,6 +41,7 @@ use uuid::Uuid;
 pub trait CustomersRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Customer>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved>;
+    async fn get_full(&self, id: Uuid) -> RepositoryResult<CustomerFull>;
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
@@ -73,6 +78,47 @@ impl CustomersRepository for PgPool {
 
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved> {
         get_resolved_customer_by_id(self, id, false).await
+    }
+
+    async fn get_full(&self, id: Uuid) -> RepositoryResult<CustomerFull> {
+        let customer_resolved = self.get_resolved_by_id(id).await?;
+
+        let mut address_ids = vec![];
+        if let Some(billing_address) = customer_resolved.billing_address {
+            address_ids.push(billing_address);
+        }
+        if let Some(mailing_address) = customer_resolved.mailing_address {
+            address_ids.push(mailing_address);
+        }
+
+        let mut addresses = if !address_ids.is_empty() {
+            let mut map = HashMap::new();
+            for address in get_resolved_addresses_by_ids(self, address_ids).await? {
+                map.insert(address.id, address);
+            }
+            map
+        } else {
+            HashMap::new()
+        };
+
+        Ok(
+            match (
+                customer_resolved.billing_address,
+                customer_resolved.mailing_address,
+            ) {
+                (None, None) => customer_resolved.into_full(None, None),
+                (None, Some(mailing_address)) => {
+                    customer_resolved.into_full(None, addresses.remove(&mailing_address))
+                }
+                (Some(billing_address), None) => {
+                    customer_resolved.into_full(addresses.remove(&billing_address), None)
+                }
+                (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
+                    addresses.remove(&billing_address),
+                    addresses.remove(&mailing_address),
+                ),
+            },
+        )
     }
 
     async fn get_paged(

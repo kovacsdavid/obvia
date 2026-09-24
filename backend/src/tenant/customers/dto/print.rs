@@ -19,7 +19,8 @@
 
 use crate::common::CommonBuilderError;
 use crate::common::TEST_TIME_TZ;
-use crate::tenant::customers::model::CustomerResolved;
+use crate::tenant::address::model::test_address_resolved_builder;
+use crate::tenant::customers::model::CustomerFull;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -27,7 +28,7 @@ use uuid::Uuid;
 
 #[derive(Clone, Serialize, PartialEq, Debug, Builder)]
 #[builder(build_fn(error = "CommonBuilderError"))]
-pub struct CustomerResolvedPrint {
+pub struct CustomerFullPrint {
     id: Uuid,
     name: String,
     contact_name: Option<String>,
@@ -37,35 +38,39 @@ pub struct CustomerResolvedPrint {
     customer_type: String,
     created_by_id: Uuid,
     created_by: String,
+    billing_address: Option<String>,
+    mailing_address: Option<String>,
     created_at: String,
     updated_at: String,
     deleted_at: Option<String>,
 }
 
-impl CustomerResolvedPrint {
-    pub fn new(customer_resolved: CustomerResolved, tz: Tz) -> Self {
+impl CustomerFullPrint {
+    pub fn new(customer_full: CustomerFull, tz: Tz) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         Self {
-            id: customer_resolved.id,
-            name: customer_resolved.name,
-            contact_name: customer_resolved.contact_name,
-            email: customer_resolved.email,
-            phone_number: customer_resolved.phone_number,
-            status: Self::map_status(&customer_resolved.status),
-            customer_type: Self::map_customer_type(&customer_resolved.customer_type),
-            created_by_id: customer_resolved.created_by_id,
-            created_by: customer_resolved.created_by,
-            created_at: customer_resolved
+            id: customer_full.id,
+            name: customer_full.name,
+            contact_name: customer_full.contact_name,
+            email: customer_full.email,
+            phone_number: customer_full.phone_number,
+            status: Self::map_status(&customer_full.status),
+            customer_type: Self::map_customer_type(&customer_full.customer_type),
+            created_by_id: customer_full.created_by_id,
+            created_by: customer_full.created_by,
+            billing_address: customer_full.billing_address.map(|v| v.to_string()),
+            mailing_address: customer_full.mailing_address.map(|v| v.to_string()),
+            created_at: customer_full
                 .created_at
                 .with_timezone(&tz)
                 .format(&date_format_string)
                 .to_string(),
-            updated_at: customer_resolved
+            updated_at: customer_full
                 .updated_at
                 .with_timezone(&tz)
                 .format(&date_format_string)
                 .to_string(),
-            deleted_at: customer_resolved
+            deleted_at: customer_full
                 .deleted_at
                 .map(|v| v.with_timezone(&tz).format(&date_format_string).to_string()),
         }
@@ -94,8 +99,8 @@ impl CustomerResolvedPrint {
     }
 }
 
-pub fn test_customer_resolved_print_builder() -> CustomerResolvedPrintBuilder {
-    let mut builder = CustomerResolvedPrintBuilder::default();
+pub fn test_customer_full_print_builder() -> CustomerFullPrintBuilder {
+    let mut builder = CustomerFullPrintBuilder::default();
     builder
         .id(Uuid::new_v4())
         .name("Test Customer".to_string())
@@ -106,6 +111,10 @@ pub fn test_customer_resolved_print_builder() -> CustomerResolvedPrintBuilder {
         .customer_type("Természetes személy".to_string())
         .created_by_id(Uuid::new_v4())
         .created_by("Test User".to_string())
+        .billing_address(Some(
+            test_address_resolved_builder().build().unwrap().to_string(),
+        ))
+        .mailing_address(None)
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
         .deleted_at(None);
@@ -116,7 +125,7 @@ pub fn test_customer_resolved_print_builder() -> CustomerResolvedPrintBuilder {
 #[cfg(test)]
 mod tests {
 
-    use crate::{common::TEST_TZ, tenant::customers::model::tests::test_customer_resolved_builder};
+    use crate::{common::TEST_TZ, tenant::customers::model::tests::test_customer_full_builder};
 
     use super::*;
     use pretty_assertions::assert_eq;
@@ -125,13 +134,13 @@ mod tests {
     fn test_from_customer_resolved() {
         let customer_id = Uuid::new_v4();
         let created_by_id = Uuid::new_v4();
-        let customer_resolved = test_customer_resolved_builder()
+        let customer_resolved = test_customer_full_builder()
             .id(customer_id)
             .created_by_id(created_by_id)
             .build()
             .unwrap();
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, *TEST_TZ);
-        let customer_resolved_print_expected = CustomerResolvedPrint {
+        let customer_resolved_print = CustomerFullPrint::new(customer_resolved, *TEST_TZ);
+        let customer_resolved_print_expected = CustomerFullPrint {
             id: customer_id,
             name: "Test Customer".to_string(),
             contact_name: None,
@@ -141,6 +150,8 @@ mod tests {
             customer_type: "Természetes személy".to_string(),
             created_by_id,
             created_by: "Test User".to_string(),
+            billing_address: None,
+            mailing_address: None,
             created_at: TEST_TIME_TZ.clone(),
             updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,

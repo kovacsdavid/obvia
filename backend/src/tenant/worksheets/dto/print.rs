@@ -25,7 +25,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::tenant::{
-    customers::dto::print::CustomerResolvedPrint,
+    customers::dto::print::CustomerFullPrint,
     inventory_movements::dto::print::InventoryMovementsResolvedPrint,
     tasks::dto::print::TaskResolvedPrint, worksheets::model::WorksheetResolved,
 };
@@ -36,7 +36,7 @@ pub struct WorksheetResolvedPrint {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub customer: CustomerResolvedPrint,
+    pub customer: CustomerFullPrint,
     pub project_id: Option<Uuid>,
     pub project: Option<String>,
     pub created_by_id: Uuid,
@@ -56,7 +56,7 @@ pub struct WorksheetResolvedPrint {
 impl WorksheetResolvedPrint {
     pub fn new(
         worksheet_resolved: WorksheetResolved,
-        customer_resolved_print: CustomerResolvedPrint,
+        customer_resolved_print: CustomerFullPrint,
         tasks: Vec<TaskResolvedPrint>,
         materials: Vec<InventoryMovementsResolvedPrint>,
         tz: Tz,
@@ -104,7 +104,7 @@ impl WorksheetResolvedPrint {
 }
 
 pub fn test_worksheet_resolved_print_builder(
-    customer_resolved_print: CustomerResolvedPrint,
+    customer_resolved_print: CustomerFullPrint,
     tasks: Vec<TaskResolvedPrint>,
     materials: Vec<InventoryMovementsResolvedPrint>,
 ) -> WorksheetResolvedPrintBuilder {
@@ -162,7 +162,8 @@ mod tests {
             .build()
             .unwrap();
 
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, *TEST_TZ);
+        let customer_resolved_print =
+            CustomerFullPrint::new(customer_resolved.into_full(None, None), *TEST_TZ);
         let worksheet_resolved_print = WorksheetResolvedPrint::new(
             worksheet_resolved,
             customer_resolved_print.clone(),

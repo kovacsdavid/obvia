@@ -124,6 +124,8 @@
 #row("Telefonszám", customer.phone_number)
 #row("Ügyféltípus", customer.customer_type)
 #row("Állapot", customer.status)
+#row("Számlázás cím", customer.billing_address)
+#row("Levelezési cím", customer.mailing_address)
 
 #v(0.25cm)
 

@@ -28,8 +28,8 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::manager::auth::dto::claims::ClaimsError;
-use crate::tenant::customers::dto::print::CustomerResolvedPrint;
-use crate::tenant::customers::dto::print::test_customer_resolved_print_builder;
+use crate::tenant::customers::dto::print::CustomerFullPrint;
+use crate::tenant::customers::dto::print::test_customer_full_print_builder;
 use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::print::test_inventory_resolved_print_builder;
 use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
@@ -456,10 +456,10 @@ where
 
         // Loads and converts customer data into CustomerResolvedPrint because it is needed to
         // construct WorksheetResolvedPrint
-        let customer_resolved_print = CustomerResolvedPrint::new(
+        let customer_resolved_print = CustomerFullPrint::new(
             self.module()
                 .customers_repo(active_tenant)?
-                .get_resolved_by_id(worksheet_resolved.customer_id)
+                .get_full(worksheet_resolved.customer_id)
                 .await?,
             tz,
         );
@@ -514,9 +514,7 @@ where
             );
         }
 
-        let customer_resolved_print = test_customer_resolved_print_builder()
-            .id(customer_id)
-            .build()?;
+        let customer_resolved_print = test_customer_full_print_builder().id(customer_id).build()?;
 
         let worksheet_resolved_print =
             test_worksheet_resolved_print_builder(customer_resolved_print, tasks, materials)

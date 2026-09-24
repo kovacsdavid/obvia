@@ -83,39 +83,7 @@ impl AddressRepository for PgPool {
         .await?)
     }
     async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>> {
-        Ok(sqlx::query_as::<_, AddressResolved>(
-            r#"
-                SELECT
-                    address.id as id,
-                    address.type as type,
-                    address.country_code as country_code,
-                    countries.name as country,
-                    address.postal_code as postal_code,
-                    address.settlement as settlement,
-                    address.mailbox as mailbox,
-                    address.topographic_number as topographic_number,
-                    address.name_of_public_space as name_of_public_space,
-                    address.type_of_public_space as type_of_public_space,
-                    address.house_number as house_number,
-                    address.building as building,
-                    address.stairway as stairway,
-                    address.floor as floor,
-                    address.door as door,
-                    address.created_by_id as created_by_id,
-                    users.last_name || ' ' || users.first_name as created_by,
-                    address.created_at as created_at,
-                    address.updated_at as updated_at,
-                    address.deleted_at as deleted_at
-                FROM address
-                LEFT JOIN users ON address.created_by_id = users.id
-                LEFT JOIN countries ON address.country_code = countries.code
-                WHERE address.deleted_at IS NULL
-                    AND address.id = ANY($1)
-            "#,
-        )
-        .bind(ids)
-        .fetch_all(self)
-        .await?)
+        get_resolved_addresses_by_ids(self, ids).await
     }
     async fn insert(&self, address: &AddressUserInput, sub: Uuid) -> RepositoryResult<Address> {
         insert_address(self, address, sub).await
@@ -257,4 +225,46 @@ where
     .await?;
 
     Ok(())
+}
+
+pub async fn get_resolved_addresses_by_ids<'e, E>(
+    executor: E,
+    ids: Vec<Uuid>,
+) -> RepositoryResult<Vec<AddressResolved>>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+{
+    Ok(sqlx::query_as::<_, AddressResolved>(
+        r#"
+        SELECT
+            address.id as id,
+            address.type as type,
+            address.country_code as country_code,
+            countries.name as country,
+            address.postal_code as postal_code,
+            address.settlement as settlement,
+            address.mailbox as mailbox,
+            address.topographic_number as topographic_number,
+            address.name_of_public_space as name_of_public_space,
+            address.type_of_public_space as type_of_public_space,
+            address.house_number as house_number,
+            address.building as building,
+            address.stairway as stairway,
+            address.floor as floor,
+            address.door as door,
+            address.created_by_id as created_by_id,
+            users.last_name || ' ' || users.first_name as created_by,
+            address.created_at as created_at,
+            address.updated_at as updated_at,
+            address.deleted_at as deleted_at
+        FROM address
+        LEFT JOIN users ON address.created_by_id = users.id
+        LEFT JOIN countries ON address.country_code = countries.code
+        WHERE address.deleted_at IS NULL
+            AND address.id = ANY($1)
+    "#,
+    )
+    .bind(ids)
+    .fetch_all(executor)
+    .await?)
 }

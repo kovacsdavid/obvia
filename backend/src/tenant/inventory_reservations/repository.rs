@@ -45,12 +45,12 @@ pub trait InventoryReservationsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryReservationResolved>)>;
     async fn insert(
         &self,
-        input: InventoryReservationUserInput,
+        inventory_reservation_user_input: InventoryReservationUserInput,
         sub: Uuid,
     ) -> RepositoryResult<InventoryReservation>;
     async fn update(
         &self,
-        input: &InventoryReservationUserInput,
+        inventory_reservation_user_input: &InventoryReservationUserInput,
     ) -> RepositoryResult<InventoryReservation>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
@@ -226,10 +226,10 @@ impl InventoryReservationsRepository for PgPool {
 
     async fn insert(
         &self,
-        input: InventoryReservationUserInput,
+        inventory_reservation_user_input: InventoryReservationUserInput,
         sub: Uuid,
     ) -> RepositoryResult<InventoryReservation> {
-        let reference_type = match &input.reference_type {
+        let reference_type = match &inventory_reservation_user_input.reference_type {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
@@ -242,19 +242,23 @@ impl InventoryReservationsRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(input.inventory_id.as_uuid()?)
-        .bind(input.quantity.as_f64()?)
+        .bind(inventory_reservation_user_input.inventory_id.as_uuid()?)
+        .bind(inventory_reservation_user_input.quantity.as_f64()?)
         .bind(reference_type)
-        .bind(input.reference_id.as_uuid())
-        .bind(input.reserved_until.as_date_naive()?)
-        .bind(input.status.as_str()?)
+        .bind(inventory_reservation_user_input.reference_id.as_uuid())
+        .bind(
+            inventory_reservation_user_input
+                .reserved_until
+                .as_date_naive()?,
+        )
+        .bind(inventory_reservation_user_input.status.as_str()?)
         .bind(sub)
         .fetch_one(self)
         .await?)
     }
     async fn update(
         &self,
-        _input: &InventoryReservationUserInput,
+        _inventory_reservation_user_input: &InventoryReservationUserInput,
     ) -> RepositoryResult<InventoryReservation> {
         // TODO: implement this function!
         todo!()

@@ -33,8 +33,12 @@ pub trait AddressRepository: Send + Sync {
     async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<AddressResolved>;
     async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>>;
-    async fn insert(&self, address: &AddressUserInput, sub: Uuid) -> RepositoryResult<Address>;
-    async fn update(&self, address: &AddressUserInput) -> RepositoryResult<Address>;
+    async fn insert(
+        &self,
+        address_user_input: &AddressUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Address>;
+    async fn update(&self, address_user_input: &AddressUserInput) -> RepositoryResult<Address>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -85,11 +89,15 @@ impl AddressRepository for PgPool {
     async fn get_resolved_by_ids(&self, ids: Vec<Uuid>) -> RepositoryResult<Vec<AddressResolved>> {
         get_resolved_addresses_by_ids(self, ids).await
     }
-    async fn insert(&self, address: &AddressUserInput, sub: Uuid) -> RepositoryResult<Address> {
-        insert_address(self, address, sub).await
+    async fn insert(
+        &self,
+        address_user_input: &AddressUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Address> {
+        insert_address(self, address_user_input, sub).await
     }
-    async fn update(&self, address: &AddressUserInput) -> RepositoryResult<Address> {
-        update_address(self, address).await
+    async fn update(&self, address_user_input: &AddressUserInput) -> RepositoryResult<Address> {
+        update_address(self, address_user_input).await
     }
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         delete_address_by_id(self, id).await
@@ -98,7 +106,7 @@ impl AddressRepository for PgPool {
 
 pub async fn insert_address<'e, E>(
     executor: E,
-    address: &AddressUserInput,
+    address_user_input: &AddressUserInput,
     sub: Uuid,
 ) -> RepositoryResult<Address>
 where
@@ -140,19 +148,19 @@ where
             RETURNING *
         "#,
     )
-    .bind(address.address_type.as_str()?)
-    .bind(address.country_code.as_str()?)
-    .bind(address.postal_code.as_str()?)
-    .bind(address.settlement.as_str()?)
-    .bind(address.mailbox.as_str())
-    .bind(address.topographic_number.as_str())
-    .bind(address.name_of_public_space.as_str())
-    .bind(address.type_of_public_space.as_str())
-    .bind(address.house_number.as_str())
-    .bind(address.building.as_str())
-    .bind(address.stairway.as_str())
-    .bind(address.floor.as_str())
-    .bind(address.door.as_str())
+    .bind(address_user_input.address_type.as_str()?)
+    .bind(address_user_input.country_code.as_str()?)
+    .bind(address_user_input.postal_code.as_str()?)
+    .bind(address_user_input.settlement.as_str()?)
+    .bind(address_user_input.mailbox.as_str())
+    .bind(address_user_input.topographic_number.as_str())
+    .bind(address_user_input.name_of_public_space.as_str())
+    .bind(address_user_input.type_of_public_space.as_str())
+    .bind(address_user_input.house_number.as_str())
+    .bind(address_user_input.building.as_str())
+    .bind(address_user_input.stairway.as_str())
+    .bind(address_user_input.floor.as_str())
+    .bind(address_user_input.door.as_str())
     .bind(sub)
     .fetch_one(executor)
     .await?)
@@ -160,12 +168,12 @@ where
 
 pub async fn update_address<'e, E>(
     executor: E,
-    address: &AddressUserInput,
+    address_user_input: &AddressUserInput,
 ) -> RepositoryResult<Address>
 where
     E: sqlx::Executor<'e, Database = sqlx::Postgres>,
 {
-    let address_id = address
+    let address_id = address_user_input
         .id
         .as_uuid()
         .ok_or_else(|| RepositoryError::InvalidInput("address_id".to_string()))?;
@@ -190,19 +198,19 @@ where
             RETURNING *
         "#,
     )
-    .bind(address.address_type.as_str()?)
-    .bind(address.country_code.as_str()?)
-    .bind(address.postal_code.as_str()?)
-    .bind(address.settlement.as_str()?)
-    .bind(address.mailbox.as_str())
-    .bind(address.topographic_number.as_str())
-    .bind(address.name_of_public_space.as_str())
-    .bind(address.type_of_public_space.as_str())
-    .bind(address.house_number.as_str())
-    .bind(address.building.as_str())
-    .bind(address.stairway.as_str())
-    .bind(address.floor.as_str())
-    .bind(address.door.as_str())
+    .bind(address_user_input.address_type.as_str()?)
+    .bind(address_user_input.country_code.as_str()?)
+    .bind(address_user_input.postal_code.as_str()?)
+    .bind(address_user_input.settlement.as_str()?)
+    .bind(address_user_input.mailbox.as_str())
+    .bind(address_user_input.topographic_number.as_str())
+    .bind(address_user_input.name_of_public_space.as_str())
+    .bind(address_user_input.type_of_public_space.as_str())
+    .bind(address_user_input.house_number.as_str())
+    .bind(address_user_input.building.as_str())
+    .bind(address_user_input.stairway.as_str())
+    .bind(address_user_input.floor.as_str())
+    .bind(address_user_input.door.as_str())
     .bind(address_id)
     .fetch_one(executor)
     .await?)

@@ -249,20 +249,24 @@ impl CustomersRepository for PgPool {
             .await?)
     }
 
-    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer> {
+    async fn insert(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer> {
         let mut tx = self.begin().await?;
-        let contact_name = match &customer.contact_name {
+        let contact_name = match &customer_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
 
-        let billing_address = if let Some(billing_address) = &customer.billing_address {
+        let billing_address = if let Some(billing_address) = &customer_user_input.billing_address {
             insert_address(&mut *tx, billing_address, sub).await.ok()
         } else {
             None
         };
 
-        let mailing_address = if let Some(mailing_address) = &customer.mailing_address {
+        let mailing_address = if let Some(mailing_address) = &customer_user_input.mailing_address {
             insert_address(&mut *tx, mailing_address, sub).await.ok()
         } else {
             None
@@ -292,12 +296,12 @@ impl CustomersRepository for PgPool {
                 ) RETURNING *
             "#,
         )
-        .bind(customer.name.as_str()?)
+        .bind(customer_user_input.name.as_str()?)
         .bind(contact_name)
-        .bind(customer.email.as_str()?)
-        .bind(customer.phone_number.as_str())
-        .bind(customer.status.as_str()?)
-        .bind(customer.customer_type.as_str()?)
+        .bind(customer_user_input.email.as_str()?)
+        .bind(customer_user_input.phone_number.as_str())
+        .bind(customer_user_input.status.as_str()?)
+        .bind(customer_user_input.customer_type.as_str()?)
         .bind(sub)
         .bind(billing_address.map(|v| v.id))
         .bind(mailing_address.map(|v| v.id))

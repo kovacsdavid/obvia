@@ -40,9 +40,13 @@ pub trait WorksheetsRepository: Send + Sync {
         &self,
         query_params: &ResourceQuery<WorksheetOrderBy, WorksheetFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
-    async fn insert(&self, worksheet: WorksheetUserInput, sub: Uuid)
+    async fn insert(
+        &self,
+        worksheet_user_input: WorksheetUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Worksheet>;
+    async fn update(&self, worksheet_user_input: WorksheetUserInput)
     -> RepositoryResult<Worksheet>;
-    async fn update(&self, worksheet: WorksheetUserInput) -> RepositoryResult<Worksheet>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -305,29 +309,32 @@ impl WorksheetsRepository for PgPool {
     }
     async fn insert(
         &self,
-        worksheet: WorksheetUserInput,
+        worksheet_user_input: WorksheetUserInput,
         sub: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
         Ok(sqlx::query_as::<_, Worksheet>(
             "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
-        .bind(worksheet.name.as_str()?)
+        .bind(worksheet_user_input.name.as_str()?)
         .bind(
-            worksheet
+            worksheet_user_input
                 .description
                 .as_str(),
         )
-        .bind(worksheet.customer_id.as_uuid()?)
-        .bind(worksheet.project_id.as_uuid())
+        .bind(worksheet_user_input.customer_id.as_uuid()?)
+        .bind(worksheet_user_input.project_id.as_uuid())
         .bind(sub)
-        .bind(worksheet.status.as_str()?)
+        .bind(worksheet_user_input.status.as_str()?)
         .fetch_one(self)
         .await?)
     }
 
-    async fn update(&self, worksheet: WorksheetUserInput) -> RepositoryResult<Worksheet> {
-        let id = worksheet
+    async fn update(
+        &self,
+        worksheet_user_input: WorksheetUserInput,
+    ) -> RepositoryResult<Worksheet> {
+        let id = worksheet_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
@@ -344,11 +351,11 @@ impl WorksheetsRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(worksheet.name.as_str()?)
-        .bind(worksheet.description.as_str())
-        .bind(worksheet.customer_id.as_uuid()?)
-        .bind(worksheet.project_id.as_uuid())
-        .bind(worksheet.status.as_str()?)
+        .bind(worksheet_user_input.name.as_str()?)
+        .bind(worksheet_user_input.description.as_str())
+        .bind(worksheet_user_input.customer_id.as_uuid()?)
+        .bind(worksheet_user_input.project_id.as_uuid())
+        .bind(worksheet_user_input.status.as_str()?)
         .bind(id)
         .fetch_one(self)
         .await?)

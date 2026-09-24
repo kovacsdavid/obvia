@@ -57,6 +57,7 @@ import {
     type Address as AddressInterface,
     type AddressErrors,
 } from "@/components/modules/address/lib/interface";
+import { normalizeAddress } from "@/components/modules/address/lib/utils";
 import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
 
 interface EditProps {
@@ -108,7 +109,7 @@ export default function Edit({
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
     const handleNeedMailingAddressChange = () => {
-        if (typeof mailingAddress === "undefined") {
+        if (mailingAddress === null || typeof mailingAddress === "undefined") {
             setMailingAddress(defaultAddress());
         } else {
             setMailingAddress(undefined);
@@ -204,14 +205,19 @@ export default function Edit({
                             "undefined"
                         ) {
                             const data = response.payload.jsonData.data;
+
                             setCustomerType(data.customer_type);
                             setName(data.name);
                             setContactName(data.contact_name ?? "");
                             setEmail(data.email);
                             setPhoneNumber(data.phone_number ?? "");
                             setStatus(data.status);
-                            setBillingAddress(data.billing_address);
-                            setMailingAddress(data.mailing_address);
+                            setBillingAddress(
+                                normalizeAddress(data.billing_address),
+                            );
+                            setMailingAddress(
+                                normalizeAddress(data.mailing_address),
+                            );
                         }
                     } else if (
                         typeof response.payload.jsonData?.error !== "undefined"
@@ -540,7 +546,12 @@ export default function Edit({
                         <Field orientation="horizontal">
                             <Checkbox
                                 id="need_mailing_address"
-                                checked={typeof mailingAddress !== "undefined"}
+                                checked={
+                                    !(
+                                        mailingAddress === null ||
+                                        typeof mailingAddress === "undefined"
+                                    )
+                                }
                                 onCheckedChange={() =>
                                     handleNeedMailingAddressChange()
                                 }

@@ -257,22 +257,14 @@ where
         }
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
-            .update(payload)
+            .customers_repo(self.active_tenant()?)?
+            .update(payload, self.claims()?.sub())
             .await?)
     }
     async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .delete_by_id(payload)
             .await?)
     }

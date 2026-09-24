@@ -1519,10 +1519,10 @@ mod tests {
         let mut repo = MockCustomersRepository::new();
         repo.expect_update()
             .times(1)
-            .with(eq(user_input))
+            .with(eq(user_input), eq(user_id))
             .returning({
                 let customer = customer.clone();
-                move |_| Ok(customer.clone())
+                move |_, _| Ok(customer.clone())
             });
 
         let mut app_state = MockCustomersModule::new();

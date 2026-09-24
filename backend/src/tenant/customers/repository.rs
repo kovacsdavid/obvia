@@ -21,8 +21,7 @@ use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
-use crate::tenant::address::dto::user_input::AddressUserInput;
-use crate::tenant::address::model::Address;
+use crate::tenant::address::repository::{delete_address_by_id, insert_address, update_address};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
 use crate::tenant::customers::model::{Customer, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
@@ -30,6 +29,7 @@ use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::{AssertSqlSafe, PgPool};
+
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -42,8 +42,16 @@ pub trait CustomersRepository: Send + Sync {
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer>;
-    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer>;
+    async fn insert(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer>;
+    async fn update(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -64,32 +72,7 @@ impl CustomersRepository for PgPool {
     }
 
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved> {
-        Ok(sqlx::query_as::<_, CustomerResolved>(
-            r#"
-            SELECT
-                customers.id as id,
-                customers.name as name,
-                customers.contact_name as contact_name,
-                customers.email as email,
-                customers.phone_number as phone_number,
-                customers.status as status,
-                customers.customer_type as customer_type,
-                customers.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                customers.created_at as created_at,
-                customers.updated_at as updated_at,
-                customers.deleted_at as deleted_at,
-                customers.billing_address as billing_address,
-                customers.mailing_address as mailing_address
-            FROM customers
-            LEFT JOIN users ON customers.created_by_id = users.id
-            WHERE customers.deleted_at IS NULL
-                AND customers.id = $1
-            "#,
-        )
-        .bind(id)
-        .fetch_one(self)
-        .await?)
+        get_resolved_customer_by_id(self, id, false).await
     }
 
     async fn get_paged(
@@ -226,69 +209,15 @@ impl CustomersRepository for PgPool {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
-        let mut insert_address = async |address: &AddressUserInput| -> RepositoryResult<Address> {
-            Ok(sqlx::query_as::<_, Address>(
-                r#"
-                    INSERT INTO address (
-                        type,
-                        country_code, 
-                        postal_code,
-                        settlement,
-                        mailbox,
-                        topographic_number,
-                        name_of_public_space,
-                        type_of_public_space,
-                        house_number,
-                        building,
-                        stairway,
-                        floor,
-                        door,
-                        created_by_id
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        $4,
-                        $5,
-                        $6,
-                        $7,
-                        $8,
-                        $9,
-                        $10,
-                        $11,
-                        $12,
-                        $13,
-                        $14
-                    )
-                    RETURNING *
-                "#,
-            )
-            .bind(address.address_type.as_str()?)
-            .bind(address.country_code.as_str()?)
-            .bind(address.postal_code.as_str()?)
-            .bind(address.settlement.as_str()?)
-            .bind(address.mailbox.as_str())
-            .bind(address.topographic_number.as_str())
-            .bind(address.name_of_public_space.as_str())
-            .bind(address.type_of_public_space.as_str())
-            .bind(address.house_number.as_str())
-            .bind(address.building.as_str())
-            .bind(address.stairway.as_str())
-            .bind(address.floor.as_str())
-            .bind(address.door.as_str())
-            .bind(sub)
-            .fetch_one(&mut *tx)
-            .await?)
-        };
 
         let billing_address = if let Some(billing_address) = &customer.billing_address {
-            insert_address(billing_address).await.ok()
+            insert_address(&mut *tx, billing_address, sub).await.ok()
         } else {
             None
         };
 
         let mailing_address = if let Some(mailing_address) = &customer.mailing_address {
-            insert_address(mailing_address).await.ok()
+            insert_address(&mut *tx, mailing_address, sub).await.ok()
         } else {
             None
         };
@@ -334,157 +263,113 @@ impl CustomersRepository for PgPool {
         Ok(customer)
     }
 
-    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer> {
-        let contact_name = match &customer.contact_name {
+    async fn update(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer> {
+        let contact_name = match &customer_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
-        let id = customer
+        let id = customer_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
 
         let mut tx = self.begin().await?;
 
-        let mut update_address = async |address: &AddressUserInput| -> RepositoryResult<Address> {
-            let address_id = address
-                .id
-                .as_uuid()
-                .ok_or_else(|| RepositoryError::InvalidInput("address_id".to_string()))?;
-            Ok(sqlx::query_as::<_, Address>(
-                r#"
-                    UPDATE address
-                    SET type = $1,
-                        country_code = $2,
-                        postal_code = $3,
-                        settlement = $4,
-                        mailbox = $5,
-                        topographic_number = $6,
-                        name_of_public_space = $7,
-                        type_of_public_space = $8,
-                        house_number = $9,
-                        building = $10,
-                        stairway = $11,
-                        floor = $12,
-                        door = $13
-                    WHERE id = $14
-                        AND deleted_at IS NULL
-                    RETURNING *
-                "#,
-            )
-            .bind(address.address_type.as_str()?)
-            .bind(address.country_code.as_str()?)
-            .bind(address.postal_code.as_str()?)
-            .bind(address.settlement.as_str()?)
-            .bind(address.mailbox.as_str())
-            .bind(address.topographic_number.as_str())
-            .bind(address.name_of_public_space.as_str())
-            .bind(address.type_of_public_space.as_str())
-            .bind(address.house_number.as_str())
-            .bind(address.building.as_str())
-            .bind(address.stairway.as_str())
-            .bind(address.floor.as_str())
-            .bind(address.door.as_str())
-            .bind(address_id)
-            .fetch_one(&mut *tx)
-            .await?)
+        let customer_resolved = get_resolved_customer_by_id(&mut *tx, id, true).await?;
+
+        let billing_address = match (
+            customer_resolved.billing_address,
+            &customer_user_input.billing_address,
+        ) {
+            (None, None) => None,
+            (None, Some(address_user_input)) => {
+                insert_address(&mut *tx, address_user_input, sub).await.ok()
+            }
+            (Some(current_address_id), None) => {
+                delete_address_by_id(&mut *tx, current_address_id).await?;
+                None
+            }
+            (Some(current_address_id), Some(address_user_input)) => {
+                if let Some(user_address_id) = address_user_input.id.as_uuid()
+                    && user_address_id == current_address_id
+                {
+                    update_address(&mut *tx, address_user_input).await.ok()
+                } else {
+                    return Err(RepositoryError::InvalidState(
+                        "unexpected billing_address id missmatch",
+                    ));
+                }
+            }
         };
 
-        let billing_address = if let Some(billing_address) = &customer.billing_address {
-            update_address(billing_address).await.ok()
-        } else {
-            None
+        let mailing_address = match (
+            customer_resolved.mailing_address,
+            &customer_user_input.mailing_address,
+        ) {
+            (None, None) => None,
+            (None, Some(address_user_input)) => {
+                insert_address(&mut *tx, address_user_input, sub).await.ok()
+            }
+            (Some(current_address_id), None) => {
+                delete_address_by_id(&mut *tx, current_address_id).await?;
+                None
+            }
+            (Some(current_address_id), Some(address_user_input)) => {
+                if let Some(user_address_id) = address_user_input.id.as_uuid()
+                    && user_address_id == current_address_id
+                {
+                    update_address(&mut *tx, address_user_input).await.ok()
+                } else {
+                    return Err(RepositoryError::InvalidState(
+                        "unexpected mailing_address id missmatch",
+                    ));
+                }
+            }
         };
 
-        let mailing_address = if let Some(mailing_address) = &customer.mailing_address {
-            update_address(mailing_address).await.ok()
-        } else {
-            None
-        };
-
-        let customer = sqlx::query_as::<_, Customer>(
+        let customer_updated = sqlx::query_as::<_, Customer>(
             r#"
-            UPDATE customers 
+            UPDATE customers
             SET name = $1,
                 contact_name = $2,
                 email = $3,
                 phone_number = $4,
                 status = $5,
-                customer_type = $6
-            WHERE id = $7
-                AND deleted_at IS NULL 
+                customer_type = $6,
+                billing_address = $7,
+                mailing_address = $8
+            WHERE id = $9
+                AND deleted_at IS NULL
             RETURNING *
             "#,
         )
-        .bind(customer.name.as_str()?)
+        .bind(customer_user_input.name.as_str()?)
         .bind(contact_name)
-        .bind(customer.email.as_str()?)
-        .bind(customer.phone_number.as_str())
-        .bind(customer.status.as_str()?)
-        .bind(customer.customer_type.as_str()?)
+        .bind(customer_user_input.email.as_str()?)
+        .bind(customer_user_input.phone_number.as_str())
+        .bind(customer_user_input.status.as_str()?)
+        .bind(customer_user_input.customer_type.as_str()?)
+        .bind(billing_address.map(|v| v.id))
+        .bind(mailing_address.map(|v| v.id))
         .bind(id)
         .fetch_one(&mut *tx)
         .await?;
 
-        match (customer.billing_address, billing_address) {
-            (None, None) => (),
-            (None, Some(_)) => {
-                tx.rollback().await?;
-                return Err(RepositoryError::InvalidState(
-                    "it seems this billing_address is not related to this customer",
-                ));
-            }
-            (Some(_), None) => {
-                tx.rollback().await?;
-                return Err(RepositoryError::InvalidState(
-                    "billing_address for this customer record is not exists",
-                ));
-            }
-            (Some(customer_billing_address_id), Some(update_billing_address)) => {
-                if customer_billing_address_id != update_billing_address.id {
-                    tx.rollback().await?;
-                    return Err(RepositoryError::InvalidState(
-                        "billing_address id missmatch",
-                    ));
-                }
-            }
-        };
-
-        match (customer.mailing_address, mailing_address) {
-            (None, None) => (),
-            (None, Some(_)) => {
-                tx.rollback().await?;
-                return Err(RepositoryError::InvalidState(
-                    "it seems this mailing_address is not related to this customer",
-                ));
-            }
-            (Some(_), None) => {
-                tx.rollback().await?;
-                return Err(RepositoryError::InvalidState(
-                    "mailing_address for this customer record is not exists",
-                ));
-            }
-            (Some(customer_mailing_address_id), Some(update_mailing_address)) => {
-                if customer_mailing_address_id != update_mailing_address.id {
-                    tx.rollback().await?;
-                    return Err(RepositoryError::InvalidState(
-                        "mailing_address id missmatch",
-                    ));
-                }
-            }
-        }
-
         tx.commit().await?;
 
-        Ok(customer)
+        Ok(customer_updated)
     }
 
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
-            UPDATE customers 
+            UPDATE customers
             SET deleted_at = NOW()
-            WHERE id = $1 
+            WHERE id = $1
                 AND deleted_at IS NULL
             "#,
         )
@@ -494,4 +379,46 @@ impl CustomersRepository for PgPool {
 
         Ok(())
     }
+}
+
+pub async fn get_resolved_customer_by_id<'e, E>(
+    executor: E,
+    id: Uuid,
+    for_update: bool,
+) -> RepositoryResult<CustomerResolved>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+{
+    let for_update = match for_update {
+        true => "FOR UPDATE OF customers",
+        false => "",
+    }; // Safety: generated value
+
+    Ok(sqlx::query_as::<_, CustomerResolved>(AssertSqlSafe(format!(
+        r#"
+        SELECT
+            customers.id as id,
+            customers.name as name,
+            customers.contact_name as contact_name,
+            customers.email as email,
+            customers.phone_number as phone_number,
+            customers.status as status,
+            customers.customer_type as customer_type,
+            customers.created_by_id as created_by_id,
+            users.last_name || ' ' || users.first_name as created_by,
+            customers.created_at as created_at,
+            customers.updated_at as updated_at,
+            customers.deleted_at as deleted_at,
+            customers.billing_address as billing_address,
+            customers.mailing_address as mailing_address
+        FROM customers
+        LEFT JOIN users ON customers.created_by_id = users.id
+        WHERE customers.deleted_at IS NULL
+            AND customers.id = $1
+        {for_update}
+        "#
+    )))
+    .bind(id)
+    .fetch_one(executor)
+    .await?)
 }

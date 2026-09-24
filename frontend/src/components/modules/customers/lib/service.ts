@@ -97,6 +97,8 @@ export async function update(
         phoneNumber,
         status,
         customerType,
+        billingAddress,
+        mailingAddress,
     }: CustomerUserInput,
     token: string | null,
 ): Promise<ProcessedJsonResponse<UpdateCustomerResponse>> {
@@ -116,6 +118,8 @@ export async function update(
             status: typeof status === "undefined" ? null : status,
             customer_type:
                 typeof customerType === "undefined" ? null : customerType,
+            billing_address: billingAddress ?? null,
+            mailing_address: mailingAddress ?? null,
         }),
     }).then(async (response: Response) => {
         return (

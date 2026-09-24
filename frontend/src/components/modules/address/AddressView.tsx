@@ -46,7 +46,7 @@ export default function AddressView({ value }: AddressViewProps) {
             }
 
             if (value.house_number !== null) {
-                address += ` ${value.house_number}`;
+                address += ` ${value.house_number}.`;
             }
 
             if (value.building !== null) {
@@ -75,7 +75,6 @@ export default function AddressView({ value }: AddressViewProps) {
                 } else {
                     address += ` ${value.floor} emelet,`;
                 }
-                address += ` ${value.floor}`;
             }
 
             if (value.door !== null) {

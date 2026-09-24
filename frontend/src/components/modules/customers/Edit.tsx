@@ -213,7 +213,11 @@ export default function Edit({
                             setPhoneNumber(data.phone_number ?? "");
                             setStatus(data.status);
                             setBillingAddress(
-                                normalizeAddress(data.billing_address),
+                                // NOTE: this is needed to show address fields on update for
+                                // customers created before address was added to the system.
+                                data.billing_address === null
+                                    ? defaultAddress()
+                                    : normalizeAddress(data.billing_address),
                             );
                             setMailingAddress(
                                 normalizeAddress(data.mailing_address),

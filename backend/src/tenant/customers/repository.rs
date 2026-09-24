@@ -17,17 +17,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use std::collections::HashMap;
+
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::{RepositoryError, RepositoryResult};
 use crate::common::model::SelectOption;
 use crate::common::query_parser::ResourceQuery;
+use crate::tenant::address::repository::{
+    delete_address_by_id, get_resolved_addresses_by_ids, insert_address, update_address,
+};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
-use crate::tenant::customers::model::{Customer, CustomerResolved};
+use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use async_trait::async_trait;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::{AssertSqlSafe, PgPool};
+
 use uuid::Uuid;
 
 #[cfg_attr(test, automock)]
@@ -35,13 +41,22 @@ use uuid::Uuid;
 pub trait CustomersRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<Customer>;
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved>;
+    async fn get_full(&self, id: Uuid) -> RepositoryResult<CustomerFull>;
     async fn get_paged(
         &self,
         query_params: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<CustomerResolved>)>;
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>>;
-    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer>;
-    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer>;
+    async fn insert(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer>;
+    async fn update(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -62,30 +77,48 @@ impl CustomersRepository for PgPool {
     }
 
     async fn get_resolved_by_id(&self, id: Uuid) -> RepositoryResult<CustomerResolved> {
-        Ok(sqlx::query_as::<_, CustomerResolved>(
-            r#"
-            SELECT
-                customers.id as id,
-                customers.name as name,
-                customers.contact_name as contact_name,
-                customers.email as email,
-                customers.phone_number as phone_number,
-                customers.status as status,
-                customers.customer_type as customer_type,
-                customers.created_by_id as created_by_id,
-                users.last_name || ' ' || users.first_name as created_by,
-                customers.created_at as created_at,
-                customers.updated_at as updated_at,
-                customers.deleted_at as deleted_at
-            FROM customers
-            LEFT JOIN users ON customers.created_by_id = users.id
-            WHERE customers.deleted_at IS NULL
-                AND customers.id = $1
-            "#,
+        get_resolved_customer_by_id(self, id, false).await
+    }
+
+    async fn get_full(&self, id: Uuid) -> RepositoryResult<CustomerFull> {
+        let customer_resolved = self.get_resolved_by_id(id).await?;
+
+        let mut address_ids = vec![];
+        if let Some(billing_address) = customer_resolved.billing_address {
+            address_ids.push(billing_address);
+        }
+        if let Some(mailing_address) = customer_resolved.mailing_address {
+            address_ids.push(mailing_address);
+        }
+
+        let mut addresses = if !address_ids.is_empty() {
+            let mut map = HashMap::new();
+            for address in get_resolved_addresses_by_ids(self, address_ids).await? {
+                map.insert(address.id, address);
+            }
+            map
+        } else {
+            HashMap::new()
+        };
+
+        Ok(
+            match (
+                customer_resolved.billing_address,
+                customer_resolved.mailing_address,
+            ) {
+                (None, None) => customer_resolved.into_full(None, None),
+                (None, Some(mailing_address)) => {
+                    customer_resolved.into_full(None, addresses.remove(&mailing_address))
+                }
+                (Some(billing_address), None) => {
+                    customer_resolved.into_full(addresses.remove(&billing_address), None)
+                }
+                (Some(billing_address), Some(mailing_address)) => customer_resolved.into_full(
+                    addresses.remove(&billing_address),
+                    addresses.remove(&mailing_address),
+                ),
+            },
         )
-        .bind(id)
-        .fetch_one(self)
-        .await?)
     }
 
     async fn get_paged(
@@ -143,7 +176,9 @@ impl CustomersRepository for PgPool {
                             users.last_name || ' ' || users.first_name as created_by,
                             customers.created_at as created_at,
                             customers.updated_at as updated_at,
-                            customers.deleted_at as deleted_at
+                            customers.deleted_at as deleted_at,
+                            customers.billing_address as billing_address,
+                            customers.mailing_address as mailing_address
                         FROM customers
                         LEFT JOIN users ON customers.created_by_id = users.id
                         WHERE customers.deleted_at IS NULL
@@ -176,7 +211,9 @@ impl CustomersRepository for PgPool {
                             users.last_name || ' ' || users.first_name as created_by,
                             customers.created_at as created_at,
                             customers.updated_at as updated_at,
-                            customers.deleted_at as deleted_at
+                            customers.deleted_at as deleted_at,
+                            customers.billing_address as billing_address,
+                            customers.mailing_address as mailing_address
                         FROM customers
                         LEFT JOIN users ON customers.created_by_id = users.id
                         WHERE customers.deleted_at IS NULL
@@ -212,71 +249,177 @@ impl CustomersRepository for PgPool {
             .await?)
     }
 
-    async fn insert(&self, customer: &CustomerUserInput, sub: Uuid) -> RepositoryResult<Customer> {
-        let contact_name = match &customer.contact_name {
+    async fn insert(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer> {
+        let mut tx = self.begin().await?;
+        let contact_name = match &customer_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
-        Ok(sqlx::query_as::<_, Customer>(
-            "INSERT INTO customers (name, contact_name, email, phone_number, status, customer_type, created_by_id)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *",
+
+        let billing_address = if let Some(billing_address) = &customer_user_input.billing_address {
+            insert_address(&mut *tx, billing_address, sub).await.ok()
+        } else {
+            None
+        };
+
+        let mailing_address = if let Some(mailing_address) = &customer_user_input.mailing_address {
+            insert_address(&mut *tx, mailing_address, sub).await.ok()
+        } else {
+            None
+        };
+        let customer = sqlx::query_as::<_, Customer>(
+            r#"
+                INSERT INTO customers (
+                    name,
+                    contact_name,
+                    email,
+                    phone_number,
+                    status,
+                    customer_type,
+                    created_by_id,
+                    billing_address,
+                    mailing_address
+                ) VALUES (
+                    $1,
+                    $2,
+                    $3,
+                    $4,
+                    $5,
+                    $6,
+                    $7,
+                    $8,
+                    $9
+                ) RETURNING *
+            "#,
         )
-        .bind(customer.name.as_str()?)
+        .bind(customer_user_input.name.as_str()?)
         .bind(contact_name)
-        .bind(customer.email.as_str()?)
-        .bind(
-            customer
-                .phone_number
-                    .as_str()
-        )
-        .bind(customer.status.as_str()?)
-        .bind(customer.customer_type.as_str()?)
+        .bind(customer_user_input.email.as_str()?)
+        .bind(customer_user_input.phone_number.as_str())
+        .bind(customer_user_input.status.as_str()?)
+        .bind(customer_user_input.customer_type.as_str()?)
         .bind(sub)
-        .fetch_one(self)
-        .await?)
+        .bind(billing_address.map(|v| v.id))
+        .bind(mailing_address.map(|v| v.id))
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(customer)
     }
 
-    async fn update(&self, customer: &CustomerUserInput) -> RepositoryResult<Customer> {
-        let contact_name = match &customer.contact_name {
+    async fn update(
+        &self,
+        customer_user_input: &CustomerUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Customer> {
+        let contact_name = match &customer_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
-        let id = customer
+        let id = customer_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
 
-        Ok(sqlx::query_as::<_, Customer>(
+        let mut tx = self.begin().await?;
+
+        let customer_resolved = get_resolved_customer_by_id(&mut *tx, id, true).await?;
+
+        let billing_address = match (
+            customer_resolved.billing_address,
+            &customer_user_input.billing_address,
+        ) {
+            (None, None) => None,
+            (None, Some(address_user_input)) => {
+                insert_address(&mut *tx, address_user_input, sub).await.ok()
+            }
+            (Some(current_address_id), None) => {
+                delete_address_by_id(&mut *tx, current_address_id).await?;
+                None
+            }
+            (Some(current_address_id), Some(address_user_input)) => {
+                if let Some(user_address_id) = address_user_input.id.as_uuid()
+                    && user_address_id == current_address_id
+                {
+                    update_address(&mut *tx, address_user_input).await.ok()
+                } else {
+                    return Err(RepositoryError::InvalidState(
+                        "unexpected billing_address id missmatch",
+                    ));
+                }
+            }
+        };
+
+        let mailing_address = match (
+            customer_resolved.mailing_address,
+            &customer_user_input.mailing_address,
+        ) {
+            (None, None) => None,
+            (None, Some(address_user_input)) => {
+                insert_address(&mut *tx, address_user_input, sub).await.ok()
+            }
+            (Some(current_address_id), None) => {
+                delete_address_by_id(&mut *tx, current_address_id).await?;
+                None
+            }
+            (Some(current_address_id), Some(address_user_input)) => {
+                if let Some(user_address_id) = address_user_input.id.as_uuid()
+                    && user_address_id == current_address_id
+                {
+                    update_address(&mut *tx, address_user_input).await.ok()
+                } else {
+                    return Err(RepositoryError::InvalidState(
+                        "unexpected mailing_address id missmatch",
+                    ));
+                }
+            }
+        };
+
+        let customer_updated = sqlx::query_as::<_, Customer>(
             r#"
-            UPDATE customers 
+            UPDATE customers
             SET name = $1,
                 contact_name = $2,
                 email = $3,
                 phone_number = $4,
                 status = $5,
-                customer_type = $6
-            WHERE id = $7
-                AND deleted_at IS NULL 
+                customer_type = $6,
+                billing_address = $7,
+                mailing_address = $8
+            WHERE id = $9
+                AND deleted_at IS NULL
             RETURNING *
             "#,
         )
-        .bind(customer.name.as_str()?)
+        .bind(customer_user_input.name.as_str()?)
         .bind(contact_name)
-        .bind(customer.email.as_str()?)
-        .bind(customer.phone_number.as_str())
-        .bind(customer.status.as_str()?)
-        .bind(customer.customer_type.as_str()?)
+        .bind(customer_user_input.email.as_str()?)
+        .bind(customer_user_input.phone_number.as_str())
+        .bind(customer_user_input.status.as_str()?)
+        .bind(customer_user_input.customer_type.as_str()?)
+        .bind(billing_address.map(|v| v.id))
+        .bind(mailing_address.map(|v| v.id))
         .bind(id)
-        .fetch_one(self)
-        .await?)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(customer_updated)
     }
 
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
         sqlx::query(
             r#"
-            UPDATE customers 
+            UPDATE customers
             SET deleted_at = NOW()
-            WHERE id = $1 
+            WHERE id = $1
                 AND deleted_at IS NULL
             "#,
         )
@@ -286,4 +429,46 @@ impl CustomersRepository for PgPool {
 
         Ok(())
     }
+}
+
+pub async fn get_resolved_customer_by_id<'e, E>(
+    executor: E,
+    id: Uuid,
+    for_update: bool,
+) -> RepositoryResult<CustomerResolved>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+{
+    let for_update = match for_update {
+        true => "FOR UPDATE OF customers",
+        false => "",
+    }; // Safety: generated value
+
+    Ok(sqlx::query_as::<_, CustomerResolved>(AssertSqlSafe(format!(
+        r#"
+        SELECT
+            customers.id as id,
+            customers.name as name,
+            customers.contact_name as contact_name,
+            customers.email as email,
+            customers.phone_number as phone_number,
+            customers.status as status,
+            customers.customer_type as customer_type,
+            customers.created_by_id as created_by_id,
+            users.last_name || ' ' || users.first_name as created_by,
+            customers.created_at as created_at,
+            customers.updated_at as updated_at,
+            customers.deleted_at as deleted_at,
+            customers.billing_address as billing_address,
+            customers.mailing_address as mailing_address
+        FROM customers
+        LEFT JOIN users ON customers.created_by_id = users.id
+        WHERE customers.deleted_at IS NULL
+            AND customers.id = $1
+        {for_update}
+        "#
+    )))
+    .bind(id)
+    .fetch_one(executor)
+    .await?)
 }

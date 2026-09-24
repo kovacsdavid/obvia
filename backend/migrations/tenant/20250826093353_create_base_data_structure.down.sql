@@ -17,27 +17,47 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+DROP TRIGGER IF EXISTS update_updated_at_on_inventory_table ON inventory;
+DROP TRIGGER IF EXISTS update_updated_at_on_warehouses_table ON warehouses;
+DROP TRIGGER IF EXISTS update_updated_at_on_products_table ON products;
+DROP TRIGGER IF EXISTS update_updated_at_on_tasks_table ON tasks;
+DROP TRIGGER IF EXISTS update_updated_at_on_services_table ON services;
+DROP TRIGGER IF EXISTS update_updated_at_on_worksheets_table ON worksheets;
+DROP TRIGGER IF EXISTS update_updated_at_on_taxes_table ON taxes;
+DROP TRIGGER IF EXISTS update_updated_at_on_projects_table ON projects;
+DROP TRIGGER IF EXISTS update_updated_at_on_address_connect_table ON address_connect;
+DROP TRIGGER IF EXISTS update_updated_at_on_address_table ON address;
+DROP TRIGGER IF EXISTS update_updated_at_on_states_table ON states;
+DROP TRIGGER IF EXISTS update_updated_at_on_comments_table ON comments;
+DROP TRIGGER IF EXISTS update_updated_at_on_customers_table ON customers;
+DROP TRIGGER IF EXISTS update_updated_at_on_users_table ON users;
 
-DROP TABLE IF EXISTS project_assignments CASCADE;
-DROP TABLE IF EXISTS task_assignments CASCADE;
-DROP TABLE IF EXISTS inventory CASCADE;
-DROP TABLE IF EXISTS warehouses CASCADE;
-DROP TABLE IF EXISTS product_category_connect CASCADE;
-DROP TABLE IF EXISTS product_category CASCADE;
-DROP TABLE IF EXISTS products CASCADE;
-DROP TABLE IF EXISTS units_of_measure CASCADE;
-DROP TABLE IF EXISTS currencies CASCADE;
-DROP TABLE IF EXISTS tasks CASCADE;
-DROP TABLE IF EXISTS worksheets CASCADE;
-DROP TABLE IF EXISTS projects CASCADE;
-DROP TABLE IF EXISTS tag_connect CASCADE;
-DROP TABLE IF EXISTS tags CASCADE;
-DROP TABLE IF EXISTS customer_address_connect CASCADE;
-DROP TABLE IF EXISTS address CASCADE;
-DROP TABLE IF EXISTS cities CASCADE;
-DROP TABLE IF EXISTS postal_codes CASCADE;
-DROP TABLE IF EXISTS states CASCADE;
-DROP TABLE IF EXISTS countries CASCADE;
-DROP TABLE IF EXISTS comments CASCADE;
-DROP TABLE IF EXISTS customers CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS project_assignments;
+DROP TABLE IF EXISTS task_assignments;
+DROP TABLE IF EXISTS inventory;
+DROP TABLE IF EXISTS warehouses;
+DROP TABLE IF EXISTS product_category_connect;
+DROP TABLE IF EXISTS product_category;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS units_of_measure;
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS services;
+DROP TABLE IF EXISTS currencies;
+DROP TABLE IF EXISTS taxes;
+DROP TABLE IF EXISTS worksheets;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS tag_connect;
+DROP TABLE IF EXISTS tags;
+DROP TABLE IF EXISTS address_connect;
+DROP TABLE IF EXISTS address;
+DROP TABLE IF EXISTS cities;
+DROP TABLE IF EXISTS postal_codes;
+DROP TABLE IF EXISTS states;
+DROP TABLE IF EXISTS countries;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS customers;
+DROP TABLE IF EXISTS users;
+
+DROP FUNCTION IF EXISTS update_updated_at();
+
+DROP EXTENSION IF EXISTS "uuid-ossp";

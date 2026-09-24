@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -21,13 +21,14 @@ use crate::common::value_object::*;
 use std::fmt::Display;
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct Code(String);
+pub struct Settlement(String);
 
-impl Code {
-    pub const VALIDATION_ERROR: &'static str = "Hibás ország azonosító";
+impl Settlement {
+    pub const VALIDATION_ERROR: &'static str =
+        "A település neve nem lehet 255 karakternél hosszabb";
 }
 
-impl ValueObjectData for Code {
+impl ValueObjectData for Settlement {
     type DataType = String;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
@@ -39,7 +40,7 @@ impl ValueObjectData for Code {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() == 2 {
+        if self.0.len() <= 255 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))
@@ -51,7 +52,7 @@ impl ValueObjectData for Code {
     }
 }
 
-impl Display for Code {
+impl Display for Settlement {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
     }
@@ -60,28 +61,27 @@ impl Display for Code {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
-    fn test_valid_postal_code() {
-        let code = "HU".parse::<ValueObjectRequired<Code>>().unwrap();
-        assert_eq!(code.as_str().unwrap(), "HU");
+    fn test_valid_settlement() {
+        let settlement = "Budapest"
+            .parse::<ValueObjectRequired<Settlement>>()
+            .unwrap();
+        assert_eq!(settlement.as_str().unwrap(), "Budapest");
     }
 
     #[test]
-    fn test_invalid_postal_code_too_short() {
-        let code = "H".parse::<ValueObjectRequired<Code>>();
-        assert!(code.is_err());
+    fn test_too_long_settlement() {
+        let settlement = "B".repeat(256).parse::<ValueObjectRequired<Settlement>>();
+        assert!(settlement.is_err());
     }
 
     #[test]
-    fn test_invalid_postal_code_too_long() {
-        let code = "HUN".parse::<ValueObjectRequired<Code>>();
-        assert!(code.is_err());
-    }
-
-    #[test]
-    fn test_postal_code_with_spaces() {
-        let code = "  HU  ".parse::<ValueObjectRequired<Code>>().unwrap();
-        assert_eq!(code.as_str().unwrap(), "HU");
+    fn test_settlement_with_spaces() {
+        let settlement = "    Budapest   "
+            .parse::<ValueObjectRequired<Settlement>>()
+            .unwrap();
+        assert_eq!(settlement.as_str().unwrap(), "Budapest");
     }
 }

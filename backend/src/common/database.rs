@@ -26,9 +26,8 @@ use crate::manager::tenants::model::Tenant;
 #[cfg(test)]
 use mockall::automock;
 use sqlx::PgPool;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions, PgSslMode};
+use sqlx::postgres::PgPoolOptions;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use tracing::{error, info};
 use uuid::Uuid;
@@ -125,49 +124,6 @@ impl PoolManager for PgPoolManager {
             .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
         pools.remove(&tenant_id);
         Ok(())
-    }
-}
-
-#[cfg_attr(test, automock)]
-#[allow(dead_code)]
-pub(crate) trait ConnectionTester: Send + Sync {
-    async fn test_connect(
-        &self,
-        config: &BasicDatabaseConfig,
-        ssl_mode: PgSslMode,
-    ) -> sqlx::Result<PgPool, RepositoryError>;
-
-    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), RepositoryError>;
-}
-
-pub struct PgConnectionTester;
-
-impl ConnectionTester for PgConnectionTester {
-    async fn test_connect(
-        &self,
-        config: &BasicDatabaseConfig,
-        ssl_mode: PgSslMode,
-    ) -> sqlx::Result<PgPool, RepositoryError> {
-        let conn = PgConnectOptions::from_str(&config.url())?.ssl_mode(ssl_mode);
-        let pool = PgPoolOptions::new()
-            .max_connections(config.max_pool_size())
-            .connect_with(conn)
-            .await?;
-        Ok(pool)
-    }
-    async fn is_empty_database(&self, pool: &PgPool) -> Result<(), RepositoryError> {
-        let result = sqlx::query_scalar::<_, i32>(
-            "SELECT count(*) as number_of_tables
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public'",
-        )
-        .fetch_one(pool)
-        .await?;
-        if result == 0 {
-            Ok(())
-        } else {
-            Err(RepositoryError::Custom("Database is not empty".to_string()))
-        }
     }
 }
 

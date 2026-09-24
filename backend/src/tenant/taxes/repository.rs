@@ -40,8 +40,8 @@ pub trait TaxesRepository: Send + Sync {
         &self,
         query_params: &ResourceQuery<TaxOrderBy, TaxFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaxResolved>)>;
-    async fn insert(&self, tax: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax>;
-    async fn update(&self, tax: &TaxUserInput) -> RepositoryResult<Tax>;
+    async fn insert(&self, tax_user_input: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax>;
+    async fn update(&self, tax_user_input: &TaxUserInput) -> RepositoryResult<Tax>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -229,8 +229,8 @@ impl TaxesRepository for PgPool {
             taxes,
         ))
     }
-    async fn insert(&self, tax: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax> {
-        let rate = match &tax.rate {
+    async fn insert(&self, tax_user_input: &TaxUserInput, sub: Uuid) -> RepositoryResult<Tax> {
+        let rate = match &tax_user_input.rate {
             None => None,
             Some(v) => Some(v.as_f64()?),
         };
@@ -250,25 +250,25 @@ impl TaxesRepository for PgPool {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *",
         )
         .bind(rate)
-        .bind(tax.description.as_str()?)
-        .bind(tax.country_code.as_str()?)
-        .bind(tax.tax_category.as_str()?)
-        .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.as_str())
-        .bind(tax.reporting_code.as_str())
-        .bind(tax.is_default)
-        .bind(tax.status.as_str()?)
+        .bind(tax_user_input.description.as_str()?)
+        .bind(tax_user_input.country_code.as_str()?)
+        .bind(tax_user_input.tax_category.as_str()?)
+        .bind(tax_user_input.is_rate_applicable)
+        .bind(tax_user_input.legal_text.as_str())
+        .bind(tax_user_input.reporting_code.as_str())
+        .bind(tax_user_input.is_default)
+        .bind(tax_user_input.status.as_str()?)
         .bind(sub)
         .fetch_one(self)
         .await?)
     }
 
-    async fn update(&self, tax: &TaxUserInput) -> RepositoryResult<Tax> {
-        let id = tax
+    async fn update(&self, tax_user_input: &TaxUserInput) -> RepositoryResult<Tax> {
+        let id = tax_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
-        let tax_rate = match &tax.rate {
+        let tax_rate = match &tax_user_input.rate {
             Some(v) => Some(v.as_f64()?),
             None => None,
         };
@@ -290,14 +290,14 @@ impl TaxesRepository for PgPool {
             "#,
         )
         .bind(tax_rate)
-        .bind(tax.description.as_str()?)
-        .bind(tax.country_code.as_str()?)
-        .bind(tax.tax_category.as_str()?)
-        .bind(tax.is_rate_applicable)
-        .bind(tax.legal_text.as_str())
-        .bind(tax.reporting_code.as_str())
-        .bind(tax.is_default)
-        .bind(tax.status.as_str()?)
+        .bind(tax_user_input.description.as_str()?)
+        .bind(tax_user_input.country_code.as_str()?)
+        .bind(tax_user_input.tax_category.as_str()?)
+        .bind(tax_user_input.is_rate_applicable)
+        .bind(tax_user_input.legal_text.as_str())
+        .bind(tax_user_input.reporting_code.as_str())
+        .bind(tax_user_input.is_default)
+        .bind(tax_user_input.status.as_str()?)
         .bind(id)
         .fetch_one(self)
         .await?)

@@ -222,8 +222,9 @@ mod tests {
     };
     use crate::common::pdf::tests::{PDF_GENERATOR_TEST_SYNC, extract_pdf_text};
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
-    use crate::tenant::customers::dto::print::CustomerResolvedPrint;
-    use crate::tenant::customers::model::tests::test_customer_resolved_builder;
+    use crate::tenant::address::model::test_address_resolved_builder;
+    use crate::tenant::customers::dto::print::CustomerFullPrint;
+    use crate::tenant::customers::model::tests::test_customer_full_builder;
     use crate::tenant::customers::repository::MockCustomersRepository;
     use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
     use crate::tenant::inventory::model::InventoryResolved;
@@ -1907,17 +1908,18 @@ mod tests {
             });
 
         let mut customers_repo = MockCustomersRepository::new();
-        let customer_resolved = test_customer_resolved_builder()
+        let customer_full = test_customer_full_builder()
             .id(worksheet_resolved.customer_id)
+            .billing_address(Some(test_address_resolved_builder().build().unwrap()))
             .build()
             .unwrap();
         customers_repo
-            .expect_get_resolved_by_id()
+            .expect_get_full()
             .times(1)
             .with(eq(worksheet_resolved.customer_id))
             .returning({
-                let customer_resolved = customer_resolved.clone();
-                move |_| Ok(customer_resolved.clone())
+                let customer_full = customer_full.clone();
+                move |_| Ok(customer_full.clone())
             });
 
         let mut app_state = MockWorksheetsModule::new();
@@ -1975,7 +1977,7 @@ mod tests {
             .times(1)
             .return_const(test_config.clone());
 
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, *TEST_TZ);
+        let customer_resolved_print = CustomerFullPrint::new(customer_full, *TEST_TZ);
 
         let mut services_resolved_print_map = HashMap::new();
 

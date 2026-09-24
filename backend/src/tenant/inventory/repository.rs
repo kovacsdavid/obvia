@@ -44,10 +44,13 @@ pub trait InventoryRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryResolved>)>;
     async fn insert(
         &self,
-        inventory: &InventoryUserInput,
+        inventory_user_input: &InventoryUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Inventory>;
-    async fn update(&self, inventory: &InventoryUserInput) -> RepositoryResult<Inventory>;
+    async fn update(
+        &self,
+        inventory_user_input: &InventoryUserInput,
+    ) -> RepositoryResult<Inventory>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -301,26 +304,29 @@ impl InventoryRepository for PgPool {
     }
     async fn insert(
         &self,
-        inventory: &InventoryUserInput,
+        inventory_user_input: &InventoryUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             "INSERT INTO inventory (product_id, warehouse_id, minimum_stock, maximum_stock, currency_code, status, created_by_id)\
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *"
         )
-            .bind(inventory.product_id.as_uuid()?)
-            .bind(inventory.warehouse_id.as_uuid()?)
-            .bind(inventory.minimum_stock.as_i32())
-            .bind(inventory.maximum_stock.as_i32())
-            .bind(inventory.currency_code.as_str()?)
-            .bind(inventory.status.as_str()?)
+            .bind(inventory_user_input.product_id.as_uuid()?)
+            .bind(inventory_user_input.warehouse_id.as_uuid()?)
+            .bind(inventory_user_input.minimum_stock.as_i32())
+            .bind(inventory_user_input.maximum_stock.as_i32())
+            .bind(inventory_user_input.currency_code.as_str()?)
+            .bind(inventory_user_input.status.as_str()?)
             .bind(sub)
             .fetch_one(self)
             .await?
         )
     }
 
-    async fn update(&self, inventory: &InventoryUserInput) -> RepositoryResult<Inventory> {
+    async fn update(
+        &self,
+        inventory_user_input: &InventoryUserInput,
+    ) -> RepositoryResult<Inventory> {
         Ok(sqlx::query_as::<_, Inventory>(
             r#"
             UPDATE inventory
@@ -335,13 +341,13 @@ impl InventoryRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(inventory.product_id.as_uuid()?)
-        .bind(inventory.warehouse_id.as_uuid()?)
-        .bind(inventory.minimum_stock.as_i32())
-        .bind(inventory.maximum_stock.as_i32())
-        .bind(inventory.currency_code.as_str()?)
-        .bind(inventory.status.as_str()?)
-        .bind(inventory.id.as_uuid())
+        .bind(inventory_user_input.product_id.as_uuid()?)
+        .bind(inventory_user_input.warehouse_id.as_uuid()?)
+        .bind(inventory_user_input.minimum_stock.as_i32())
+        .bind(inventory_user_input.maximum_stock.as_i32())
+        .bind(inventory_user_input.currency_code.as_str()?)
+        .bind(inventory_user_input.status.as_str()?)
+        .bind(inventory_user_input.id.as_uuid())
         .fetch_one(self)
         .await?)
     }

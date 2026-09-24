@@ -41,8 +41,12 @@ pub trait ServicesRepository: Send + Sync + 'static {
         &self,
         query_params: &ResourceQuery<ServiceOrderBy, ServiceFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<ServiceResolved>)>;
-    async fn insert(&self, service: &ServiceUserInput, sub: Uuid) -> RepositoryResult<Service>;
-    async fn update(&self, service: &ServiceUserInput) -> RepositoryResult<Service>;
+    async fn insert(
+        &self,
+        service_user_input: &ServiceUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Service>;
+    async fn update(&self, service_user_input: &ServiceUserInput) -> RepositoryResult<Service>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -257,7 +261,11 @@ impl ServicesRepository for PgPool {
         ))
     }
 
-    async fn insert(&self, input: &ServiceUserInput, sub: Uuid) -> RepositoryResult<Service> {
+    async fn insert(
+        &self,
+        service_user_input: &ServiceUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Service> {
         Ok(sqlx::query_as::<_, Service>(
             r#"
             INSERT INTO services (name, description, default_price, default_tax_id, currency_code, status, created_by_id)
@@ -265,19 +273,19 @@ impl ServicesRepository for PgPool {
             RETURNING *
             "#,
         )
-            .bind(input.name.as_str()?)
-            .bind(input.description.as_str())
-            .bind(input.default_price.as_f64())
-            .bind(input.default_tax_id.as_uuid())
-            .bind(input.currency_code.as_str())
-            .bind(input.status.as_str()?)
+            .bind(service_user_input.name.as_str()?)
+            .bind(service_user_input.description.as_str())
+            .bind(service_user_input.default_price.as_f64())
+            .bind(service_user_input.default_tax_id.as_uuid())
+            .bind(service_user_input.currency_code.as_str())
+            .bind(service_user_input.status.as_str()?)
             .bind(sub)
             .fetch_one(self)
             .await?)
     }
 
-    async fn update(&self, input: &ServiceUserInput) -> RepositoryResult<Service> {
-        let id = input
+    async fn update(&self, service_user_input: &ServiceUserInput) -> RepositoryResult<Service> {
+        let id = service_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
@@ -294,12 +302,12 @@ impl ServicesRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(input.name.as_str()?)
-        .bind(input.description.as_str())
-        .bind(input.default_price.as_f64())
-        .bind(input.default_tax_id.as_uuid())
-        .bind(input.currency_code.as_str())
-        .bind(input.status.as_str()?)
+        .bind(service_user_input.name.as_str()?)
+        .bind(service_user_input.description.as_str())
+        .bind(service_user_input.default_price.as_f64())
+        .bind(service_user_input.default_tax_id.as_uuid())
+        .bind(service_user_input.currency_code.as_str())
+        .bind(service_user_input.status.as_str()?)
         .bind(id)
         .fetch_one(self)
         .await?)

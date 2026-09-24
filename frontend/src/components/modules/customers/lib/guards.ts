@@ -19,7 +19,7 @@
 
 import {
     isCommonResponse,
-    isFormError,
+    isFormErrorV2,
     isPaginatedDataResponse,
     isSimpleError,
     isSimpleMessageData,
@@ -27,25 +27,34 @@ import {
 import type {
     CreateCustomerResponse,
     Customer,
-    CustomerResolved,
+    CustomerErrors,
+    CustomerFull,
     CustomerResolvedList,
-    CustomerResolvedResponse,
+    CustomerFullResponse,
     CustomerResponse,
     DeleteCustomerResponse,
     PaginatedCustomerResolvedListResponse,
     UpdateCustomerResponse,
 } from "@/components/modules/customers/lib/interface.ts";
+import {
+    isAddress,
+    isAddressError,
+} from "@/components/modules/address/lib/guards";
 
 export function isCreateCustomerResponse(
     data: unknown,
 ): data is CreateCustomerResponse {
-    return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, (data: unknown) =>
+        isFormErrorV2<CustomerErrors>(data, isCustomerErrors),
+    );
 }
 
 export function isUpdateCustomerResponse(
     data: unknown,
 ): data is UpdateCustomerResponse {
-    return isCommonResponse(data, isCustomer, isFormError);
+    return isCommonResponse(data, isCustomer, (data: unknown) =>
+        isFormErrorV2<CustomerErrors>(data, isCustomerErrors),
+    );
 }
 
 export function isDeleteCustomerResponse(
@@ -54,7 +63,7 @@ export function isDeleteCustomerResponse(
     return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }
 
-export function isCustomerResolved(data: unknown): data is CustomerResolved {
+export function isCustomerFull(data: unknown): data is CustomerFull {
     return (
         typeof data === "object" &&
         data !== null &&
@@ -81,22 +90,24 @@ export function isCustomerResolved(data: unknown): data is CustomerResolved {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "billing_address" in data &&
+        (data.billing_address === null || isAddress(data.billing_address)) &&
+        "mailing_address" in data &&
+        (data.mailing_address === null || isAddress(data.mailing_address))
     );
 }
 
 export function isCustomerResolvedResponse(
     data: unknown,
-): data is CustomerResolvedResponse {
-    return isCommonResponse(data, isCustomerResolved, isSimpleError);
+): data is CustomerFullResponse {
+    return isCommonResponse(data, isCustomerFull, isSimpleError);
 }
 
 export function isCustomerResolvedList(
     data: unknown,
 ): data is CustomerResolvedList {
-    return (
-        Array.isArray(data) && data.every((item) => isCustomerResolved(item))
-    );
+    return Array.isArray(data) && data.every((item) => isCustomerFull(item));
 }
 
 export function isPaginatedCustomerResolvedListResponse(
@@ -130,10 +141,42 @@ export function isCustomer(data: unknown): data is Customer {
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string")
+        (data.deleted_at === null || typeof data.deleted_at === "string") &&
+        "billing_address" in data &&
+        (data.billing_address === null ||
+            typeof data.billing_address === "string") &&
+        "mailing_address" in data &&
+        (data.mailing_address === null ||
+            typeof data.mailing_address === "string")
     );
 }
 
 export function isCustomerResponse(data: unknown): data is CustomerResponse {
     return isCommonResponse(data, isCustomer, isSimpleError);
 }
+
+export const isCustomerErrors = (data: unknown): data is CustomerErrors => {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        (data.id === null || typeof data.id === "string") &&
+        "name" in data &&
+        (data.name === null || typeof data.name === "string") &&
+        "contact_name" in data &&
+        (data.contact_name === null || typeof data.contact_name === "string") &&
+        "email" in data &&
+        (data.email === null || typeof data.email === "string") &&
+        "phone_number" in data &&
+        (data.phone_number === null || typeof data.phone_number === "string") &&
+        "status" in data &&
+        (data.status === null || typeof data.status === "string") &&
+        "customer_type" in data &&
+        (data.customer_type === null ||
+            typeof data.customer_type === "string") &&
+        "billing_address" in data &&
+        isAddressError(data.billing_address) &&
+        "mailing_address" in data &&
+        isAddressError(data.mailing_address)
+    );
+};

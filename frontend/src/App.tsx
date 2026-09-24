@@ -16,65 +16,119 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+import React, { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
-import React from "react";
-import Login from "@/components/modules/auth/Login";
-import Register from "@/components/modules/auth/Register";
-import ForgottenPassword from "@/components/modules/auth/ForgottenPassword";
-import Dashboard from "@/components/modules/dashboard/Dashboard";
-import type { RootState } from "./store";
 import { Layout } from "@/components/layout/Layout";
-import CustomerEdit from "@/components/modules/customers/Edit.tsx";
-import CustomerList from "@/components/modules/customers/List.tsx";
-import CustomerView from "@/components/modules/customers/View.tsx";
-import InventoryEdit from "@/components/modules/inventory/Edit.tsx";
-import InventoryList from "@/components/modules/inventory/List.tsx";
-import InventoryView from "@/components/modules/inventory/View.tsx";
-import InventoryMovementsEdit from "@/components/modules/inventory_movements/Edit.tsx";
-import InventoryMovementsList from "@/components/modules/inventory_movements/List.tsx";
-import InventoryMovementsView from "@/components/modules/inventory_movements/View.tsx";
-import InventoryReservationsEdit from "@/components/modules/inventory_reservations/Edit.tsx";
-import InventoryReservationsList from "@/components/modules/inventory_reservations/List.tsx";
-import InventoryReservationsView from "@/components/modules/inventory_reservations/View.tsx";
-import ProductsEdit from "@/components/modules/products/Edit.tsx";
-import ProductsList from "@/components/modules/products/List.tsx";
-import ProductsView from "@/components/modules/products/View.tsx";
-import TasksEdit from "@/components/modules/tasks/Edit.tsx";
-import TasksList from "@/components/modules/tasks/List.tsx";
-import TasksView from "@/components/modules/tasks/View.tsx";
-import WarehousesEdit from "@/components/modules/warehouses/Edit.tsx";
-import WarehousesList from "@/components/modules/warehouses/List.tsx";
-import WarehousesView from "@/components/modules/warehouses/View.tsx";
-import WorksheetsEdit from "@/components/modules/worksheets/Edit.tsx";
-import WorksheetsList from "@/components/modules/worksheets/List.tsx";
-import WorksheetsView from "@/components/modules/worksheets/View.tsx";
-import TenantsEdit from "@/components/modules/databases/Edit.tsx";
-import TenantsList from "@/components/modules/databases/List.tsx";
-import TenantsView from "@/components/modules/databases/View.tsx";
-import TaxesEdit from "@/components/modules/taxes/Edit.tsx";
-import TaxesList from "@/components/modules/taxes/List.tsx";
-import TaxesView from "@/components/modules/taxes/View.tsx";
-import ServicesEdit from "@/components/modules/services/Edit.tsx";
-import ServicesList from "@/components/modules/services/List.tsx";
-import ServicesView from "@/components/modules/services/View.tsx";
-import EmailVerification from "@/components/modules/auth/EmailVerification.tsx";
-import Settings from "@/components/modules/users/Settings";
+import type { RootState } from "./store";
 import { useAppSelector } from "./store/hooks";
+
+const Login = lazy(() => import("@/components/modules/auth/Login"));
+const Register = lazy(() => import("@/components/modules/auth/Register"));
+const ForgottenPassword = lazy(
+    () => import("@/components/modules/auth/ForgottenPassword"),
+);
+const EmailVerification = lazy(
+    () => import("@/components/modules/auth/EmailVerification"),
+);
+const Dashboard = lazy(
+    () => import("@/components/modules/dashboard/Dashboard"),
+);
+const Settings = lazy(() => import("@/components/modules/users/Settings"));
+
+const CustomerEdit = lazy(() => import("@/components/modules/customers/Edit"));
+const CustomerList = lazy(() => import("@/components/modules/customers/List"));
+const CustomerView = lazy(() => import("@/components/modules/customers/View"));
+
+const InventoryEdit = lazy(() => import("@/components/modules/inventory/Edit"));
+const InventoryList = lazy(() => import("@/components/modules/inventory/List"));
+const InventoryView = lazy(() => import("@/components/modules/inventory/View"));
+
+const InventoryMovementsEdit = lazy(
+    () => import("@/components/modules/inventory_movements/Edit"),
+);
+const InventoryMovementsList = lazy(
+    () => import("@/components/modules/inventory_movements/List"),
+);
+const InventoryMovementsView = lazy(
+    () => import("@/components/modules/inventory_movements/View"),
+);
+
+const InventoryReservationsEdit = lazy(
+    () => import("@/components/modules/inventory_reservations/Edit"),
+);
+const InventoryReservationsList = lazy(
+    () => import("@/components/modules/inventory_reservations/List"),
+);
+const InventoryReservationsView = lazy(
+    () => import("@/components/modules/inventory_reservations/View"),
+);
+
+const ProductsEdit = lazy(() => import("@/components/modules/products/Edit"));
+const ProductsList = lazy(() => import("@/components/modules/products/List"));
+const ProductsView = lazy(() => import("@/components/modules/products/View"));
+
+const TasksEdit = lazy(() => import("@/components/modules/tasks/Edit"));
+const TasksList = lazy(() => import("@/components/modules/tasks/List"));
+const TasksView = lazy(() => import("@/components/modules/tasks/View"));
+
+const WarehousesEdit = lazy(
+    () => import("@/components/modules/warehouses/Edit"),
+);
+const WarehousesList = lazy(
+    () => import("@/components/modules/warehouses/List"),
+);
+const WarehousesView = lazy(
+    () => import("@/components/modules/warehouses/View"),
+);
+
+const WorksheetsEdit = lazy(
+    () => import("@/components/modules/worksheets/Edit"),
+);
+const WorksheetsList = lazy(
+    () => import("@/components/modules/worksheets/List"),
+);
+const WorksheetsView = lazy(
+    () => import("@/components/modules/worksheets/View"),
+);
+
+const TenantsEdit = lazy(() => import("@/components/modules/databases/Edit"));
+const TenantsList = lazy(() => import("@/components/modules/databases/List"));
+const TenantsView = lazy(() => import("@/components/modules/databases/View"));
+
+const TaxesEdit = lazy(() => import("@/components/modules/taxes/Edit"));
+const TaxesList = lazy(() => import("@/components/modules/taxes/List"));
+const TaxesView = lazy(() => import("@/components/modules/taxes/View"));
+
+const ServicesEdit = lazy(() => import("@/components/modules/services/Edit"));
+const ServicesList = lazy(() => import("@/components/modules/services/List"));
+const ServicesView = lazy(() => import("@/components/modules/services/View"));
+
+type RouteComponent = React.ComponentType<object>;
 
 interface RouteConfig {
     path: string;
-    element: React.ComponentType;
+    element: RouteComponent;
     isPrivate?: boolean;
 }
 
+function crudRoutes(
+    basePath: string,
+    Edit: RouteComponent,
+    List: RouteComponent,
+    View: RouteComponent,
+): RouteConfig[] {
+    return [
+        { path: `/${basePath}/letrehozas`, element: Edit, isPrivate: true },
+        { path: `/${basePath}/modositas/:id`, element: Edit, isPrivate: true },
+        { path: `/${basePath}/lista`, element: List, isPrivate: true },
+        { path: `/${basePath}/reszletek/:id`, element: View, isPrivate: true },
+    ];
+}
+
 const ROUTE_CONFIGS: RouteConfig[] = [
-    // Public routes
     {
         path: "/",
-        element: (): React.JSX.Element => (
-            <Navigate to="/bejelentkezes" replace />
-        ),
+        element: () => <Navigate to="/bejelentkezes" replace />,
         isPrivate: false,
     },
     { path: "/bejelentkezes", element: Login, isPrivate: false },
@@ -96,40 +150,18 @@ const ROUTE_CONFIGS: RouteConfig[] = [
     },
 
     { path: "/felhasznalo/beallitasok", element: Settings, isPrivate: true },
-
-    // Dashboard
     { path: "/vezerlopult", element: Dashboard, isPrivate: true },
 
-    // Tenants
-    { path: "/adatbazis/letrehozas", element: TenantsEdit, isPrivate: true },
-    { path: "/adatbazis/lista", element: TenantsList, isPrivate: true },
-    { path: "/adatbazis/reszletek/:id", element: TenantsView, isPrivate: true },
+    ...crudRoutes("adatbazis", TenantsEdit, TenantsList, TenantsView),
+    ...crudRoutes("vevo", CustomerEdit, CustomerList, CustomerView),
+    ...crudRoutes("raktarkeszlet", InventoryEdit, InventoryList, InventoryView),
+    ...crudRoutes("termek", ProductsEdit, ProductsList, ProductsView),
+    ...crudRoutes("feladat", TasksEdit, TasksList, TasksView),
+    ...crudRoutes("raktar", WarehousesEdit, WarehousesList, WarehousesView),
+    ...crudRoutes("munkalap", WorksheetsEdit, WorksheetsList, WorksheetsView),
+    ...crudRoutes("ado", TaxesEdit, TaxesList, TaxesView),
+    ...crudRoutes("szolgaltatas", ServicesEdit, ServicesList, ServicesView),
 
-    // Customers
-    { path: "/vevo/letrehozas", element: CustomerEdit, isPrivate: true },
-    { path: "/vevo/modositas/:id", element: CustomerEdit, isPrivate: true },
-    { path: "/vevo/lista", element: CustomerList, isPrivate: true },
-    { path: "/vevo/reszletek/:id", element: CustomerView, isPrivate: true },
-
-    // Inventory
-    {
-        path: "/raktarkeszlet/letrehozas",
-        element: InventoryEdit,
-        isPrivate: true,
-    },
-    {
-        path: "/raktarkeszlet/modositas/:id",
-        element: InventoryEdit,
-        isPrivate: true,
-    },
-    { path: "/raktarkeszlet/lista", element: InventoryList, isPrivate: true },
-    {
-        path: "/raktarkeszlet/reszletek/:id",
-        element: InventoryView,
-        isPrivate: true,
-    },
-
-    // InventoryMovements
     {
         path: "/raktarkeszlet-mozgas/letrehozas",
         element: InventoryMovementsEdit,
@@ -156,7 +188,6 @@ const ROUTE_CONFIGS: RouteConfig[] = [
         isPrivate: true,
     },
 
-    // InventoryReservations
     {
         path: "/raktarkeszlet-foglalas/letrehozas",
         element: InventoryReservationsEdit,
@@ -183,64 +214,9 @@ const ROUTE_CONFIGS: RouteConfig[] = [
         isPrivate: true,
     },
 
-    // Products
-    { path: "/termek/letrehozas", element: ProductsEdit, isPrivate: true },
-    { path: "/termek/modositas/:id", element: ProductsEdit, isPrivate: true },
-    { path: "/termek/lista", element: ProductsList, isPrivate: true },
-    { path: "/termek/reszletek/:id", element: ProductsView, isPrivate: true },
-
-    // Tasks
-    { path: "/feladat/letrehozas", element: TasksEdit, isPrivate: true },
-    { path: "/feladat/modositas/:id", element: TasksEdit, isPrivate: true },
-    { path: "/feladat/lista", element: TasksList, isPrivate: true },
-    { path: "/feladat/reszletek/:id", element: TasksView, isPrivate: true },
-
-    // Warehouses
-    { path: "/raktar/letrehozas", element: WarehousesEdit, isPrivate: true },
-    { path: "/raktar/modositas/:id", element: WarehousesEdit, isPrivate: true },
-    { path: "/raktar/lista", element: WarehousesList, isPrivate: true },
-    { path: "/raktar/reszletek/:id", element: WarehousesView, isPrivate: true },
-
-    // Worksheets
-    { path: "/munkalap/letrehozas", element: WorksheetsEdit, isPrivate: true },
-    {
-        path: "/munkalap/modositas/:id",
-        element: WorksheetsEdit,
-        isPrivate: true,
-    },
-    { path: "/munkalap/lista", element: WorksheetsList, isPrivate: true },
-    {
-        path: "/munkalap/reszletek/:id",
-        element: WorksheetsView,
-        isPrivate: true,
-    },
     {
         path: "/munkalap/:referenceId/raktarkeszlet-mozgas/letrehozas",
         element: () => <InventoryMovementsEdit referenceType="worksheets" />,
-        isPrivate: true,
-    },
-
-    // Taxes
-    { path: "/ado/letrehozas", element: TaxesEdit, isPrivate: true },
-    { path: "/ado/modositas/:id", element: TaxesEdit, isPrivate: true },
-    { path: "/ado/lista", element: TaxesList, isPrivate: true },
-    { path: "/ado/reszletek/:id", element: TaxesView, isPrivate: true },
-
-    // Services
-    {
-        path: "/szolgaltatas/letrehozas",
-        element: ServicesEdit,
-        isPrivate: true,
-    },
-    {
-        path: "/szolgaltatas/modositas/:id",
-        element: ServicesEdit,
-        isPrivate: true,
-    },
-    { path: "/szolgaltatas/lista", element: ServicesList, isPrivate: true },
-    {
-        path: "/szolgaltatas/reszletek/:id",
-        element: ServicesView,
         isPrivate: true,
     },
 ];
@@ -250,8 +226,12 @@ function PrivateRoute({ children }: { children: React.JSX.Element }) {
     return user ? children : <Navigate to="/bejelentkezes" replace />;
 }
 
+function RouteLoader() {
+    return <div>Betöltés...</div>;
+}
+
 function createRouteElement(
-    Component: React.ComponentType,
+    Component: RouteComponent,
     isPrivate: boolean,
 ): React.JSX.Element {
     const element = <Component />;
@@ -261,17 +241,22 @@ function createRouteElement(
 export default function App() {
     return (
         <Layout>
-            <Routes>
-                {ROUTE_CONFIGS.map(
-                    ({ path, element: Component, isPrivate = true }) => (
-                        <Route
-                            key={path}
-                            path={path}
-                            element={createRouteElement(Component, isPrivate)}
-                        />
-                    ),
-                )}
-            </Routes>
+            <Suspense fallback={<RouteLoader />}>
+                <Routes>
+                    {ROUTE_CONFIGS.map(
+                        ({ path, element: Component, isPrivate = true }) => (
+                            <Route
+                                key={path}
+                                path={path}
+                                element={createRouteElement(
+                                    Component,
+                                    isPrivate,
+                                )}
+                            />
+                        ),
+                    )}
+                </Routes>
+            </Suspense>
         </Layout>
     );
 }

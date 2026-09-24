@@ -29,12 +29,20 @@ use uuid::Uuid;
 #[cfg_attr(test, automock)]
 #[async_trait]
 pub trait CommentsRepository: Send + Sync {
-    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment>;
+    async fn post(
+        &self,
+        comment_user_input: &CommentUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Comment>;
 }
 
 #[async_trait]
 impl CommentsRepository for PgPool {
-    async fn post(&self, payload: &CommentUserInput, sub: Uuid) -> RepositoryResult<Comment> {
+    async fn post(
+        &self,
+        comment_user_input: &CommentUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Comment> {
         Ok(sqlx::query_as::<_, Comment>(
             r#"
             INSERT INTO comments (
@@ -53,9 +61,9 @@ impl CommentsRepository for PgPool {
         "#,
         )
         .bind(Uuid::new_v4())
-        .bind(payload.commentable_type.as_str()?)
-        .bind(payload.commentable_id.as_uuid()?)
-        .bind(payload.comment.as_str()?)
+        .bind(comment_user_input.commentable_type.as_str()?)
+        .bind(comment_user_input.commentable_id.as_uuid()?)
+        .bind(comment_user_input.comment.as_str()?)
         .bind(sub)
         .fetch_one(self)
         .await?)

@@ -42,9 +42,13 @@ pub trait WarehousesRepository: Send + Sync {
         &self,
         query_params: &ResourceQuery<WarehouseOrderBy, WarehouseFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<WarehouseResolved>)>;
-    async fn insert(&self, warehouse: WarehouseUserInput, sub: Uuid)
+    async fn insert(
+        &self,
+        warehouse_user_input: WarehouseUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Warehouse>;
+    async fn update(&self, warehouse_user_input: WarehouseUserInput)
     -> RepositoryResult<Warehouse>;
-    async fn update(&self, warehouse: WarehouseUserInput) -> RepositoryResult<Warehouse>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -234,7 +238,7 @@ impl WarehousesRepository for PgPool {
     }
     async fn insert(
         &self,
-        warehouse: WarehouseUserInput,
+        warehouse_user_input: WarehouseUserInput,
         sub: Uuid,
     ) -> Result<Warehouse, RepositoryError> {
         Ok(sqlx::query_as::<_, Warehouse>(
@@ -243,17 +247,20 @@ impl WarehousesRepository for PgPool {
             VALUES ($1, $2, $3, $4, $5) RETURNING *
              "#,
         )
-        .bind(warehouse.name.as_str()?)
-        .bind(warehouse.contact_name.as_str())
-        .bind(warehouse.contact_phone.as_str())
-        .bind(warehouse.status.as_str()?)
+        .bind(warehouse_user_input.name.as_str()?)
+        .bind(warehouse_user_input.contact_name.as_str())
+        .bind(warehouse_user_input.contact_phone.as_str())
+        .bind(warehouse_user_input.status.as_str()?)
         .bind(sub)
         .fetch_one(self)
         .await?)
     }
 
-    async fn update(&self, warehouse: WarehouseUserInput) -> RepositoryResult<Warehouse> {
-        let id = warehouse
+    async fn update(
+        &self,
+        warehouse_user_input: WarehouseUserInput,
+    ) -> RepositoryResult<Warehouse> {
+        let id = warehouse_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
@@ -269,10 +276,10 @@ impl WarehousesRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(warehouse.name.as_str()?)
-        .bind(warehouse.contact_name.as_str())
-        .bind(warehouse.contact_phone.as_str())
-        .bind(warehouse.status.as_str()?)
+        .bind(warehouse_user_input.name.as_str()?)
+        .bind(warehouse_user_input.contact_name.as_str())
+        .bind(warehouse_user_input.contact_phone.as_str())
+        .bind(warehouse_user_input.status.as_str()?)
         .bind(id)
         .fetch_one(self)
         .await?)

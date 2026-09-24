@@ -76,7 +76,6 @@ impl From<ValueObjectError> for CreateTenantError {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct CreateTenant {
     pub name: ValueObjectRequired<Name>,
 }
@@ -101,7 +100,7 @@ impl TryFrom<CreateTenantHelper> for CreateTenant {
     }
 }
 
-#[allow(dead_code)]
+#[expect(dead_code)]
 pub struct UserTenantConnect {
     pub user_id: Uuid,
     pub tenant_id: Uuid,

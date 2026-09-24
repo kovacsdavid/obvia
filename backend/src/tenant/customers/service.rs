@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::CommonBuilderError;
 use crate::common::dto::PaginatorMeta;
 use crate::common::error::RepositoryError;
 use crate::common::error::v2::{AppError, AppErrorVisibility};
@@ -26,15 +27,14 @@ use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
 use crate::tenant::customers::CustomersModuleInterface;
-use crate::tenant::customers::dto::print::CustomerResolvedPrint;
+use crate::tenant::customers::dto::print::{CustomerFullPrint, test_customer_full_print_builder};
 use crate::tenant::customers::dto::user_input::CustomerUserInput;
-use crate::tenant::customers::model::{Customer, CustomerResolved};
+use crate::tenant::customers::model::{Customer, CustomerFull, CustomerResolved};
 use crate::tenant::customers::types::customer::{CustomerFilterBy, CustomerOrderBy};
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
-use chrono_tz::Tz;
 use mockall_double::double;
 use serde_json::json;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -64,6 +64,12 @@ pub enum CustomersServiceError {
 
     #[error("IO error: {0}")]
     IOError(#[from] std::io::Error),
+
+    #[error("BuilderError: {0}")]
+    BuilderError(#[from] CommonBuilderError),
+
+    #[error("UuidError: {0}")]
+    UuidError(#[from] uuid::Error),
 }
 
 impl From<ServiceError> for CustomersServiceError {
@@ -129,6 +135,10 @@ pub trait CustomerService {
         &self,
         payload: Uuid,
     ) -> impl Future<Output = CustomersServiceResult<CustomerResolved>> + Send;
+    fn get_full(
+        &self,
+        payload: Uuid,
+    ) -> impl Future<Output = CustomersServiceResult<CustomerFull>> + Send;
     fn get(&self, payload: Uuid) -> impl Future<Output = CustomersServiceResult<Customer>> + Send;
     fn update(
         &self,
@@ -138,10 +148,10 @@ pub trait CustomerService {
     fn get_paged(
         &self,
         get_query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)>> + Send;
+    ) -> impl Future<Output = CustomersServiceResult<(PaginatorMeta, Vec<CustomerFull>)>> + Send;
     fn print(
         &self,
-        payload: &[CustomerResolvedPrint],
+        payload: &[CustomerFullPrint],
     ) -> impl Future<Output = CustomersServiceResult<Vec<u8>>> + Sync;
     fn print_snapshot(
         &self,
@@ -173,12 +183,15 @@ where
     async fn get_resolved(&self, payload: Uuid) -> CustomersServiceResult<CustomerResolved> {
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .get_resolved_by_id(payload)
+            .await?)
+    }
+    async fn get_full(&self, payload: Uuid) -> CustomersServiceResult<CustomerFull> {
+        Ok(self
+            .module()
+            .customers_repo(self.active_tenant()?)?
+            .get_full(payload)
             .await?)
     }
     async fn get(&self, payload: Uuid) -> CustomersServiceResult<Customer> {
@@ -200,73 +213,77 @@ where
         }
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
-            .update(payload)
+            .customers_repo(self.active_tenant()?)?
+            .update(payload, self.claims()?.sub())
             .await?)
     }
     async fn delete(&self, payload: Uuid) -> CustomersServiceResult<()> {
         Ok(self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .delete_by_id(payload)
             .await?)
     }
     async fn get_paged(
         &self,
         query: &ResourceQuery<CustomerOrderBy, CustomerFilterBy>,
-    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerResolved>)> {
-        Ok(self
+    ) -> CustomersServiceResult<(PaginatorMeta, Vec<CustomerFull>)> {
+        let (meta, customers) = self
             .module()
-            .customers_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CustomersServiceError::Unauthorized)?,
-            )?
+            .customers_repo(self.active_tenant()?)?
             .get_paged(query)
-            .await?)
+            .await?;
+        let mut address_ids = vec![];
+        for customer in customers.iter() {
+            if let Some(billing_address) = customer.billing_address {
+                address_ids.push(billing_address);
+            }
+            if let Some(mailing_address) = customer.mailing_address {
+                address_ids.push(mailing_address);
+            }
+        }
+
+        let mut addresses = HashMap::new();
+        for address in self
+            .module()
+            .address_repo(self.active_tenant()?)?
+            .get_resolved_by_ids(address_ids)
+            .await?
+        {
+            addresses.insert(address.id, address);
+        }
+
+        let mut customers_full = vec![];
+        // NOTE: Every address should be unique. If this changes in the future
+        // the HashMap remove()-s should be changed to get() + clone() otherwise this will fail
+        // with an error. I use remove() now because I can transfer ownership with it without
+        // cloneing the addresses which would be more expensive.
+        for customer in customers.into_iter() {
+            customers_full.push(match (customer.billing_address, customer.mailing_address) {
+                (None, None) => customer.into_full(None, None),
+                (None, Some(m)) => customer.into_full(None, addresses.remove(&m)),
+                (Some(b), None) => customer.into_full(addresses.remove(&b), None),
+                (Some(b), Some(m)) => {
+                    customer.into_full(addresses.remove(&b), addresses.remove(&m))
+                }
+            })
+        }
+
+        Ok((meta, customers_full))
     }
-    async fn print(&self, payload: &[CustomerResolvedPrint]) -> CustomersServiceResult<Vec<u8>> {
+    async fn print(&self, payload: &[CustomerFullPrint]) -> CustomersServiceResult<Vec<u8>> {
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::CustomerView,
             payload.to_vec(),
         )?)
     }
     async fn print_snapshot(&self, path: &Path) -> CustomersServiceResult<()> {
-        let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z"
-            .parse()
-            .map_err(|e: chrono::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
-        let tz: Tz = "Europe/Budapest"
-            .parse()
-            .map_err(|e: chrono_tz::ParseError| CustomersServiceError::ParseError(e.to_string()))?;
-        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc"
-            .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
-        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0"
-            .parse()
-            .map_err(|e: uuid::Error| CustomersServiceError::ParseError(e.to_string()))?;
-        let customer_resolved = CustomerResolved {
-            id: customer_id,
-            name: "Test Customer".to_string(),
-            contact_name: None,
-            email: "test.customer@example.com".to_string(),
-            phone_number: Some("+36301234567".to_string()),
-            status: "active".to_string(),
-            customer_type: "natural".to_string(),
-            created_by_id,
-            created_by: "Test User".to_string(),
-            created_at: test_time,
-            updated_at: test_time,
-            deleted_at: None,
-        };
-        let customer_resolved_print = CustomerResolvedPrint::new(customer_resolved, tz);
+        let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
+        let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse()?;
+        let customer_resolved_print = test_customer_full_print_builder()
+            .id(customer_id)
+            .created_by_id(created_by_id)
+            .build()?;
         let pdf = self.print(&[customer_resolved_print]).await?;
         let mut file = File::create(path)?;
         file.write_all(&pdf)?;

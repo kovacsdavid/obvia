@@ -183,6 +183,38 @@ export function isCommonResponse<T, E>(
     return true;
 }
 
+export function isCommonResponseV2<T, E, F>(
+    data: unknown,
+    dataGuard?: (value: unknown) => value is T,
+    errorGuard?: (
+        value: unknown,
+        fieldChecker: (fields: unknown) => fields is F,
+    ) => value is E,
+    fieldChecker?: (fields: unknown) => fields is F,
+): data is CommonResponse<T, E> {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+
+    if ("data" in data && data.data !== undefined) {
+        if (dataGuard && !dataGuard(data.data)) {
+            return false;
+        }
+    }
+
+    if ("error" in data && data.error !== undefined) {
+        if (
+            errorGuard &&
+            fieldChecker &&
+            !errorGuard(data.error, fieldChecker)
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 export type PagerMeta = {
     page: number;
     limit: number;
@@ -239,3 +271,26 @@ export function isPaginatedDataResponse<T, E>(
 }
 
 export type Base64DataResponse = CommonResponse<string, SimpleError>;
+
+export interface FormErrorV2<TFields> extends SimpleError {
+    fields?: TFields;
+}
+
+export function isFormErrorV2<TFields>(
+    data: unknown,
+    fieldChecker: (fields: unknown) => fields is TFields,
+): data is FormErrorV2<TFields> {
+    if (typeof data !== "object" || data === null) {
+        return false;
+    }
+
+    if (!("message" in data) || typeof data.message !== "string") {
+        return false;
+    }
+
+    if (!("fields" in data) || data.fields === undefined) {
+        return true;
+    }
+
+    return fieldChecker(data.fields);
+}

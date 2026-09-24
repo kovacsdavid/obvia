@@ -1551,7 +1551,7 @@ fn gen_exp(expiration_mins: u64) -> AuthServiceResult<usize> {
     .map_err(|_| AuthServiceError::Token("exp can not be converted to usize".to_string()))
 }
 
-#[allow(clippy::too_many_arguments)]
+#[expect(clippy::too_many_arguments)]
 fn gen_jwt(
     sub: Uuid,
     iss: String,

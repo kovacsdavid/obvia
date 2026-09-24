@@ -22,7 +22,7 @@ use axum::extract::{FromRequest, Request};
 use axum::http::StatusCode;
 use serde::de::DeserializeOwned;
 use serde_json::json;
-use tracing::Level;
+use tracing::{Level, debug};
 
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 
@@ -36,7 +36,9 @@ where
     type Rejection = AppError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Json(payload) = Json::<T>::from_request(req, state).await.map_err(|_| {
+        let Json(payload) = Json::<T>::from_request(req, state).await.map_err(|e| {
+            debug!("{:?}", e);
+
             AppError::new(
                 Level::DEBUG,
                 StatusCode::BAD_REQUEST,

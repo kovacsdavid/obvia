@@ -47,12 +47,12 @@ pub trait InventoryMovementsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<InventoryMovementResolved>)>;
     async fn insert(
         &self,
-        input: &InventoryMovementUserInput,
+        inventory_movement_user_input: &InventoryMovementUserInput,
         sub: Uuid,
     ) -> RepositoryResult<InventoryMovement>;
     async fn update(
         &self,
-        input: &InventoryMovementUserInput,
+        inventory_movement_user_input: &InventoryMovementUserInput,
     ) -> RepositoryResult<InventoryMovement>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
@@ -266,10 +266,10 @@ impl InventoryMovementsRepository for PgPool {
 
     async fn insert(
         &self,
-        input: &InventoryMovementUserInput,
+        inventory_movement_user_input: &InventoryMovementUserInput,
         sub: Uuid,
     ) -> RepositoryResult<InventoryMovement> {
-        let reference_type = match &input.reference_type {
+        let reference_type = match &inventory_movement_user_input.reference_type {
             Some(v) => Some(v.as_str()?),
             None => None,
         };
@@ -282,17 +282,17 @@ impl InventoryMovementsRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(input.inventory_id.as_uuid()?)
-        .bind(input.movement_type.as_str()?)
+        .bind(inventory_movement_user_input.inventory_id.as_uuid()?)
+        .bind(inventory_movement_user_input.movement_type.as_str()?)
         .bind(
-            input
-                .quantity(input.movement_type.as_str()? == "out")
+            inventory_movement_user_input
+                .quantity(inventory_movement_user_input.movement_type.as_str()? == "out")
                 .map_err(|_| RepositoryError::InvalidInput("quantity".to_string()))?,
         )
         .bind(reference_type)
-        .bind(input.reference_id.as_uuid())
-        .bind(input.unit_price.as_f64())
-        .bind(input.tax_id.as_uuid()?)
+        .bind(inventory_movement_user_input.reference_id.as_uuid())
+        .bind(inventory_movement_user_input.unit_price.as_f64())
+        .bind(inventory_movement_user_input.tax_id.as_uuid()?)
         .bind(sub)
         .fetch_one(self)
         .await?)
@@ -300,7 +300,7 @@ impl InventoryMovementsRepository for PgPool {
 
     async fn update(
         &self,
-        _input: &InventoryMovementUserInput,
+        _inventory_movement_user_input: &InventoryMovementUserInput,
     ) -> RepositoryResult<InventoryMovement> {
         // TODO: implement this function!
         todo!()

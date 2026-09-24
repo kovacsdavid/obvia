@@ -42,8 +42,8 @@ pub trait TasksRepository: Send + Sync {
         &self,
         query_params: &ResourceQuery<TaskOrderBy, TaskFilterBy>,
     ) -> RepositoryResult<(PaginatorMeta, Vec<TaskResolved>)>;
-    async fn insert(&self, task: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task>;
-    async fn update(&self, task: &TaskUserInput) -> RepositoryResult<Task>;
+    async fn insert(&self, task_user_input: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task>;
+    async fn update(&self, task_user_input: &TaskUserInput) -> RepositoryResult<Task>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -131,7 +131,7 @@ impl TasksRepository for PgPool {
             LEFT JOIN users ON tasks.created_by_id = users.id
             WHERE tasks.deleted_at IS NULL
                 AND tasks.status = 'active'
-                AND worsheets.id = $1
+                AND worksheets.id = $1
             "#,
         )
         .bind(worksheet_id)
@@ -281,29 +281,29 @@ impl TasksRepository for PgPool {
             tasks,
         ))
     }
-    async fn insert(&self, task: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task> {
+    async fn insert(&self, task_user_input: &TaskUserInput, sub: Uuid) -> RepositoryResult<Task> {
         Ok(sqlx::query_as::<_, Task>(
             "INSERT INTO tasks (worksheet_id, service_id, currency_code, quantity, price, tax_id, created_by_id, status, priority, due_date, description)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *"
         )
-            .bind(task.worksheet_id.as_uuid()?)
-            .bind(task.service_id.as_uuid()?)
-            .bind(task.currency_code.as_str()?)
-            .bind(task.quantity.as_f64())
-            .bind(task.price.as_f64())
-            .bind(task.tax_id.as_uuid()?)
+            .bind(task_user_input.worksheet_id.as_uuid()?)
+            .bind(task_user_input.service_id.as_uuid()?)
+            .bind(task_user_input.currency_code.as_str()?)
+            .bind(task_user_input.quantity.as_f64())
+            .bind(task_user_input.price.as_f64())
+            .bind(task_user_input.tax_id.as_uuid()?)
             .bind(sub)
-            .bind(task.status.as_str()? )
-            .bind(task.priority.as_str())
-            .bind(task.due_date.as_date_naive())
-            .bind(task.description.as_str())
+            .bind(task_user_input.status.as_str()? )
+            .bind(task_user_input.priority.as_str())
+            .bind(task_user_input.due_date.as_date_naive())
+            .bind(task_user_input.description.as_str())
             .fetch_one(self)
             .await?
         )
     }
 
-    async fn update(&self, task: &TaskUserInput) -> RepositoryResult<Task> {
-        let id = task
+    async fn update(&self, task_user_input: &TaskUserInput) -> RepositoryResult<Task> {
+        let id = task_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
@@ -325,16 +325,16 @@ impl TasksRepository for PgPool {
             RETURNING *
             "#,
         )
-        .bind(task.worksheet_id.as_uuid()?)
-        .bind(task.service_id.as_uuid()?)
-        .bind(task.currency_code.as_str()?)
-        .bind(task.quantity.as_f64())
-        .bind(task.price.as_f64())
-        .bind(task.tax_id.as_uuid()?)
-        .bind(task.status.as_str()?)
-        .bind(task.priority.as_str())
-        .bind(task.due_date.as_date_naive())
-        .bind(task.description.as_str())
+        .bind(task_user_input.worksheet_id.as_uuid()?)
+        .bind(task_user_input.service_id.as_uuid()?)
+        .bind(task_user_input.currency_code.as_str()?)
+        .bind(task_user_input.quantity.as_f64())
+        .bind(task_user_input.price.as_f64())
+        .bind(task_user_input.tax_id.as_uuid()?)
+        .bind(task_user_input.status.as_str()?)
+        .bind(task_user_input.priority.as_str())
+        .bind(task_user_input.due_date.as_date_naive())
+        .bind(task_user_input.description.as_str())
         .bind(id)
         .fetch_one(self)
         .await?)

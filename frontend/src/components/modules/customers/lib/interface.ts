@@ -19,11 +19,16 @@
 
 import {
     type CommonResponse,
-    type FormError,
+    type FormErrorV2,
     type PaginatedDataResponse,
     type SimpleError,
     type SimpleMessageData,
 } from "@/lib/interface.ts";
+import {
+    type Address,
+    type AddressErrors,
+    type Address as AddressInterface,
+} from "@/components/modules/address/lib/interface";
 
 export interface CustomerUserInput {
     id: string | null;
@@ -33,6 +38,8 @@ export interface CustomerUserInput {
     phoneNumber: string;
     status: string | undefined;
     customerType: string | undefined;
+    billingAddress: AddressInterface | null | undefined;
+    mailingAddress: AddressInterface | null | undefined;
 }
 
 export interface Customer {
@@ -47,9 +54,23 @@ export interface Customer {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    billing_address: string | null;
+    mailing_address: string | null;
 }
 
-export interface CustomerResolved {
+export interface CustomerErrors {
+    id: string | null;
+    name: string | null;
+    contact_name: string | null;
+    email: string | null;
+    phone_number: string | null;
+    status: string | null;
+    customer_type: string | null;
+    billing_address: AddressErrors;
+    mailing_address: AddressErrors;
+}
+
+export interface CustomerFull {
     id: string;
     name: string;
     contact_name: string | null;
@@ -62,20 +83,25 @@ export interface CustomerResolved {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    billing_address: Address | null;
+    mailing_address: Address | null;
 }
 
-export type CreateCustomerResponse = CommonResponse<Customer, FormError>;
-export type UpdateCustomerResponse = CommonResponse<Customer, FormError>;
+export type CreateCustomerResponse = CommonResponse<
+    Customer,
+    FormErrorV2<CustomerErrors>
+>;
+export type UpdateCustomerResponse = CommonResponse<
+    Customer,
+    FormErrorV2<CustomerErrors>
+>;
 export type DeleteCustomerResponse = CommonResponse<
     SimpleMessageData,
     SimpleError
 >;
-export type CustomerResolvedList = CustomerResolved[];
+export type CustomerResolvedList = CustomerFull[];
 export type CustomerResponse = CommonResponse<Customer, SimpleError>;
-export type CustomerResolvedResponse = CommonResponse<
-    CustomerResolved,
-    SimpleError
->;
+export type CustomerFullResponse = CommonResponse<CustomerFull, SimpleError>;
 export type PaginatedCustomerResolvedListResponse = PaginatedDataResponse<
     CustomerResolvedList,
     SimpleError

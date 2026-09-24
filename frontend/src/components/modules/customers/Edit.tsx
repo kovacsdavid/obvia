@@ -18,11 +18,17 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import {
+    Button,
+    Checkbox,
+    FieldErrorV2,
+    GlobalError,
+    Input,
+} from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
-    get,
+    get_full,
     update,
 } from "@/components/modules/customers/lib/slice.ts";
 import {
@@ -33,10 +39,12 @@ import {
     SelectValue,
 } from "@/components/ui/select.tsx";
 import { useNavigate } from "react-router";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
 import { ConditionalCard } from "@/components/ui/card.tsx";
-import type { Customer } from "@/components/modules/customers/lib/interface.ts";
+import type {
+    Customer,
+    CustomerErrors,
+} from "@/components/modules/customers/lib/interface.ts";
 import {
     Field,
     FieldGroup,
@@ -44,6 +52,13 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import Address from "@/components/modules/address/Address";
+import {
+    type Address as AddressInterface,
+    type AddressErrors,
+} from "@/components/modules/address/lib/interface";
+import { normalizeAddress } from "@/components/modules/address/lib/utils";
+import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
 
 interface EditProps {
     showCard?: boolean;
@@ -64,14 +79,44 @@ export default function Edit({
     const [email, setEmail] = React.useState("");
     const [phoneNumber, setPhoneNumber] = React.useState("");
     const [status, setStatus] = React.useState<string | undefined>("active");
+    const defaultAddress = () => ({
+        id: "",
+        type: "full_address",
+        country_code: "HU",
+        postal_code: "",
+        settlement: "",
+        mailbox: "",
+        topographic_number: "",
+        name_of_public_space: "",
+        type_of_public_space: "",
+        house_number: "",
+        building: "",
+        stairway: "",
+        floor: "",
+        door: "",
+    });
+    const [billingAddress, setBillingAddress] = React.useState<
+        AddressInterface | null | undefined
+    >(defaultAddress());
+    const [mailingAddress, setMailingAddress] = React.useState<
+        AddressInterface | null | undefined
+    >(undefined);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const { errors, setErrors, unexpectedError } =
+        useFormErrorV2<CustomerErrors>();
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-    const handleCreate = useCallback(() => {
+    const handleNeedMailingAddressChange = () => {
+        if (mailingAddress === null || typeof mailingAddress === "undefined") {
+            setMailingAddress(defaultAddress());
+        } else {
+            setMailingAddress(undefined);
+        }
+    };
+
+    const handleCreate = () => {
         dispatch(
             create({
                 id,
@@ -81,6 +126,8 @@ export default function Edit({
                 phoneNumber,
                 status,
                 customerType,
+                billingAddress,
+                mailingAddress,
             }),
         ).then(async (response) => {
             if (create.fulfilled.match(response)) {
@@ -104,20 +151,7 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        contactName,
-        customerType,
-        dispatch,
-        email,
-        id,
-        name,
-        navigate,
-        onSuccess,
-        phoneNumber,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -131,7 +165,7 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
+    const handleUpdate = () => {
         dispatch(
             update({
                 id,
@@ -141,6 +175,8 @@ export default function Edit({
                 phoneNumber,
                 status,
                 customerType,
+                billingAddress,
+                mailingAddress,
             }),
         ).then(async (response) => {
             if (update.fulfilled.match(response)) {
@@ -157,44 +193,40 @@ export default function Edit({
                 unexpectedError();
             }
         });
-    }, [
-        contactName,
-        customerType,
-        dispatch,
-        email,
-        id,
-        name,
-        navigate,
-        phoneNumber,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     useEffect(() => {
         if (typeof id === "string") {
-            dispatch(get(id)).then(async (response) => {
-                if (get.fulfilled.match(response)) {
+            dispatch(get_full(id)).then(async (response) => {
+                if (get_full.fulfilled.match(response)) {
                     if (response.payload.statusCode === 200) {
                         if (
                             typeof response.payload.jsonData?.data !==
                             "undefined"
                         ) {
                             const data = response.payload.jsonData.data;
+
                             setCustomerType(data.customer_type);
                             setName(data.name);
                             setContactName(data.contact_name ?? "");
                             setEmail(data.email);
                             setPhoneNumber(data.phone_number ?? "");
                             setStatus(data.status);
+                            setBillingAddress(
+                                // NOTE: this is needed to show address fields on update for
+                                // customers created before address was added to the system.
+                                data.billing_address === null
+                                    ? defaultAddress()
+                                    : normalizeAddress(data.billing_address),
+                            );
+                            setMailingAddress(
+                                normalizeAddress(data.mailing_address),
+                            );
                         }
                     } else if (
                         typeof response.payload.jsonData?.error !== "undefined"
                     ) {
-                        setErrors({
-                            message: response.payload.jsonData.error.message,
-                            fields: {},
-                        });
+                        setErrors(response.payload.jsonData?.error);
                     } else {
                         unexpectedError(response.payload.statusCode);
                     }
@@ -229,7 +261,10 @@ export default function Edit({
                         </FieldLegend>
                         <FieldGroup>
                             <Field
-                                data-invalid={isInvalidField("customer_type")}
+                                data-invalid={
+                                    typeof errors?.fields?.customer_type ===
+                                    "string"
+                                }
                             >
                                 <FieldLabel htmlFor="customer_type">
                                     Típus
@@ -237,15 +272,26 @@ export default function Edit({
                                 <Select
                                     value={customerType}
                                     onValueChange={(val) => {
-                                        resetError("customer_type");
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    customer_type: null,
+                                                },
+                                            };
+                                        });
                                         setCustomerType(val);
                                     }}
                                 >
                                     <SelectTrigger
                                         className={"w-full"}
-                                        aria-invalid={isInvalidField(
-                                            "customer_type",
-                                        )}
+                                        aria-invalid={
+                                            typeof errors?.fields
+                                                ?.customer_type === "string"
+                                        }
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
@@ -258,12 +304,15 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"customer_type"}
+                                <FieldErrorV2
+                                    error={errors?.fields?.customer_type}
                                 />
                             </Field>
-                            <Field data-invalid={isInvalidField("name")}>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.fields?.name === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="name">
                                     {customerType === "legal"
                                         ? "Jogi személy neve"
@@ -279,19 +328,32 @@ export default function Edit({
                                     }
                                     value={name}
                                     onChange={(e) => {
-                                        resetError("name");
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    name: null,
+                                                },
+                                            };
+                                        });
                                         setName(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField("name")}
+                                    aria-invalid={
+                                        typeof errors?.fields?.name === "string"
+                                    }
                                 />
-                                <FieldError error={errors} field={"name"} />
+                                <FieldErrorV2 error={errors?.fields?.name} />
                             </Field>
                             {customerType === "legal" ? (
                                 <>
                                     <Field
-                                        data-invalid={isInvalidField(
-                                            "contact_name",
-                                        )}
+                                        data-invalid={
+                                            typeof errors?.fields
+                                                ?.contact_name === "string"
+                                        }
                                     >
                                         <FieldLabel htmlFor="contact_name">
                                             Kapcsolattartó neve
@@ -302,21 +364,37 @@ export default function Edit({
                                             placeholder="Példa Béla"
                                             value={contactName}
                                             onChange={(e) => {
-                                                resetError("contact_name");
+                                                setErrors((prev) => {
+                                                    if (!prev?.fields)
+                                                        return prev;
+
+                                                    return {
+                                                        ...prev,
+                                                        fields: {
+                                                            ...prev.fields,
+                                                            contact_name: null,
+                                                        },
+                                                    };
+                                                });
                                                 setContactName(e.target.value);
                                             }}
-                                            aria-invalid={isInvalidField(
-                                                "contact_name",
-                                            )}
+                                            aria-invalid={
+                                                typeof errors?.fields
+                                                    ?.contact_name === "string"
+                                            }
                                         />
-                                        <FieldError
-                                            error={errors}
-                                            field={"contact_name"}
+
+                                        <FieldErrorV2
+                                            error={errors?.fields?.contact_name}
                                         />
                                     </Field>
                                 </>
                             ) : null}
-                            <Field data-invalid={isInvalidField("email")}>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.fields?.email === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="email">
                                     {customerType === "legal"
                                         ? "Kapcsolattartó e-mail címe"
@@ -328,15 +406,31 @@ export default function Edit({
                                     placeholder="pelda@kovacsdavid.dev"
                                     value={email}
                                     onChange={(e) => {
-                                        resetError("email");
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    email: null,
+                                                },
+                                            };
+                                        });
                                         setEmail(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField("email")}
+                                    aria-invalid={
+                                        typeof errors?.fields?.email ===
+                                        "string"
+                                    }
                                 />
-                                <FieldError error={errors} field={"email"} />
+                                <FieldErrorV2 error={errors?.fields?.email} />
                             </Field>
                             <Field
-                                data-invalid={isInvalidField("phone_number")}
+                                data-invalid={
+                                    typeof errors?.fields?.phone_number ===
+                                    "string"
+                                }
                             >
                                 <FieldLabel htmlFor="phone_number">
                                     {customerType === "legal"
@@ -349,32 +443,59 @@ export default function Edit({
                                     placeholder="+36301234567"
                                     value={phoneNumber}
                                     onChange={(e) => {
-                                        resetError("phone_number");
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    phone_number: null,
+                                                },
+                                            };
+                                        });
                                         setPhoneNumber(e.target.value);
                                     }}
-                                    aria-invalid={isInvalidField(
-                                        "phone_number",
-                                    )}
+                                    aria-invalid={
+                                        typeof errors?.fields?.phone_number ===
+                                        "string"
+                                    }
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"phone_number"}
+                                <FieldErrorV2
+                                    error={errors?.fields?.phone_number}
                                 />
                             </Field>
-                            <Field data-invalid={isInvalidField("status")}>
+                            <Field
+                                data-invalid={
+                                    typeof errors?.fields?.status === "string"
+                                }
+                            >
                                 <FieldLabel htmlFor="status">
                                     Státusz
                                 </FieldLabel>
                                 <Select
                                     value={status}
                                     onValueChange={(val) => {
-                                        resetError("status");
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    status: null,
+                                                },
+                                            };
+                                        });
                                         setStatus(val);
                                     }}
                                 >
                                     <SelectTrigger
                                         className={"w-full"}
-                                        aria-invalid={isInvalidField("status")}
+                                        aria-invalid={
+                                            typeof errors?.fields?.status ===
+                                            "string"
+                                        }
                                     >
                                         <SelectValue />
                                     </SelectTrigger>
@@ -393,10 +514,83 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.fields?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>
+                    <div className="mt-8">
+                        <Address
+                            label="Számlázási cím"
+                            value={billingAddress}
+                            onChange={setBillingAddress}
+                            errors={errors?.fields?.billing_address}
+                            setErrors={<T extends keyof AddressErrors>(
+                                value: string | null,
+                                field: T,
+                            ) => {
+                                setErrors((prev) => {
+                                    if (!prev?.fields) return prev;
+
+                                    return {
+                                        ...prev,
+                                        fields: {
+                                            ...prev.fields,
+                                            billing_address: {
+                                                ...prev.fields.billing_address,
+                                                [field]: value,
+                                            },
+                                        },
+                                    };
+                                });
+                            }}
+                        />
+                    </div>
+
+                    <FieldGroup className="mt-8">
+                        <Field orientation="horizontal">
+                            <Checkbox
+                                id="need_mailing_address"
+                                checked={
+                                    !(
+                                        mailingAddress === null ||
+                                        typeof mailingAddress === "undefined"
+                                    )
+                                }
+                                onCheckedChange={() =>
+                                    handleNeedMailingAddressChange()
+                                }
+                            />
+                            <FieldLabel htmlFor="need_mailing_address">
+                                Levelezési cím eltér
+                            </FieldLabel>
+                        </Field>
+                    </FieldGroup>
+
+                    <Address
+                        label="Levelezési cím"
+                        value={mailingAddress}
+                        onChange={setMailingAddress}
+                        errors={errors?.fields?.mailing_address}
+                        setErrors={<T extends keyof AddressErrors>(
+                            value: string | null,
+                            field: T,
+                        ) => {
+                            setErrors((prev) => {
+                                if (!prev?.fields) return prev;
+
+                                return {
+                                    ...prev,
+                                    fields: {
+                                        ...prev.fields,
+                                        mailing_address: {
+                                            ...prev.fields.mailing_address,
+                                            [field]: value,
+                                        },
+                                    },
+                                };
+                            });
+                        }}
+                    />
                     <Field orientation="horizontal">
                         <div className="text-right mt-8 w-full">
                             <Button

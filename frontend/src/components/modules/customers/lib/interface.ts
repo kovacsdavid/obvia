@@ -38,8 +38,8 @@ export interface CustomerUserInput {
     phoneNumber: string;
     status: string | undefined;
     customerType: string | undefined;
-    billingAddress: AddressInterface | undefined;
-    mailingAddress: AddressInterface | undefined;
+    billingAddress: AddressInterface | null | undefined;
+    mailingAddress: AddressInterface | null | undefined;
 }
 
 export interface Customer {

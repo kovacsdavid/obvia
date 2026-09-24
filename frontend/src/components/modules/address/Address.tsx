@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/select.tsx";
 
 interface AddressProps {
-    value: Address | undefined;
+    value: Address | null | undefined;
     onChange: (next: Address) => void;
     errors?: AddressErrors | undefined;
     setErrors?: <T extends keyof AddressErrors>(
@@ -75,7 +75,7 @@ export default function Address({
     label = "Cím",
 }: AddressProps) {
     const setField = <K extends keyof Address>(field: K, newValue: string) => {
-        if (typeof value !== "undefined") {
+        if (value !== null && typeof value !== "undefined") {
             onChange({
                 ...value,
                 [field]: newValue,
@@ -92,7 +92,7 @@ export default function Address({
     };
     return (
         <>
-            {typeof value !== "undefined" ? (
+            {value !== null && typeof value !== "undefined" ? (
                 <FieldSet>
                     <FieldLegend>{label}</FieldLegend>
                     <FieldGroup>

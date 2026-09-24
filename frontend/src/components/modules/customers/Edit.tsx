@@ -28,7 +28,7 @@ import {
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
-    get,
+    get_full,
     update,
 } from "@/components/modules/customers/lib/slice.ts";
 import {
@@ -95,10 +95,10 @@ export default function Edit({
         door: "",
     });
     const [billingAddress, setBillingAddress] = React.useState<
-        AddressInterface | undefined
+        AddressInterface | null | undefined
     >(defaultAddress());
     const [mailingAddress, setMailingAddress] = React.useState<
-        AddressInterface | undefined
+        AddressInterface | null | undefined
     >(undefined);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();
@@ -196,8 +196,8 @@ export default function Edit({
 
     useEffect(() => {
         if (typeof id === "string") {
-            dispatch(get(id)).then(async (response) => {
-                if (get.fulfilled.match(response)) {
+            dispatch(get_full(id)).then(async (response) => {
+                if (get_full.fulfilled.match(response)) {
                     if (response.payload.statusCode === 200) {
                         if (
                             typeof response.payload.jsonData?.data !==
@@ -210,6 +210,8 @@ export default function Edit({
                             setEmail(data.email);
                             setPhoneNumber(data.phone_number ?? "");
                             setStatus(data.status);
+                            setBillingAddress(data.billing_address);
+                            setMailingAddress(data.mailing_address);
                         }
                     } else if (
                         typeof response.payload.jsonData?.error !== "undefined"

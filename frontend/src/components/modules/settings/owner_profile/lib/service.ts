@@ -21,12 +21,12 @@ import {
     globalRequestTimeout,
     unexpectedError,
     unexpectedFormError,
-} from "@/services/utils/consts.ts";
+} from "@/services/utils/consts";
 import type {
     OwnerProfileUserInput,
-    UpdateOwnerProfile,
+    UpdateOwnerProfileResponse,
     OwnerProfileFullResponse,
-} from "@/components/modules/settings/owner_profile/lib/interface.ts";
+} from "@/components/modules/settings/owner_profile/lib/interface";
 import {
     type ProcessedJsonResponse,
     ProcessJsonResponse,
@@ -34,7 +34,7 @@ import {
 import {
     isUpdateOwnerProfileResponse,
     isOwnerProfileFullResponse,
-} from "@/components/modules/settings/owner_profile/lib/guards.ts";
+} from "@/components/modules/settings/owner_profile/lib/guards";
 
 export async function update(
     {
@@ -47,7 +47,7 @@ export async function update(
         mailingAddress,
     }: OwnerProfileUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<UpdateOwnerProfile>> {
+): Promise<ProcessedJsonResponse<UpdateOwnerProfileResponse>> {
     return await fetch(`/api/owner_profile/update`, {
         method: "PUT",
         headers: {

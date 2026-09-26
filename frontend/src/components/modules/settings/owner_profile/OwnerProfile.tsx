@@ -79,7 +79,7 @@ export default function OwnerProfile() {
                     ) {
                         const data = response.payload.jsonData.data;
 
-                        setOwnerProfileType(data.customer_type);
+                        setOwnerProfileType(data.owner_profile_type);
                         setName(data.name);
                         setContactName(data.contact_name ?? "");
                         setEmail(data.email);

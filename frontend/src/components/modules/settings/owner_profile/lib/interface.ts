@@ -78,9 +78,9 @@ export interface OwnerProfileFull {
     mailing_address: Address | null;
 }
 
-export type UpdateOwnerProfile = CommonResponse<
+export type UpdateOwnerProfileResponse = CommonResponse<
     OwnerProfile,
-    FormErrorV2<OwnerProfileFull>
+    FormErrorV2<OwnerProfileErrors>
 >;
 
 export type OwnerProfileFullResponse = CommonResponse<

@@ -78,7 +78,7 @@ obvia/
 ### Backend
 
 - **Rust**: 1.90.0 or later
-- **PostgreSQL**: Database server (version 12 or later recommended)
+- **PostgreSQL**: Database server (version 18 or later required)
 - **Cargo**: Package manager (included with Rust)
 
 ### Frontend

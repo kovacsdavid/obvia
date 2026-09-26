@@ -27,10 +27,7 @@ import {
 } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { useNavigate } from "react-router";
-import {
-    get_own_profile,
-    update_own_profile,
-} from "@/components/modules/settings/lib/slice.ts";
+import { get, update } from "@/components/modules/settings/lib/slice.ts";
 import {
     Select,
     SelectContent,
@@ -70,8 +67,8 @@ export default function OwnerProfile() {
         useFormErrorV2<OwnerProfileErrors>();
 
     useEffect(() => {
-        dispatch(get_own_profile()).then(async (response) => {
-            if (get_own_profile.fulfilled.match(response)) {
+        dispatch(get()).then(async (response) => {
+            if (get.fulfilled.match(response)) {
                 if (response.payload.statusCode === 200) {
                     if (
                         typeof response.payload.jsonData?.data !== "undefined"
@@ -110,7 +107,7 @@ export default function OwnerProfile() {
     const handleUpdate = (e: React.SubmitEvent) => {
         e.preventDefault();
         dispatch(
-            update_own_profile({
+            update({
                 name,
                 contactName,
                 email,
@@ -119,7 +116,7 @@ export default function OwnerProfile() {
                 mailingAddress,
             }),
         ).then(async (response) => {
-            if (update_own_profile.fulfilled.match(response)) {
+            if (update.fulfilled.match(response)) {
                 if (response.payload.statusCode === 200) {
                     navigate("/vevo/lista");
                 } else if (

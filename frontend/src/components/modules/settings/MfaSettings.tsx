@@ -18,12 +18,6 @@
  */
 
 import React, { useCallback, useMemo } from "react";
-import {
-    Card,
-    CardHeader,
-    CardContent,
-    CardTitle,
-} from "@/components/ui/card.tsx";
 import { Button, GlobalError } from "@/components/ui";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import { useAppDispatch } from "@/store/hooks.ts";

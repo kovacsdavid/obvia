@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card.tsx";
 import MfaSettings from "@/components/modules/settings/MfaSettings";
 import SettingsSection from "@/components/modules/settings/SettingsSection";
+import OwnerProfile from "@/components/modules/settings/owner_profile/OwnerProfile";
 
 export default function Settings() {
     return (
@@ -34,6 +35,12 @@ export default function Settings() {
                     <CardTitle>Beállítások</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <SettingsSection
+                        title="Saját adatok"
+                        description="Töltsd ki, hogy jól jelenjenek meg az adatok a vállalkozásodról!"
+                    >
+                        <OwnerProfile />
+                    </SettingsSection>
                     <SettingsSection
                         title="Kétlépcsős azonosítás"
                         description="Kapcsold be a kétlépcsős hitelesítést a nagyobb biztonság érdekében."

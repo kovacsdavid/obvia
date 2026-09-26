@@ -67,18 +67,18 @@ pub mod tests {
     pub fn test_inventory_movement_resolved_builder() -> InventoryMovementResolvedBuilder {
         let mut builder = InventoryMovementResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
-            .inventory_id(Uuid::new_v4())
+            .id(Uuid::now_v7())
+            .inventory_id(Uuid::now_v7())
             .movement_type("in".to_string())
             .quantity("10".parse().expect("could not parse quantity"))
             .reference_type(Some("worksheets".to_string()))
-            .reference_id(Some(Uuid::new_v4()))
+            .reference_id(Some(Uuid::now_v7()))
             .unit_price(Some("20".parse().expect("could not parse unit_price")))
             .total_price(Some("30".parse().expect("could not parse total_price")))
-            .tax_id(Uuid::new_v4())
+            .tax_id(Uuid::now_v7())
             .tax(Some("Test tax".to_string()))
             .movement_date(*TEST_TIME)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME);
 

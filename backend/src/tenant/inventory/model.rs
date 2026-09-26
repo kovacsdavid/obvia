@@ -73,10 +73,10 @@ pub mod tests {
     pub fn test_inventory_resolved_builder() -> InventoryResolvedBuilder {
         let mut builder = InventoryResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
-            .product_id(Uuid::new_v4())
+            .id(Uuid::now_v7())
+            .product_id(Uuid::now_v7())
             .product("Test product".to_string())
-            .warehouse_id(Uuid::new_v4())
+            .warehouse_id(Uuid::now_v7())
             .warehouse("Test warehouse".to_string())
             .quantity_on_hand("10".parse().unwrap())
             .quantity_reserved("20".parse().unwrap())
@@ -86,7 +86,7 @@ pub mod tests {
             .currency_code("HUF".to_string())
             .currency("Forint".to_string())
             .status("active".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

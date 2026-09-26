@@ -227,9 +227,9 @@ mod tests {
 
     #[test]
     fn valid_inventory_movements_user_input() {
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
         let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
             id: None,
             inventory_id: inventory_id.to_string(),
@@ -253,7 +253,7 @@ mod tests {
 
     #[test]
     fn invalid_inventory_movements_user_input() {
-        let reference_id = Uuid::new_v4();
+        let reference_id = Uuid::now_v7();
         let imui = InventoryMovementUserInput::try_from(InventoryMovementUserInputHelper {
             id: None,
             inventory_id: String::from("invalid"),

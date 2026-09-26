@@ -86,15 +86,15 @@ impl ServicesResolvedPrint {
 pub fn test_service_resolved_print_builder() -> ServicesResolvedPrintBuilder {
     let mut builder = ServicesResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .name("Test service".to_string())
         .description(Some("Test description".to_string()))
         .default_price(Some("10".parse().unwrap()))
-        .default_tax_id(Some(Uuid::new_v4()))
+        .default_tax_id(Some(Uuid::now_v7()))
         .default_tax(Some("Test tax".to_string()))
         .currency_code(Some("HUF".to_string()))
         .status("active".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
@@ -111,9 +111,9 @@ mod tests {
 
     #[test]
     fn test_from_service_resolved() {
-        let service_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let default_tax_id = Some(Uuid::new_v4());
+        let service_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
+        let default_tax_id = Some(Uuid::now_v7());
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

@@ -241,12 +241,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let task = Task {
             id: task_id,
@@ -321,7 +321,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -361,7 +361,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -401,7 +401,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
         let app_state = MockTasksModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -426,8 +426,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_by_id()
@@ -482,12 +482,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let task_resolved = TaskResolved {
             id: task_id,
@@ -566,7 +566,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -606,7 +606,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -646,7 +646,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
         let app_state = MockTasksModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -671,8 +671,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_resolved_by_id()
@@ -727,12 +727,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let paginator_meta = PaginatorMeta {
             page: 1,
@@ -918,7 +918,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_list_not_found() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockTasksRepository::new();
         repo.expect_get_paged()
@@ -975,13 +975,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = TaskUserInputHelper {
@@ -1087,11 +1087,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: None,
@@ -1151,9 +1151,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: None,
@@ -1208,9 +1208,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: None,
@@ -1265,9 +1265,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: None,
@@ -1308,13 +1308,13 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let task = Task {
             id: task_id,
@@ -1405,11 +1405,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: None,
@@ -1467,10 +1467,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let task_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: Some(task_id.to_string()),
@@ -1525,10 +1525,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let task_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: Some(task_id.to_string()),
@@ -1583,10 +1583,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let task_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let worksheet_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let worksheet_id = Uuid::now_v7();
 
         let user_input_helper = TaskUserInputHelper {
             id: Some(task_id.to_string()),
@@ -1627,9 +1627,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_delete_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let task_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let task_id = Uuid::now_v7();
         let mut repo = MockTasksRepository::new();
 
         repo.expect_delete_by_id()
@@ -1685,8 +1685,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1725,7 +1725,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1765,7 +1765,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1805,7 +1805,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let app_state = MockTasksModule::new();
         let request = Request::builder()
@@ -1832,7 +1832,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_success() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let task_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let worksheet_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
         let service_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse().unwrap();
@@ -1946,7 +1946,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_expired() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1987,7 +1987,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_invalid_signature() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2028,7 +2028,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_missing() {
-        let task_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

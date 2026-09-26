@@ -110,13 +110,13 @@ pub fn test_worksheet_resolved_print_builder(
 ) -> WorksheetResolvedPrintBuilder {
     let mut builder = WorksheetResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .name("Test worksheet".to_string())
         .description(Some("Test description".to_string()))
         .customer(customer_resolved_print)
-        .project_id(Some(Uuid::new_v4()))
+        .project_id(Some(Uuid::now_v7()))
         .project(Some("Test project".to_string()))
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .status("Aktív".to_string())
         .created_at(TEST_TIME_TZ.clone())
@@ -147,9 +147,9 @@ mod tests {
 
     #[test]
     fn test_from_worksheet_resolved() {
-        let worksheet_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let worksheet_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
 
         let worksheet_resolved = test_worksheet_resolved_builder()
             .id(worksheet_id)

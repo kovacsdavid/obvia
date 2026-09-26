@@ -408,7 +408,7 @@ mod tests {
 
     #[test]
     fn value_object_required_uuid_valid() {
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::now_v7();
         let sample_object = uuid
             .to_string()
             .parse::<ValueObjectRequired<SampleObjectUuid>>()
@@ -426,7 +426,7 @@ mod tests {
 
     #[test]
     fn value_object_optional_uuid_valid() {
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::now_v7();
         let sample_object = uuid
             .to_string()
             .parse::<ValueObjectOptional<SampleObjectUuid>>()

@@ -113,7 +113,7 @@ where
 {
     async fn create_managed(&self, payload: &CreateTenant) -> TenantsServiceResult<Tenant> {
         let config = self.module().config();
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::now_v7();
         let db_config = BasicDatabaseConfig {
             host: config.main_database().host.clone(),
             port: config.main_database().port,

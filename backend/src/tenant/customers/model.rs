@@ -112,14 +112,14 @@ pub mod tests {
     pub fn test_customer_builder() -> CustomerBuilder {
         let mut builder = CustomerBuilder::default();
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
             .email("test.customer@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -132,14 +132,14 @@ pub mod tests {
     pub fn test_customer_resolved_builder() -> CustomerResolvedBuilder {
         let mut builder = CustomerResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
             .email("test.customer@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
@@ -153,14 +153,14 @@ pub mod tests {
     pub fn test_customer_full_builder() -> CustomerFullBuilder {
         let mut builder = CustomerFullBuilder::default();
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test Customer".to_string())
             .contact_name(None)
             .email("test.customer@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .status("active".to_string())
             .customer_type("natural".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

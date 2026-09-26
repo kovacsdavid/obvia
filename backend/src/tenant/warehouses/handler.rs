@@ -229,9 +229,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let warehouse = Warehouse {
             id: warehouse_id,
@@ -300,7 +300,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -340,7 +340,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -380,7 +380,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
         let app_state = MockWarehousesModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -406,8 +406,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let mut repo = MockWarehousesRepository::new();
         repo.expect_get_by_id()
@@ -462,9 +462,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let warehouse_resolved = WarehouseResolved {
             id: warehouse_id,
@@ -534,7 +534,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -574,7 +574,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -614,7 +614,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
         let app_state = MockWarehousesModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -639,8 +639,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let mut repo = MockWarehousesRepository::new();
         repo.expect_get_resolved_by_id()
@@ -695,9 +695,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let paginator_meta = PaginatorMeta {
             page: 1,
@@ -874,7 +874,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_list_not_found() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockWarehousesRepository::new();
         repo.expect_get_paged()
@@ -931,10 +931,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let warehouse = Warehouse {
             id: warehouse_id,
@@ -1022,8 +1022,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = WarehouseUserInputHelper {
             id: None,
@@ -1205,10 +1205,10 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let warehouse = Warehouse {
             id: warehouse_id,
@@ -1287,8 +1287,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = WarehouseUserInputHelper {
             id: None,
@@ -1340,7 +1340,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = WarehouseUserInputHelper {
             id: Some(warehouse_id.to_string()),
@@ -1389,7 +1389,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = WarehouseUserInputHelper {
             id: Some(warehouse_id.to_string()),
@@ -1438,7 +1438,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = WarehouseUserInputHelper {
             id: Some(warehouse_id.to_string()),
@@ -1473,9 +1473,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_delete_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
         let mut repo = MockWarehousesRepository::new();
 
         repo.expect_delete_by_id()
@@ -1531,8 +1531,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1571,7 +1571,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1611,7 +1611,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1651,7 +1651,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let app_state = MockWarehousesModule::new();
         let request = Request::builder()
@@ -1678,7 +1678,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_success() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let warehouse_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
         let test_time: DateTime<Utc> = "2026-01-02T11:11:11Z".parse().unwrap();
@@ -1780,7 +1780,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_expired() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1821,7 +1821,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_invalid_signature() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1862,7 +1862,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_missing() {
-        let warehouse_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

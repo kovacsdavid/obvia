@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn valid_comment_user_input() {
-        let commentable_id = Uuid::new_v4();
+        let commentable_id = Uuid::now_v7();
         let cui = CommentUserInput::try_from(CommentUserInputHelper {
             id: None,
             commentable_type: String::from("customers"),

@@ -105,7 +105,7 @@ pub fn test_inventory_resolved_print_builder(
 ) -> InventoryResolvedPrintBuilder {
     let mut builder = InventoryResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .product(product_resolved_print)
         .warehouse(warehouse_resolved_print)
         .quantity_on_hand("10".parse().unwrap())
@@ -116,7 +116,7 @@ pub fn test_inventory_resolved_print_builder(
         .currency_code("HUF".parse().unwrap())
         .currency("Forint".parse().unwrap())
         .status("active".parse().unwrap())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
@@ -135,11 +135,11 @@ mod tests {
 
     #[test]
     fn test_from_inventory_resolved() {
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let unit_of_measure_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

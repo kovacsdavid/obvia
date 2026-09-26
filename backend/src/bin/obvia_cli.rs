@@ -78,13 +78,13 @@ fn init_dev_claims(config: &AppConfig) -> anyhow::Result<Claims> {
     let now = Utc::now();
     let tz: Tz = "Europe/Budapest".parse()?;
     Ok(Claims::new(
-        Uuid::new_v4(),
+        Uuid::now_v7(),
         gen_exp(config.auth().access_token_expiration_mins())?,
         now.timestamp() as usize,
         now.timestamp() as usize,
         "obvia".to_string(),
         "obvia".to_string(),
-        Uuid::new_v4(),
+        Uuid::now_v7(),
         "hu-HU".to_string(),
         tz,
         None,

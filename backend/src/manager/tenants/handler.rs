@@ -170,9 +170,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_managed_success() {
-        let new_tenant_id = Uuid::new_v4();
+        let new_tenant_id = Uuid::now_v7();
         let now = Utc::now();
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let manager_user = ManagerUser {
                     id: sub,
                     email: "testuser@example.com".to_string(),
@@ -437,7 +437,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -478,7 +478,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -519,7 +519,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -547,7 +547,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -588,7 +588,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -629,7 +629,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -655,8 +655,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let sub = Uuid::new_v4();
-        let tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let tenant_id = Uuid::now_v7();
         let mut repo = MockTenantsRepository::new();
         let utc_now = Utc::now();
         let paginator_meta = PaginatorMeta {
@@ -832,8 +832,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_activate_success() {
-        let sub = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockTenantsRepository::new();
         repo.expect_get_user_active_tenant_by_id()
@@ -841,7 +841,7 @@ mod tests {
             .withf(move |user_id, tenant_id| *user_id == sub && *tenant_id == active_tenant_id)
             .returning(|user_id, tenant_id| {
                 Ok(Some(UserTenant {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     tenant_id,
                     role: "owner".to_string(),
@@ -920,7 +920,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_activate_unauthorized_expired() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let test_config = AppConfigBuilder::default().build().unwrap();
 
@@ -967,7 +967,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_activate_unauthorized_invalid_signature() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let test_config = AppConfigBuilder::default().build().unwrap();
 
@@ -1014,7 +1014,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_activate_unauthorized_missing() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let payload = serde_json::to_string(&TenantIdRequest {
             uuid: active_tenant_id,
@@ -1045,8 +1045,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_success() {
-        let sub = Uuid::new_v4();
-        let tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let tenant_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let mut repo = MockTenantsRepository::new();
@@ -1137,7 +1137,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -1178,7 +1178,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header(
@@ -1219,7 +1219,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let tenant_id = Uuid::new_v4();
+        let tenant_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

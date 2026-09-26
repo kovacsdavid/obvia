@@ -303,7 +303,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_success() {
-        let user_id1 = Uuid::new_v4();
+        let user_id1 = Uuid::now_v7();
         let user_id2 = user_id1;
         let user = User {
                 id: user_id1,
@@ -344,10 +344,10 @@ mod tests {
             .returning(|_| Ok(()));
         repo.expect_insert_refresh_token().times(1).returning(|_| {
             Ok(RefreshToken {
-                id: Uuid::new_v4(),
-                user_id: Uuid::new_v4(),
-                family_id: Uuid::new_v4(),
-                jti: Uuid::new_v4(),
+                id: Uuid::now_v7(),
+                user_id: Uuid::now_v7(),
+                family_id: Uuid::now_v7(),
+                jti: Uuid::now_v7(),
                 iat: Utc::now(),
                 exp: Utc::now(),
                 replaced_by: None,
@@ -362,8 +362,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
-                    user_id: Some(Uuid::new_v4()),
+                    id: Uuid::now_v7(),
+                    user_id: Some(Uuid::now_v7()),
                     identifier: Some("test@example.com".to_string()),
                     event_type: AccountEventType::Login,
                     status: AccountEventStatus::Success,
@@ -452,7 +452,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_failure() {
-        let user_id1 = Uuid::new_v4();
+        let user_id1 = Uuid::now_v7();
         let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
             .times(1)
@@ -484,8 +484,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
-                    user_id: Some(Uuid::new_v4()),
+                    id: Uuid::now_v7(),
+                    user_id: Some(Uuid::now_v7()),
                     identifier: Some("test@example.com".to_string()),
                     event_type: AccountEventType::Login,
                     status: AccountEventStatus::Failure,
@@ -549,7 +549,7 @@ mod tests {
         })
         .unwrap();
 
-        let test_user_uuid = Uuid::new_v4();
+        let test_user_uuid = Uuid::now_v7();
         let test_user_uuid_copy = test_user_uuid;
 
         let mut repo = MockAuthRepository::new();
@@ -595,7 +595,7 @@ mod tests {
             .withf(move |user_id| *user_id == test_user_uuid_copy)
             .returning(|user_id| {
                 Ok(EmailVerification {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     valid_until: chrono::Utc::now() + chrono::Duration::days(1),
                     created_at: chrono::Utc::now(),
@@ -699,9 +699,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_login_success_contains_active_tenant_id() {
-        let active_tenant_id1 = Uuid::new_v4();
+        let active_tenant_id1 = Uuid::now_v7();
         let active_tenant_id2 = active_tenant_id1;
-        let user_id1 = Uuid::new_v4();
+        let user_id1 = Uuid::now_v7();
         let user_id2 = user_id1;
         let mut repo = MockAuthRepository::new();
         repo.expect_get_user_by_email()
@@ -732,7 +732,7 @@ mod tests {
             .with(eq(user_id2))
             .returning(move |user_id| {
                 Ok(Some(UserTenant {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     tenant_id: active_tenant_id1,
                     role: "owner".to_string(),
@@ -751,10 +751,10 @@ mod tests {
 
         repo.expect_insert_refresh_token().times(1).returning(|_| {
             Ok(RefreshToken {
-                id: Uuid::new_v4(),
-                user_id: Uuid::new_v4(),
-                family_id: Uuid::new_v4(),
-                jti: Uuid::new_v4(),
+                id: Uuid::now_v7(),
+                user_id: Uuid::now_v7(),
+                family_id: Uuid::now_v7(),
+                jti: Uuid::now_v7(),
                 iat: Utc::now(),
                 exp: Utc::now(),
                 replaced_by: None,
@@ -771,8 +771,8 @@ mod tests {
             .times(1)
             .returning(|_, _, _, _, _, _, _| {
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
-                    user_id: Some(Uuid::new_v4()),
+                    id: Uuid::now_v7(),
+                    user_id: Some(Uuid::now_v7()),
                     identifier: Some("test@example.com".to_string()),
                     event_type: AccountEventType::Login,
                     status: AccountEventStatus::Success,
@@ -833,8 +833,8 @@ mod tests {
     }
     #[tokio::test]
     async fn verify_email_success() {
-        let token = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let token = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
         let mut repo = MockAuthRepository::new();
         repo.expect_get_email_verification()
             .times(1)
@@ -934,7 +934,7 @@ mod tests {
     }
     #[tokio::test]
     async fn verify_email_failure() {
-        let token = Uuid::new_v4();
+        let token = Uuid::now_v7();
         let mut repo = MockAuthRepository::new();
         repo.expect_get_email_verification()
             .times(1)
@@ -974,7 +974,7 @@ mod tests {
     }
     #[tokio::test]
     async fn resend_email_verification_success() {
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::now_v7();
         let valid_user_email = "testuser@example.com".to_string();
         let utc_now = Utc::now();
         let mut repo = MockAuthRepository::new();
@@ -1005,7 +1005,7 @@ mod tests {
             .with(eq(user_id))
             .returning(move |user_id| {
                 Ok(EmailVerification {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     valid_until: utc_now + Duration::days(1),
                     created_at: utc_now,
@@ -1110,7 +1110,7 @@ mod tests {
         let mut repo = MockAuthRepository::new();
         let valid_user_email = "testuser@example.com".to_string();
         let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::now_v7();
         let utc_now = Utc::now();
         repo.expect_account_event_log_by_ip_and_event_type_count()
             .times(1)
@@ -1150,7 +1150,7 @@ mod tests {
             .with(eq(user_id))
             .returning(move |_| {
                 Ok(ForgottenPassword {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     valid_until: utc_now + Duration::days(1),
                     created_at: utc_now,
@@ -1172,7 +1172,7 @@ mod tests {
             .returning(move |user_id, user_email, _, _, _, _, _| {
                 let user_email = user_email.unwrap();
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     identifier: Some(user_email),
                     event_type: AccountEventType::PasswordResetRequest,
@@ -1238,7 +1238,7 @@ mod tests {
         let mut repo = MockAuthRepository::new();
         let valid_user_email = "testuser@example.com".to_string();
         let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::now_v7();
         repo.expect_account_event_log_by_ip_and_event_type_count()
             .times(1)
             .with(eq(ip), eq(AccountEventType::PasswordResetRequest), eq(120))
@@ -1287,7 +1287,7 @@ mod tests {
             .returning(move |user_id, user_email, _, _, _, _, _| {
                 let user_email = user_email.unwrap();
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     identifier: Some(user_email),
                     event_type: AccountEventType::PasswordResetRequest,
@@ -1343,10 +1343,10 @@ mod tests {
     }
     #[tokio::test]
     async fn new_password_success() {
-        let token = Uuid::new_v4();
+        let token = Uuid::now_v7();
         let mut repo = MockAuthRepository::new();
         let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::now_v7();
         repo.expect_account_event_log_by_ip_and_event_type_count()
             .times(1)
             .with(eq(ip), eq(AccountEventType::PasswordChange), eq(120))
@@ -1420,7 +1420,7 @@ mod tests {
             .returning(move |user_id, user_email, _, _, _, _, _| {
                 let user_email = user_email.unwrap();
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     identifier: Some(user_email),
                     event_type: AccountEventType::PasswordChange,
@@ -1475,7 +1475,7 @@ mod tests {
     }
     #[tokio::test]
     async fn new_password_failure() {
-        let token = Uuid::new_v4();
+        let token = Uuid::now_v7();
         let mut repo = MockAuthRepository::new();
         let ip = "127.0.0.1".parse::<IpAddr>().unwrap();
         repo.expect_account_event_log_by_ip_and_event_type_count()
@@ -1502,7 +1502,7 @@ mod tests {
             .returning(move |user_id, user_email, _, _, _, _, _| {
                 let user_email = user_email.unwrap();
                 Ok(AccountEventLogEntry {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id,
                     identifier: Some(user_email),
                     event_type: AccountEventType::PasswordChange,
@@ -1557,15 +1557,15 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_success() {
-        let sub = Uuid::new_v4();
-        let current_jti = Uuid::new_v4();
-        let new_jti = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let current_jti = Uuid::now_v7();
+        let new_jti = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
         let valid_refresh_token = generate_valid_refresh_token(
             Some(sub),
             Some(active_tenant_id),
             Some(current_jti),
-            Some(Uuid::new_v4()),
+            Some(Uuid::now_v7()),
         );
         let user = User {
                 id: sub,
@@ -1601,9 +1601,9 @@ mod tests {
             .with(eq(current_jti))
             .returning(move |jti| {
                 Ok(RefreshToken {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id: sub,
-                    family_id: Uuid::new_v4(),
+                    family_id: Uuid::now_v7(),
                     jti,
                     iat: Utc::now() - Duration::seconds(100),
                     exp: Utc::now() + Duration::seconds(100),
@@ -1617,7 +1617,7 @@ mod tests {
             .with(eq(sub))
             .returning(move |_| {
                 Ok(Some(UserTenant {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id: sub,
                     tenant_id: active_tenant_id,
                     role: "owner".to_string(),
@@ -1633,7 +1633,7 @@ mod tests {
             .withf(move |claims| claims.sub() == sub)
             .returning(move |claims| {
                 Ok(RefreshToken {
-                    id: Uuid::new_v4(),
+                    id: Uuid::now_v7(),
                     user_id: claims.sub(),
                     family_id: claims.family_id().unwrap(),
                     jti: new_jti,
@@ -1663,7 +1663,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -1736,14 +1736,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_unauthorized_expired() {
-        let sub = Uuid::new_v4();
-        let current_jti = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let current_jti = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
         let expired_refresh_token = generate_expired_refresh_token(
             Some(sub),
             Some(active_tenant_id),
             Some(current_jti),
-            Some(Uuid::new_v4()),
+            Some(Uuid::now_v7()),
         );
 
         let mut repo = MockAuthRepository::new();
@@ -1762,7 +1762,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -1844,10 +1844,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_logout_success() {
-        let sub = Uuid::new_v4();
-        let current_jti = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
-        let family_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let current_jti = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
+        let family_id = Uuid::now_v7();
         let valid_refresh_token = generate_valid_refresh_token(
             Some(sub),
             Some(active_tenant_id),
@@ -1875,7 +1875,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -1919,10 +1919,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_logout_success_with_expired_refresh_token() {
-        let sub = Uuid::new_v4();
-        let current_jti = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
-        let family_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let current_jti = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
+        let family_id = Uuid::now_v7();
         let expired_refresh_token = generate_expired_refresh_token(
             Some(sub),
             Some(active_tenant_id),
@@ -1950,7 +1950,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -1994,10 +1994,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_logout_unauthorized_wrong_signature() {
-        let sub = Uuid::new_v4();
-        let current_jti = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
-        let family_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let current_jti = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
+        let family_id = Uuid::now_v7();
         let refresh_token_with_invalid_signature = generate_refresh_token_with_invalid_signature(
             Some(sub),
             Some(active_tenant_id),
@@ -2021,7 +2021,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,

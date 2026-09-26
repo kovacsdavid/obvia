@@ -82,13 +82,13 @@ impl ProductsResolvedPrint {
 pub fn test_product_resolved_print_builder() -> ProductsResolvedPrintBuilder {
     let mut builder = ProductsResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .name("Test product".to_string())
         .description(Some("Test description".to_string()))
-        .unit_of_measure_id(Uuid::new_v4())
+        .unit_of_measure_id(Uuid::now_v7())
         .unit_of_measure("cm".to_string())
         .status("active".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
@@ -106,9 +106,9 @@ mod tests {
 
     #[test]
     fn test_from_product_resolved() {
-        let product_id = Uuid::new_v4();
-        let unit_of_measure_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

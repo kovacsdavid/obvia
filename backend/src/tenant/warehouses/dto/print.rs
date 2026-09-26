@@ -81,12 +81,12 @@ impl WarehouseResolvedPrint {
 pub fn test_warehouse_resolved_print_builder() -> WarehouseResolvedPrintBuilder {
     let mut builder = WarehouseResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .name("Test warehouse".to_string())
         .contact_name(Some("Test Contact".to_string()))
         .contact_phone(Some("+36301234567".to_string()))
         .status("active".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
@@ -103,8 +103,8 @@ mod tests {
 
     #[test]
     fn test_from_warehouse_resolved() {
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

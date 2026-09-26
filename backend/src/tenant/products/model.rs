@@ -69,13 +69,13 @@ pub mod tests {
         let mut builder = ProductResolvedBuilder::default();
 
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test product".to_string())
             .description(Some("Test description".to_string()))
-            .unit_of_measure_id(Uuid::new_v4())
+            .unit_of_measure_id(Uuid::now_v7())
             .unit_of_measure("cm".to_string())
             .status("active".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

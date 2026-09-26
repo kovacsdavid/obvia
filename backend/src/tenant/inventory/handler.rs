@@ -246,11 +246,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let inventory = Inventory {
@@ -325,7 +325,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -365,7 +365,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -405,7 +405,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
         let app_state = MockInventoryModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -431,8 +431,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
 
         let mut repo = MockInventoryRepository::new();
         repo.expect_get_by_id()
@@ -487,11 +487,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let inventory_resolved = InventoryResolved {
@@ -570,7 +570,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -610,7 +610,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -650,7 +650,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
         let app_state = MockInventoryModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -676,8 +676,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
 
         let mut repo = MockInventoryRepository::new();
         repo.expect_get_resolved_by_id()
@@ -732,11 +732,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let paginator_meta = PaginatorMeta {
@@ -923,7 +923,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_not_found() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockInventoryRepository::new();
         repo.expect_get_paged()
@@ -980,12 +980,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = InventoryUserInputHelper {
@@ -1082,10 +1082,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_invalid_user_input() {
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: None,
@@ -1142,8 +1142,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: None,
@@ -1194,8 +1194,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: None,
@@ -1246,8 +1246,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: None,
@@ -1285,12 +1285,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = InventoryUserInputHelper {
@@ -1376,10 +1376,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: None,
@@ -1433,9 +1433,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: Some(inventory_id.to_string()),
@@ -1486,9 +1486,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: Some(inventory_id.to_string()),
@@ -1539,9 +1539,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
 
         let user_input_helper = InventoryUserInputHelper {
             id: Some(inventory_id.to_string()),
@@ -1579,9 +1579,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
         let mut repo = MockInventoryRepository::new();
 
         repo.expect_delete_by_id()
@@ -1637,8 +1637,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1677,7 +1677,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1717,7 +1717,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1757,7 +1757,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let app_state = MockInventoryModule::new();
         let request = Request::builder()
@@ -1784,7 +1784,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_success() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let inventory_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let product_id = "0237354a-21ab-46f4-a4ca-b21cb08561d7".parse().unwrap();
         let warehouse_id = "521f9728-f59f-435d-8656-69ba4273254c".parse().unwrap();
@@ -1927,7 +1927,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1968,7 +1968,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2009,7 +2009,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

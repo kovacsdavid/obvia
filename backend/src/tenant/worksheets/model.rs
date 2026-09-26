@@ -68,14 +68,14 @@ pub mod tests {
     pub fn test_worksheet_resolved_builder() -> WorksheetResolvedBuilder {
         let mut builder = WorksheetResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test worksheet".to_string())
             .description(Some("Test description".to_string()))
-            .customer_id(Uuid::new_v4())
+            .customer_id(Uuid::now_v7())
             .customer("Test Customer".to_string())
             .project_id(None)
             .project(None)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .status("active".to_string())
             .created_at(*TEST_TIME)

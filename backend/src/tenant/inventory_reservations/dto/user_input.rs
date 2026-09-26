@@ -205,8 +205,8 @@ mod tests {
 
     #[test]
     fn valid_inventory_reservations_user_input() {
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
         let valid_date = Utc::now()
             .checked_add_days(Days::new(1))
             .unwrap()
@@ -233,7 +233,7 @@ mod tests {
 
     #[test]
     fn invalid_inventory_reservations_user_input() {
-        let reference_id = Uuid::new_v4();
+        let reference_id = Uuid::now_v7();
         let invalid_date = Utc::now()
             .checked_sub_days(Days::new(1))
             .unwrap()

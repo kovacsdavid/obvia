@@ -61,14 +61,14 @@ pub mod tests {
     pub fn test_inventory_reservation_resolved_builder() -> InventoryReservationResolvedBuilder {
         let mut builder = InventoryReservationResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
-            .inventory_id(Uuid::new_v4())
+            .id(Uuid::now_v7())
+            .inventory_id(Uuid::now_v7())
             .quantity("10".parse().unwrap())
             .reference_type(Some("worksheets".to_string()))
-            .reference_id(Some(Uuid::new_v4()))
+            .reference_id(Some(Uuid::now_v7()))
             .reserved_until(Some(*TEST_TIME))
             .status("active".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME);

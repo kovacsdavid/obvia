@@ -102,14 +102,14 @@ impl CustomerFullPrint {
 pub fn test_customer_full_print_builder() -> CustomerFullPrintBuilder {
     let mut builder = CustomerFullPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .name("Test Customer".to_string())
         .contact_name(None)
         .email("test.customer@example.com".to_string())
         .phone_number(Some("+36301234567".to_string()))
         .status("Aktív".to_string())
         .customer_type("Természetes személy".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .billing_address(Some(
             test_address_resolved_builder().build().unwrap().to_string(),
@@ -132,8 +132,8 @@ mod tests {
 
     #[test]
     fn test_from_customer_resolved() {
-        let customer_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let customer_resolved = test_customer_full_builder()
             .id(customer_id)
             .created_by_id(created_by_id)

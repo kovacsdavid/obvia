@@ -102,14 +102,14 @@ pub fn test_inventory_reservation_resolved_print_builder(
 ) -> InventoryReservationResolvedPrintBuilder {
     let mut builder = InventoryReservationResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .inventory(inventory_resolved_print)
         .quantity("10".parse().unwrap())
         .reference_type(Some("Munkalap".to_string()))
-        .reference_id(Some(Uuid::new_v4()))
+        .reference_id(Some(Uuid::now_v7()))
         .reserved_until(Some(TEST_TIME_TZ.clone()))
         .status("Aktív".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone());
@@ -134,10 +134,10 @@ mod tests {
 
     #[test]
     fn test_from_inventory_reservation_resolved() {
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Some(Uuid::new_v4());
-        let created_by_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Some(Uuid::now_v7());
+        let created_by_id = Uuid::now_v7();
         let inventory_resolved_print = test_inventory_resolved_print_builder(
             test_product_resolved_print_builder().build().unwrap(),
             test_warehouse_resolved_print_builder().build().unwrap(),

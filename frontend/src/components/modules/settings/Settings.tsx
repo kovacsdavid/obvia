@@ -30,7 +30,7 @@ import OwnerProfile from "@/components/modules/settings/owner_profile/OwnerProfi
 export default function Settings() {
     return (
         <>
-            <Card>
+            <Card className={"max-w-lg mx-auto"}>
                 <CardHeader>
                     <CardTitle>Beállítások</CardTitle>
                 </CardHeader>

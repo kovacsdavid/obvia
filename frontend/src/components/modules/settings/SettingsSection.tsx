@@ -44,7 +44,7 @@ export default function SettingsSection({
 
             <div className="mt-5 mb-8">{children}</div>
 
-            <Separator className="mt-6" />
+            <Separator className="mt-5 mb-8" />
         </section>
     );
 }

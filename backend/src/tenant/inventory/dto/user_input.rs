@@ -184,8 +184,8 @@ mod tests {
 
     #[test]
     fn valid_inventory_user_input() {
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
         let iui = InventoryUserInput::try_from(InventoryUserInputHelper {
             id: None,
             product_id: product_id.to_string(),

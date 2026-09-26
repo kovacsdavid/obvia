@@ -250,8 +250,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let customer = test_customer_builder().id(customer_id).build().unwrap();
 
@@ -310,7 +310,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -350,7 +350,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -390,7 +390,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
         let app_state = MockCustomersModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -415,8 +415,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_by_id()
@@ -471,8 +471,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let customer_resolved = test_customer_resolved_builder()
             .id(customer_id)
@@ -534,7 +534,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -574,7 +574,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -614,7 +614,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
         let app_state = MockCustomersModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -639,8 +639,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_resolved_by_id()
@@ -695,10 +695,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_full_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
-        let billing_address_id = Uuid::new_v4();
-        let mailing_address_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
+        let billing_address_id = Uuid::now_v7();
+        let mailing_address_id = Uuid::now_v7();
 
         let customer_full = test_customer_full_builder()
             .id(customer_id)
@@ -773,7 +773,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_full_unauthorized_expired() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -813,7 +813,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_full_unauthorized_invalid_signature() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -853,7 +853,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_full_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
         let app_state = MockCustomersModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -878,8 +878,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_full_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_full()
@@ -934,8 +934,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let paginator_meta = PaginatorMeta {
             page: 1,
@@ -1133,7 +1133,7 @@ mod tests {
     }
     #[tokio::test]
     async fn test_list_not_found() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockCustomersRepository::new();
         repo.expect_get_paged()
@@ -1190,9 +1190,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -1276,8 +1276,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -1475,9 +1475,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
 
         let user_input_helper = CustomerUserInputHelper {
             id: Some(customer_id.to_string()),
@@ -1550,8 +1550,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = CustomerUserInputHelper {
             id: None,
@@ -1745,9 +1745,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_delete_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let customer_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
         let mut repo = MockCustomersRepository::new();
 
         repo.expect_delete_by_id()
@@ -1801,8 +1801,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1841,7 +1841,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1881,7 +1881,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1921,7 +1921,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let app_state = MockCustomersModule::new();
         let request = Request::builder()
@@ -1948,7 +1948,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_success() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let customer_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
 
         let customer_full = test_customer_full_builder()
@@ -2037,7 +2037,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_expired() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2078,7 +2078,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_invalid_signature() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2119,7 +2119,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_missing() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

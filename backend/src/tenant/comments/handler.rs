@@ -72,11 +72,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let comment_id = Uuid::new_v4();
-        let commentable_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let comment_id = Uuid::now_v7();
+        let commentable_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = CommentUserInputHelper {
@@ -161,9 +161,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let commentable_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let commentable_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = CommentUserInputHelper {
             id: None,
@@ -217,7 +217,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_unauthorized_expired() {
-        let commentable_id = Uuid::new_v4();
+        let commentable_id = Uuid::now_v7();
 
         let user_input_helper = CommentUserInputHelper {
             id: None,
@@ -265,7 +265,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_unauthorized_invalid_signature() {
-        let commentable_id = Uuid::new_v4();
+        let commentable_id = Uuid::now_v7();
 
         let user_input_helper = CommentUserInputHelper {
             id: None,
@@ -313,7 +313,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_post_unauthorized_missing() {
-        let commentable_id = Uuid::new_v4();
+        let commentable_id = Uuid::now_v7();
         let user_input_helper = CommentUserInputHelper {
             id: None,
             commentable_type: "worksheets".to_string(),

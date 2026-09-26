@@ -95,7 +95,7 @@ pub mod tests {
         let config = AppConfigBuilder::default().build().unwrap();
         let sub = match sub {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -108,7 +108,7 @@ pub mod tests {
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -120,8 +120,8 @@ pub mod tests {
 
     pub fn generate_expired_jwt() -> String {
         let config = AppConfigBuilder::default().build().unwrap();
-        let sub = Uuid::new_v4();
-        let active_tenant_id = Some(Uuid::new_v4());
+        let sub = Uuid::now_v7();
+        let active_tenant_id = Some(Uuid::now_v7());
         let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
@@ -133,7 +133,7 @@ pub mod tests {
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -146,8 +146,8 @@ pub mod tests {
     pub fn generate_jwt_with_invalid_signature() -> String {
         let config = AppConfigBuilder::default().build().unwrap();
         let wrong_signature = config.auth().jwt_secret().chars().rev().collect::<String>();
-        let sub = Uuid::new_v4();
-        let active_tenant_id = Some(Uuid::new_v4());
+        let sub = Uuid::now_v7();
+        let active_tenant_id = Some(Uuid::now_v7());
         let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
@@ -159,7 +159,7 @@ pub mod tests {
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             format!("{}-api", config.auth().jwt_audience()),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -178,11 +178,11 @@ pub mod tests {
         let config = AppConfigBuilder::default().build().unwrap();
         let sub = match sub {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let jti = match jti {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -214,11 +214,11 @@ pub mod tests {
         let config = AppConfigBuilder::default().build().unwrap();
         let sub = match sub {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let jti = match jti {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -251,11 +251,11 @@ pub mod tests {
         let wrong_signature = config.auth().jwt_secret().chars().rev().collect::<String>();
         let sub = match sub {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let jti = match jti {
             Some(v) => v,
-            None => Uuid::new_v4(),
+            None => Uuid::now_v7(),
         };
         let exp = (Utc::now() + Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();

@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn valid_activity_feed_raw_query() {
-        let uuid = Uuid::new_v4();
+        let uuid = Uuid::now_v7();
         let afrq = ActivityFeedRawQuery {
             resource_id: uuid,
             resource_type: String::from("customers"),

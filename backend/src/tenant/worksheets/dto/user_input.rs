@@ -171,7 +171,7 @@ mod tests {
 
     #[test]
     fn valid_user_input() {
-        let customer_id = Uuid::new_v4();
+        let customer_id = Uuid::now_v7();
         let user_input = WorksheetUserInput::try_from(WorksheetUserInputHelper {
             id: None,
             name: String::from("Worksheet 1"),

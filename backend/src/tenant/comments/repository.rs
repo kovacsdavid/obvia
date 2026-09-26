@@ -60,7 +60,7 @@ impl CommentsRepository for PgPool {
             ) RETURNING *
         "#,
         )
-        .bind(Uuid::new_v4())
+        .bind(Uuid::now_v7())
         .bind(comment_user_input.commentable_type.as_str()?)
         .bind(comment_user_input.commentable_id.as_uuid()?)
         .bind(comment_user_input.comment.as_str()?)

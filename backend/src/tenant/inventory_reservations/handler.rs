@@ -284,11 +284,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Some(Uuid::new_v4());
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Some(Uuid::now_v7());
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let inventory_reservation = InventoryReservation {
             id: inventory_reservation_id,
@@ -360,7 +360,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_expired() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -402,7 +402,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_invalid_signature() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -444,7 +444,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_unauthorized_missing() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
         let app_state = MockInventoryReservationsModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -471,8 +471,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_by_id()
@@ -529,11 +529,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Some(Uuid::new_v4());
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Some(Uuid::now_v7());
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let inventory_reservation_resolved = InventoryReservationResolved {
             id: inventory_reservation_id,
@@ -606,7 +606,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_expired() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -648,7 +648,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_invalid_signature() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -690,7 +690,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_resolved_unauthorized_missing() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
         let app_state = MockInventoryReservationsModule::new();
         let request = Request::builder()
             .header("Content-Type", "application/json")
@@ -717,8 +717,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_get_resolved_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_resolved_by_id()
@@ -775,11 +775,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Some(Uuid::new_v4());
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Some(Uuid::now_v7());
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
         let paginator_meta = PaginatorMeta {
             page: 1,
@@ -864,7 +864,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -906,7 +906,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -948,7 +948,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
 
         let app_state = MockInventoryReservationsModule::new();
         let request = Request::builder()
@@ -976,8 +976,8 @@ mod tests {
     }
     #[tokio::test]
     async fn test_list_not_found() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
 
         let mut repo = MockInventoryReservationsRepository::new();
         repo.expect_get_paged()
@@ -1038,12 +1038,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = InventoryReservationUserInputHelper {
@@ -1138,10 +1138,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: None,
@@ -1199,8 +1199,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_expired() {
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: None,
@@ -1251,8 +1251,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_invalid_signature() {
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: None,
@@ -1303,8 +1303,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_unauthorized_missing() {
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: None,
@@ -1341,12 +1341,12 @@ mod tests {
     }
     #[tokio::test]
     async fn test_update_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = InventoryReservationUserInputHelper {
@@ -1429,10 +1429,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let user_input_helper = InventoryReservationUserInputHelper {
@@ -1487,9 +1487,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: Some(inventory_reservation_id.to_string()),
@@ -1540,9 +1540,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: Some(inventory_reservation_id.to_string()),
@@ -1593,9 +1593,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
-        let inventory_reservation_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
 
         let user_input_helper = InventoryReservationUserInputHelper {
             id: Some(inventory_reservation_id.to_string()),
@@ -1632,9 +1632,9 @@ mod tests {
     }
     #[tokio::test]
     async fn test_delete_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
-        let inventory_reservation_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_reservation_id = Uuid::now_v7();
         let mut repo = MockInventoryReservationsRepository::new();
 
         repo.expect_delete_by_id()
@@ -1692,8 +1692,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_invalid_user_input() {
-        let active_tenant_id = Uuid::new_v4();
-        let user_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1732,7 +1732,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_expired() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1774,7 +1774,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_invalid_signature() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -1816,7 +1816,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_unauthorized_missing() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let app_state = MockInventoryReservationsModule::new();
         let request = Request::builder()
@@ -1845,7 +1845,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_success() {
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let inventory_reservation_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let inventory_id = "ac55ca9c-2cd1-4cdf-8b44-ed4df798c750".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
@@ -2021,7 +2021,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_expired() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2064,7 +2064,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_invalid_signature() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
         let test_config = AppConfigBuilder::default().build().unwrap();
@@ -2107,7 +2107,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_print_unauthorized_missing() {
-        let inventory_reservation_id = Uuid::new_v4();
+        let inventory_reservation_id = Uuid::now_v7();
 
         let request = Request::builder()
             .header("Content-Type", "application/json")

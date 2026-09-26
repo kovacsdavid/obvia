@@ -114,7 +114,7 @@ impl AuthRepository for PgPool {
                     id, email, password_hash, first_name, last_name, status
             ) VALUES ($1, $2, $3, $4, $5, 'unchecked_email') RETURNING *",
         )
-        .bind(Uuid::new_v4())
+        .bind(Uuid::now_v7())
         .bind(payload.email.as_str()?)
         .bind(password_hash)
         .bind(payload.first_name.as_str()?)

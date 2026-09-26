@@ -237,9 +237,9 @@ mod tests {
 
     #[test]
     fn valid_user_input() {
-        let worksheet_id = Uuid::new_v4();
-        let service_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
+        let worksheet_id = Uuid::now_v7();
+        let service_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
         let due_date = Utc::now()
             .checked_add_days(Days::new(1))
             .unwrap()

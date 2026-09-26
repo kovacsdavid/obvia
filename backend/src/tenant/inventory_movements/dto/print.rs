@@ -104,18 +104,18 @@ pub fn test_inventory_movement_resolved_print_builder(
 ) -> InventoryMovementsResolvedPrintBuilder {
     let mut builder = InventoryMovementsResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .inventory(inventory_resolved_print)
         .movement_type("Bevétel".to_string())
         .quantity("10".parse().unwrap())
         .reference_type(Some("Munkalap".to_string()))
-        .reference_id(Some(Uuid::new_v4()))
+        .reference_id(Some(Uuid::now_v7()))
         .unit_price(Some("20".parse().unwrap()))
         .total_price(Some("30".parse().unwrap()))
-        .tax_id(Uuid::new_v4())
+        .tax_id(Uuid::now_v7())
         .tax(Some("Test tax".to_string()))
         .movement_date(TEST_TIME_TZ.clone())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(TEST_TIME_TZ.clone());
 
@@ -136,14 +136,14 @@ mod tests {
 
     #[test]
     fn test_from_inventory_movements_resolved() {
-        let inventory_movement_id = Uuid::new_v4();
-        let inventory_id = Uuid::new_v4();
-        let reference_id = Some(Uuid::new_v4());
-        let tax_id = Uuid::new_v4();
-        let product_id = Uuid::new_v4();
-        let warehouse_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
-        let unit_of_measure_id = Uuid::new_v4();
+        let inventory_movement_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Some(Uuid::now_v7());
+        let tax_id = Uuid::now_v7();
+        let product_id = Uuid::now_v7();
+        let warehouse_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
+        let unit_of_measure_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

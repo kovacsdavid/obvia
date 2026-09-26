@@ -109,14 +109,14 @@ pub fn test_task_resolved_print_builder(
 ) -> TaskResolvedPrintBuilder {
     let mut builder = TaskResolvedPrintBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .service(service_resolved_print)
         .currency_code("HUF".to_string())
         .quantity(Some("10".parse().unwrap()))
         .price(Some("1000".parse().unwrap()))
-        .tax_id(Uuid::new_v4())
+        .tax_id(Uuid::now_v7())
         .tax("Test tax".to_string())
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .status("active".to_string())
         .priority(Some("normal".to_string()))
@@ -144,9 +144,9 @@ mod tests {
 
     #[test]
     fn test_task_resolved_print_from_task_resolved() {
-        let task_id = Uuid::new_v4();
-        let tax_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let task_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let task_resolved = test_task_resolved_builder()
             .id(task_id)
             .tax_id(tax_id)

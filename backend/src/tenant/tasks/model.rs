@@ -77,17 +77,17 @@ pub mod tests {
     pub fn test_task_resolved_builder() -> TaskResolvedBuilder {
         let mut builder = TaskResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
-            .worksheet_id(Uuid::new_v4())
+            .id(Uuid::now_v7())
+            .worksheet_id(Uuid::now_v7())
             .worksheet("Test worksheet".to_string())
-            .service_id(Uuid::new_v4())
+            .service_id(Uuid::now_v7())
             .service("Test service".to_string())
             .currency_code("HUF".to_string())
             .quantity(Some("10".parse().unwrap()))
             .price(Some("1000".parse().unwrap()))
-            .tax_id(Uuid::new_v4())
+            .tax_id(Uuid::now_v7())
             .tax("Test tax".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .status("active".to_string())
             .priority(Some("normal".to_string()))

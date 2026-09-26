@@ -461,7 +461,7 @@ where
             user.timezone()?,
             active_tenant_id,
             self.module().config().auth().jwt_secret().as_bytes(),
-            Some(Uuid::new_v4()),
+            Some(Uuid::now_v7()),
         ) {
             Ok(v) => v,
             Err(e) => {
@@ -1570,7 +1570,7 @@ fn gen_jwt(
         nbf,
         iss,
         aud,
-        Uuid::new_v4(),
+        Uuid::now_v7(),
         loc,
         tz,
         family_id,

@@ -311,13 +311,13 @@ mod tests {
         let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -350,13 +350,13 @@ mod tests {
         let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -384,13 +384,13 @@ mod tests {
         let nbf = Utc::now().add(Duration::from_secs(61)).timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -418,13 +418,13 @@ mod tests {
         let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -453,13 +453,13 @@ mod tests {
         let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -488,13 +488,13 @@ mod tests {
         let nbf = Utc::now().timestamp();
 
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,
@@ -523,15 +523,15 @@ mod tests {
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
         let nbf = Utc::now().timestamp();
-        let active_tenant_uuid = Uuid::new_v4();
+        let active_tenant_uuid = Uuid::now_v7();
         let claims = Claims::new(
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             usize::try_from(exp).unwrap(),
             usize::try_from(iat).unwrap(),
             usize::try_from(nbf).unwrap(),
             config.auth().jwt_issuer().to_string(),
             config.auth().jwt_audience().to_string(),
-            Uuid::new_v4(),
+            Uuid::now_v7(),
             "hu-HU".to_string(),
             "Europe/Budapest".parse().unwrap(),
             None,

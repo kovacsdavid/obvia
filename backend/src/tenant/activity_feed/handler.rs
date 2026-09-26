@@ -95,13 +95,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_success() {
-        let active_tenant_id = Uuid::new_v4();
-        let activity_feed_id = Uuid::new_v4();
-        let resource_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
+        let activity_feed_id = Uuid::now_v7();
+        let resource_id = Uuid::now_v7();
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
-        let created_by_id = Uuid::new_v4();
+        let created_by_id = Uuid::now_v7();
         let utc_now = Utc::now();
 
         let paginator_meta = PaginatorMeta {
@@ -183,7 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
-        let resource_id = Uuid::new_v4();
+        let resource_id = Uuid::now_v7();
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
@@ -228,7 +228,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
-        let resource_id = Uuid::new_v4();
+        let resource_id = Uuid::now_v7();
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
@@ -273,7 +273,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_unauthorized_missing() {
-        let resource_id = Uuid::new_v4();
+        let resource_id = Uuid::now_v7();
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
@@ -304,11 +304,11 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_not_found() {
-        let resource_id = Uuid::new_v4();
+        let resource_id = Uuid::now_v7();
         let resource_type = "worksheets"
             .parse::<ValueObjectRequired<ResourceType>>()
             .unwrap();
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockActivityFeedRepository::new();
         repo.expect_get_paged()

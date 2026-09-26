@@ -104,8 +104,8 @@ mod tests {
 
     #[test]
     fn test_from_tax_resolved() {
-        let tax_id = Uuid::new_v4();
-        let created_by_id = Uuid::new_v4();
+        let tax_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
         let input_date: DateTime<Utc> = "2026-01-01T01:00:00Z".parse().unwrap();
         let tz: Tz = "Europe/Budapest".parse().unwrap();
         let output_date = "2026. 01. 01. 02:00:00 (Europe/Budapest)".to_string();

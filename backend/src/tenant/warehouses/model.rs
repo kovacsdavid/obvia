@@ -60,12 +60,12 @@ pub mod tests {
         let mut builder = WarehouseResolvedBuilder::default();
 
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test warehouse".to_string())
             .contact_name(Some("Test Contact".to_string()))
             .contact_phone(Some("+36301234567".to_string()))
             .status("active".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

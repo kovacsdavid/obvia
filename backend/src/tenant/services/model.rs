@@ -65,7 +65,7 @@ pub mod tests {
     pub fn test_service_resolved_builder() -> ServiceResolvedBuilder {
         let mut builder = ServiceResolvedBuilder::default();
         builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .name("Test service".to_string())
             .description(Some("Test description".to_string()))
             .default_price(None)
@@ -73,7 +73,7 @@ pub mod tests {
             .default_tax(None)
             .currency_code(Some("HUF".to_string()))
             .status("active".to_string())
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

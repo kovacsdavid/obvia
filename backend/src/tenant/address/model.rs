@@ -224,7 +224,7 @@ impl Display for AddressResolved {
 pub fn test_address_resolved_builder() -> AddressResolvedBuilder {
     let mut builder = AddressResolvedBuilder::default();
     builder
-        .id(Uuid::new_v4())
+        .id(Uuid::now_v7())
         .address_type("billing".to_string())
         .country_code("HU".to_string())
         .country("Magyarország".to_string())
@@ -239,7 +239,7 @@ pub fn test_address_resolved_builder() -> AddressResolvedBuilder {
         .stairway(Some("B".to_string()))
         .floor(Some("1".to_string()))
         .door(Some("2".to_string()))
-        .created_by_id(Uuid::new_v4())
+        .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
         .created_at(*TEST_TIME)
         .updated_at(*TEST_TIME)
@@ -259,7 +259,7 @@ pub mod tests {
         let expected = "HU1132 Budapest, Váci út 1111. A épület, B lépcsőház, 1. emelet, 2. ajtó";
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
@@ -273,7 +273,7 @@ pub mod tests {
             .stairway(Some("B".to_string()))
             .floor(Some("1".to_string()))
             .door(Some("2".to_string()))
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -288,7 +288,7 @@ pub mod tests {
         let expected = "HU1132 Budapest, PF. 123";
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
@@ -302,7 +302,7 @@ pub mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -317,7 +317,7 @@ pub mod tests {
         let expected = "HU1132 Budapest, HRSZ.: 123";
         let mut address_builder = AddressBuilder::default();
         let address = address_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .postal_code("1132".to_string())
@@ -331,7 +331,7 @@ pub mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
             .deleted_at(None)
@@ -347,7 +347,7 @@ pub mod tests {
             "Magyarország HU1132 Budapest, Váci út 1111. A épület, B lépcsőház, 1. emelet, 2. ajtó";
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
@@ -362,7 +362,7 @@ pub mod tests {
             .stairway(Some("B".to_string()))
             .floor(Some("1".to_string()))
             .door(Some("2".to_string()))
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
@@ -378,7 +378,7 @@ pub mod tests {
         let expected = "Magyarország HU1132 Budapest, PF. 123";
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
@@ -393,7 +393,7 @@ pub mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
@@ -409,7 +409,7 @@ pub mod tests {
         let expected = "Magyarország HU1132 Budapest, HRSZ.: 123";
         let mut address_resolved_builder = AddressResolvedBuilder::default();
         let address_resolved = address_resolved_builder
-            .id(Uuid::new_v4())
+            .id(Uuid::now_v7())
             .address_type("billing".to_string())
             .country_code("HU".to_string())
             .country("Magyarország".to_string())
@@ -424,7 +424,7 @@ pub mod tests {
             .stairway(None)
             .floor(None)
             .door(None)
-            .created_by_id(Uuid::new_v4())
+            .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)

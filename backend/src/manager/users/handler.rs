@@ -143,8 +143,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_enable_success() {
-        let sub = Uuid::new_v4();
-        let active_tenant_id = Uuid::new_v4();
+        let sub = Uuid::now_v7();
+        let active_tenant_id = Uuid::now_v7();
 
         let mut repo = MockUsersRepository::new();
         repo.expect_get_user_by_id()
@@ -340,9 +340,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_verify_success() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let mut users_repo = MockUsersRepository::new();
 
         let user = User {
@@ -409,7 +409,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -480,9 +480,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_verify_invalid_user_input() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let mut users_repo = MockUsersRepository::new();
 
         let user = User {
@@ -538,7 +538,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -612,7 +612,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_verify_unauthorized_expired() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {
@@ -683,7 +683,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_verify_unauthorized_invalid_signature() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {
@@ -754,7 +754,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_verify_unauthorized_missing() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {
@@ -812,9 +812,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_disable_success() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let mut users_repo = MockUsersRepository::new();
 
         let user = User {
@@ -881,7 +881,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -952,9 +952,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_disable_invalid_user_input() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
-        let active_tenant_id = Uuid::new_v4();
+        let active_tenant_id = Uuid::now_v7();
         let mut users_repo = MockUsersRepository::new();
 
         let user = User {
@@ -1019,7 +1019,7 @@ mod tests {
                 |user_id, identifier, event_type, status, ip_address, user_agent, metadata| {
                     let ip_address = Some(ipnetwork::IpNetwork::from(ip_address.unwrap()));
                     Ok(AccountEventLogEntry {
-                        id: Uuid::new_v4(),
+                        id: Uuid::now_v7(),
                         user_id,
                         identifier,
                         event_type,
@@ -1093,7 +1093,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_disable_unauthorized_expired() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {
@@ -1164,7 +1164,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_disable_unauthorized_invalid_signature() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {
@@ -1235,7 +1235,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_otp_disable_unauthorized_missing() {
-        let sub = Uuid::new_v4();
+        let sub = Uuid::now_v7();
         let user_email = "testuser@example.com".to_string();
 
         let user = User {

@@ -98,7 +98,7 @@ export function isCustomerFull(data: unknown): data is CustomerFull {
     );
 }
 
-export function isCustomerResolvedResponse(
+export function isCustomerFullResponse(
     data: unknown,
 ): data is CustomerFullResponse {
     return isCommonResponse(data, isCustomerFull, isSimpleError);

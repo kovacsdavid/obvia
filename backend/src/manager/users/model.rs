@@ -80,7 +80,10 @@ impl User {
             .clone()
             .ok_or_else(|| UserModelError::MfaToken("missing mfa_secret".to_string()))?;
         let totp: Totp = Builder::new()
-            .with_secret(Secret::from(secret.as_bytes()))
+            .with_secret(
+                Secret::try_from_base32(secret)
+                    .map_err(|e| UserModelError::MfaToken(e.to_string()))?,
+            )
             .build()
             .map_err(|e| UserModelError::MfaToken(e.to_string()))?;
         Ok(totp.generate_current().to_string())

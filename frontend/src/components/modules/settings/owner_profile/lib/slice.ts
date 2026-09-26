@@ -31,13 +31,13 @@ const initialState: OwnerProfileState = {
     status: "idle",
 };
 
-export const get = createAsyncThunk(
-    "owner_profile/get",
-    async (requestData: OwnerProfileUserInput, { getState, dispatch }) => {
+export const get_full = createAsyncThunk(
+    "owner_profile/get_full",
+    async (_, { getState, dispatch }) => {
         await dispatch(refreshAccessToken());
         const rootState = getState() as RootState;
         const token = rootState.auth.login.token;
-        return await ownerProfileApi.get(requestData, token);
+        return await ownerProfileApi.get_full(token);
     },
 );
 

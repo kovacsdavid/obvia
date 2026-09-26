@@ -27,7 +27,11 @@ import {
 } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import { useNavigate } from "react-router";
-import { get, update } from "@/components/modules/settings/lib/slice.ts";
+import {
+    get_full,
+    update,
+} from "@/components/modules/settings/owner_profile/lib/slice.ts";
+import { type OwnerProfileErrors } from "@/components/modules/settings/owner_profile/lib/interface";
 import {
     Select,
     SelectContent,
@@ -67,8 +71,8 @@ export default function OwnerProfile() {
         useFormErrorV2<OwnerProfileErrors>();
 
     useEffect(() => {
-        dispatch(get()).then(async (response) => {
-            if (get.fulfilled.match(response)) {
+        dispatch(get_full()).then(async (response) => {
+            if (get_full.fulfilled.match(response)) {
                 if (response.payload.statusCode === 200) {
                     if (
                         typeof response.payload.jsonData?.data !== "undefined"
@@ -112,6 +116,7 @@ export default function OwnerProfile() {
                 contactName,
                 email,
                 phoneNumber,
+                ownerProfileType,
                 billingAddress,
                 mailingAddress,
             }),

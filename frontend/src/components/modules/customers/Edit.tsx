@@ -57,7 +57,10 @@ import {
     type Address as AddressInterface,
     type AddressErrors,
 } from "@/components/modules/address/lib/interface";
-import { normalizeAddress } from "@/components/modules/address/lib/utils";
+import {
+    normalizeAddress,
+    defaultAddress,
+} from "@/components/modules/address/lib/utils";
 import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
 
 interface EditProps {
@@ -79,22 +82,6 @@ export default function Edit({
     const [email, setEmail] = React.useState("");
     const [phoneNumber, setPhoneNumber] = React.useState("");
     const [status, setStatus] = React.useState<string | undefined>("active");
-    const defaultAddress = () => ({
-        id: "",
-        type: "full_address",
-        country_code: "HU",
-        postal_code: "",
-        settlement: "",
-        mailbox: "",
-        topographic_number: "",
-        name_of_public_space: "",
-        type_of_public_space: "",
-        house_number: "",
-        building: "",
-        stairway: "",
-        floor: "",
-        door: "",
-    });
     const [billingAddress, setBillingAddress] = React.useState<
         AddressInterface | null | undefined
     >(defaultAddress());

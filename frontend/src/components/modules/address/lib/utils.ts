@@ -35,3 +35,20 @@ export function normalizeAddress(address: Address | null): Address | null {
         door: address.door ?? "",
     };
 }
+
+export const defaultAddress = () => ({
+    id: "",
+    type: "full_address",
+    country_code: "HU",
+    postal_code: "",
+    settlement: "",
+    mailbox: "",
+    topographic_number: "",
+    name_of_public_space: "",
+    type_of_public_space: "",
+    house_number: "",
+    building: "",
+    stairway: "",
+    floor: "",
+    door: "",
+});

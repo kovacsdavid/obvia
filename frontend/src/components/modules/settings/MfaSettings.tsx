@@ -47,7 +47,7 @@ import {
 } from "@/components/ui/input-otp";
 import { REGEXP_ONLY_DIGITS } from "input-otp";
 
-export default function Settings() {
+export default function MfaSettings() {
     const dispatch = useAppDispatch();
     const [openVerifyOtpDialog, setOpenVerifyOtpDialog] = React.useState(false);
     const [openDisableOtpDialog, setOpenDisableOtpDialog] =
@@ -250,30 +250,23 @@ export default function Settings() {
                     </form>
                 </DialogContent>
             </Dialog>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Kétlépcsős azonosítás</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {user_is_mfa_enabled ? (
-                        <Button
-                            style={{ color: "red" }}
-                            variant="outline"
-                            onClick={() => setOpenDisableOtpDialog(true)}
-                        >
-                            Kétlépcsős azonosítás kikapcsolása
-                        </Button>
-                    ) : (
-                        <Button
-                            style={{ color: "green" }}
-                            variant="outline"
-                            onClick={() => handleEnableMfa()}
-                        >
-                            Kétlépcsős azonosítás bekapcsolása
-                        </Button>
-                    )}
-                </CardContent>
-            </Card>
+            {user_is_mfa_enabled ? (
+                <Button
+                    style={{ color: "red" }}
+                    variant="outline"
+                    onClick={() => setOpenDisableOtpDialog(true)}
+                >
+                    Kétlépcsős azonosítás kikapcsolása
+                </Button>
+            ) : (
+                <Button
+                    style={{ color: "green" }}
+                    variant="outline"
+                    onClick={() => handleEnableMfa()}
+                >
+                    Kétlépcsős azonosítás bekapcsolása
+                </Button>
+            )}
         </>
     );
 }

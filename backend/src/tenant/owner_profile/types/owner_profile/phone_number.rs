@@ -1,0 +1,100 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+use crate::common::value_object::*;
+use regex::Regex;
+use std::fmt::Display;
+
+#[derive(Debug, PartialEq, Clone)]
+pub struct PhoneNumber(String);
+
+impl PhoneNumber {
+    pub const VALIDATION_ERROR: &'static str = "Hibás telefonszám formátum";
+}
+
+impl ValueObjectData for PhoneNumber {
+    type DataType = String;
+
+    fn new(data: &str) -> ValueObjectResult<Option<Self>> {
+        if !data.trim().is_empty() {
+            Ok(Some(Self(data.to_owned())))
+        } else {
+            Ok(None)
+        }
+    }
+    fn validate(&self) -> Result<(), ValueObjectError> {
+        match Regex::new(r##"^\+[1-9]\d{4,15}$"##)?.is_match(&self.0) {
+            true => Ok(()),
+            false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
+        }
+    }
+
+    fn get_data(&self) -> &Self::DataType {
+        &self.0
+    }
+}
+
+impl Display for PhoneNumber {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_phone_number() {
+        let phone = "+36301234567"
+            .parse::<ValueObjectRequired<PhoneNumber>>()
+            .unwrap();
+        assert_eq!(phone.as_str().unwrap(), "+36301234567");
+    }
+
+    #[test]
+    fn test_invalid_phone_number_no_plus() {
+        let phone = "36301234567".parse::<ValueObjectRequired<PhoneNumber>>();
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_number_too_short() {
+        let phone = "+3612".parse::<ValueObjectRequired<PhoneNumber>>();
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_number_too_long() {
+        let phone = "+361234567890123456".parse::<ValueObjectRequired<PhoneNumber>>();
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_number_special_chars() {
+        let phone = "+36-30-123-4567".parse::<ValueObjectRequired<PhoneNumber>>();
+        assert!(phone.is_err());
+    }
+
+    #[test]
+    fn test_invalid_phone_number_letters() {
+        let phone = "+36abcd1234".parse::<ValueObjectRequired<PhoneNumber>>();
+        assert!(phone.is_err());
+    }
+}

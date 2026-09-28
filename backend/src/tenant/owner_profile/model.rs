@@ -1,7 +1,7 @@
 /*
  * This file is part of the Obvia ERP.
  *
- * Copyright (C) 2025 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as published
@@ -26,14 +26,13 @@ use uuid::Uuid;
 use crate::tenant::address::model::AddressResolved;
 
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow, Builder)]
-pub struct Customer {
+pub struct OwnerProfile {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
     pub phone_number: Option<String>,
-    pub status: String,
-    pub customer_type: String,
+    pub owner_profile_type: String,
     pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -43,14 +42,13 @@ pub struct Customer {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, FromRow, Builder)]
-pub struct CustomerResolved {
+pub struct OwnerProfileResolved {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
     pub phone_number: Option<String>,
-    pub status: String,
-    pub customer_type: String,
+    pub owner_profile_type: String,
     pub created_by_id: Uuid,
     pub created_by: String,
     pub created_at: DateTime<Utc>,
@@ -60,41 +58,14 @@ pub struct CustomerResolved {
     pub mailing_address: Option<Uuid>,
 }
 
-// TODO: there is a more idiomatic way to implement this. See: owner_profile::module
-impl CustomerResolved {
-    pub fn into_full(
-        self,
-        billing_address: Option<AddressResolved>,
-        mailing_address: Option<AddressResolved>,
-    ) -> CustomerFull {
-        CustomerFull {
-            id: self.id,
-            name: self.name,
-            contact_name: self.contact_name,
-            email: self.email,
-            phone_number: self.phone_number,
-            status: self.status,
-            customer_type: self.customer_type,
-            created_by_id: self.created_by_id,
-            created_by: self.created_by,
-            created_at: self.created_at,
-            updated_at: self.updated_at,
-            deleted_at: self.deleted_at,
-            billing_address,
-            mailing_address,
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Builder)]
-pub struct CustomerFull {
+pub struct OwnerProfileFull {
     pub id: Uuid,
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
     pub phone_number: Option<String>,
-    pub status: String,
-    pub customer_type: String,
+    pub owner_profile_type: String,
     pub created_by_id: Uuid,
     pub created_by: String,
     pub created_at: DateTime<Utc>,
@@ -104,22 +75,53 @@ pub struct CustomerFull {
     pub mailing_address: Option<AddressResolved>,
 }
 
+impl
+    From<(
+        OwnerProfileResolved,
+        Option<AddressResolved>,
+        Option<AddressResolved>,
+    )> for OwnerProfileFull
+{
+    fn from(
+        (owner_profile_resolved, billing_address, mailing_address): (
+            OwnerProfileResolved,
+            Option<AddressResolved>,
+            Option<AddressResolved>,
+        ),
+    ) -> Self {
+        OwnerProfileFull {
+            id: owner_profile_resolved.id,
+            name: owner_profile_resolved.name,
+            contact_name: owner_profile_resolved.contact_name,
+            email: owner_profile_resolved.email,
+            phone_number: owner_profile_resolved.phone_number,
+            owner_profile_type: owner_profile_resolved.owner_profile_type,
+            created_by_id: owner_profile_resolved.created_by_id,
+            created_by: owner_profile_resolved.created_by,
+            created_at: owner_profile_resolved.created_at,
+            updated_at: owner_profile_resolved.updated_at,
+            deleted_at: owner_profile_resolved.deleted_at,
+            billing_address,
+            mailing_address,
+        }
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use crate::common::TEST_TIME;
 
     use super::*;
 
-    pub fn test_customer_builder() -> CustomerBuilder {
-        let mut builder = CustomerBuilder::default();
+    pub fn test_owner_profile_builder() -> OwnerProfileBuilder {
+        let mut builder = OwnerProfileBuilder::default();
         builder
             .id(Uuid::now_v7())
-            .name("Test Customer".to_string())
+            .name("Test Owner".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
-            .status("active".to_string())
-            .customer_type("natural".to_string())
+            .owner_profile_type("natural".to_string())
             .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
@@ -130,16 +132,15 @@ pub mod tests {
         builder
     }
 
-    pub fn test_customer_resolved_builder() -> CustomerResolvedBuilder {
-        let mut builder = CustomerResolvedBuilder::default();
+    pub fn test_owner_profile_resolved_builder() -> OwnerProfileResolvedBuilder {
+        let mut builder = OwnerProfileResolvedBuilder::default();
         builder
             .id(Uuid::now_v7())
-            .name("Test Customer".to_string())
+            .name("Test Owner".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
-            .status("active".to_string())
-            .customer_type("natural".to_string())
+            .owner_profile_type("natural".to_string())
             .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
@@ -151,16 +152,15 @@ pub mod tests {
         builder
     }
 
-    pub fn test_customer_full_builder() -> CustomerFullBuilder {
-        let mut builder = CustomerFullBuilder::default();
+    pub fn test_owner_profile_full_builder() -> OwnerProfileFullBuilder {
+        let mut builder = OwnerProfileFullBuilder::default();
         builder
             .id(Uuid::now_v7())
-            .name("Test Customer".to_string())
+            .name("Test Owner".to_string())
             .contact_name(None)
-            .email("test.customer@example.com".to_string())
+            .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
-            .status("active".to_string())
-            .customer_type("natural".to_string())
+            .owner_profile_type("natural".to_string())
             .created_by_id(Uuid::now_v7())
             .created_by("Test User".to_string())
             .created_at(*TEST_TIME)

@@ -28,6 +28,7 @@ pub mod customers;
 pub mod inventory;
 pub mod inventory_movements;
 pub mod inventory_reservations;
+pub mod owner_profile;
 pub mod products;
 pub mod services;
 pub mod tasks;

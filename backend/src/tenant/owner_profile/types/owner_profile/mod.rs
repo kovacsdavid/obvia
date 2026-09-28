@@ -1,0 +1,28 @@
+/*
+ * This file is part of the Obvia ERP.
+ *
+ * Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+pub(crate) mod contact_name;
+pub(crate) mod name;
+pub(crate) mod owner_profile_type;
+pub(crate) mod phone_number;
+
+pub(crate) use contact_name::ContactName as OwnerProfileContactName;
+pub(crate) use name::Name as OwnerProfileName;
+pub(crate) use owner_profile_type::OwnerProfileType;
+pub(crate) use phone_number::PhoneNumber as OwnerProfilePhoneNumber;

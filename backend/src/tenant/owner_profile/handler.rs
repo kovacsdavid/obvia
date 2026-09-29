@@ -426,7 +426,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let user_input_helper = OwnerProfileUserInputHelper {
-            id: None,
+            id: Some("".to_string()),
             name: "Test Owner".to_string(),
             contact_name: "".to_string(),
             email: "test.owner@example.com".to_string(),
@@ -478,7 +478,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_expired() {
         let user_input_helper = OwnerProfileUserInputHelper {
-            id: None,
+            id: Some(Uuid::now_v7().to_string()),
             name: "Test Owner".to_string(),
             contact_name: "".to_string(),
             email: "test.owner_profile@example.com".to_string(),
@@ -528,7 +528,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_invalid_signature() {
         let user_input_helper = OwnerProfileUserInputHelper {
-            id: None,
+            id: Some(Uuid::now_v7().to_string()),
             name: "Test Owner".to_string(),
             contact_name: "".to_string(),
             email: "test.owner_profile@example.com".to_string(),
@@ -578,7 +578,7 @@ mod tests {
     #[tokio::test]
     async fn test_update_unauthorized_missing() {
         let user_input_helper = OwnerProfileUserInputHelper {
-            id: None,
+            id: Some(Uuid::now_v7().to_string()),
             name: "Test Owner".to_string(),
             contact_name: "".to_string(),
             email: "test.owner@example.com".to_string(),

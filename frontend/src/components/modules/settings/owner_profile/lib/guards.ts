@@ -38,6 +38,8 @@ export function isOwnerProfile(data: unknown): data is OwnerProfile {
     return (
         typeof data === "object" &&
         data !== null &&
+        "id" in data &&
+        typeof data.id === "string" &&
         "name" in data &&
         typeof data.name === "string" &&
         "contact_name" in data &&
@@ -48,14 +50,10 @@ export function isOwnerProfile(data: unknown): data is OwnerProfile {
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
         typeof data.owner_profile_type === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
         "created_at" in data &&
         typeof data.created_at === "string" &&
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string") &&
         "billing_address" in data &&
         (data.billing_address === null ||
             typeof data.billing_address === "string") &&
@@ -81,16 +79,10 @@ export function isOwnerProfileFull(data: unknown): data is OwnerProfileFull {
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
         typeof data.owner_profile_type === "string" &&
-        "created_by_id" in data &&
-        typeof data.created_by_id === "string" &&
-        "created_by" in data &&
-        typeof data.created_by === "string" &&
         "created_at" in data &&
         typeof data.created_at === "string" &&
         "updated_at" in data &&
         typeof data.updated_at === "string" &&
-        "deleted_at" in data &&
-        (data.deleted_at === null || typeof data.deleted_at === "string") &&
         "billing_address" in data &&
         (data.billing_address === null || isAddress(data.billing_address)) &&
         "mailing_address" in data &&

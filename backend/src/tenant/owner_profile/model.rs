@@ -33,10 +33,8 @@ pub struct OwnerProfile {
     pub email: String,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
-    pub created_by_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
     pub billing_address: Option<Uuid>,
     pub mailing_address: Option<Uuid>,
 }
@@ -49,11 +47,8 @@ pub struct OwnerProfileResolved {
     pub email: String,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
-    pub created_by_id: Uuid,
-    pub created_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
     pub billing_address: Option<Uuid>,
     pub mailing_address: Option<Uuid>,
 }
@@ -66,11 +61,8 @@ pub struct OwnerProfileFull {
     pub email: String,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
-    pub created_by_id: Uuid,
-    pub created_by: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
     pub billing_address: Option<AddressResolved>,
     pub mailing_address: Option<AddressResolved>,
 }
@@ -96,11 +88,8 @@ impl
             email: owner_profile_resolved.email,
             phone_number: owner_profile_resolved.phone_number,
             owner_profile_type: owner_profile_resolved.owner_profile_type,
-            created_by_id: owner_profile_resolved.created_by_id,
-            created_by: owner_profile_resolved.created_by,
             created_at: owner_profile_resolved.created_at,
             updated_at: owner_profile_resolved.updated_at,
-            deleted_at: owner_profile_resolved.deleted_at,
             billing_address,
             mailing_address,
         }
@@ -122,10 +111,8 @@ pub mod tests {
             .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
-            .created_by_id(Uuid::now_v7())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None)
             .billing_address(None)
             .mailing_address(None);
 
@@ -141,11 +128,8 @@ pub mod tests {
             .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
-            .created_by_id(Uuid::now_v7())
-            .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None)
             .billing_address(None)
             .mailing_address(None);
 
@@ -161,11 +145,8 @@ pub mod tests {
             .email("test.owner@example.com".to_string())
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
-            .created_by_id(Uuid::now_v7())
-            .created_by("Test User".to_string())
             .created_at(*TEST_TIME)
             .updated_at(*TEST_TIME)
-            .deleted_at(None)
             .billing_address(None)
             .mailing_address(None);
         builder

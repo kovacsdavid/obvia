@@ -52,6 +52,7 @@ import {
 import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
 
 export default function OwnerProfile() {
+    const [id, setId] = React.useState<string>("");
     const [ownerProfileType, setOwnerProfileType] = React.useState<
         string | undefined
     >("natural");
@@ -79,14 +80,13 @@ export default function OwnerProfile() {
                     ) {
                         const data = response.payload.jsonData.data;
 
+                        setId(data.id);
                         setOwnerProfileType(data.owner_profile_type);
                         setName(data.name);
                         setContactName(data.contact_name ?? "");
                         setEmail(data.email);
                         setPhoneNumber(data.phone_number ?? "");
                         setBillingAddress(
-                            // NOTE: this is needed to show address fields on update for
-                            // customers created before address was added to the system.
                             data.billing_address === null
                                 ? defaultAddress()
                                 : normalizeAddress(data.billing_address),
@@ -112,6 +112,7 @@ export default function OwnerProfile() {
         e.preventDefault();
         dispatch(
             update({
+                id,
                 name,
                 contactName,
                 email,
@@ -123,7 +124,7 @@ export default function OwnerProfile() {
         ).then(async (response) => {
             if (update.fulfilled.match(response)) {
                 if (response.payload.statusCode === 200) {
-                    navigate("/vevo/lista");
+                    navigate("/felhasznalo/beallitasok");
                 } else if (
                     typeof response.payload.jsonData?.error !== "undefined"
                 ) {

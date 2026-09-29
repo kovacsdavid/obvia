@@ -172,7 +172,6 @@ impl OwnerProfileRepository for PgPool {
                 billing_address = $6,
                 mailing_address = $7
             WHERE id = $8
-                AND deleted_at IS NULL
             RETURNING *
             "#,
         )
@@ -214,18 +213,12 @@ where
             owner_profile.contact_name as contact_name,
             owner_profile.email as email,
             owner_profile.phone_number as phone_number,
-            owner_profile.status as status,
             owner_profile.owner_profile_type as owner_profile_type,
-            owner_profile.created_by_id as created_by_id,
-            users.last_name || ' ' || users.first_name as created_by,
             owner_profile.created_at as created_at,
             owner_profile.updated_at as updated_at,
-            owner_profile.deleted_at as deleted_at,
             owner_profile.billing_address as billing_address,
             owner_profile.mailing_address as mailing_address
         FROM owner_profile
-        LEFT JOIN users ON owner_profile.created_by_id = users.id
-        WHERE owner_profile.deleted_at IS NULL
         {for_update}
         LIMIT 1
         "#

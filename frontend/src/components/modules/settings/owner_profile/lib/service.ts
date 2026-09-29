@@ -38,6 +38,7 @@ import {
 
 export async function update(
     {
+        id,
         name,
         contactName,
         email,
@@ -56,6 +57,7 @@ export async function update(
         },
         signal: AbortSignal.timeout(globalRequestTimeout),
         body: JSON.stringify({
+            id,
             name,
             contact_name: contactName,
             email,

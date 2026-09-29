@@ -29,6 +29,7 @@ import {
 } from "@/components/modules/address/lib/interface";
 
 export interface OwnerProfileUserInput {
+    id: string;
     name: string;
     contactName: string;
     email: string;
@@ -39,15 +40,14 @@ export interface OwnerProfileUserInput {
 }
 
 export interface OwnerProfile {
+    id: string;
     name: string;
     contact_name: string | null;
     email: string;
     phone_number: string | null;
     owner_profile_type: string;
-    created_by_id: string;
     created_at: string;
     updated_at: string;
-    deleted_at: string | null;
     billing_address: string | null;
     mailing_address: string | null;
 }
@@ -69,11 +69,8 @@ export interface OwnerProfileFull {
     email: string;
     phone_number: string | null;
     owner_profile_type: string;
-    created_by_id: string;
-    created_by: string;
     created_at: string;
     updated_at: string;
-    deleted_at: string | null;
     billing_address: Address | null;
     mailing_address: Address | null;
 }

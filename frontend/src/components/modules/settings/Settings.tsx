@@ -24,8 +24,13 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import MfaSettings from "@/components/modules/settings/MfaSettings";
-import SettingsSection from "@/components/modules/settings/SettingsSection";
 import OwnerProfile from "@/components/modules/settings/owner_profile/OwnerProfile";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function Settings() {
     return (
@@ -35,18 +40,22 @@ export default function Settings() {
                     <CardTitle>Beállítások</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <SettingsSection
-                        title="Saját adatok"
-                        description="Töltsd ki, hogy jól jelenjenek meg az adatok a vállalkozásodról!"
-                    >
-                        <OwnerProfile />
-                    </SettingsSection>
-                    <SettingsSection
-                        title="Kétlépcsős azonosítás"
-                        description="Kapcsold be a kétlépcsős hitelesítést a nagyobb biztonság érdekében."
-                    >
-                        <MfaSettings />
-                    </SettingsSection>
+                    <Accordion type="single" collapsible>
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>Saját adatok</AccordionTrigger>
+                            <AccordionContent>
+                                <OwnerProfile />
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="item-2">
+                            <AccordionTrigger>
+                                Kétlépcsős azonosítás
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <MfaSettings />
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
                 </CardContent>
             </Card>
         </>

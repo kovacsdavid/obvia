@@ -59,6 +59,7 @@ export default function OwnerProfile() {
     const [name, setName] = React.useState("");
     const [contactName, setContactName] = React.useState("");
     const [email, setEmail] = React.useState("");
+    const [website, setWebsite] = React.useState("");
     const [phoneNumber, setPhoneNumber] = React.useState("");
     const [billingAddress, setBillingAddress] = React.useState<
         AddressInterface | null | undefined
@@ -85,6 +86,7 @@ export default function OwnerProfile() {
                         setName(data.name);
                         setContactName(data.contact_name ?? "");
                         setEmail(data.email);
+                        setWebsite(data.website ?? "");
                         setPhoneNumber(data.phone_number ?? "");
                         setBillingAddress(
                             data.billing_address === null
@@ -116,6 +118,7 @@ export default function OwnerProfile() {
                 name,
                 contactName,
                 email,
+                website,
                 phoneNumber,
                 ownerProfileType,
                 billingAddress,
@@ -298,7 +301,7 @@ export default function OwnerProfile() {
                             <Input
                                 id="email"
                                 type="text"
-                                placeholder="pelda@kovacsdavid.dev"
+                                placeholder="pelda@obvia.hu"
                                 value={email}
                                 onChange={(e) => {
                                     setErrors((prev) => {
@@ -319,6 +322,37 @@ export default function OwnerProfile() {
                                 }
                             />
                             <FieldErrorV2 error={errors?.fields?.email} />
+                        </Field>
+                        <Field
+                            data-invalid={
+                                typeof errors?.fields?.website === "string"
+                            }
+                        >
+                            <FieldLabel htmlFor="website">Weboldal</FieldLabel>
+                            <Input
+                                id="website"
+                                type="text"
+                                placeholder="https://obvia.hu"
+                                value={website}
+                                onChange={(e) => {
+                                    setErrors((prev) => {
+                                        if (!prev?.fields) return prev;
+
+                                        return {
+                                            ...prev,
+                                            fields: {
+                                                ...prev.fields,
+                                                website: null,
+                                            },
+                                        };
+                                    });
+                                    setWebsite(e.target.value);
+                                }}
+                                aria-invalid={
+                                    typeof errors?.fields?.website === "string"
+                                }
+                            />
+                            <FieldErrorV2 error={errors?.fields?.website} />
                         </Field>
                         <Field
                             data-invalid={

@@ -46,6 +46,8 @@ export function isOwnerProfile(data: unknown): data is OwnerProfile {
         (data.contact_name === null || typeof data.contact_name === "string") &&
         "email" in data &&
         typeof data.email === "string" &&
+        "website" in data &&
+        (data.website === null || typeof data.website === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
@@ -75,6 +77,8 @@ export function isOwnerProfileFull(data: unknown): data is OwnerProfileFull {
         (data.contact_name === null || typeof data.contact_name === "string") &&
         "email" in data &&
         typeof data.email === "string" &&
+        "website" in data &&
+        (data.website === null || typeof data.website === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
@@ -102,6 +106,8 @@ export function isOwnerProfileErrors(
         (data.contact_name === null || typeof data.contact_name === "string") &&
         "email" in data &&
         (data.email === null || typeof data.email === "string") &&
+        "website" in data &&
+        (data.website === null || typeof data.website === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&

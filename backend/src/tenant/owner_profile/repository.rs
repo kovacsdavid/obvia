@@ -167,7 +167,7 @@ impl OwnerProfileRepository for PgPool {
             SET name = $1,
                 contact_name = $2,
                 email = $3,
-                website = $4
+                website = $4,
                 phone_number = $5,
                 owner_profile_type = $6,
                 billing_address = $7,

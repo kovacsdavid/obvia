@@ -233,6 +233,9 @@ mod tests {
     use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
     use crate::tenant::inventory_movements::model::tests::test_inventory_movement_resolved_builder;
     use crate::tenant::inventory_movements::repository::MockInventoryMovementsRepository;
+    use crate::tenant::owner_profile::dto::print::OwnerProfileFullPrint;
+    use crate::tenant::owner_profile::model::tests::test_owner_profile_full_builder;
+    use crate::tenant::owner_profile::repository::MockOwnerProfileRepository;
     use crate::tenant::products::dto::print::ProductsResolvedPrint;
     use crate::tenant::products::model::ProductResolved;
     use crate::tenant::products::model::tests::test_product_resolved_builder;
@@ -1752,6 +1755,7 @@ mod tests {
         let active_tenant_id = Uuid::now_v7();
         let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse().unwrap();
         let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse().unwrap();
+        let owner_profile_id = "de6c4563-640e-483c-ad2d-d47b1c9115b7".parse().unwrap();
         let created_by_id = "97054cdb-781c-4f40-a489-b43373d75bf0".parse().unwrap();
 
         let worksheet_resolved = test_worksheet_resolved_builder()
@@ -1922,6 +1926,17 @@ mod tests {
                 move |_| Ok(customer_full.clone())
             });
 
+        let mut owner_profile_repo = MockOwnerProfileRepository::new();
+        let owner_profile_full = test_owner_profile_full_builder()
+            .id(owner_profile_id)
+            .billing_address(Some(test_address_resolved_builder().build().unwrap()))
+            .build()
+            .unwrap();
+        owner_profile_repo.expect_get_full().times(1).returning({
+            let owner_profile_full = owner_profile_full.clone();
+            move || Ok(owner_profile_full.clone())
+        });
+
         let mut app_state = MockWorksheetsModule::new();
         let worksheets_repo = Arc::new(worksheets_repo);
         let tasks_repo = Arc::new(tasks_repo);
@@ -1931,6 +1946,7 @@ mod tests {
         let products_repo = Arc::new(products_repo);
         let warehouses_repo = Arc::new(warehouses_repo);
         let customers_repo = Arc::new(customers_repo);
+        let owner_profile_repo = Arc::new(owner_profile_repo);
         let test_config = AppConfigBuilder::default().build().unwrap();
         app_state
             .expect_worksheets_repo()
@@ -1973,11 +1989,16 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(customers_repo.clone()));
         app_state
+            .expect_owner_profile_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(owner_profile_repo.clone()));
+        app_state
             .expect_config()
             .times(1)
             .return_const(test_config.clone());
 
-        let customer_resolved_print = CustomerFullPrint::new(customer_full, *TEST_TZ);
+        let customer_full_print = CustomerFullPrint::new(customer_full, *TEST_TZ);
 
         let mut services_resolved_print_map = HashMap::new();
 
@@ -2063,9 +2084,12 @@ mod tests {
             })
             .collect::<Vec<InventoryMovementsResolvedPrint>>();
 
+        let owner_profile_full_print = OwnerProfileFullPrint::new(owner_profile_full, *TEST_TZ);
+
         let pdf_gen_payload_expected = WorksheetResolvedPrint::new(
             worksheet_resolved,
-            customer_resolved_print,
+            customer_full_print,
+            owner_profile_full_print,
             tasks,
             materials,
             *TEST_TZ,

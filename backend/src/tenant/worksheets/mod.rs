@@ -23,6 +23,7 @@ use crate::common::{AppState, BaseModule};
 use crate::tenant::customers::repository::CustomersRepository;
 use crate::tenant::inventory::repository::InventoryRepository;
 use crate::tenant::inventory_movements::repository::InventoryMovementsRepository;
+use crate::tenant::owner_profile::repository::OwnerProfileRepository;
 use crate::tenant::products::repository::ProductsRepository;
 use crate::tenant::services::repository::ServicesRepository;
 use crate::tenant::tasks::repository::TasksRepository;
@@ -53,6 +54,10 @@ pub trait WorksheetsModuleInterface: BaseModule {
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+    fn owner_profile_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
     fn tasks_repo(
         &self,
         tenant_id: Uuid,
@@ -95,6 +100,12 @@ where
         &self,
         tenant_id: Uuid,
     ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+    fn owner_profile_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>> {
         Ok(self.get_tenant_pool(tenant_id)?)
     }
     fn tasks_repo(
@@ -166,6 +177,10 @@ pub mod tests {
                 &self,
                 tenant_id: Uuid,
             ) -> RepositoryResult<Arc<dyn CustomersRepository + Send + Sync>>;
+            fn owner_profile_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn OwnerProfileRepository + Send + Sync>>;
             fn tasks_repo(
                 &self,
                 tenant_id: Uuid,

@@ -17,7 +17,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::{CommonBuilderError, TEST_TIME_TZ};
+use crate::{
+    common::{CommonBuilderError, TEST_TIME_TZ},
+    tenant::owner_profile::dto::print::OwnerProfileFullPrint,
+};
 use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
 use derive_builder::Builder;
@@ -37,6 +40,7 @@ pub struct WorksheetResolvedPrint {
     pub name: String,
     pub description: Option<String>,
     pub customer: CustomerFullPrint,
+    pub owner_profile: OwnerProfileFullPrint,
     pub project_id: Option<Uuid>,
     pub project: Option<String>,
     pub created_by_id: Uuid,
@@ -57,6 +61,7 @@ impl WorksheetResolvedPrint {
     pub fn new(
         worksheet_resolved: WorksheetResolved,
         customer_resolved_print: CustomerFullPrint,
+        owner_profile_print: OwnerProfileFullPrint,
         tasks: Vec<TaskResolvedPrint>,
         materials: Vec<InventoryMovementsResolvedPrint>,
         tz: Tz,
@@ -67,6 +72,7 @@ impl WorksheetResolvedPrint {
             name: worksheet_resolved.name,
             description: worksheet_resolved.description,
             customer: customer_resolved_print,
+            owner_profile: owner_profile_print,
             project_id: worksheet_resolved.project_id,
             project: worksheet_resolved.project,
             created_by_id: worksheet_resolved.created_by_id,
@@ -104,7 +110,8 @@ impl WorksheetResolvedPrint {
 }
 
 pub fn test_worksheet_resolved_print_builder(
-    customer_resolved_print: CustomerFullPrint,
+    customer_full_print: CustomerFullPrint,
+    owner_profile_full_print: OwnerProfileFullPrint,
     tasks: Vec<TaskResolvedPrint>,
     materials: Vec<InventoryMovementsResolvedPrint>,
 ) -> WorksheetResolvedPrintBuilder {
@@ -113,7 +120,8 @@ pub fn test_worksheet_resolved_print_builder(
         .id(Uuid::now_v7())
         .name("Test worksheet".to_string())
         .description(Some("Test description".to_string()))
-        .customer(customer_resolved_print)
+        .customer(customer_full_print)
+        .owner_profile(owner_profile_full_print)
         .project_id(Some(Uuid::now_v7()))
         .project(Some("Test project".to_string()))
         .created_by_id(Uuid::now_v7())
@@ -138,6 +146,7 @@ mod tests {
         common::TEST_TZ,
         tenant::{
             customers::model::tests::test_customer_resolved_builder,
+            owner_profile::model::{OwnerProfileFull, tests::test_owner_profile_resolved_builder},
             worksheets::model::tests::test_worksheet_resolved_builder,
         },
     };
@@ -149,6 +158,7 @@ mod tests {
     fn test_from_worksheet_resolved() {
         let worksheet_id = Uuid::now_v7();
         let customer_id = Uuid::now_v7();
+        let owner_profile_id = Uuid::now_v7();
         let created_by_id = Uuid::now_v7();
 
         let worksheet_resolved = test_worksheet_resolved_builder()
@@ -162,11 +172,23 @@ mod tests {
             .build()
             .unwrap();
 
-        let customer_resolved_print =
+        let owner_profile_resolved = test_owner_profile_resolved_builder()
+            .id(owner_profile_id)
+            .build()
+            .unwrap();
+
+        let customer_full_print =
             CustomerFullPrint::new(customer_resolved.into_full(None, None), *TEST_TZ);
+
+        let owner_profile_full_print = OwnerProfileFullPrint::new(
+            OwnerProfileFull::from((owner_profile_resolved, None, None)),
+            *TEST_TZ,
+        );
+
         let worksheet_resolved_print = WorksheetResolvedPrint::new(
             worksheet_resolved,
-            customer_resolved_print.clone(),
+            customer_full_print.clone(),
+            owner_profile_full_print.clone(),
             vec![], // TODO: add some test data here
             vec![], // TODO: add some test data here
             *TEST_TZ,
@@ -175,7 +197,8 @@ mod tests {
             id: worksheet_id,
             name: "Test worksheet".to_string(),
             description: Some("Test description".to_string()),
-            customer: customer_resolved_print,
+            customer: customer_full_print,
+            owner_profile: owner_profile_full_print,
             project_id: None,
             project: None,
             created_by_id,

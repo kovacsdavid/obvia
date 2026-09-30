@@ -23,6 +23,7 @@ create table owner_profile
     name                varchar(255)        not null,
     contact_name        varchar(255),
     email               varchar(255)        not null,
+    website             varchar(255),
     phone_number        varchar(50),
     owner_profile_type  varchar(50),
     billing_address     uuid,
@@ -37,7 +38,7 @@ CREATE TRIGGER update_updated_at_on_owner_profile_table
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at();
 
-INSERT INTO owner_profile(name, contact_name, email, phone_number, owner_profile_type)
-VALUES ('', '', '', '', '');
+INSERT INTO owner_profile(name, contact_name, email, website, phone_number, owner_profile_type)
+VALUES ('', '', '', '', '', '');
 
 

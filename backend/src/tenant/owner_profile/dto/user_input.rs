@@ -36,6 +36,7 @@ pub struct OwnerProfileUserInputHelper {
     pub name: String,
     pub contact_name: String,
     pub email: String,
+    pub website: String,
     pub phone_number: String,
     pub owner_profile_type: String,
     pub billing_address: Option<AddressUserInputHelper>,
@@ -48,6 +49,7 @@ pub struct OwnerProfileUserInputError {
     pub name: Option<String>,
     pub contact_name: Option<String>,
     pub email: Option<String>,
+    pub website: Option<String>,
     pub phone_number: Option<String>,
     pub owner_profile_type: Option<String>,
     pub billing_address: AddressUserInputError,
@@ -60,6 +62,7 @@ impl OwnerProfileUserInputError {
             && self.name.is_none()
             && self.contact_name.is_none()
             && self.email.is_none()
+            && self.website.is_none()
             && self.phone_number.is_none()
             && self.owner_profile_type.is_none()
             && self.billing_address.is_empty()
@@ -109,6 +112,7 @@ pub struct OwnerProfileUserInput {
     pub name: ValueObjectRequired<OwnerProfileName>,
     pub contact_name: Option<ValueObjectRequired<OwnerProfileContactName>>,
     pub email: ValueObjectRequired<Email>,
+    pub website: ValueObjectOptional<OwnerProfileWebsite>,
     pub phone_number: ValueObjectOptional<OwnerProfilePhoneNumber>,
     pub owner_profile_type: ValueObjectRequired<OwnerProfileType>,
     pub billing_address: Option<AddressUserInput>,
@@ -140,6 +144,13 @@ impl TryFrom<OwnerProfileUserInputHelper> for OwnerProfileUserInput {
             .parse::<ValueObjectRequired<Email>>()
             .inspect_err(|e| {
                 error.email = Some(e.to_string());
+            });
+
+        let website = value
+            .website
+            .parse::<ValueObjectOptional<OwnerProfileWebsite>>()
+            .inspect_err(|e| {
+                error.website = Some(e.to_string());
             });
 
         let phone_number = value
@@ -195,6 +206,7 @@ impl TryFrom<OwnerProfileUserInputHelper> for OwnerProfileUserInput {
                 name: name?,
                 contact_name: contact_name?,
                 email: email?,
+                website: website?,
                 phone_number: phone_number?,
                 owner_profile_type: owner_profile_type?,
                 billing_address,
@@ -228,6 +240,7 @@ mod tests {
                 name: String::from("Teszt Elek"),
                 contact_name: String::from(""),
                 email: String::from("teszt.elek@example.com"),
+                website: String::from("https://example.com"),
                 phone_number: String::from("+36301234567"),
                 owner_profile_type: String::from("natural"),
                 billing_address: Some(test_address_user_input_helper_builder().build().unwrap()),
@@ -238,6 +251,7 @@ mod tests {
             name: "Teszt Elek".parse().unwrap(),
             contact_name: None,
             email: "teszt.elek@example.com".parse().unwrap(),
+            website: "https://example.com".parse().unwrap(),
             phone_number: "+36301234567".parse().unwrap(),
             owner_profile_type: "natural".parse().unwrap(),
             billing_address: Some(test_address_user_input_builder().build().unwrap()),
@@ -259,6 +273,7 @@ mod tests {
                 name: String::from("Teszt Kft."),
                 contact_name: String::from("Teszt Elek"),
                 email: String::from("teszt.elek@example.com"),
+                website: String::from("https://example.com"),
                 phone_number: String::from("+36301234567"),
                 owner_profile_type: String::from("legal"),
                 billing_address: Some(test_address_user_input_helper_builder().build().unwrap()),
@@ -269,6 +284,7 @@ mod tests {
             name: "Teszt Kft.".parse().unwrap(),
             contact_name: Some("Teszt Elek".parse().unwrap()),
             email: "teszt.elek@example.com".parse().unwrap(),
+            website: "https://example.com".parse().unwrap(),
             phone_number: "+36301234567".parse().unwrap(),
             owner_profile_type: "legal".parse().unwrap(),
             billing_address: Some(test_address_user_input_builder().build().unwrap()),
@@ -288,6 +304,7 @@ mod tests {
                 name: String::from(""),
                 contact_name: String::from(""),
                 email: String::from("teszt.elekexample.com"),
+                website: String::from("https:/example.com"),
                 phone_number: String::from("+36@301234567"),
                 owner_profile_type: String::from("natural"),
                 billing_address: Some(
@@ -304,6 +321,7 @@ mod tests {
             name: Some(ValueObjectError::REQUIRED.to_string()),
             contact_name: None,
             email: Some(Email::VALIDATION_ERROR.to_string()),
+            website: Some(OwnerProfileWebsite::VALIDATION_ERROR.to_string()),
             phone_number: Some(OwnerProfilePhoneNumber::VALIDATION_ERROR.to_string()),
             owner_profile_type: None,
             billing_address: AddressUserInputError {
@@ -354,6 +372,7 @@ mod tests {
                 name: String::from(""),
                 contact_name: String::from(""),
                 email: String::from(""),
+                website: String::from("https//example.com"),
                 phone_number: String::from("+3630a234567"),
                 owner_profile_type: String::from("legal"),
                 billing_address: Some(
@@ -370,6 +389,7 @@ mod tests {
             name: Some(ValueObjectError::REQUIRED.to_string()),
             contact_name: Some(ValueObjectError::REQUIRED.to_string()),
             email: Some(ValueObjectError::REQUIRED.to_string()),
+            website: Some(OwnerProfileWebsite::VALIDATION_ERROR.to_string()),
             phone_number: Some(OwnerProfilePhoneNumber::VALIDATION_ERROR.to_string()),
             owner_profile_type: None,
             billing_address: AddressUserInputError {

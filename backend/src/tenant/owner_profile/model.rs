@@ -31,6 +31,7 @@ pub struct OwnerProfile {
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
+    pub website: Option<String>,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
     pub created_at: DateTime<Utc>,
@@ -45,6 +46,7 @@ pub struct OwnerProfileResolved {
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
+    pub website: Option<String>,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
     pub created_at: DateTime<Utc>,
@@ -59,6 +61,7 @@ pub struct OwnerProfileFull {
     pub name: String,
     pub contact_name: Option<String>,
     pub email: String,
+    pub website: Option<String>,
     pub phone_number: Option<String>,
     pub owner_profile_type: String,
     pub created_at: DateTime<Utc>,
@@ -86,6 +89,7 @@ impl
             name: owner_profile_resolved.name,
             contact_name: owner_profile_resolved.contact_name,
             email: owner_profile_resolved.email,
+            website: owner_profile_resolved.website,
             phone_number: owner_profile_resolved.phone_number,
             owner_profile_type: owner_profile_resolved.owner_profile_type,
             created_at: owner_profile_resolved.created_at,
@@ -109,6 +113,7 @@ pub mod tests {
             .name("Test Owner".to_string())
             .contact_name(None)
             .email("test.owner@example.com".to_string())
+            .website(Some("https://example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
             .created_at(*TEST_TIME)
@@ -126,6 +131,7 @@ pub mod tests {
             .name("Test Owner".to_string())
             .contact_name(None)
             .email("test.owner@example.com".to_string())
+            .website(Some("https://example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
             .created_at(*TEST_TIME)
@@ -143,6 +149,7 @@ pub mod tests {
             .name("Test Owner".to_string())
             .contact_name(None)
             .email("test.owner@example.com".to_string())
+            .website(Some("https://example.com".to_string()))
             .phone_number(Some("+36301234567".to_string()))
             .owner_profile_type("natural".to_string())
             .created_at(*TEST_TIME)

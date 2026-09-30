@@ -167,17 +167,19 @@ impl OwnerProfileRepository for PgPool {
             SET name = $1,
                 contact_name = $2,
                 email = $3,
-                phone_number = $4,
-                owner_profile_type = $5,
-                billing_address = $6,
-                mailing_address = $7
-            WHERE id = $8
+                website = $4
+                phone_number = $5,
+                owner_profile_type = $6,
+                billing_address = $7,
+                mailing_address = $8
+            WHERE id = $9
             RETURNING *
             "#,
         )
         .bind(owner_profile_user_input.name.as_str()?)
         .bind(contact_name)
         .bind(owner_profile_user_input.email.as_str()?)
+        .bind(owner_profile_user_input.website.as_str())
         .bind(owner_profile_user_input.phone_number.as_str())
         .bind(owner_profile_user_input.owner_profile_type.as_str()?)
         .bind(billing_address.map(|v| v.id))
@@ -212,6 +214,7 @@ where
             owner_profile.name as name,
             owner_profile.contact_name as contact_name,
             owner_profile.email as email,
+            owner_profile.website as website,
             owner_profile.phone_number as phone_number,
             owner_profile.owner_profile_type as owner_profile_type,
             owner_profile.created_at as created_at,

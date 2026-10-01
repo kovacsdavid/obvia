@@ -17,23 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Page setup: margins, page numbering, header and footer
-#set page(
-  margin: (top: 2cm, bottom: 2cm, left: 2cm, right: 2cm),
-  numbering: "1 / 1",
-  header: [
-    #grid(
-      columns: (1fr, auto),
-      align(left)[#text(12pt, weight: "bold")[Obvia ERP]],
-      align(right)[#text(10pt)[Munkalap]],
-    )
-    #line(length: 100%)
-  ],
-  footer: [
-    #line(length: 100%)
-    #align(left)[#text(9pt, fill: rgb("000000"))[https://obvia.hu]]
-  ],
-)
+// Extract data from json
+#let worksheet = json(bytes(sys.inputs.at("payload", default: "{}")))
+#let customer = worksheet.customer
+#let owner_profile = worksheet.owner_profile
+#let tasks = worksheet.tasks
+#let materials = worksheet.materials
 
 // Helper: show fallback if value is empty or none
 #let display-value(value, fallback) = {
@@ -43,6 +32,44 @@
     value
   }
 }
+
+// Page setup: margins, page numbering, header and footer
+#set page(
+  margin: (top: 2cm, bottom: 2cm, left: 2cm, right: 2cm),
+  numbering: "1 / 1",
+  header: [
+    #grid(
+      columns: (1fr, auto),
+      align(left)[#text(10pt)[
+        #display-value(
+           if owner_profile.name == "" {
+             owner_profile.email
+           } else if owner_profile.email == "" {
+             owner_profile.name
+           } else {
+             owner_profile.name + " <" + owner_profile.email + ">"
+           },
+          "Beállítások / Saját adatok / Név"
+        )
+      ]],
+      align(right)[#text(10pt)[Munkalap]],
+    )
+    #line(length: 100%)
+  ],
+  footer: [
+    #line(length: 100%)
+    #grid(
+      columns: (1fr, auto),
+      align(left)[#text(9pt, fill: rgb("000000"))[
+        #display-value(owner_profile.website, "Beállítások / Saját adatok / Weboldal")]
+      ],
+      align(right)[#text(9pt, fill: rgb("000000"))[
+        #display-value(owner_profile.billing_address, "Beállítások / Saját adatok / Számlázási cím")]
+      ]
+    )
+  ],
+)
+
 
 // Helper: render a two-column label/value row
 #let row(label, value) = [
@@ -66,12 +93,6 @@
   ]
   #v(0.2cm)
 ]
-
-// Extract data from json
-#let worksheet = json(bytes(sys.inputs.at("payload", default: "{}")))
-#let customer = worksheet.customer
-#let tasks = worksheet.tasks
-#let materials = worksheet.materials
 
 // Default table styling
 #set table(

@@ -39,7 +39,7 @@ import {
 } from "@/lib/interface.ts";
 import {
     isCreateCustomerResponse,
-    isCustomerResolvedResponse,
+    isCustomerFullResponse,
     isCustomerResponse,
     isDeleteCustomerResponse,
     isPaginatedCustomerResolvedListResponse,
@@ -167,7 +167,7 @@ export async function get_full(
         signal: AbortSignal.timeout(globalRequestTimeout),
     }).then(async (response: Response) => {
         return (
-            (await ProcessJsonResponse(response, isCustomerResolvedResponse)) ??
+            (await ProcessJsonResponse(response, isCustomerFullResponse)) ??
             unexpectedError
         );
     });

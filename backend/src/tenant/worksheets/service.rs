@@ -34,6 +34,9 @@ use crate::tenant::inventory::dto::print::InventoryResolvedPrint;
 use crate::tenant::inventory::dto::print::test_inventory_resolved_print_builder;
 use crate::tenant::inventory_movements::dto::print::InventoryMovementsResolvedPrint;
 use crate::tenant::inventory_movements::dto::print::test_inventory_movement_resolved_print_builder;
+use crate::tenant::owner_profile::dto::print::{
+    OwnerProfileFullPrint, test_owner_profile_full_print_builder,
+};
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::print::test_product_resolved_print_builder;
 use crate::tenant::products::model::ProductResolved;
@@ -464,10 +467,19 @@ where
             tz,
         );
 
+        let owner_profile_print = OwnerProfileFullPrint::new(
+            self.module()
+                .owner_profile_repo(active_tenant)?
+                .get_full()
+                .await?,
+            tz,
+        );
+
         // Finally constructs the WorksheetResolvedPrint.
         let worksheet_resolved_print = WorksheetResolvedPrint::new(
             worksheet_resolved,
             customer_resolved_print,
+            owner_profile_print,
             tasks,
             materials,
             tz,
@@ -483,6 +495,7 @@ where
         // NOTE: Values here must match the values in the tests!
         let worksheet_id = "4f321721-37c6-4e91-8e42-6281c36937bc".parse()?;
         let customer_id = "fd48ade1-a817-431b-8ada-6faea8c9f9dd".parse()?;
+        let owner_profile_id = "de6c4563-640e-483c-ad2d-d47b1c9115b7".parse()?;
 
         let mut tasks = vec![];
 
@@ -514,12 +527,20 @@ where
             );
         }
 
-        let customer_resolved_print = test_customer_full_print_builder().id(customer_id).build()?;
+        let customer_full_print = test_customer_full_print_builder().id(customer_id).build()?;
 
-        let worksheet_resolved_print =
-            test_worksheet_resolved_print_builder(customer_resolved_print, tasks, materials)
-                .id(worksheet_id)
-                .build()?;
+        let owner_profile_full_print = test_owner_profile_full_print_builder()
+            .id(owner_profile_id)
+            .build()?;
+
+        let worksheet_resolved_print = test_worksheet_resolved_print_builder(
+            customer_full_print,
+            owner_profile_full_print,
+            tasks,
+            materials,
+        )
+        .id(worksheet_id)
+        .build()?;
 
         let pdf = PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,

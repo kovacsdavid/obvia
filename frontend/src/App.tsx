@@ -33,7 +33,7 @@ const EmailVerification = lazy(
 const Dashboard = lazy(
     () => import("@/components/modules/dashboard/Dashboard"),
 );
-const Settings = lazy(() => import("@/components/modules/users/Settings"));
+const Settings = lazy(() => import("@/components/modules/settings/Settings"));
 
 const CustomerEdit = lazy(() => import("@/components/modules/customers/Edit"));
 const CustomerList = lazy(() => import("@/components/modules/customers/List"));

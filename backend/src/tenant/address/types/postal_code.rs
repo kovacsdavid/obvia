@@ -19,6 +19,7 @@
 
 use crate::common::value_object::*;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct PostalCode(String);
@@ -39,7 +40,7 @@ impl ValueObjectData for PostalCode {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() <= 20 {
+        if self.0.graphemes(true).count() <= 20 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

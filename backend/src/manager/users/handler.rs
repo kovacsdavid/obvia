@@ -139,6 +139,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use serde_json::json;
     use tower::ServiceExt;
+    use unicode_segmentation::UnicodeSegmentation;
     use uuid::Uuid;
 
     #[tokio::test]
@@ -176,7 +177,7 @@ mod tests {
             .times(1)
             .withf(|user| {
                 if let Some(mfa_secret) = &user.mfa_secret
-                    && mfa_secret.len() == 32
+                    && mfa_secret.graphemes(true).count() == 32
                 {
                     true
                 } else {
@@ -227,7 +228,7 @@ mod tests {
 
         let response_body = extract_json_response(response).await;
         let token = response_body.get("data").unwrap();
-        assert_eq!(token.as_str().unwrap().len(), 32);
+        assert_eq!(token.as_str().unwrap().graphemes(true).count(), 32);
         let expected_body = json!({
             "meta": null,
             "data": token
@@ -382,7 +383,7 @@ mod tests {
             .times(1)
             .withf(|user| {
                 if let Some(mfa_secret) = &user.mfa_secret
-                    && mfa_secret.len() == 32
+                    && mfa_secret.graphemes(true).count() == 32
                     && user.is_mfa_enabled()
                 {
                     true

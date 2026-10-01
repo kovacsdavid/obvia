@@ -19,6 +19,7 @@
 
 use crate::common::value_object::*;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct CurrencyCode(String);
@@ -40,7 +41,7 @@ impl ValueObjectData for CurrencyCode {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.trim().len() == 3 {
+        if self.0.graphemes(true).count() == 3 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

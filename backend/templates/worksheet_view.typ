@@ -42,7 +42,13 @@
       columns: (1fr, auto),
       align(left)[#text(10pt)[
         #display-value(
-          owner_profile.name + " <" + owner_profile.email + "> ",
+           if owner_profile.name == "" {
+             owner_profile.email
+           } else if owner_profile.email == "" {
+             owner_profile.name
+           } else {
+             owner_profile.name + " <" + owner_profile.email + ">"
+           },
           "Beállítások / Saját adatok / Név"
         )
       ]],

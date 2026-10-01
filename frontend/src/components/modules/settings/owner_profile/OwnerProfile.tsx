@@ -186,6 +186,7 @@ export default function OwnerProfile() {
                                 }}
                             >
                                 <SelectTrigger
+                                    id="owner_profile_type"
                                     className={"w-full"}
                                     aria-invalid={
                                         typeof errors?.fields

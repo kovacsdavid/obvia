@@ -39,7 +39,8 @@ impl ValueObjectData for Website {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match Regex::new(
+        match self.0.len() <= 255 &&
+            Regex::new(
             r#"^https?://(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d{1,5})?(?:/[^\s?#]*)?(?:\?[^\s#]*)?(?:#[^\s]*)?$"#
         )?.is_match(&self.0) {
             true => Ok(()),

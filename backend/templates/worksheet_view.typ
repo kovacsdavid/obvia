@@ -40,8 +40,11 @@
   header: [
     #grid(
       columns: (1fr, auto),
-      align(left)[#text(12pt, weight: "bold")[
-        #display-value(owner_profile.name, "Beállítások / Saját adatok / Név")
+      align(left)[#text(10pt)[
+        #display-value(
+          owner_profile.name + " <" + owner_profile.email + "> ",
+          "Beállítások / Saját adatok / Név"
+        )
       ]],
       align(right)[#text(10pt)[Munkalap]],
     )

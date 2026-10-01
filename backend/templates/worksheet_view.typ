@@ -49,9 +49,15 @@
   ],
   footer: [
     #line(length: 100%)
-    #align(left)[#text(9pt, fill: rgb("000000"))[
-      #display-value(owner_profile.website, "Beállítások / Saját adatok / Weboldal")]
-    ]
+    #grid(
+      columns: (1fr, auto),
+      align(left)[#text(9pt, fill: rgb("000000"))[
+        #display-value(owner_profile.website, "Beállítások / Saját adatok / Weboldal")]
+      ],
+      align(right)[#text(9pt, fill: rgb("000000"))[
+        #display-value(owner_profile.billing_address, "Beállítások / Saját adatok / Számlázási cím")]
+      ]
+    )
   ],
 )
 

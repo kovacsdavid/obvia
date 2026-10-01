@@ -19,6 +19,7 @@
 
 use crate::common::value_object::*;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Name(String);
@@ -35,7 +36,10 @@ impl ValueObjectData for Name {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         let trimmed = self.0.trim();
-        if !trimmed.is_empty() && trimmed.len() < 255 {
+        if !trimmed.is_empty()
+            && trimmed.graphemes(true).count() < 255
+            && trimmed.chars().count() < 255
+        {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput("Hibás név!"))

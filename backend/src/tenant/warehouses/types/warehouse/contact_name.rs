@@ -19,6 +19,7 @@
 
 use crate::common::value_object::*;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ContactName(String);
@@ -39,7 +40,7 @@ impl ValueObjectData for ContactName {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() < 256 {
+        if self.0.graphemes(true).count() <= 255 && self.0.chars().count() <= 255 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

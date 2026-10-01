@@ -20,6 +20,7 @@
 use crate::common::value_object::*;
 use regex::Regex;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Otp(String);
@@ -36,7 +37,7 @@ impl ValueObjectData for Otp {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() == 6 && Regex::new(r##"^[0-9]{6}$"##)?.is_match(&self.0) {
+        if self.0.graphemes(true).count() == 6 && Regex::new(r##"^[0-9]{6}$"##)?.is_match(&self.0) {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput("Hibás OTP!"))

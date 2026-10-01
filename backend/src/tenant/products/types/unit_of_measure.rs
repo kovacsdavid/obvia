@@ -19,6 +19,7 @@
 
 use crate::common::value_object::*;
 use std::fmt::Display;
+use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitsOfMeasure(String);
@@ -38,7 +39,7 @@ impl ValueObjectData for UnitsOfMeasure {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.len() <= 50 {
+        if self.0.graphemes(true).count() <= 50 && self.0.chars().count() <= 50 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

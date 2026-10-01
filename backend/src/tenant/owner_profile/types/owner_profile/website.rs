@@ -40,9 +40,10 @@ impl ValueObjectData for Website {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.graphemes(true).count() <= 255 &&
-            Regex::new(
-            r#"^https?://(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d{1,5})?(?:/[^\s?#]*)?(?:\?[^\s#]*)?(?:#[^\s]*)?$"#
+        match self.0.graphemes(true).count() <= 255
+             && self.0.chars().count() <= 255
+             && Regex::new(
+                    r#"^https?://(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,}(?::\d{1,5})?(?:/[^\s?#]*)?(?:\?[^\s#]*)?(?:#[^\s]*)?$"#
         )?.is_match(&self.0) {
             true => Ok(()),
             false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),

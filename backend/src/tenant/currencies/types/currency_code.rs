@@ -41,7 +41,7 @@ impl ValueObjectData for CurrencyCode {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() == 3 {
+        if self.0.graphemes(true).count() == 3 && self.0.chars().count() == 3 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

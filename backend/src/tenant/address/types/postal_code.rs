@@ -40,7 +40,7 @@ impl ValueObjectData for PostalCode {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() <= 20 {
+        if self.0.graphemes(true).count() <= 20 && self.0.chars().count() <= 20 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

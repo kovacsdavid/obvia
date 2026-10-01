@@ -41,7 +41,7 @@ impl ValueObjectData for TopographicNumber {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() <= 100 {
+        if self.0.graphemes(true).count() <= 100 && self.0.chars().count() <= 100 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

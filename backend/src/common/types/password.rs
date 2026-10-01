@@ -35,7 +35,8 @@ impl ValueObjectData for Password {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        let len_ok = self.0.graphemes(true).count() >= 8 && self.0.graphemes(true).count() <= 128;
+        let grapheme_count = self.0.graphemes(true).count();
+        let len_ok = (8..=128).contains(&grapheme_count) && self.0.chars().count() <= 128;
         let has_letter = self.0.chars().any(|c| c.is_alphabetic());
         let has_digit = self.0.chars().any(|c| c.is_ascii_digit());
         let result = len_ok && has_letter && has_digit;

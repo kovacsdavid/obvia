@@ -40,7 +40,7 @@ impl ValueObjectData for ContactName {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() < 256 {
+        if self.0.graphemes(true).count() <= 255 && self.0.chars().count() <= 255 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

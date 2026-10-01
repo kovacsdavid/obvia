@@ -39,7 +39,7 @@ impl ValueObjectData for Description {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() <= 3000 {
+        if self.0.graphemes(true).count() <= 3000 && self.0.chars().count() <= 3000 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

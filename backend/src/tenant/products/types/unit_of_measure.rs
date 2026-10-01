@@ -39,7 +39,7 @@ impl ValueObjectData for UnitsOfMeasure {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        if self.0.graphemes(true).count() <= 50 {
+        if self.0.graphemes(true).count() <= 50 && self.0.chars().count() <= 50 {
             Ok(())
         } else {
             Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR))

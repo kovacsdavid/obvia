@@ -180,6 +180,7 @@ bind_port = 3000                   # Server port
 public_base_url = "example.com"    # Server hostname
 environment = "prod"               # Server environment
 log_level = "trace"
+log_directory = "/path/to/log/directory"
 ```
 
 #### Main Database
@@ -208,6 +209,7 @@ refresh_token_expiration_mins = 480         # Refresh token expiration in mins
 
 #### Mailing
 ```toml
+[mail]
 mail_enabled = true                                         # Is mailing enabled
 smtp_host = "smtp_host"                                     # SMTP host
 smtp_user = "smtp_user"                                     # SMTP user

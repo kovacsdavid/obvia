@@ -28,6 +28,7 @@ pub struct ServerConfig {
     environment: String,
     #[serde(deserialize_with = "deserialize_log_level")]
     log_level: LevelFilter,
+    log_directory: String,
 }
 
 fn deserialize_log_level<'de, D>(deserializer: D) -> Result<LevelFilter, D::Error>
@@ -55,6 +56,9 @@ impl ServerConfig {
     pub fn log_level(&self) -> LevelFilter {
         self.log_level
     }
+    pub fn log_directory(&self) -> &str {
+        &self.log_directory
+    }
 }
 
 #[cfg(test)]
@@ -67,6 +71,7 @@ pub(crate) mod tests {
         hostname: Option<String>,
         environment: Option<String>,
         log_level: Option<LevelFilter>,
+        log_directory: Option<String>,
     }
 
     impl ServerConfigBuilder {
@@ -77,6 +82,7 @@ pub(crate) mod tests {
                 hostname: None,
                 environment: None,
                 log_level: None,
+                log_directory: None,
             }
         }
         pub fn host(mut self, host: &str) -> Self {
@@ -99,6 +105,10 @@ pub(crate) mod tests {
             self.log_level = Some(log_level);
             self
         }
+        pub fn log_directory(mut self, log_directory: &str) -> Self {
+            self.log_directory = Some(log_directory.to_owned());
+            self
+        }
         pub fn build(self) -> Result<ServerConfig, String> {
             Ok(ServerConfig {
                 bind_address: self.host.ok_or("host is required".to_string())?,
@@ -108,6 +118,9 @@ pub(crate) mod tests {
                     .environment
                     .ok_or("environment is required".to_string())?,
                 log_level: self.log_level.unwrap_or(LevelFilter::TRACE),
+                log_directory: self
+                    .log_directory
+                    .ok_or("log_directory is required".to_string())?,
             })
         }
     }
@@ -120,6 +133,7 @@ pub(crate) mod tests {
                 .hostname("example.com")
                 .environment("test")
                 .log_level(LevelFilter::TRACE)
+                .log_directory("/var/log/obvia")
         }
     }
 }

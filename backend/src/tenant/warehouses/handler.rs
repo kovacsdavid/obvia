@@ -33,7 +33,9 @@ use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn get_resolved<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -56,6 +58,7 @@ pub async fn get_resolved<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn get<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -75,6 +78,7 @@ pub async fn get<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn update<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -94,6 +98,7 @@ pub async fn update<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn delete<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -118,6 +123,7 @@ pub async fn delete<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn create<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -137,6 +143,7 @@ pub async fn create<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn list<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -166,6 +173,7 @@ pub async fn list<M: WarehousesModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn print<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -209,7 +217,7 @@ mod tests {
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::warehouses::model::WarehouseResolved;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::warehouses::{
             self, model::Warehouse, repository::MockWarehousesRepository,
             tests::MockWarehousesModule,
@@ -256,7 +264,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -303,7 +311,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -343,7 +351,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -417,7 +425,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -490,7 +498,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -537,7 +545,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -577,7 +585,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -650,7 +658,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -730,7 +738,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -775,7 +783,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -813,7 +821,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -886,7 +894,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -977,7 +985,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -1034,7 +1042,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1087,7 +1095,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1134,7 +1142,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1242,7 +1250,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -1299,7 +1307,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1351,7 +1359,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1400,7 +1408,7 @@ mod tests {
         };
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1485,7 +1493,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -1535,7 +1543,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1574,7 +1582,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1614,7 +1622,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1707,7 +1715,7 @@ mod tests {
 
         let mut app_state = MockWarehousesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_warehouses_repo()
             .with(eq(active_tenant_id))
@@ -1783,7 +1791,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1824,7 +1832,7 @@ mod tests {
         let warehouse_id = Uuid::now_v7();
 
         let mut app_state = MockWarehousesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

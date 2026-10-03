@@ -66,8 +66,8 @@ pub trait InventoryReservationsModuleInterface: BaseModule {
 
 impl<P, T> InventoryReservationsModuleInterface for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
     T::Error: Debug,
 {
     fn inventory_reservations_repo(
@@ -116,6 +116,9 @@ pub mod tests {
 
     mock!(
     pub InventoryReservationsModule {}
+    impl Debug for InventoryReservationsModule {
+        fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+    }
     impl ConfigProvider for InventoryReservationsModule {
         type Cfg = AppConfig;
         fn config(&self) -> &<Self as ConfigProvider>::Cfg;

@@ -51,8 +51,8 @@ pub trait OwnerProfileModuleInterface: BaseModule {
 
 impl<P, T> OwnerProfileModuleInterface for AppState<P, T>
 where
-    P: PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn owner_profile_repo(
@@ -84,6 +84,9 @@ pub mod tests {
 
     mock!(
         pub OwnerProfileModule {}
+        impl Debug for OwnerProfileModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for OwnerProfileModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

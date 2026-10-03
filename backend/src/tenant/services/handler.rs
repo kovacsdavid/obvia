@@ -34,7 +34,9 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn get_resolved<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -57,6 +59,7 @@ pub async fn get_resolved<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn get<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -75,6 +78,7 @@ pub async fn get<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn create<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -94,6 +98,7 @@ pub async fn create<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn update<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -113,6 +118,7 @@ pub async fn update<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn delete<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -133,6 +139,7 @@ pub async fn delete<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -161,6 +168,7 @@ pub async fn list<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn select_list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -188,6 +196,7 @@ pub async fn select_list<M: ServicesModule>(
     .into_response())
 }
 
+#[instrument]
 pub async fn print<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -231,7 +240,7 @@ mod tests {
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::services::model::ServiceResolved;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::services::{
             self, model::Service, repository::MockServicesRepository, tests::MockServicesModule,
         },
@@ -280,7 +289,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -327,7 +336,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -367,7 +376,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -440,7 +449,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -516,7 +525,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -563,7 +572,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -603,7 +612,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -676,7 +685,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -759,7 +768,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -804,7 +813,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -842,7 +851,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -915,7 +924,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1012,7 +1021,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1094,7 +1103,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1154,7 +1163,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1209,7 +1218,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1258,7 +1267,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1372,7 +1381,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1431,7 +1440,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1485,7 +1494,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1536,7 +1545,7 @@ mod tests {
         };
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1623,7 +1632,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1673,7 +1682,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1712,7 +1721,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1752,7 +1761,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1848,7 +1857,7 @@ mod tests {
 
         let mut app_state = MockServicesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_services_repo()
             .with(eq(active_tenant_id))
@@ -1921,7 +1930,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1962,7 +1971,7 @@ mod tests {
         let service_id = Uuid::now_v7();
 
         let mut app_state = MockServicesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

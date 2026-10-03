@@ -51,8 +51,8 @@ pub trait CustomersModuleInterface: BaseModule {
 
 impl<P, T> CustomersModuleInterface for AppState<P, T>
 where
-    P: PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn customers_repo(
@@ -84,6 +84,9 @@ pub mod tests {
 
     mock!(
         pub CustomersModule {}
+        impl Debug for CustomersModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for CustomersModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

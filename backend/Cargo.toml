@@ -37,6 +37,7 @@ mockall_double = "0.3.1"
 clap = { version = "4.6.2", features = ["derive"] }
 derive_builder = "0.20.2"
 unicode-segmentation = "1.13.3"
+tracing-appender = "0.2.5"
 
 [dev-dependencies]
 pretty_assertions = "1.4.1"

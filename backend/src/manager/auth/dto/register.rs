@@ -24,16 +24,28 @@ use axum::http::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::json;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use tracing::Level;
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Deserialize, Clone, PartialEq, Serialize)]
 pub struct RegisterRequestHelper {
     pub email: String,
     pub first_name: String,
     pub last_name: String,
     pub password: String,
     pub password_confirm: String,
+}
+
+impl Debug for RegisterRequestHelper {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RegisterRequestHelper")
+            .field("email", &self.email)
+            .field("first_name", &self.first_name)
+            .field("last_name", &self.last_name)
+            .field("password", &Password::HIDDEN_PASSWORD)
+            .field("password_confirm", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -75,7 +87,6 @@ impl From<RegisterRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -85,12 +96,23 @@ impl From<RegisterRequestError> for AppError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct RegisterRequest {
     pub email: ValueObjectRequired<Email>,
     pub first_name: ValueObjectRequired<FirstName>,
     pub last_name: ValueObjectRequired<LastName>,
     pub password: ValueObjectRequired<Password>,
+}
+
+impl Debug for RegisterRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RegisterRequest")
+            .field("email", &self.email)
+            .field("first_name", &self.first_name)
+            .field("last_name", &self.last_name)
+            .field("password", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 impl TryFrom<RegisterRequestHelper> for RegisterRequest {
@@ -183,7 +205,6 @@ impl From<ResendEmailValidationError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -249,7 +270,6 @@ impl From<ForgottenPasswordRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -287,11 +307,21 @@ impl TryFrom<ForgottenPasswordRequestHelper> for ForgottenPasswordRequest {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq, Serialize)]
+#[derive(Deserialize, Clone, PartialEq, Serialize)]
 pub struct NewPasswordRequestHelper {
     pub token: String,
     pub password: String,
     pub password_confirm: String,
+}
+
+impl Debug for NewPasswordRequestHelper {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NewPasswordRequestHelper")
+            .field("token", &self.token)
+            .field("password", &Password::HIDDEN_PASSWORD)
+            .field("password_confirm", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -327,7 +357,6 @@ impl From<NewPasswordRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -337,10 +366,19 @@ impl From<NewPasswordRequestError> for AppError {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct NewPasswordRequest {
     pub token: ValueObjectRequired<UuidVO>,
     pub password: ValueObjectRequired<Password>,
+}
+
+impl Debug for NewPasswordRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("NewPasswordRequest")
+            .field("token", &self.token)
+            .field("password", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 impl TryFrom<NewPasswordRequestHelper> for NewPasswordRequest {

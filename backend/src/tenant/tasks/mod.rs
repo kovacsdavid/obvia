@@ -71,8 +71,8 @@ pub trait TasksModule: BaseModule {
 
 impl<P, T> TasksModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
     T::Error: Debug,
 {
     fn tasks_repo(
@@ -127,6 +127,9 @@ pub mod tests {
 
     mock!(
     pub TasksModule {}
+    impl Debug for TasksModule {
+        fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+    }
     impl ConfigProvider for TasksModule {
         type Cfg = AppConfig;
         fn config(&self) -> &<Self as ConfigProvider>::Cfg;

@@ -72,7 +72,6 @@ impl From<CommentUserInputError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",

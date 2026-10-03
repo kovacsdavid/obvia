@@ -91,14 +91,12 @@ impl From<TasksServiceError> for AppError {
             TasksServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
             TasksServiceError::UnprocessableEntry(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
@@ -106,7 +104,6 @@ impl From<TasksServiceError> for AppError {
                 Self::new(
                     Level::DEBUG,
                     StatusCode::NOT_FOUND,
-                    file!(),
                     AppErrorVisibility::UserFacing,
                     json!({"message": "Nem található"}),
                 )
@@ -114,7 +111,6 @@ impl From<TasksServiceError> for AppError {
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
                 AppErrorVisibility::Internal,
                 json!({"message": value.to_string()}),
             ),

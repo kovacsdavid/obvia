@@ -63,7 +63,7 @@ pub(crate) mod utils;
 pub(crate) mod value_object;
 
 pub trait BaseModule:
-    ConfigProvider<Cfg = AppConfig> + MailTransporter + Send + Sync + 'static
+    ConfigProvider<Cfg = AppConfig> + Debug + MailTransporter + Send + Sync + 'static
 {
 }
 
@@ -79,6 +79,7 @@ pub trait MailTransporter {
     ) -> impl Future<Output = Result<Option<Response>, Error>> + Send;
 }
 
+#[derive(Debug)]
 pub struct AppState<P, T>
 where
     P: Send + Sync + 'static,
@@ -198,8 +199,8 @@ where
 
 impl<P, T> BaseModule for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
     T::Error: Debug,
 {
 }

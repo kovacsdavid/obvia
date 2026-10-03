@@ -203,7 +203,7 @@ impl TryFrom<InventoryMovementUserInputHelper> for InventoryMovementUserInput {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct InventoryMovementsRawQuery {
     inventory_id: Uuid,
     q: Option<String>,

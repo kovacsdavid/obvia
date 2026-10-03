@@ -46,8 +46,8 @@ pub trait WarehousesModuleInterface: BaseModule {
 
 impl<P, T> WarehousesModuleInterface for AppState<P, T>
 where
-    P: PoolManager + Send + Sync,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn warehouses_repo(
@@ -71,6 +71,9 @@ pub mod tests {
 
     mock!(
         pub WarehousesModule {}
+        impl Debug for WarehousesModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for WarehousesModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

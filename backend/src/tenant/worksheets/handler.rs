@@ -33,7 +33,9 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn get_resolved<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -56,6 +58,7 @@ pub async fn get_resolved<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn get<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -75,6 +78,7 @@ pub async fn get<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn update<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -94,6 +98,7 @@ pub async fn update<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn delete<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -118,6 +123,7 @@ pub async fn delete<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn create<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -137,6 +143,7 @@ pub async fn create<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn select_list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -164,6 +171,7 @@ pub async fn select_list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -192,6 +200,7 @@ pub async fn list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn print<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -255,7 +264,7 @@ mod tests {
     use crate::tenant::worksheets::model::WorksheetResolved;
     use crate::tenant::worksheets::model::tests::test_worksheet_resolved_builder;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::worksheets::{
             self, model::Worksheet, repository::MockWorksheetsRepository,
             tests::MockWorksheetsModule,
@@ -304,7 +313,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -351,7 +360,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -391,7 +400,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -464,7 +473,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -545,7 +554,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -592,7 +601,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -632,7 +641,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -705,7 +714,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -793,7 +802,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -838,7 +847,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -876,7 +885,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -949,7 +958,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -1043,7 +1052,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -1102,7 +1111,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1156,7 +1165,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1204,7 +1213,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1316,7 +1325,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -1374,7 +1383,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1425,7 +1434,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1474,7 +1483,7 @@ mod tests {
         };
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1559,7 +1568,7 @@ mod tests {
 
         let mut app_state = MockWorksheetsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -1609,7 +1618,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1648,7 +1657,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1688,7 +1697,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1947,7 +1956,7 @@ mod tests {
         let warehouses_repo = Arc::new(warehouses_repo);
         let customers_repo = Arc::new(customers_repo);
         let owner_profile_repo = Arc::new(owner_profile_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_worksheets_repo()
             .with(eq(active_tenant_id))
@@ -2155,7 +2164,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -2196,7 +2205,7 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
 
         let mut app_state = MockWorksheetsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

@@ -20,6 +20,7 @@
 use std::fmt::{Display, Formatter};
 
 use crate::common::error::v2::{AppError, AppErrorVisibility};
+use crate::common::types::Password;
 use crate::common::value_object::ValueObjectError;
 use crate::common::value_object::ValueObjectRequired;
 use crate::manager::auth::dto::claims::Claims;
@@ -28,6 +29,7 @@ use crate::manager::users::model::User;
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::fmt::Debug;
 use tracing::Level;
 use uuid::Uuid;
 
@@ -36,6 +38,16 @@ pub struct LoginRequest {
     pub email: String,
     pub password: String,
     pub otp: Option<String>,
+}
+
+impl Debug for LoginRequest {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("LoginRequest")
+            .field("email", &self.email)
+            .field("password", &Password::HIDDEN_PASSWORD)
+            .field("otp", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 #[derive(Serialize, Debug)]

@@ -38,7 +38,9 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn get<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -61,6 +63,7 @@ pub async fn get<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -83,6 +86,7 @@ pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn create<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -108,6 +112,7 @@ pub async fn create<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn update<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -133,6 +138,7 @@ pub async fn update<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn delete<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -157,6 +163,7 @@ pub async fn delete<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn list<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -189,6 +196,7 @@ pub async fn list<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn select_list<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -217,6 +225,7 @@ pub async fn select_list<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
+#[instrument]
 pub async fn print<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -264,7 +273,7 @@ mod tests {
     use crate::tenant::warehouses::model::tests::test_warehouse_resolved_builder;
     use crate::tenant::warehouses::repository::MockWarehousesRepository;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::inventory_reservations::{
             self, model::InventoryReservation, repository::MockInventoryReservationsRepository,
             tests::MockInventoryReservationsModule,
@@ -314,7 +323,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -363,7 +372,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -405,7 +414,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -482,7 +491,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -560,7 +569,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -609,7 +618,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -651,7 +660,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -728,7 +737,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -818,7 +827,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -867,7 +876,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -909,7 +918,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -991,7 +1000,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -1093,7 +1102,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -1154,7 +1163,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1213,7 +1222,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1265,7 +1274,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1384,7 +1393,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -1446,7 +1455,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1502,7 +1511,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1555,7 +1564,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1644,7 +1653,7 @@ mod tests {
 
         let mut app_state = MockInventoryReservationsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -1696,7 +1705,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1735,7 +1744,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1777,7 +1786,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1923,7 +1932,7 @@ mod tests {
         let inventory_repo = Arc::new(inventory_repo);
         let products_repo = Arc::new(products_repo);
         let warehouses_repo = Arc::new(warehouses_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_reservations_repo()
             .with(eq(active_tenant_id))
@@ -2024,7 +2033,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -2067,7 +2076,7 @@ mod tests {
         let inventory_reservation_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryReservationsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

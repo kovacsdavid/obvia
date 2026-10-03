@@ -31,7 +31,9 @@ use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn list<M: ActivityFeedModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(activity_feed_module): State<Arc<M>>,
@@ -80,7 +82,7 @@ mod tests {
     use crate::tenant::activity_feed::model::ActivityFeedResolved;
     use crate::tenant::activity_feed::types::ResourceType;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::activity_feed::{
             self, repository::MockActivityFeedRepository, tests::MockActivityFeedModule,
         },
@@ -137,7 +139,7 @@ mod tests {
 
         let mut app_state = MockActivityFeedModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_activity_feed_repo()
             .with(eq(active_tenant_id))
@@ -189,7 +191,7 @@ mod tests {
             .unwrap();
 
         let mut app_state = MockActivityFeedModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -234,7 +236,7 @@ mod tests {
             .unwrap();
 
         let mut app_state = MockActivityFeedModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -322,7 +324,7 @@ mod tests {
 
         let mut app_state = MockActivityFeedModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_activity_feed_repo()
             .with(eq(active_tenant_id))

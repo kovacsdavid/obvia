@@ -46,8 +46,8 @@ pub trait CommentsModuleInterface: BaseModule {
 
 impl<P, T> CommentsModuleInterface for AppState<P, T>
 where
-    P: PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn comments_repo(
@@ -72,6 +72,9 @@ pub mod tests {
 
     mock!(
         pub CommentsModule {}
+        impl Debug for CommentsModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for CommentsModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

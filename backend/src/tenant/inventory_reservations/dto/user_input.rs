@@ -180,7 +180,7 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct InventoryReservationsRawQuery {
     inventory_id: Uuid,
     q: Option<String>,

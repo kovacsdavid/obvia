@@ -42,7 +42,9 @@ pub type HandlerResult = Result<Response, AppError>;
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{common::config::tests::AppConfigBuilder, manager::auth::dto::claims::Claims};
+    use crate::{
+        common::config::tests::test_app_config_builder, manager::auth::dto::claims::Claims,
+    };
     use axum::body::Body;
     use axum::http::Response;
     use chrono::Utc;
@@ -92,7 +94,7 @@ pub mod tests {
     }
 
     pub fn generate_valid_jwt(sub: Option<Uuid>, active_tenant_id: Option<Uuid>) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let sub = match sub {
             Some(v) => v,
             None => Uuid::now_v7(),
@@ -119,7 +121,7 @@ pub mod tests {
     }
 
     pub fn generate_expired_jwt() -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let sub = Uuid::now_v7();
         let active_tenant_id = Some(Uuid::now_v7());
         let exp = (Utc::now() - Duration::from_secs(100)).timestamp();
@@ -144,7 +146,7 @@ pub mod tests {
     }
 
     pub fn generate_jwt_with_invalid_signature() -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let wrong_signature = config.auth().jwt_secret().chars().rev().collect::<String>();
         let sub = Uuid::now_v7();
         let active_tenant_id = Some(Uuid::now_v7());
@@ -175,7 +177,7 @@ pub mod tests {
         jti: Option<Uuid>,
         family_id: Option<Uuid>,
     ) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let sub = match sub {
             Some(v) => v,
             None => Uuid::now_v7(),
@@ -211,7 +213,7 @@ pub mod tests {
         jti: Option<Uuid>,
         family_id: Option<Uuid>,
     ) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let sub = match sub {
             Some(v) => v,
             None => Uuid::now_v7(),
@@ -247,7 +249,7 @@ pub mod tests {
         jti: Option<Uuid>,
         family_id: Option<Uuid>,
     ) -> String {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
         let wrong_signature = config.auth().jwt_secret().chars().rev().collect::<String>();
         let sub = match sub {
             Some(v) => v,

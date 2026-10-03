@@ -86,8 +86,8 @@ pub trait WorksheetsModuleInterface: BaseModule {
 
 impl<P, T> WorksheetsModuleInterface for AppState<P, T>
 where
-    P: PoolManager + Send + Sync,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug + Send + Sync,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn worksheets_repo(
@@ -160,6 +160,9 @@ pub mod tests {
 
     mock!(
         pub WorksheetsModule {}
+        impl Debug for WorksheetsModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for WorksheetsModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

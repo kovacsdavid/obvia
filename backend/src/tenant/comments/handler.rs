@@ -29,7 +29,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument]
 pub async fn post<M: CommentsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(comments_module): State<Arc<M>>,
@@ -56,7 +58,7 @@ mod tests {
         generate_valid_jwt,
     };
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::comments::{
             self, model::Comment, repository::MockCommentsRepository, tests::MockCommentsModule,
         },
@@ -116,7 +118,7 @@ mod tests {
 
         let mut app_state = MockCommentsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_comments_repo()
             .with(eq(active_tenant_id))
@@ -173,7 +175,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -227,7 +229,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -275,7 +277,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

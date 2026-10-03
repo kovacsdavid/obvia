@@ -25,7 +25,7 @@ use crate::{
     tenant::activity_feed::types::ResourceType,
 };
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ActivityFeedRawQuery {
     resource_id: Uuid,
     resource_type: String,

@@ -23,6 +23,7 @@ use axum::{
 };
 use std::net::{IpAddr, SocketAddr};
 
+#[derive(Debug)]
 pub struct ClientContext {
     pub ip: IpAddr,
     pub user_agent: Option<String>,

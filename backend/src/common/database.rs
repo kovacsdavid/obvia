@@ -90,10 +90,7 @@ impl PoolManager for PgPoolManager {
         self.main_pool.clone()
     }
     fn get_tenant_pool(&self, tenant_id: Uuid) -> Result<Arc<PgPool>, RepositoryError> {
-        let guard = self
-            .tenant_pools
-            .read()
-            .map_err(|e| RepositoryError::RwLockReadGuard(e.to_string()))?;
+        let guard = self.tenant_pools.read()?;
         Ok(guard
             .get(&tenant_id)
             .ok_or(RepositoryError::TenantPoolNotFound)?
@@ -110,19 +107,13 @@ impl PoolManager for PgPoolManager {
             .await?;
 
         {
-            let mut pools = self
-                .tenant_pools
-                .write()
-                .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
+            let mut pools = self.tenant_pools.write()?;
             pools.insert(tenant_id, Arc::new(pool));
         }
         Ok(tenant_id)
     }
     async fn delete_tenant_pool(&self, tenant_id: Uuid) -> Result<(), RepositoryError> {
-        let mut pools = self
-            .tenant_pools
-            .write()
-            .map_err(|e| RepositoryError::RwLockWriteGuard(e.to_string()))?;
+        let mut pools = self.tenant_pools.write()?;
         pools.remove(&tenant_id);
         Ok(())
     }

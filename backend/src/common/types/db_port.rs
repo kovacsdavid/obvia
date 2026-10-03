@@ -23,13 +23,17 @@ use std::fmt::Display;
 #[derive(Debug, PartialEq, Clone)]
 pub struct DbPort(u16);
 
+impl DbPort {
+    pub const PARSE_ERROR: &'static str = "Hibás adatbázis port";
+}
+
 impl ValueObjectData for DbPort {
     type DataType = u16;
 
     fn new(data: &str) -> ValueObjectResult<Option<Self>> {
         if !data.trim().is_empty() {
             Ok(Some(Self(data.parse().map_err(|_| {
-                ValueObjectError::InvalidInput("Hibás adatbázis port")
+                ValueObjectError::InvalidInput(Self::PARSE_ERROR)
             })?)))
         } else {
             Ok(None)
@@ -39,7 +43,7 @@ impl ValueObjectData for DbPort {
         if self.0 > 1024 {
             Ok(())
         } else {
-            Err(ValueObjectError::InvalidInput("Hibás adatbázis port"))
+            Err(ValueObjectError::InvalidInput(Self::PARSE_ERROR))
         }
     }
 

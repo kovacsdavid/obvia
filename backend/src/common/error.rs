@@ -45,8 +45,8 @@ pub enum RepositoryError {
     #[error("Custom error: {0}")]
     Custom(String),
 
-    #[error("PoisonError error: {0}")]
-    PoisonError(#[from] std::sync::PoisonError<_>),
+    #[error("RwLockReadGuard error: {0}")]
+    RwLockReadGuard(String),
 
     #[error("RwLockWriteGuard error: {0}")]
     RwLockWriteGuard(String),

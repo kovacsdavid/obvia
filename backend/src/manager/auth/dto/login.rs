@@ -92,9 +92,17 @@ impl LoginResponse {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct OtpUserInputHelper {
     pub otp: String,
+}
+
+impl Debug for OtpUserInputHelper {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OtpUserInputHelper")
+            .field("otp", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -138,9 +146,17 @@ impl From<OtpUserInputError> for AppError {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct OtpUserInput {
     pub otp: ValueObjectRequired<Otp>,
+}
+
+impl Debug for OtpUserInput {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OtpUserInput")
+            .field("otp", &Password::HIDDEN_PASSWORD)
+            .finish()
+    }
 }
 
 impl TryFrom<OtpUserInputHelper> for OtpUserInput {

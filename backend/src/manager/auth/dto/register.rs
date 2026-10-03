@@ -87,7 +87,6 @@ impl From<RegisterRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -206,7 +205,6 @@ impl From<ResendEmailValidationError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -272,7 +270,6 @@ impl From<ForgottenPasswordRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -360,7 +357,6 @@ impl From<NewPasswordRequestError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",

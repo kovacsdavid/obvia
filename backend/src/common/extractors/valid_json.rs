@@ -42,7 +42,6 @@ where
             AppError::new(
                 Level::DEBUG,
                 StatusCode::BAD_REQUEST,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": "Hibás JSON formátum!"}),
             )

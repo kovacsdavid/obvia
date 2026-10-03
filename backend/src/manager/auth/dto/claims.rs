@@ -39,7 +39,6 @@ impl From<ClaimsError> for AppError {
         Self::new(
             Level::ERROR,
             StatusCode::INTERNAL_SERVER_ERROR,
-            file!(),
             AppErrorVisibility::Internal,
             json!({"message": value.to_string()}),
         )

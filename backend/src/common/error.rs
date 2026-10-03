@@ -98,7 +98,6 @@ impl From<BuilderError> for AppError {
         Self::new(
             Level::ERROR,
             StatusCode::INTERNAL_SERVER_ERROR,
-            file!(),
             AppErrorVisibility::Internal,
             json!({
                 "message":
@@ -139,7 +138,6 @@ pub mod v2 {
     pub struct AppError {
         log_level: Level,
         http_status: StatusCode,
-        location: &'static str,
         visibility: AppErrorVisibility,
         json: serde_json::Value,
     }
@@ -148,14 +146,12 @@ pub mod v2 {
         pub fn new(
             log_level: Level,
             http_status: StatusCode,
-            location: &'static str,
             visibility: AppErrorVisibility,
             json: serde_json::Value,
         ) -> Self {
             let app_error = Self {
                 log_level,
                 http_status,
-                location,
                 visibility,
                 json,
             };
@@ -216,9 +212,9 @@ pub mod v2 {
                 r##"
                     Dear Admin!\n\n
                     Check this error!\n
-                    Internal error: location={{loc}} message={{message}}
+                    Internal error: message={{message}}
                     "##,
-                &json!({"location": self.location, "message": self.json.to_string()}),
+                &json!({"message": self.json.to_string()}),
             );
 
             if let Ok(default_from) = default_from

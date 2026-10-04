@@ -23,6 +23,4 @@ mkdir -p /var/log/obvia
 chown obvia:obvia /var/log/obvia
 chmod 2770 /var/log/obvia
 
-cd /opt
-
 exec gosu obvia "$@"

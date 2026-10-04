@@ -29,10 +29,11 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(users_module))]
 pub async fn get_claims<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(users_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> HandlerResult {
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -45,7 +46,7 @@ pub async fn get_claims<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(users_module))]
 pub async fn otp_enable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -68,7 +69,7 @@ pub async fn otp_enable<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(users_module))]
 pub async fn otp_verify<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -95,7 +96,7 @@ pub async fn otp_verify<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(users_module))]
 pub async fn otp_disable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,

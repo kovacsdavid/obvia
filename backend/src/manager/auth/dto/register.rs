@@ -317,7 +317,7 @@ pub struct NewPasswordRequestHelper {
 impl Debug for NewPasswordRequestHelper {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NewPasswordRequestHelper")
-            .field("token", &self.token)
+            .field("token", &Password::HIDDEN_PASSWORD)
             .field("password", &Password::HIDDEN_PASSWORD)
             .field("password_confirm", &Password::HIDDEN_PASSWORD)
             .finish()
@@ -375,7 +375,7 @@ pub struct NewPasswordRequest {
 impl Debug for NewPasswordRequest {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("NewPasswordRequest")
-            .field("token", &self.token)
+            .field("token", &Password::HIDDEN_PASSWORD)
             .field("password", &Password::HIDDEN_PASSWORD)
             .finish()
     }

@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::{UserInput, ValidJson};
+use crate::common::extractors::{ClientContext, UserInput, ValidJson};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -37,10 +37,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(tenants_module))]
 pub async fn create<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -60,26 +61,29 @@ pub async fn create<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(_tenants_module))]
 pub async fn get<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> Response {
     todo!();
 }
 
-#[instrument]
+#[instrument(skip(_tenants_module))]
 pub async fn get_resolved<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> Response {
     todo!();
 }
 
-#[instrument]
+#[instrument(skip(tenants_module))]
 pub async fn list<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -106,10 +110,11 @@ pub async fn list<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(tenants_module))]
 pub async fn activate<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -125,10 +130,11 @@ pub async fn activate<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(tenants_module))]
 pub async fn delete<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());

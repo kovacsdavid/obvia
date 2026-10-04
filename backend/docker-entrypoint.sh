@@ -1,4 +1,5 @@
-# 
+#!/bin/sh
+
 # This file is part of the Obvia ERP.
 # 
 # Copyright (C) 2026 Kovács Dávid <kapcsolat@kovacsdavid.dev>
@@ -16,7 +17,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#!/bin/sh
 set -e
 
 mkdir -p /var/log/obvia

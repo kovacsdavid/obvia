@@ -1946,7 +1946,7 @@ dependencies = [
 
 [[package]]
 name = "obvia"
-version = "0.30.2"
+version = "0.31.0"
 dependencies = [
  "anyhow",
  "argon2",

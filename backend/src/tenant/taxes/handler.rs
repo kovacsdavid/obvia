@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -34,10 +34,13 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(taxes_module))]
 pub async fn get_resolved<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -57,9 +60,11 @@ pub async fn get_resolved<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn get<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -75,9 +80,11 @@ pub async fn get<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn create<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -93,9 +100,11 @@ pub async fn create<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn update<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -111,9 +120,11 @@ pub async fn update<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn delete<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -131,9 +142,11 @@ pub async fn delete<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -159,9 +172,11 @@ pub async fn list<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn select_list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -186,9 +201,11 @@ pub async fn select_list<M: TaxesModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(taxes_module))]
 pub async fn print<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -225,7 +242,7 @@ mod tests {
     use crate::common::pdf::{MockPdfGenerator, PdfGenerator, PdfTemplates};
     use crate::tenant::taxes::model::TaxResolved;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::taxes::{
             self, model::Tax, repository::MockTaxesRepository, tests::MockTaxesModule,
         },
@@ -276,7 +293,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -323,7 +340,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -363,7 +380,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -436,7 +453,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -515,7 +532,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -562,7 +579,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -602,7 +619,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -675,7 +692,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -761,7 +778,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -806,7 +823,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -844,7 +861,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -917,7 +934,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -1023,7 +1040,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -1085,7 +1102,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1143,7 +1160,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1195,7 +1212,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1318,7 +1335,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -1380,7 +1397,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1437,7 +1454,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1491,7 +1508,7 @@ mod tests {
         };
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1580,7 +1597,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -1630,7 +1647,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1669,7 +1686,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1709,7 +1726,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1808,7 +1825,7 @@ mod tests {
 
         let mut app_state = MockTaxesModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_taxes_repo()
             .with(eq(active_tenant_id))
@@ -1881,7 +1898,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1922,7 +1939,7 @@ mod tests {
         let tax_id = Uuid::now_v7();
 
         let mut app_state = MockTaxesModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

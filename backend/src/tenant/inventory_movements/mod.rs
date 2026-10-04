@@ -71,8 +71,8 @@ pub trait InventoryMovementsModuleInterface: BaseModule {
 
 impl<P, T> InventoryMovementsModuleInterface for AppState<P, T>
 where
-    P: PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + 'static,
+    P: PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
     T::Error: Debug,
 {
     fn inventory_movements_repo(
@@ -127,6 +127,9 @@ pub mod tests {
 
     mock!(
         pub InventoryMovementsModule {}
+        impl Debug for InventoryMovementsModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for InventoryMovementsModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

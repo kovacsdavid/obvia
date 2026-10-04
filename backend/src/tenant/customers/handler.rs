@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -33,10 +33,13 @@ use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::IntoResponse;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(customers_module))]
 pub async fn get_resolved<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -56,9 +59,11 @@ pub async fn get_resolved<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn get_full<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -78,9 +83,11 @@ pub async fn get_full<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn get<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -96,9 +103,11 @@ pub async fn get<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn create<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -115,9 +124,11 @@ pub async fn create<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn update<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CustomerUserInput, CustomerUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -134,9 +145,11 @@ pub async fn update<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn delete<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -154,9 +167,11 @@ pub async fn delete<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn list<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -183,9 +198,11 @@ pub async fn list<M: CustomersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(customers_module))]
 pub async fn print<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), customers_module.clone());
@@ -235,7 +252,7 @@ mod tests {
         test_customer_builder, test_customer_full_builder, test_customer_resolved_builder,
     };
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::customers::{
             self, repository::MockCustomersRepository, tests::MockCustomersModule,
         },
@@ -266,7 +283,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -313,7 +330,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -353,7 +370,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -426,7 +443,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -490,7 +507,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -537,7 +554,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -577,7 +594,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -650,7 +667,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -729,7 +746,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let customers_repo = Arc::new(customers_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -776,7 +793,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -816,7 +833,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -889,7 +906,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -981,7 +998,7 @@ mod tests {
         let mut app_state = MockCustomersModule::new();
         let customers_repo = Arc::new(customers_repo);
         let address_repo = Arc::new(address_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -1034,7 +1051,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1072,7 +1089,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1145,7 +1162,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -1231,7 +1248,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -1292,7 +1309,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1349,7 +1366,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1400,7 +1417,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1505,7 +1522,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -1566,7 +1583,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1619,7 +1636,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1670,7 +1687,7 @@ mod tests {
         };
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1757,7 +1774,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -1805,7 +1822,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1844,7 +1861,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1884,7 +1901,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1967,7 +1984,7 @@ mod tests {
 
         let mut app_state = MockCustomersModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_customers_repo()
             .with(eq(active_tenant_id))
@@ -2040,7 +2057,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -2081,7 +2098,7 @@ mod tests {
         let customer_id = Uuid::now_v7();
 
         let mut app_state = MockCustomersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

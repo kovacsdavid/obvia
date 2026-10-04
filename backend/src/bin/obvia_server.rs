@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
 
 async fn serve() -> anyhow::Result<()> {
     let config = AppConfig::from_env()?;
-    init_subscriber(&config);
+    let _guard = init_subscriber(&config);
     let bind_address = config.server().bind_address();
     let bind_port = config.server().bind_port();
     let addr = format!("{bind_address}:{bind_port}");

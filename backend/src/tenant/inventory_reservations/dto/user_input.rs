@@ -79,7 +79,6 @@ impl From<InventoryReservationUserInputError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -180,7 +179,7 @@ impl TryFrom<InventoryReservationUserInputHelper> for InventoryReservationUserIn
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct InventoryReservationsRawQuery {
     inventory_id: Uuid,
     q: Option<String>,

@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -33,12 +33,23 @@ use crate::{
     tenant::comments::types::{Comment, CommentableType},
 };
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 pub struct CommentUserInputHelper {
     pub id: Option<String>,
     pub commentable_type: String,
     pub commentable_id: String,
     pub comment: String,
+}
+
+impl Debug for CommentUserInputHelper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CommentUserInputHelper")
+            .field("id", &self.id)
+            .field("commentable_type", &self.commentable_type)
+            .field("commentable_id", &self.commentable_id)
+            .field("comment", &"[comment]")
+            .finish()
+    }
 }
 
 #[derive(Debug, Serialize, Default)]
@@ -72,7 +83,6 @@ impl From<CommentUserInputError> for AppError {
         Self::new(
             Level::DEBUG,
             StatusCode::UNPROCESSABLE_ENTITY,
-            file!(),
             AppErrorVisibility::UserFacing,
             json!({
                 "message": "Kérjük ellenőrizze a hibás mezőket!",
@@ -88,12 +98,23 @@ impl From<ValueObjectError> for CommentUserInputError {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct CommentUserInput {
     pub id: ValueObjectOptional<UuidVO>,
     pub commentable_type: ValueObjectRequired<CommentableType>,
     pub commentable_id: ValueObjectRequired<UuidVO>,
     pub comment: ValueObjectRequired<Comment>,
+}
+
+impl Debug for CommentUserInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CommentUserInput")
+            .field("id", &self.id)
+            .field("commentable_type", &self.commentable_type)
+            .field("commentable_id", &self.commentable_id)
+            .field("comment", &"[comment]")
+            .finish()
+    }
 }
 
 impl TryFrom<CommentUserInputHelper> for CommentUserInput {

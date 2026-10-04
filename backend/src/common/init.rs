@@ -28,15 +28,27 @@ use axum::Router;
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, Tokio1Executor};
 use tower_http::trace::TraceLayer;
+use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::fmt::writer::MakeWriterExt;
 
-pub fn init_subscriber(config: &AppConfig) {
+pub fn init_subscriber(config: &AppConfig) -> WorkerGuard {
+    let file_appender =
+        tracing_appender::rolling::weekly(config.server().log_directory(), "obvia_server.log");
+    let (file_writer, guard) = tracing_appender::non_blocking(file_appender);
+
+    let stdout = std::io::stdout;
+    let file = file_writer;
+
     tracing::subscriber::set_global_default(
         FmtSubscriber::builder()
             .with_max_level(config.server().log_level())
+            .with_writer(stdout.and(file))
             .finish(),
     )
     .expect("setting default subscriber failed");
+
+    guard
 }
 
 pub async fn init_default_app_state(

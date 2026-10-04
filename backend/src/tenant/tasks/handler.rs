@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -33,10 +33,13 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(tasks_module))]
 pub async fn get_resolved<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -56,9 +59,11 @@ pub async fn get_resolved<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn get<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -74,9 +79,11 @@ pub async fn get<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn update<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -92,9 +99,11 @@ pub async fn update<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn delete<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -112,9 +121,11 @@ pub async fn delete<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn create<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaskUserInput, TaskUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -130,9 +141,11 @@ pub async fn create<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn select_list<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -157,9 +170,11 @@ pub async fn select_list<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn list<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -185,9 +200,11 @@ pub async fn list<M: TasksModule>(
     .into_response())
 }
 
+#[instrument(skip(tasks_module))]
 pub async fn print<M: TasksModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tasks_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tasks_module.clone());
@@ -222,7 +239,7 @@ mod tests {
     use crate::tenant::tasks::model::TaskResolved;
     use crate::tenant::tasks::model::tests::test_task_resolved_builder;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::tasks::{
             self, model::Task, repository::MockTasksRepository, tests::MockTasksModule,
         },
@@ -277,7 +294,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -324,7 +341,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -364,7 +381,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -437,7 +454,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -522,7 +539,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -569,7 +586,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -609,7 +626,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -682,7 +699,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -774,7 +791,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -819,7 +836,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -857,7 +874,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -930,7 +947,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -1042,7 +1059,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -1108,7 +1125,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1170,7 +1187,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1227,7 +1244,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1360,7 +1377,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -1426,7 +1443,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1487,7 +1504,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1545,7 +1562,7 @@ mod tests {
         };
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1639,7 +1656,7 @@ mod tests {
 
         let mut app_state = MockTasksModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -1689,7 +1706,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1728,7 +1745,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1768,7 +1785,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1871,7 +1888,7 @@ mod tests {
         let mut app_state = MockTasksModule::new();
         let tasks_repo = Arc::new(tasks_repo);
         let services_repo = Arc::new(services_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_tasks_repo()
             .with(eq(active_tenant_id))
@@ -1949,7 +1966,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1990,7 +2007,7 @@ mod tests {
         let task_id = Uuid::now_v7();
 
         let mut app_state = MockTasksModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

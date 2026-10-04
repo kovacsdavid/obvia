@@ -42,8 +42,8 @@ pub trait UsersModuleInterface: BaseModule {
 
 impl<P, T> UsersModuleInterface for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync + Send + Sync + 'static,
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + Send + Sync + 'static,
     T::Error: Debug,
 {
     fn users_repo(&self) -> Arc<dyn UsersRepository + Send + Sync> {
@@ -67,6 +67,9 @@ pub mod tests {
 
     mock!(
         pub UsersModule {}
+        impl Debug for UsersModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for UsersModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

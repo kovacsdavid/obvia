@@ -85,21 +85,18 @@ impl From<TaxesServiceError> for AppError {
             TaxesServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
             TaxesServiceError::TaxExists => Self::new(
                 Level::DEBUG,
                 StatusCode::CONFLICT,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
             TaxesServiceError::UnprocessableEntry(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
@@ -107,7 +104,6 @@ impl From<TaxesServiceError> for AppError {
                 Self::new(
                     Level::DEBUG,
                     StatusCode::NOT_FOUND,
-                    file!(),
                     AppErrorVisibility::UserFacing,
                     json!({"message": "Nem található"}),
                 )
@@ -115,7 +111,6 @@ impl From<TaxesServiceError> for AppError {
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
                 AppErrorVisibility::Internal,
                 json!({"message": value.to_string()}),
             ),

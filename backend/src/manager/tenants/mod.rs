@@ -29,6 +29,7 @@ use lettre::{
     AsyncTransport,
     transport::smtp::{Error, response::Response},
 };
+use std::fmt::Debug;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -51,8 +52,8 @@ pub trait TenantsModuleInterface: DatabaseMigrator + PoolManager + BaseModule {
 
 impl<P, T> TenantsModuleInterface for AppState<P, T>
 where
-    P: DatabaseMigrator + PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: DatabaseMigrator + PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
 {
     fn tenants_repo(&self) -> Arc<dyn TenantsRepository + Send + Sync> {
         self.get_main_pool()
@@ -88,6 +89,9 @@ pub mod tests {
 
     mock!(
         pub TenantsModule {}
+        impl Debug for TenantsModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for TenantsModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

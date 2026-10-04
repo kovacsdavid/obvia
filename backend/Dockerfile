@@ -46,7 +46,7 @@ RUN case "${TARGETPLATFORM}" in \
  && install -m 0755 /opt/typst/typst /usr/local/bin/typst \
  && typst --version
 
-FROM --platform=$BUILDPLATFORM rust:1.98.1 AS builder
+FROM --platform=$BUILDPLATFORM rust:1.99.0 AS builder
 ARG TARGETPLATFORM
 ARG BUILDPLATFORM
 SHELL ["/bin/bash", "-euxo", "pipefail", "-c"]
@@ -67,17 +67,31 @@ RUN if [ "$TARGETPLATFORM" = "linux/arm64" ] && [ "$BUILDPLATFORM" != "$TARGETPL
     fi
 
 FROM ubuntu:24.04
+
 WORKDIR /opt
 EXPOSE 3000
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    gosu \
     fontconfig \
     fonts-dejavu-core \
   && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /opt/obvia_server /opt/obvia_server
 COPY --from=builder /opt/templates /opt/templates
 COPY --from=typst /usr/local/bin/typst /usr/local/bin/typst
-RUN groupadd -r obvia && useradd -r -g obvia obvia
+
+RUN groupadd -r obvia && useradd -r -g obvia -d /nonexistent -s /usr/sbin/nologin obvia
+
+RUN mkdir -p /var/log/obvia \
+    && chown obvia:obvia /var/log/obvia \
+    && chmod 2770 /var/log/obvia
+
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 RUN typst --version
-USER obvia
-ENTRYPOINT ["/opt/obvia_server"]
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/opt/obvia_server"]

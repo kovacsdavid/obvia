@@ -24,6 +24,10 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Debug, PartialEq, Clone)]
 pub struct Password(String);
 
+impl Password {
+    pub const HIDDEN_PASSWORD: &'static str = "********";
+}
+
 impl ValueObjectData for Password {
     type DataType = String;
 
@@ -55,7 +59,7 @@ impl ValueObjectData for Password {
 
 impl Display for Password {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "********")
+        write!(f, "{}", Password::HIDDEN_PASSWORD)
     }
 }
 

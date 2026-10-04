@@ -27,10 +27,13 @@ use crate::manager::auth::dto::login::{OtpUserInput, OtpUserInputHelper};
 use crate::manager::auth::middleware::AuthenticatedUser;
 use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(users_module))]
 pub async fn get_claims<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(users_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> HandlerResult {
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
@@ -43,6 +46,7 @@ pub async fn get_claims<M: UsersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(users_module))]
 pub async fn otp_enable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -65,6 +69,7 @@ pub async fn otp_enable<M: UsersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(users_module))]
 pub async fn otp_verify<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -91,6 +96,7 @@ pub async fn otp_verify<M: UsersModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(users_module))]
 pub async fn otp_disable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -122,7 +128,7 @@ mod tests {
     use std::net::IpAddr;
 
     use super::*;
-    use crate::common::config::tests::AppConfigBuilder;
+    use crate::common::config::tests::test_app_config_builder;
     use crate::common::handler::tests::{
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
         generate_valid_jwt,
@@ -189,7 +195,7 @@ mod tests {
         let mut app_state = MockUsersModule::new();
         let users_repo = Arc::new(repo);
         let auth_repo = Arc::new(MockAuthRepository::new());
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_auth_repo()
             .times(1)
@@ -240,7 +246,7 @@ mod tests {
     #[tokio::test]
     async fn test_otp_enable_unauthorized_expired() {
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -279,7 +285,7 @@ mod tests {
     #[tokio::test]
     async fn test_otp_enable_unauthorized_invalid_signature() {
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -426,7 +432,7 @@ mod tests {
         let mut app_state = MockUsersModule::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_auth_repo()
             .times(1)
@@ -555,7 +561,7 @@ mod tests {
         let mut app_state = MockUsersModule::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_auth_repo()
             .times(1)
@@ -641,7 +647,7 @@ mod tests {
         let user = user.init_mfa_secret();
 
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -712,7 +718,7 @@ mod tests {
         let user = user.init_mfa_secret();
 
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -898,7 +904,7 @@ mod tests {
         let mut app_state = MockUsersModule::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_auth_repo()
             .times(2)
@@ -1036,7 +1042,7 @@ mod tests {
         let mut app_state = MockUsersModule::new();
         let users_repo = Arc::new(users_repo);
         let auth_repo = Arc::new(auth_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_auth_repo()
             .times(2)
@@ -1122,7 +1128,7 @@ mod tests {
         let user = user.init_mfa_secret();
 
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1193,7 +1199,7 @@ mod tests {
         let user = user.init_mfa_secret();
 
         let mut app_state = MockUsersModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

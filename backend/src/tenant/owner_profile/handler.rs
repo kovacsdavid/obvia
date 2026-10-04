@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -31,10 +31,13 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(owner_profile_module))]
 pub async fn get_full<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), owner_profile_module.clone());
     let result = map_handler_err(service.get_full().await, owner_profile_module.clone()).await?;
@@ -49,9 +52,11 @@ pub async fn get_full<M: OwnerProfileModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(owner_profile_module))]
 pub async fn update<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<OwnerProfileUserInput, OwnerProfileUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), owner_profile_module.clone());
@@ -85,7 +90,7 @@ mod tests {
         test_owner_profile_builder, test_owner_profile_full_builder,
     };
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::owner_profile::{
             self, repository::MockOwnerProfileRepository, tests::MockOwnerProfileModule,
         },
@@ -130,7 +135,7 @@ mod tests {
 
         let mut app_state = MockOwnerProfileModule::new();
         let owner_profile_repo = Arc::new(owner_profile_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_owner_profile_repo()
             .with(eq(active_tenant_id))
@@ -179,7 +184,7 @@ mod tests {
         let owner_profile_id = Uuid::now_v7();
 
         let mut app_state = MockOwnerProfileModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -221,7 +226,7 @@ mod tests {
         let owner_profile_id = Uuid::now_v7();
 
         let mut app_state = MockOwnerProfileModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -298,7 +303,7 @@ mod tests {
 
         let mut app_state = MockOwnerProfileModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_owner_profile_repo()
             .with(eq(active_tenant_id))
@@ -378,7 +383,7 @@ mod tests {
 
         let mut app_state = MockOwnerProfileModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_owner_profile_repo()
             .with(eq(active_tenant_id))
@@ -439,7 +444,7 @@ mod tests {
         };
 
         let mut app_state = MockOwnerProfileModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -492,7 +497,7 @@ mod tests {
         };
 
         let mut app_state = MockOwnerProfileModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -543,7 +548,7 @@ mod tests {
         };
 
         let mut app_state = MockOwnerProfileModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

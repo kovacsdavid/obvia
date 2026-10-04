@@ -39,7 +39,6 @@ impl From<ClaimsError> for AppError {
         Self::new(
             Level::ERROR,
             StatusCode::INTERNAL_SERVER_ERROR,
-            file!(),
             AppErrorVisibility::Internal,
             json!({"message": value.to_string()}),
         )
@@ -296,7 +295,7 @@ impl Claims {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::config::tests::AppConfigBuilder;
+    use crate::common::config::tests::test_app_config_builder;
     use chrono::Utc;
     use std::ops::{Add, Sub};
     use std::time::Duration;
@@ -304,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_valid_claims() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -343,7 +342,7 @@ mod tests {
     }
     #[test]
     fn test_expired_claims() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().sub(Duration::from_secs(61)).timestamp();
         let iat = Utc::now().timestamp();
@@ -377,7 +376,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_not_before_claims() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -411,7 +410,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_issuer_claims() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -446,7 +445,7 @@ mod tests {
     }
     #[test]
     fn test_invalid_audience_claims() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -481,7 +480,7 @@ mod tests {
     }
     #[test]
     fn test_empty_active_tenant() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();
@@ -518,7 +517,7 @@ mod tests {
     }
     #[test]
     fn test_valid_active_tenant() {
-        let config = AppConfigBuilder::default().build().unwrap();
+        let config = test_app_config_builder().build().unwrap();
 
         let exp = Utc::now().add(Duration::from_secs(100)).timestamp();
         let iat = Utc::now().timestamp();

@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::{UserInput, ValidJson};
+use crate::common::extractors::{ClientContext, UserInput, ValidJson};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -35,10 +35,13 @@ use axum::response::IntoResponse;
 use axum::response::Response;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(tenants_module))]
 pub async fn create<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CreateTenant, CreateTenantHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -58,23 +61,29 @@ pub async fn create<M: TenantsModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(_tenants_module))]
 pub async fn get<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> Response {
     todo!();
 }
 
+#[instrument(skip(_tenants_module))]
 pub async fn get_resolved<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> Response {
     todo!();
 }
 
+#[instrument(skip(tenants_module))]
 pub async fn list<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -101,9 +110,11 @@ pub async fn list<M: TenantsModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(tenants_module))]
 pub async fn activate<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -119,9 +130,11 @@ pub async fn activate<M: TenantsModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(tenants_module))]
 pub async fn delete<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
+    _client_context: ClientContext,
     ValidJson(payload): ValidJson<TenantIdRequest>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), tenants_module.clone());
@@ -141,7 +154,7 @@ pub async fn delete<M: TenantsModuleInterface>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::config::tests::AppConfigBuilder;
+    use crate::common::config::tests::test_app_config_builder;
     use crate::common::dto::PaginatorMeta;
     use crate::common::handler::tests::{
         extract_json_response, generate_expired_jwt, generate_jwt_with_invalid_signature,
@@ -255,7 +268,7 @@ mod tests {
         let tenant_user_repo = Arc::new(tenant_user_repo);
         let manager_user_repo = Arc::new(manager_user_repo);
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut tenants_module = MockTenantsModule::new();
         tenants_module
             .expect_config()
@@ -335,7 +348,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -379,7 +392,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -451,7 +464,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -492,7 +505,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -561,7 +574,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -602,7 +615,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -704,7 +717,7 @@ mod tests {
             .expect_tenants_repo()
             .times(1)
             .returning(move || repo.clone());
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -742,7 +755,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -781,7 +794,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -853,7 +866,7 @@ mod tests {
                 }))
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
 
         let payload = serde_json::to_string(&TenantIdRequest {
             uuid: active_tenant_id,
@@ -922,7 +935,7 @@ mod tests {
     async fn test_activate_unauthorized_expired() {
         let active_tenant_id = Uuid::now_v7();
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
 
         let payload = serde_json::to_string(&TenantIdRequest {
             uuid: active_tenant_id,
@@ -969,7 +982,7 @@ mod tests {
     async fn test_activate_unauthorized_invalid_signature() {
         let active_tenant_id = Uuid::now_v7();
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
 
         let payload = serde_json::to_string(&TenantIdRequest {
             uuid: active_tenant_id,
@@ -1082,7 +1095,7 @@ mod tests {
             .times(1)
             .with(eq(tenant_id))
             .returning(|_| Box::pin(ready(Ok(()))));
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(2)
@@ -1151,7 +1164,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)
@@ -1192,7 +1205,7 @@ mod tests {
             .unwrap();
 
         let mut tenants_module = MockTenantsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         tenants_module
             .expect_config()
             .times(1)

@@ -42,8 +42,8 @@ pub trait AuthModuleInterface: BaseModule {
 
 impl<P, T> AuthModuleInterface for AppState<P, T>
 where
-    P: PoolManager + Send + Sync + 'static,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn auth_repo(&self) -> Arc<dyn AuthRepository + Send + Sync> {
@@ -64,6 +64,9 @@ pub mod tests {
 
     mock!(
         pub AuthModule {}
+        impl Debug for AuthModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for AuthModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use derive_builder::Builder;
 use serde::Deserialize;
 
 pub(crate) mod auth_config;
@@ -29,7 +30,7 @@ pub(crate) use database_config::BasicDatabaseConfig;
 pub(crate) use mail_config::MailConfig;
 pub(crate) use server_config::ServerConfig;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Builder)]
 pub struct AppConfig {
     server: ServerConfig,
     main_database: BasicDatabaseConfig,
@@ -61,64 +62,23 @@ impl AppConfig {
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+pub mod tests {
     use crate::common::config::{
-        auth_config::tests::AuthConfigBuilder, database_config::tests::DatabaseConfigBuilder,
-        mail_config::tests::MailConfigBuilder, server_config::tests::ServerConfigBuilder,
+        auth_config::tests::test_auth_config_builder,
+        database_config::tests::test_basic_database_config_builder,
+        mail_config::tests::test_mail_config_builder,
+        server_config::tests::test_server_config_builder,
     };
 
     use super::*;
 
-    pub struct AppConfigBuilder {
-        server: Option<ServerConfig>,
-        main_database: Option<BasicDatabaseConfig>,
-        auth: Option<AuthConfig>,
-        mail: Option<MailConfig>,
-    }
-
-    impl AppConfigBuilder {
-        pub fn new() -> Self {
-            Self {
-                server: None,
-                main_database: None,
-                auth: None,
-                mail: None,
-            }
-        }
-        pub fn server(mut self, server: ServerConfig) -> Self {
-            self.server = Some(server);
-            self
-        }
-        pub fn main_database(mut self, main_database: BasicDatabaseConfig) -> Self {
-            self.main_database = Some(main_database);
-            self
-        }
-        pub fn auth(mut self, auth: AuthConfig) -> Self {
-            self.auth = Some(auth);
-            self
-        }
-
-        pub fn mail(mut self, mail: MailConfig) -> Self {
-            self.mail = Some(mail);
-            self
-        }
-        pub fn build(self) -> Result<AppConfig, String> {
-            Ok(AppConfig {
-                server: self.server.ok_or("server is required")?,
-                main_database: self.main_database.ok_or("main_database is required")?,
-                auth: self.auth.ok_or("auth is required")?,
-                mail: self.mail.ok_or("mail is required")?,
-            })
-        }
-    }
-
-    impl Default for AppConfigBuilder {
-        fn default() -> Self {
-            AppConfigBuilder::new()
-                .server(ServerConfigBuilder::default().build().unwrap())
-                .main_database(DatabaseConfigBuilder::default().build().unwrap())
-                .auth(AuthConfigBuilder::default().build().unwrap())
-                .mail(MailConfigBuilder::default().build().unwrap())
-        }
+    pub fn test_app_config_builder() -> AppConfigBuilder {
+        let mut builder = AppConfigBuilder::default();
+        builder
+            .server(test_server_config_builder().build().unwrap())
+            .main_database(test_basic_database_config_builder().build().unwrap())
+            .auth(test_auth_config_builder().build().unwrap())
+            .mail(test_mail_config_builder().build().unwrap());
+        builder
     }
 }

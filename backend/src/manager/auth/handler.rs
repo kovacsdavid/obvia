@@ -35,7 +35,9 @@ use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use std::collections::HashMap;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(auth_module, jar))]
 pub async fn login<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -74,6 +76,7 @@ pub async fn login<M: AuthModuleInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
+#[instrument(skip(auth_module, jar))]
 pub async fn refresh<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -111,6 +114,7 @@ pub async fn refresh<M: AuthModuleInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
+#[instrument(skip(auth_module, jar))]
 pub async fn logout<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -128,8 +132,10 @@ pub async fn logout<M: AuthModuleInterface>(
         .into_response())
 }
 
+#[instrument(skip(auth_module))]
 pub async fn register<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<RegisterRequest, RegisterRequestHelper>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
@@ -147,8 +153,10 @@ pub async fn register<M: AuthModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(auth_module, payload))]
 pub async fn verify_email<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(None, auth_module.clone());
@@ -170,8 +178,10 @@ pub async fn verify_email<M: AuthModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(auth_module))]
 pub async fn resend_email_verification<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         ResendEmailValidationRequest,
         ResendEmailValidationRequestHelper,
@@ -197,6 +207,7 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(auth_module))]
 pub async fn forgotten_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -221,6 +232,7 @@ pub async fn forgotten_password<M: AuthModuleInterface>(
         ).await?.into_response())
 }
 
+#[instrument(skip(auth_module))]
 pub async fn new_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -271,7 +283,7 @@ mod tests {
     use tower::ServiceExt;
     use uuid::Uuid;
 
-    use crate::common::config::tests::AppConfigBuilder;
+    use crate::common::config::tests::test_app_config_builder;
     use crate::common::error::RepositoryError;
     use crate::common::handler::tests::MockUniqueViolation;
     use crate::common::handler::tests::extract_json_response;
@@ -376,7 +388,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -396,7 +408,7 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
+        let config = Arc::new(test_app_config_builder().build().unwrap());
 
         let app = Router::new().nest(
             "/api",
@@ -498,7 +510,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -603,7 +615,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -665,7 +677,7 @@ mod tests {
             )))
         });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -785,7 +797,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -805,7 +817,7 @@ mod tests {
             .body(Body::from(payload))
             .unwrap();
 
-        let config = Arc::new(AppConfigBuilder::default().build().unwrap());
+        let config = Arc::new(test_app_config_builder().build().unwrap());
 
         let app = Router::new().nest(
             "/api",
@@ -900,7 +912,7 @@ mod tests {
             .with(eq(token))
             .returning(|_| Ok(()));
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -941,7 +953,7 @@ mod tests {
             .with(eq(token))
             .returning(|_| Err(RepositoryError::Custom("something went wrong".to_string())));
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1013,7 +1025,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1069,7 +1081,7 @@ mod tests {
             .with(eq(invalid_user_email.clone()))
             .returning(move |_| Err(RepositoryError::Custom("user_not_found".to_string())));
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1186,7 +1198,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1301,7 +1313,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1434,7 +1446,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1516,7 +1528,7 @@ mod tests {
                 })
             });
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1676,7 +1688,7 @@ mod tests {
                 },
             );
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1775,7 +1787,7 @@ mod tests {
                 },
             );
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1810,7 +1822,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_refresh_unauthorized_missing() {
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(MockAuthRepository::new());
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1888,7 +1900,7 @@ mod tests {
                 },
             );
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -1963,7 +1975,7 @@ mod tests {
                 },
             );
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -2034,7 +2046,7 @@ mod tests {
                 },
             );
 
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(repo);
         app_state.expect_auth_repo().returning(move || repo.clone());
@@ -2072,7 +2084,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_logout_unauthorized_missing_token() {
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         let mut app_state = MockAuthModule::new();
         let repo = Arc::new(MockAuthRepository::new());
         app_state.expect_auth_repo().returning(move || repo.clone());

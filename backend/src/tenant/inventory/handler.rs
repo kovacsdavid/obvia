@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -33,10 +33,13 @@ use axum::response::IntoResponse;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(inventory_module))]
 pub async fn get_resolved<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -56,9 +59,11 @@ pub async fn get_resolved<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn get<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -74,9 +79,11 @@ pub async fn get<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn update<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -93,9 +100,11 @@ pub async fn update<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn delete<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -113,9 +122,11 @@ pub async fn delete<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn create<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<InventoryUserInput, InventoryUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -132,9 +143,11 @@ pub async fn create<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn list<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -160,9 +173,11 @@ pub async fn list<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn select_list<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -186,9 +201,11 @@ pub async fn select_list<M: InventoryModuleInterface>(
     .into_response())
 }
 
+#[instrument(skip(inventory_module))]
 pub async fn print<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_module.clone());
@@ -230,7 +247,7 @@ mod tests {
     use crate::tenant::warehouses::model::tests::test_warehouse_resolved_builder;
     use crate::tenant::warehouses::repository::MockWarehousesRepository;
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::inventory::{
             self, model::Inventory, repository::MockInventoryRepository, tests::MockInventoryModule,
         },
@@ -281,7 +298,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -328,7 +345,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -368,7 +385,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -442,7 +459,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -526,7 +543,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -573,7 +590,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -613,7 +630,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -687,7 +704,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -778,7 +795,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -823,7 +840,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_expired() {
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -861,7 +878,7 @@ mod tests {
     #[tokio::test]
     async fn test_list_unauthorized_invalid_signature() {
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -935,7 +952,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -1037,7 +1054,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -1098,7 +1115,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1156,7 +1173,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1208,7 +1225,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1331,7 +1348,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -1392,7 +1409,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1448,7 +1465,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1501,7 +1518,7 @@ mod tests {
         };
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1591,7 +1608,7 @@ mod tests {
 
         let mut app_state = MockInventoryModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -1641,7 +1658,7 @@ mod tests {
         let user_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1680,7 +1697,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1720,7 +1737,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1842,7 +1859,7 @@ mod tests {
         let inventory_repo = Arc::new(inventory_repo);
         let products_repo = Arc::new(products_repo);
         let warehouses_repo = Arc::new(warehouses_repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_inventory_repo()
             .with(eq(active_tenant_id))
@@ -1930,7 +1947,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -1971,7 +1988,7 @@ mod tests {
         let inventory_id = Uuid::now_v7();
 
         let mut app_state = MockInventoryModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

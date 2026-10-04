@@ -46,8 +46,8 @@ pub trait ActivityFeedModuleInterface: BaseModule {
 
 impl<P, T> ActivityFeedModuleInterface for AppState<P, T>
 where
-    P: PoolManager,
-    T: AsyncTransport<Ok = Response, Error = Error> + Send + Sync,
+    P: PoolManager + Debug,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync,
     T::Error: Debug,
 {
     fn activity_feed_repo(
@@ -72,6 +72,9 @@ pub mod tests {
 
     mock!(
         pub ActivityFeedModule {}
+        impl Debug for ActivityFeedModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
         impl ConfigProvider for ActivityFeedModule {
             type Cfg = AppConfig;
             fn config(&self) -> &<Self as ConfigProvider>::Cfg;

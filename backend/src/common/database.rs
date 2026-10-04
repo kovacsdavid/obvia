@@ -47,6 +47,7 @@ pub trait PoolManager: Send + Sync {
     ) -> impl Future<Output = Result<(), RepositoryError>> + Send;
 }
 
+#[derive(Debug)]
 pub struct PgPoolManager {
     main_pool: Arc<PgPool>,
     tenant_pools: Arc<RwLock<HashMap<Uuid, Arc<PgPool>>>>,

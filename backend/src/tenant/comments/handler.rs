@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -29,10 +29,13 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
+use tracing::instrument;
 
+#[instrument(skip(comments_module))]
 pub async fn post<M: CommentsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(comments_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), comments_module.clone());
@@ -56,7 +59,7 @@ mod tests {
         generate_valid_jwt,
     };
     use crate::{
-        common::config::tests::AppConfigBuilder,
+        common::config::tests::test_app_config_builder,
         tenant::comments::{
             self, model::Comment, repository::MockCommentsRepository, tests::MockCommentsModule,
         },
@@ -116,7 +119,7 @@ mod tests {
 
         let mut app_state = MockCommentsModule::new();
         let repo = Arc::new(repo);
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_comments_repo()
             .with(eq(active_tenant_id))
@@ -173,7 +176,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -227,7 +230,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)
@@ -275,7 +278,7 @@ mod tests {
         };
 
         let mut app_state = MockCommentsModule::new();
-        let test_config = AppConfigBuilder::default().build().unwrap();
+        let test_config = test_app_config_builder().build().unwrap();
         app_state
             .expect_config()
             .times(1)

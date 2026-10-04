@@ -56,7 +56,6 @@ impl From<ActivityFeedServiceError> for AppError {
             ActivityFeedServiceError::Unauthorized => Self::new(
                 Level::DEBUG,
                 StatusCode::UNAUTHORIZED,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
@@ -65,14 +64,12 @@ impl From<ActivityFeedServiceError> for AppError {
             )) => Self::new(
                 Level::DEBUG,
                 StatusCode::NOT_FOUND,
-                file!(),
                 AppErrorVisibility::UserFacing,
                 json!({"message": "Nem található"}),
             ),
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,
-                file!(),
                 AppErrorVisibility::Internal,
                 json!({"message": value.to_string()}),
             ),

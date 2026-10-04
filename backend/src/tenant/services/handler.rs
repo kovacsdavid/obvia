@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -36,10 +36,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn get_resolved<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -59,10 +60,11 @@ pub async fn get_resolved<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn get<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -78,10 +80,11 @@ pub async fn get<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn create<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -98,10 +101,11 @@ pub async fn create<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn update<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ServiceUserInput, ServiceUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -118,10 +122,11 @@ pub async fn update<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn delete<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -139,10 +144,11 @@ pub async fn delete<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -168,10 +174,11 @@ pub async fn list<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn select_list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());
@@ -196,10 +203,11 @@ pub async fn select_list<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(services_module))]
 pub async fn print<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), services_module.clone());

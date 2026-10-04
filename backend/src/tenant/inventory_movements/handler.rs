@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
@@ -39,10 +39,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn get<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
@@ -62,10 +63,11 @@ pub async fn get<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn get_resolved<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
@@ -85,10 +87,11 @@ pub async fn get_resolved<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn create<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         InventoryMovementUserInput,
         InventoryMovementUserInputHelper,
@@ -111,10 +114,11 @@ pub async fn create<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn update<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<
         InventoryMovementUserInput,
         InventoryMovementUserInputHelper,
@@ -137,10 +141,11 @@ pub async fn update<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn delete<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
@@ -163,10 +168,11 @@ pub async fn delete<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn list<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<InventoryMovementsRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
@@ -195,10 +201,11 @@ pub async fn list<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn select_list<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());
@@ -223,10 +230,11 @@ pub async fn select_list<M: InventoryMovementsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(inventory_movements_module))]
 pub async fn print<M: InventoryMovementsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_movements_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), inventory_movements_module.clone());

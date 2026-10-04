@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -35,10 +35,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn get_resolved<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -58,10 +59,11 @@ pub async fn get_resolved<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn get<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -78,10 +80,11 @@ pub async fn get<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn update<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -98,10 +101,11 @@ pub async fn update<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn delete<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -123,10 +127,11 @@ pub async fn delete<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn create<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WorksheetUserInput, WorksheetUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -143,10 +148,11 @@ pub async fn create<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn select_list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -171,10 +177,11 @@ pub async fn select_list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());
@@ -200,10 +207,11 @@ pub async fn list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(worksheets_module))]
 pub async fn print<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), worksheets_module.clone());

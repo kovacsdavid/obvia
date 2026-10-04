@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -33,10 +33,11 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(owner_profile_module))]
 pub async fn get_full<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,
+    _client_context: ClientContext,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), owner_profile_module.clone());
     let result = map_handler_err(service.get_full().await, owner_profile_module.clone()).await?;
@@ -51,10 +52,11 @@ pub async fn get_full<M: OwnerProfileModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(owner_profile_module))]
 pub async fn update<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<OwnerProfileUserInput, OwnerProfileUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), owner_profile_module.clone());

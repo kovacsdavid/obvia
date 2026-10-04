@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SuccessResponseBuilder};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
 use crate::manager::auth::middleware::AuthenticatedUser;
@@ -31,10 +31,11 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(comments_module))]
 pub async fn post<M: CommentsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(comments_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<CommentUserInput, CommentUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), comments_module.clone());

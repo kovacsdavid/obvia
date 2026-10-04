@@ -18,6 +18,7 @@
  */
 
 use crate::common::dto::SuccessResponseBuilder;
+use crate::common::extractors::ClientContext;
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::Service;
@@ -33,10 +34,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(activity_feed_module))]
 pub async fn list<M: ActivityFeedModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(activity_feed_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<ActivityFeedRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), activity_feed_module.clone());

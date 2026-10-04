@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -36,10 +36,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn get_resolved<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -59,10 +60,11 @@ pub async fn get_resolved<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn get<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -78,10 +80,11 @@ pub async fn get<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn create<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -97,10 +100,11 @@ pub async fn create<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn update<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<TaxUserInput, TaxUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -116,10 +120,11 @@ pub async fn update<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn delete<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -137,10 +142,11 @@ pub async fn delete<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -166,10 +172,11 @@ pub async fn list<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn select_list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());
@@ -194,10 +201,11 @@ pub async fn select_list<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(taxes_module))]
 pub async fn print<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), taxes_module.clone());

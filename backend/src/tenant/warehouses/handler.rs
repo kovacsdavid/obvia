@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -35,10 +35,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn get_resolved<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -58,10 +59,11 @@ pub async fn get_resolved<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn get<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -78,10 +80,11 @@ pub async fn get<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn update<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -98,10 +101,11 @@ pub async fn update<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn delete<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -123,10 +127,11 @@ pub async fn delete<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn create<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<WarehouseUserInput, WarehouseUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -143,10 +148,11 @@ pub async fn create<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn list<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());
@@ -173,10 +179,11 @@ pub async fn list<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(warehouses_module))]
 pub async fn print<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), warehouses_module.clone());

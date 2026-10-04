@@ -18,7 +18,7 @@
  */
 
 use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
-use crate::common::extractors::UserInput;
+use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::query_parser::{CommonRawQuery, ResourceQuery};
 use crate::common::service::Service;
@@ -36,10 +36,11 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn get_resolved<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -59,10 +60,11 @@ pub async fn get_resolved<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn get<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -78,10 +80,11 @@ pub async fn get<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn update<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -98,10 +101,11 @@ pub async fn update<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn delete<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -119,10 +123,11 @@ pub async fn delete<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn create<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     UserInput(mut user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -142,10 +147,11 @@ pub async fn create<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn list<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<CommonRawQuery>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -171,10 +177,11 @@ pub async fn list<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn select_list<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<HashMap<String, String>>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
@@ -200,10 +207,11 @@ pub async fn select_list<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument]
+#[instrument(skip(products_module))]
 pub async fn print<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
+    _client_context: ClientContext,
     Query(payload): Query<UuidParam>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());

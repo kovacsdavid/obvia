@@ -1,0 +1,64 @@
+services:
+  traefik:
+    image: traefik:latest
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+#      - --log.level=DEBUG
+#      - --accesslog=true
+    ports:
+      - "127.0.0.1:5174:80"
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ${XDG_RUNTIME_DIR}/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - obvia
+    restart: unless-stopped
+
+  backend:
+    image: obvia-backend:dev
+    build:
+      context: ./backend
+    volumes:
+      - ./backend/config/docker-default.toml:/opt/config/default.toml
+      - obvia_dev_logs:/var/log/obvia
+    networks:
+      - obvia
+      - obvia_dev
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=obvia
+      - traefik.http.routers.obvia-backend.rule=PathPrefix(`/api`)
+      - traefik.http.routers.obvia-backend.entrypoints=web
+      - traefik.http.routers.obvia-backend.priority=100
+      - traefik.http.services.obvia-backend.loadbalancer.server.port=3000
+    restart: unless-stopped
+
+  frontend:
+    image: obvia-frontend:dev
+    build:
+      context: ./frontend
+    networks:
+      - obvia
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=obvia
+      - traefik.http.routers.obvia-frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.obvia-frontend.entrypoints=web
+      - traefik.http.routers.obvia-frontend.priority=1
+      - traefik.http.services.obvia-frontend.loadbalancer.server.port=80
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  obvia_dev_logs:
+networks:
+  obvia:
+    driver: bridge
+    name: obvia
+  obvia_dev:
+    external: true

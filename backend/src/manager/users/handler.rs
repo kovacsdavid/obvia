@@ -29,7 +29,10 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(users_module))]
+#[instrument(
+    name = "obvia::manager::users::handler::get_claims",
+    skip(users_module)
+)]
 pub async fn get_claims<M: UsersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(users_module): State<Arc<M>>,
@@ -46,7 +49,10 @@ pub async fn get_claims<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(users_module))]
+#[instrument(
+    name = "obvia::manager::users::handler::otp_enable",
+    skip(users_module)
+)]
 pub async fn otp_enable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -69,7 +75,10 @@ pub async fn otp_enable<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(users_module))]
+#[instrument(
+    name = "obvia::manager::users::handler::otp_verify",
+    skip(users_module)
+)]
 pub async fn otp_verify<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -96,7 +105,10 @@ pub async fn otp_verify<M: UsersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(users_module))]
+#[instrument(
+    name = "obvia::manager::users::handler::otp_disable",
+    skip(users_module)
+)]
 pub async fn otp_disable<M: UsersModuleInterface>(
     State(users_module): State<Arc<M>>,
     client_context: ClientContext,

@@ -40,7 +40,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::get",
+    skip(inventory_reservations_module)
+)]
 pub async fn get<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -64,7 +67,10 @@ pub async fn get<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::get_resolved",
+    skip(inventory_reservations_module)
+)]
 pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -88,7 +94,10 @@ pub async fn get_resolved<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::create",
+    skip(inventory_reservations_module)
+)]
 pub async fn create<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -115,7 +124,10 @@ pub async fn create<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::update",
+    skip(inventory_reservations_module)
+)]
 pub async fn update<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -142,7 +154,10 @@ pub async fn update<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::delete",
+    skip(inventory_reservations_module)
+)]
 pub async fn delete<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -168,7 +183,10 @@ pub async fn delete<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::list",
+    skip(inventory_reservations_module)
+)]
 pub async fn list<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -202,7 +220,10 @@ pub async fn list<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::select_list",
+    skip(inventory_reservations_module)
+)]
 pub async fn select_list<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,
@@ -232,7 +253,10 @@ pub async fn select_list<M: InventoryReservationsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_reservations_module))]
+#[instrument(
+    name = "obvia::tenant::inventory_reservations::handler::print",
+    skip(inventory_reservations_module)
+)]
 pub async fn print<M: InventoryReservationsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_reservations_module): State<Arc<M>>,

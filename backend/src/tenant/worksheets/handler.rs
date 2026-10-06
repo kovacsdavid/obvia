@@ -35,7 +35,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::get_resolved",
+    skip(worksheets_module)
+)]
 pub async fn get_resolved<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -59,7 +62,10 @@ pub async fn get_resolved<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::get",
+    skip(worksheets_module)
+)]
 pub async fn get<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -80,7 +86,10 @@ pub async fn get<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::update",
+    skip(worksheets_module)
+)]
 pub async fn update<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -101,7 +110,10 @@ pub async fn update<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::delete",
+    skip(worksheets_module)
+)]
 pub async fn delete<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -127,7 +139,10 @@ pub async fn delete<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::create",
+    skip(worksheets_module)
+)]
 pub async fn create<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -148,7 +163,10 @@ pub async fn create<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::select_list",
+    skip(worksheets_module)
+)]
 pub async fn select_list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -177,7 +195,10 @@ pub async fn select_list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::list",
+    skip(worksheets_module)
+)]
 pub async fn list<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,
@@ -207,7 +228,10 @@ pub async fn list<M: WorksheetsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(worksheets_module))]
+#[instrument(
+    name = "obvia::tenant::worksheets::handler::print",
+    skip(worksheets_module)
+)]
 pub async fn print<M: WorksheetsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(worksheets_module): State<Arc<M>>,

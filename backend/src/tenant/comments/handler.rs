@@ -31,7 +31,7 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(comments_module))]
+#[instrument(name = "obvia::tenant::comments::handler::post", skip(comments_module))]
 pub async fn post<M: CommentsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(comments_module): State<Arc<M>>,

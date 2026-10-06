@@ -35,7 +35,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::get_resolved",
+    skip(inventory_module)
+)]
 pub async fn get_resolved<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -59,7 +62,10 @@ pub async fn get_resolved<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::get",
+    skip(inventory_module)
+)]
 pub async fn get<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -79,7 +85,10 @@ pub async fn get<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::update",
+    skip(inventory_module)
+)]
 pub async fn update<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -100,7 +109,10 @@ pub async fn update<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::delete",
+    skip(inventory_module)
+)]
 pub async fn delete<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -122,7 +134,10 @@ pub async fn delete<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::create",
+    skip(inventory_module)
+)]
 pub async fn create<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -143,7 +158,10 @@ pub async fn create<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::list",
+    skip(inventory_module)
+)]
 pub async fn list<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -173,7 +191,10 @@ pub async fn list<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::select_list",
+    skip(inventory_module)
+)]
 pub async fn select_list<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,
@@ -201,7 +222,10 @@ pub async fn select_list<M: InventoryModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(inventory_module))]
+#[instrument(
+    name = "obvia::tenant::inventory::handler::print",
+    skip(inventory_module)
+)]
 pub async fn print<M: InventoryModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(inventory_module): State<Arc<M>>,

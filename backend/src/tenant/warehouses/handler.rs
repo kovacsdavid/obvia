@@ -35,7 +35,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::get_resolved",
+    skip(warehouses_module)
+)]
 pub async fn get_resolved<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -59,7 +62,10 @@ pub async fn get_resolved<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::get",
+    skip(warehouses_module)
+)]
 pub async fn get<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -80,7 +86,10 @@ pub async fn get<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::update",
+    skip(warehouses_module)
+)]
 pub async fn update<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -101,7 +110,10 @@ pub async fn update<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::delete",
+    skip(warehouses_module)
+)]
 pub async fn delete<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -127,7 +139,10 @@ pub async fn delete<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::create",
+    skip(warehouses_module)
+)]
 pub async fn create<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -148,7 +163,10 @@ pub async fn create<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::list",
+    skip(warehouses_module)
+)]
 pub async fn list<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,
@@ -179,7 +197,10 @@ pub async fn list<M: WarehousesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(warehouses_module))]
+#[instrument(
+    name = "obvia::tenant::warehouses::handler::print",
+    skip(warehouses_module)
+)]
 pub async fn print<M: WarehousesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(warehouses_module): State<Arc<M>>,

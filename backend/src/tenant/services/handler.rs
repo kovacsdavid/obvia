@@ -36,7 +36,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::get_resolved",
+    skip(services_module)
+)]
 pub async fn get_resolved<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -60,7 +63,7 @@ pub async fn get_resolved<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(name = "obvia::tenant::services::handler::get", skip(services_module))]
 pub async fn get<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -80,7 +83,10 @@ pub async fn get<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::create",
+    skip(services_module)
+)]
 pub async fn create<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -101,7 +107,10 @@ pub async fn create<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::update",
+    skip(services_module)
+)]
 pub async fn update<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -122,7 +131,10 @@ pub async fn update<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::delete",
+    skip(services_module)
+)]
 pub async fn delete<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -144,7 +156,7 @@ pub async fn delete<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(name = "obvia::tenant::services::handler::list", skip(services_module))]
 pub async fn list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -174,7 +186,10 @@ pub async fn list<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::select_list",
+    skip(services_module)
+)]
 pub async fn select_list<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,
@@ -203,7 +218,10 @@ pub async fn select_list<M: ServicesModule>(
     .into_response())
 }
 
-#[instrument(skip(services_module))]
+#[instrument(
+    name = "obvia::tenant::services::handler::print",
+    skip(services_module)
+)]
 pub async fn print<M: ServicesModule>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(services_module): State<Arc<M>>,

@@ -36,7 +36,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(taxes_module))]
+#[instrument(
+    name = "obvia::tenant::taxes::handler::get_resolved",
+    skip(taxes_module)
+)]
 pub async fn get_resolved<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -60,7 +63,7 @@ pub async fn get_resolved<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::get", skip(taxes_module))]
 pub async fn get<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -80,7 +83,7 @@ pub async fn get<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::create", skip(taxes_module))]
 pub async fn create<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -100,7 +103,7 @@ pub async fn create<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::update", skip(taxes_module))]
 pub async fn update<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -120,7 +123,7 @@ pub async fn update<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::delete", skip(taxes_module))]
 pub async fn delete<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -142,7 +145,7 @@ pub async fn delete<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::list", skip(taxes_module))]
 pub async fn list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -172,7 +175,10 @@ pub async fn list<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(
+    name = "obvia::tenant::taxes::handler::select_list",
+    skip(taxes_module)
+)]
 pub async fn select_list<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,
@@ -201,7 +207,7 @@ pub async fn select_list<M: TaxesModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(taxes_module))]
+#[instrument(name = "obvia::tenant::taxes::handler::print", skip(taxes_module))]
 pub async fn print<M: TaxesModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(taxes_module): State<Arc<M>>,

@@ -34,7 +34,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(activity_feed_module))]
+#[instrument(
+    name = "obvia::tenant::activity_feed::handler::list",
+    skip(activity_feed_module)
+)]
 pub async fn list<M: ActivityFeedModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(activity_feed_module): State<Arc<M>>,

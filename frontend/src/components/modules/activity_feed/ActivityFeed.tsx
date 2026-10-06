@@ -29,18 +29,27 @@ import { Label } from "@radix-ui/react-label";
 import { Separator } from "@/components/ui/separator";
 import {
     Item,
+    ItemActions,
     ItemContent,
     ItemDescriptionLong,
     ItemMedia,
     ItemTitle,
 } from "@/components/ui/item";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu.tsx";
 import { Button, GlobalError } from "@/components/ui";
-import { MessageCircle, Newspaper } from "lucide-react";
+import { MessageCircle, Newspaper, MoreHorizontal, Trash } from "lucide-react";
 import { type ActivityFeedResolvedEntry } from "@/components/modules/activity_feed/lib/interface";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     postComment,
     list,
+    deleteComment,
 } from "@/components/modules/activity_feed/lib/slice.ts";
 import { useDataDisplayCommon } from "@/hooks/use_data_display_common.ts";
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
@@ -118,14 +127,32 @@ export default function ActivityFeed({
         });
     };
 
+    const handleDelete = (id: string) => {
+        dispatch(deleteComment(id)).then(async (response) => {
+            if (deleteComment.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    refresh();
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    };
+
     return (
         <>
-            <GlobalError error={errors} />
             <Card className={"max-w-5xl mx-auto mt-5"}>
                 <CardHeader>
                     <CardTitle>Tevékenység</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <GlobalError error={errors} />
                     {activityFeed.length > 0 &&
                         activityFeed.map((item) => {
                             switch (item.activity_type) {
@@ -154,6 +181,43 @@ export default function ActivityFeed({
                                                     {item.content}
                                                 </ItemDescriptionLong>
                                             </ItemContent>
+                                            <ItemActions>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger
+                                                        asChild
+                                                    >
+                                                        <Button
+                                                            variant="ghost"
+                                                            className="h-8 w-8 p-0"
+                                                        >
+                                                            <span className="sr-only">
+                                                                Menü megnyitása
+                                                            </span>
+                                                            <MoreHorizontal />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent
+                                                        side={"bottom"}
+                                                        align="start"
+                                                    >
+                                                        <DropdownMenuLabel>
+                                                            Műveletek
+                                                        </DropdownMenuLabel>
+                                                        <DropdownMenuItem
+                                                            className={
+                                                                "cursor-pointer"
+                                                            }
+                                                            onClick={() =>
+                                                                handleDelete(
+                                                                    item.id,
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash /> Törlés
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </ItemActions>
                                         </Item>
                                     );
                                 case "activity":

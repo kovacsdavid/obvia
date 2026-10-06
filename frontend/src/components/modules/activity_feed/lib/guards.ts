@@ -19,6 +19,7 @@
 
 import type {
     ActivityFeedResolvedEntry,
+    DeleteCommentResponse,
     PaginatedActivityFeedResponse,
     PostCommentResponse,
 } from "@/components/modules/activity_feed/lib/interface";
@@ -26,6 +27,8 @@ import {
     isCommonResponse,
     isFormError,
     isPaginatedDataResponse,
+    isSimpleError,
+    isSimpleMessageData,
 } from "@/lib/interface.ts";
 
 export function isActivityFeedEntry(
@@ -75,4 +78,10 @@ export function isPaginatedActivityFeedResponse(
     data: unknown,
 ): data is PaginatedActivityFeedResponse {
     return isPaginatedDataResponse(data, isActivityFeedArray);
+}
+
+export function isDeleteCommentResponse(
+    data: unknown,
+): data is DeleteCommentResponse {
+    return isCommonResponse(data, isSimpleMessageData, isSimpleError);
 }

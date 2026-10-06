@@ -27,12 +27,14 @@ import {
     unexpectedFormError,
 } from "@/services/utils/consts.ts";
 import type {
+    DeleteCommentResponse,
     PaginatedActivityFeedResponse,
     PostCommentResponse,
 } from "@/components/modules/activity_feed/lib/interface";
 import {
     isPaginatedActivityFeedResponse,
     isPostCommentResponse,
+    isDeleteCommentResponse,
 } from "./guards";
 
 export async function list(
@@ -80,6 +82,25 @@ export async function post_comment(
         return (
             (await ProcessJsonResponse(response, isPostCommentResponse)) ??
             unexpectedFormError
+        );
+    });
+}
+
+export async function delete_comment(
+    uuid: string,
+    token: string | null,
+): Promise<ProcessedJsonResponse<DeleteCommentResponse>> {
+    return await fetch(`/api/comments/delete?uuid=${uuid}`, {
+        method: "DELETE",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        signal: AbortSignal.timeout(globalRequestTimeout),
+    }).then(async (response: Response) => {
+        return (
+            (await ProcessJsonResponse(response, isDeleteCommentResponse)) ??
+            unexpectedError
         );
     });
 }

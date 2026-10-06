@@ -27,6 +27,7 @@ use axum::http::StatusCode;
 use serde_json::json;
 use thiserror::Error;
 use tracing::Level;
+use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum CommentsServiceError {
@@ -71,6 +72,7 @@ pub trait CommentService {
         &self,
         payload: &CommentUserInput,
     ) -> impl Future<Output = CommentsServiceResult<Comment>> + Send;
+    fn delete(&self, payload: Uuid) -> impl Future<Output = CommentsServiceResult<()>>;
 }
 
 impl<'a, T> CommentService for Service<'a, T>
@@ -80,12 +82,16 @@ where
     async fn post(&self, payload: &CommentUserInput) -> CommentsServiceResult<Comment> {
         Ok(self
             .module()
-            .comments_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(CommentsServiceError::Unauthorized)?,
-            )?
+            .comments_repo(self.active_tenant()?)?
             .post(payload, self.claims()?.sub())
+            .await?)
+    }
+
+    async fn delete(&self, payload: Uuid) -> CommentsServiceResult<()> {
+        Ok(self
+            .module()
+            .comments_repo(self.active_tenant()?)?
+            .delete_by_id(payload)
             .await?)
     }
 }

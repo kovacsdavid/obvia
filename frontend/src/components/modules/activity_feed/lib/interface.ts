@@ -22,6 +22,7 @@ import type {
     FormError,
     PaginatedDataResponse,
     SimpleError,
+    SimpleMessageData,
 } from "@/lib/interface.ts";
 
 export interface ActivityFeedResolvedEntry {
@@ -40,6 +41,11 @@ export interface ActivityFeedResolvedEntry {
 export type PostCommentResponse = CommonResponse<
     ActivityFeedResolvedEntry,
     FormError
+>;
+
+export type DeleteCommentResponse = CommonResponse<
+    SimpleMessageData,
+    SimpleError
 >;
 
 export type PaginatedActivityFeedResponse = PaginatedDataResponse<

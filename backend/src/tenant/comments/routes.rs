@@ -23,13 +23,14 @@ use super::CommentsModuleInterface;
 use super::handler;
 use crate::manager::auth::middleware::require_auth;
 use axum::middleware::from_fn_with_state;
-use axum::{Router, routing::post};
+use axum::{Router, routing::delete, routing::post};
 
 pub fn routes<M: CommentsModuleInterface>(comments_module: Arc<M>) -> Router {
     Router::new().nest(
         "/comments",
         Router::new()
             .route("/post", post(handler::post::<M>))
+            .route("/delete", delete(handler::delete::<M>))
             .layer(from_fn_with_state(comments_module.clone(), require_auth))
             .with_state(comments_module),
     )

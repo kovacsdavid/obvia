@@ -34,6 +34,7 @@ pub trait CommentsRepository: Send + Sync {
         comment_user_input: &CommentUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Comment>;
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
 #[async_trait]
@@ -67,5 +68,20 @@ impl CommentsRepository for PgPool {
         .bind(sub)
         .fetch_one(self)
         .await?)
+    }
+    async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()> {
+        sqlx::query(
+            r#"
+            UPDATE comments
+            SET deleted_at = NOW()
+            WHERE id = $1
+                AND deleted_at IS NULL
+            "#,
+        )
+        .bind(id)
+        .execute(self)
+        .await?;
+
+        Ok(())
     }
 }

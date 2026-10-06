@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::common::dto::{EmptyType, SuccessResponseBuilder};
+use crate::common::dto::{EmptyType, SimpleMessageResponse, SuccessResponseBuilder, UuidParam};
 use crate::common::extractors::{ClientContext, UserInput};
 use crate::common::handler::{HandlerResult, map_handler_err};
 use crate::common::service::Service;
@@ -25,7 +25,7 @@ use crate::manager::auth::middleware::AuthenticatedUser;
 use crate::tenant::comments::CommentsModuleInterface;
 use crate::tenant::comments::dto::{CommentUserInput, CommentUserInputHelper};
 use crate::tenant::comments::service::CommentService;
-use axum::extract::State;
+use axum::extract::{Query, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use std::sync::Arc;
@@ -44,6 +44,31 @@ pub async fn post<M: CommentsModuleInterface>(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
             .data(result)
+            .build(),
+        comments_module,
+    )
+    .await?
+    .into_response())
+}
+
+#[instrument(
+    name = "obvia::tenant::comments::handler::delete",
+    skip(comments_module)
+)]
+pub async fn delete<M: CommentsModuleInterface>(
+    AuthenticatedUser(claims): AuthenticatedUser,
+    State(comments_module): State<Arc<M>>,
+    _client_context: ClientContext,
+    Query(payload): Query<UuidParam>,
+) -> HandlerResult {
+    let service = Service::new(Some(&claims), comments_module.clone());
+    map_handler_err(service.delete(payload.uuid).await, comments_module.clone()).await?;
+    Ok(map_handler_err(
+        SuccessResponseBuilder::<EmptyType, _>::new()
+            .status_code(StatusCode::OK)
+            .data(SimpleMessageResponse::new(
+                "A megjegyzés törlése sikeresen megtörtént",
+            ))
             .build(),
         comments_module,
     )
@@ -331,6 +356,209 @@ mod tests {
             .method("POST")
             .uri("/api/comments/post")
             .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_success() {
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let comment_id = Uuid::now_v7();
+        let mut repo = MockCommentsRepository::new();
+
+        repo.expect_delete_by_id()
+            .times(1)
+            .with(eq(comment_id))
+            .returning(move |_| Ok(()));
+
+        let mut app_state = MockCommentsModule::new();
+        let repo = Arc::new(repo);
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_comments_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/comments/delete?uuid={comment_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "meta": null,
+            "data": {"message": "A megjegyzés törlése sikeresen megtörtént"}
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_invalid_user_input() {
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+
+        let mut app_state = MockCommentsModule::new();
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri("/api/comments/delete?uuid=invalid_user_input")
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({});
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_expired() {
+        let comment_id = Uuid::now_v7();
+
+        let mut app_state = MockCommentsModule::new();
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_expired_jwt()),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/comments/delete?uuid={comment_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_invalid_signature() {
+        let comment_id = Uuid::now_v7();
+
+        let mut app_state = MockCommentsModule::new();
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!("Bearer {}", generate_jwt_with_invalid_signature()),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/comments/delete?uuid={comment_id}"))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(comments::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Hozzáférés megtagadva!"
+            }
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_delete_unauthorized_missing() {
+        let comment_id = Uuid::now_v7();
+
+        let app_state = MockCommentsModule::new();
+        let request = Request::builder()
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!("/api/comments/delete?uuid={comment_id}"))
+            .body("".to_string())
             .unwrap();
 
         let app = Router::new().nest(

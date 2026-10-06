@@ -71,6 +71,16 @@ export const postComment = createAsyncThunk(
     },
 );
 
+export const deleteComment = createAsyncThunk(
+    "activity_feed/delete_comment",
+    async (uuid: string, { getState, dispatch }) => {
+        await dispatch(refreshAccessToken());
+        const rootState = getState() as RootState;
+        const token = rootState.auth.login.token;
+        return await activityFeedApi.delete_comment(uuid, token);
+    },
+);
+
 const activityFeedSlice = createSlice({
     name: "activity_feed",
     initialState,

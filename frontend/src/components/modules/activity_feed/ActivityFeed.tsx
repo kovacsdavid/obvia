@@ -129,23 +129,30 @@ export default function ActivityFeed({
 
     const handleDelete = (id: string) => {
         dispatch(deleteComment(id)).then(async (response) => {
-            if (
-                deleteComment.fulfilled.match(response) &&
-                response.payload.statusCode === 200
-            ) {
-                refresh();
+            if (deleteComment.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    refresh();
+                } else if (
+                    typeof response.payload.jsonData?.error !== "undefined"
+                ) {
+                    setErrors(response.payload.jsonData.error);
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
             }
         });
     };
 
     return (
         <>
-            <GlobalError error={errors} />
             <Card className={"max-w-5xl mx-auto mt-5"}>
                 <CardHeader>
                     <CardTitle>Tevékenység</CardTitle>
                 </CardHeader>
                 <CardContent>
+                    <GlobalError error={errors} />
                     {activityFeed.length > 0 &&
                         activityFeed.map((item) => {
                             switch (item.activity_type) {

@@ -253,7 +253,7 @@ impl ProductsRepository for PgPool {
         &self,
         product_user_input: &ProductUserInput,
         sub: Uuid,
-    ) -> Result<Product, RepositoryError> {
+    ) -> RepositoryResult<Product> {
         let mut tx = self.begin().await?;
 
         let unit_of_measure_id = match &product_user_input.unit_of_measure_id {
@@ -348,11 +348,11 @@ impl ProductsRepository for PgPool {
         &self,
         unit_of_measure: &str,
         sub: Uuid,
-    ) -> Result<UnitOfMeasure, RepositoryError> {
+    ) -> RepositoryResult<UnitOfMeasure> {
         insert_unit_of_measure(self, unit_of_measure, sub).await
     }
 
-    async fn get_units_of_measure_select_list(&self) -> Result<Vec<SelectOption>, RepositoryError> {
+    async fn get_units_of_measure_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
         )

@@ -54,6 +54,7 @@ impl ProductUserInputError {
             && self.name.is_none()
             && self.description.is_none()
             && self.unit_of_measure_id.is_none()
+            && self.new_unit_of_measure.is_none()
             && self.status.is_none()
     }
 }
@@ -255,23 +256,22 @@ mod tests {
 
     #[test]
     fn invalid_products_user_input_required_new_unit_of_measure() {
-        let invalid_description = "a".repeat(3001);
         let product_user_input = ProductUserInput::try_from(ProductUserInputHelper {
             id: None,
-            name: String::from(""),
-            description: invalid_description,
+            name: String::from("John Doe"),
+            description: String::from("description"),
             unit_of_measure_id: String::from("other"),
             new_unit_of_measure: String::from(""),
-            status: String::from("activeee"),
+            status: String::from("active"),
         });
 
         let expected_product_user_input_error = ProductUserInputError {
             id: None,
-            name: Some(ValueObjectError::REQUIRED.to_string()),
-            description: Some(ProductDescription::VALIDATION_ERROR.to_string()),
+            name: None,
+            description: None,
             unit_of_measure_id: None,
             new_unit_of_measure: Some(ValueObjectError::REQUIRED.to_string()),
-            status: Some(ProductStatus::VALIDATION_ERROR.to_string()),
+            status: None,
         };
 
         assert!(product_user_input.is_err());

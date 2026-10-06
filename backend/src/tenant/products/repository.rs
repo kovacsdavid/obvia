@@ -46,7 +46,11 @@ pub trait ProductsRepository: Send + Sync {
         product_user_input: &ProductUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Product>;
-    async fn update(&self, product_user_input: ProductUserInput) -> RepositoryResult<Product>;
+    async fn update(
+        &self,
+        product_user_input: &ProductUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Product>;
     async fn insert_unit_of_measure(
         &self,
         unit_of_measure: &str,
@@ -249,12 +253,27 @@ impl ProductsRepository for PgPool {
         &self,
         product_user_input: &ProductUserInput,
         sub: Uuid,
-    ) -> Result<Product, RepositoryError> {
+    ) -> RepositoryResult<Product> {
+        let mut tx = self.begin().await?;
+
         let unit_of_measure_id = match &product_user_input.unit_of_measure_id {
             Some(v) => Some(v.as_uuid()?),
-            None => None,
+            None => {
+                if let Some(new_unit_of_measure) = &product_user_input.new_unit_of_measure {
+                    Some(
+                        insert_unit_of_measure(&mut *tx, new_unit_of_measure.as_str()?, sub)
+                            .await?
+                            .id,
+                    )
+                } else {
+                    return Err(RepositoryError::Custom(
+                        "unit_of_measure can not be null".to_string(),
+                    ));
+                }
+            }
         };
-        Ok(sqlx::query_as::<_, Product>(
+
+        let product = sqlx::query_as::<_, Product>(
             "INSERT INTO products (name, description, unit_of_measure_id, status, created_by_id)
                  VALUES ($1, $2, $3, $4, $5) RETURNING *",
         )
@@ -263,20 +282,44 @@ impl ProductsRepository for PgPool {
         .bind(unit_of_measure_id)
         .bind(product_user_input.status.as_str()?)
         .bind(sub)
-        .fetch_one(self)
-        .await?)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(product)
     }
 
-    async fn update(&self, product_user_input: ProductUserInput) -> RepositoryResult<Product> {
+    async fn update(
+        &self,
+        product_user_input: &ProductUserInput,
+        sub: Uuid,
+    ) -> RepositoryResult<Product> {
         let id = product_user_input
             .id
             .as_uuid()
             .ok_or_else(|| RepositoryError::InvalidInput("id".to_string()))?;
+
+        let mut tx = self.begin().await?;
+
         let unit_of_measure_id = match &product_user_input.unit_of_measure_id {
             Some(v) => Some(v.as_uuid()?),
-            None => None,
+            None => {
+                if let Some(new_unit_of_measure) = &product_user_input.new_unit_of_measure {
+                    Some(
+                        insert_unit_of_measure(&mut *tx, new_unit_of_measure.as_str()?, sub)
+                            .await?
+                            .id,
+                    )
+                } else {
+                    return Err(RepositoryError::Custom(
+                        "unit_of_measure can not be null".to_string(),
+                    ));
+                }
+            }
         };
-        Ok(sqlx::query_as::<_, Product>(
+
+        let product = sqlx::query_as::<_, Product>(
             r#"
             UPDATE products
             SET name = $1,
@@ -293,26 +336,23 @@ impl ProductsRepository for PgPool {
         .bind(unit_of_measure_id)
         .bind(product_user_input.status.as_str()?)
         .bind(id)
-        .fetch_one(self)
-        .await?)
+        .fetch_one(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(product)
     }
 
     async fn insert_unit_of_measure(
         &self,
         unit_of_measure: &str,
         sub: Uuid,
-    ) -> Result<UnitOfMeasure, RepositoryError> {
-        Ok(sqlx::query_as::<_, UnitOfMeasure>(
-            "INSERT INTO units_of_measure(unit_of_measure, created_by_id)
-             VALUES ($1, $2) RETURNING *",
-        )
-        .bind(unit_of_measure.to_string().trim())
-        .bind(sub)
-        .fetch_one(self)
-        .await?)
+    ) -> RepositoryResult<UnitOfMeasure> {
+        insert_unit_of_measure(self, unit_of_measure, sub).await
     }
 
-    async fn get_units_of_measure_select_list(&self) -> Result<Vec<SelectOption>, RepositoryError> {
+    async fn get_units_of_measure_select_list(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
             "SELECT units_of_measure.id::VARCHAR as value, units_of_measure.unit_of_measure as title FROM units_of_measure WHERE deleted_at IS NULL ORDER BY unit_of_measure",
         )
@@ -335,4 +375,22 @@ impl ProductsRepository for PgPool {
 
         Ok(())
     }
+}
+
+pub async fn insert_unit_of_measure<'e, E>(
+    executor: E,
+    unit_of_measure: &str,
+    sub: Uuid,
+) -> RepositoryResult<UnitOfMeasure>
+where
+    E: sqlx::Executor<'e, Database = sqlx::Postgres>,
+{
+    Ok(sqlx::query_as::<_, UnitOfMeasure>(
+        "INSERT INTO units_of_measure(unit_of_measure, created_by_id)
+             VALUES ($1, $2) RETURNING *",
+    )
+    .bind(unit_of_measure.trim())
+    .bind(sub)
+    .fetch_one(executor)
+    .await?)
 }

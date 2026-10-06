@@ -140,14 +140,11 @@ pub async fn create<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
     _client_context: ClientContext,
-    UserInput(mut user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
+    UserInput(user_input, _): UserInput<ProductUserInput, ProductUserInputHelper>,
 ) -> HandlerResult {
     let service = Service::new(Some(&claims), products_module.clone());
-    let result = map_handler_err(
-        service.insert(&mut user_input).await,
-        products_module.clone(),
-    )
-    .await?;
+    let result =
+        map_handler_err(service.insert(&user_input).await, products_module.clone()).await?;
     Ok(map_handler_err(
         SuccessResponseBuilder::<EmptyType, _>::new()
             .status_code(StatusCode::CREATED)
@@ -1315,10 +1312,10 @@ mod tests {
         let mut repo = MockProductsRepository::new();
         repo.expect_update()
             .times(1)
-            .with(eq(user_input))
+            .with(eq(user_input), eq(user_id))
             .returning({
                 let product = product.clone();
-                move |_| Ok(product.clone())
+                move |_, _| Ok(product.clone())
             });
 
         let mut app_state = MockProductsModule::new();

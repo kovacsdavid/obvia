@@ -61,9 +61,7 @@ export default function Edit({
 }: EditProps) {
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
-    const [unitOfMeasureId, setUnitOfMeasureId] = React.useState(
-        "239b22ad-5db9-4c9c-851b-ba76885c2dae",
-    );
+    const [unitOfMeasureId, setUnitOfMeasureId] = React.useState("");
     const [newUnitOfMeasure, setNewUnitOfMeasure] = React.useState("");
     const [unitsOfMeasureList, setUnitsOfMeasureList] =
         React.useState<SelectOptionList>([]);

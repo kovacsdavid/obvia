@@ -26,8 +26,7 @@ use crate::common::pdf::PdfGenerator;
 use crate::common::pdf::{PdfGenError, PdfTemplates};
 use crate::common::query_parser::ResourceQuery;
 use crate::common::service::{Service, ServiceError};
-use crate::common::types::UuidVO;
-use crate::common::value_object::{ValueObjectError, ValueObjectRequired};
+use crate::common::value_object::ValueObjectError;
 use crate::tenant::products::ProductsModuleInterface;
 use crate::tenant::products::dto::print::ProductsResolvedPrint;
 use crate::tenant::products::dto::user_input::ProductUserInput;
@@ -137,7 +136,7 @@ impl FromStr for ProductsSelectLists {
 pub trait ProductService {
     fn insert(
         &self,
-        payload: &mut ProductUserInput,
+        payload: &ProductUserInput,
     ) -> impl Future<Output = ProductsServiceResult<Product>> + Send;
     fn get_select_list_items(
         &self,
@@ -169,30 +168,10 @@ impl<'a, T> ProductService for Service<'a, T>
 where
     T: ProductsModuleInterface,
 {
-    async fn insert(&self, payload: &mut ProductUserInput) -> ProductsServiceResult<Product> {
-        if let Some(new_unit_of_measure) = &payload.new_unit_of_measure {
-            payload.unit_of_measure_id = self
-                .module()
-                .products_repo(
-                    self.claims()?
-                        .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
-                )?
-                .insert_unit_of_measure(new_unit_of_measure.as_str()?, self.claims()?.sub())
-                .await?
-                .id
-                .to_string()
-                .parse::<ValueObjectRequired<UuidVO>>()
-                .map(Some)
-                .map_err(|_| ProductsServiceError::InvalidState)?;
-        }
+    async fn insert(&self, payload: &ProductUserInput) -> ProductsServiceResult<Product> {
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
+            .products_repo(self.active_tenant()?)?
             .insert(payload, self.claims()?.sub())
             .await?)
     }
@@ -204,11 +183,7 @@ where
         match ProductsSelectLists::from_str(select_list)? {
             ProductsSelectLists::UnitsOfMeasure => Ok(self
                 .module()
-                .products_repo(
-                    self.claims()?
-                        .active_tenant()
-                        .ok_or(ProductsServiceError::Unauthorized)?,
-                )?
+                .products_repo(self.active_tenant()?)?
                 .get_units_of_measure_select_list()
                 .await?),
         }
@@ -217,11 +192,7 @@ where
     async fn get_resolved(&self, payload: Uuid) -> ProductsServiceResult<ProductResolved> {
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
+            .products_repo(self.active_tenant()?)?
             .get_resolved_by_id(payload)
             .await?)
     }
@@ -229,11 +200,7 @@ where
     async fn get(&self, payload: Uuid) -> ProductsServiceResult<Product> {
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
+            .products_repo(self.active_tenant()?)?
             .get_by_id(payload)
             .await?)
     }
@@ -246,22 +213,14 @@ where
         }
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
-            .update(payload.clone())
+            .products_repo(self.active_tenant()?)?
+            .update(payload, self.claims()?.sub())
             .await?)
     }
     async fn delete(&self, payload: Uuid) -> ProductsServiceResult<()> {
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
+            .products_repo(self.active_tenant()?)?
             .delete_by_id(payload)
             .await?)
     }
@@ -271,11 +230,7 @@ where
     ) -> ProductsServiceResult<(PaginatorMeta, Vec<ProductResolved>)> {
         Ok(self
             .module()
-            .products_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(ProductsServiceError::Unauthorized)?,
-            )?
+            .products_repo(self.active_tenant()?)?
             .get_paged(get_query)
             .await?)
     }

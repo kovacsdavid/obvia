@@ -37,7 +37,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(auth_module, jar))]
+#[instrument(name = "obvia::manager::auth::handler::login", skip(auth_module, jar))]
 pub async fn login<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -76,7 +76,10 @@ pub async fn login<M: AuthModuleInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[instrument(skip(auth_module, jar))]
+#[instrument(
+    name = "obvia::manager::auth::handler::refresh",
+    skip(auth_module, jar)
+)]
 pub async fn refresh<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -114,7 +117,7 @@ pub async fn refresh<M: AuthModuleInterface>(
     Ok((jar.add(refresh_cookie), response).into_response())
 }
 
-#[instrument(skip(auth_module, jar))]
+#[instrument(name = "obvia::manager::auth::handler::logout", skip(auth_module, jar))]
 pub async fn logout<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     jar: CookieJar,
@@ -132,7 +135,7 @@ pub async fn logout<M: AuthModuleInterface>(
         .into_response())
 }
 
-#[instrument(skip(auth_module))]
+#[instrument(name = "obvia::manager::auth::handler::register", skip(auth_module))]
 pub async fn register<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     _client_context: ClientContext,
@@ -153,7 +156,10 @@ pub async fn register<M: AuthModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(auth_module, payload))]
+#[instrument(
+    name = "obvia::manager::auth::handler::verify_email",
+    skip(auth_module, payload)
+)]
 pub async fn verify_email<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     _client_context: ClientContext,
@@ -178,7 +184,10 @@ pub async fn verify_email<M: AuthModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(auth_module))]
+#[instrument(
+    name = "obvia::manager::auth::handler::resend_email_verification",
+    skip(auth_module)
+)]
 pub async fn resend_email_verification<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     _client_context: ClientContext,
@@ -207,7 +216,10 @@ pub async fn resend_email_verification<M: AuthModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(auth_module))]
+#[instrument(
+    name = "obvia::manager::auth::handler::forgotten_password",
+    skip(auth_module)
+)]
 pub async fn forgotten_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,
@@ -232,7 +244,10 @@ pub async fn forgotten_password<M: AuthModuleInterface>(
         ).await?.into_response())
 }
 
-#[instrument(skip(auth_module))]
+#[instrument(
+    name = "obvia::manager::auth::handler::new_password",
+    skip(auth_module)
+)]
 pub async fn new_password<M: AuthModuleInterface>(
     State(auth_module): State<Arc<M>>,
     client_context: ClientContext,

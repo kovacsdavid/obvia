@@ -35,7 +35,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::get_resolved",
+    skip(customers_module)
+)]
 pub async fn get_resolved<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -59,7 +62,10 @@ pub async fn get_resolved<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::get_full",
+    skip(customers_module)
+)]
 pub async fn get_full<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -83,7 +89,10 @@ pub async fn get_full<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::get",
+    skip(customers_module)
+)]
 pub async fn get<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -103,7 +112,10 @@ pub async fn get<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::create",
+    skip(customers_module)
+)]
 pub async fn create<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -124,7 +136,10 @@ pub async fn create<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::update",
+    skip(customers_module)
+)]
 pub async fn update<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -145,7 +160,10 @@ pub async fn update<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::delete",
+    skip(customers_module)
+)]
 pub async fn delete<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -167,7 +185,10 @@ pub async fn delete<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::list",
+    skip(customers_module)
+)]
 pub async fn list<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,
@@ -198,7 +219,10 @@ pub async fn list<M: CustomersModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(customers_module))]
+#[instrument(
+    name = "obvia::tenant::customers::handler::print",
+    skip(customers_module)
+)]
 pub async fn print<M: CustomersModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(customers_module): State<Arc<M>>,

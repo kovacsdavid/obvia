@@ -37,7 +37,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(tenants_module))]
+#[instrument(
+    name = "obvia::manager::tenants::handler::create",
+    skip(tenants_module)
+)]
 pub async fn create<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
@@ -61,7 +64,7 @@ pub async fn create<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(_tenants_module))]
+#[instrument(name = "obvia::manager::tenants::handler::get", skip(_tenants_module))]
 pub async fn get<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
@@ -70,7 +73,10 @@ pub async fn get<M: TenantsModuleInterface>(
     todo!();
 }
 
-#[instrument(skip(_tenants_module))]
+#[instrument(
+    name = "obvia::manager::tenants::handler::get_resolved",
+    skip(_tenants_module)
+)]
 pub async fn get_resolved<M: TenantsModuleInterface>(
     AuthenticatedUser(_claims): AuthenticatedUser,
     State(_tenants_module): State<Arc<M>>,
@@ -79,7 +85,7 @@ pub async fn get_resolved<M: TenantsModuleInterface>(
     todo!();
 }
 
-#[instrument(skip(tenants_module))]
+#[instrument(name = "obvia::manager::tenants::handler::list", skip(tenants_module))]
 pub async fn list<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
@@ -110,7 +116,10 @@ pub async fn list<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(tenants_module))]
+#[instrument(
+    name = "obvia::manager::tenants::handler::activate",
+    skip(tenants_module)
+)]
 pub async fn activate<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,
@@ -130,7 +139,10 @@ pub async fn activate<M: TenantsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(tenants_module))]
+#[instrument(
+    name = "obvia::manager::tenants::handler::delete",
+    skip(tenants_module)
+)]
 pub async fn delete<M: TenantsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(tenants_module): State<Arc<M>>,

@@ -33,7 +33,10 @@ use axum::response::IntoResponse;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(owner_profile_module))]
+#[instrument(
+    name = "obvia::tenant::owner_profile::handler::get_full",
+    skip(owner_profile_module)
+)]
 pub async fn get_full<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,
@@ -52,7 +55,10 @@ pub async fn get_full<M: OwnerProfileModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(owner_profile_module))]
+#[instrument(
+    name = "obvia::tenant::owner_profile::handler::update",
+    skip(owner_profile_module)
+)]
 pub async fn update<M: OwnerProfileModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(owner_profile_module): State<Arc<M>>,

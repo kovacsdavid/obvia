@@ -36,7 +36,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tracing::instrument;
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::get_resolved",
+    skip(products_module)
+)]
 pub async fn get_resolved<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -60,7 +63,7 @@ pub async fn get_resolved<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(name = "obvia::tenant::products::handler::get", skip(products_module))]
 pub async fn get<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -80,7 +83,10 @@ pub async fn get<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::update",
+    skip(products_module)
+)]
 pub async fn update<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -101,7 +107,10 @@ pub async fn update<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::delete",
+    skip(products_module)
+)]
 pub async fn delete<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -123,7 +132,10 @@ pub async fn delete<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::create",
+    skip(products_module)
+)]
 pub async fn create<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -147,7 +159,7 @@ pub async fn create<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(name = "obvia::tenant::products::handler::list", skip(products_module))]
 pub async fn list<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -177,7 +189,10 @@ pub async fn list<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::select_list",
+    skip(products_module)
+)]
 pub async fn select_list<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,
@@ -207,7 +222,10 @@ pub async fn select_list<M: ProductsModuleInterface>(
     .into_response())
 }
 
-#[instrument(skip(products_module))]
+#[instrument(
+    name = "obvia::tenant::products::handler::print",
+    skip(products_module)
+)]
 pub async fn print<M: ProductsModuleInterface>(
     AuthenticatedUser(claims): AuthenticatedUser,
     State(products_module): State<Arc<M>>,

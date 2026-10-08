@@ -78,14 +78,6 @@ export default function Edit() {
         decimalPlaces: 2,
         allowEmpty: true,
     });
-    const handleEditInventorySuccess = (inventory: Inventory) => {
-        loadLists().then(() => {
-            setTimeout(() => {
-                setInventoryId(inventory.id);
-            }, 0);
-            setOpenNewInventoryDialog(false);
-        });
-    };
 
     const handleReferenceTypeChange = useCallback(
         async (newReferenceType: string) => {
@@ -110,25 +102,41 @@ export default function Edit() {
         [dispatch, setErrors, setListResponse, unexpectedError],
     );
 
-    const loadLists = async () => {
+    const loadLists = useCallback(async () => {
         if (!routeInventoryId) {
-            return dispatch(select_list("inventory")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setInventoryIdList,
-                            setErrors,
-                        );
+            return Promise.all([
+                dispatch(select_list("inventory")).then((response) => {
+                    if (select_list.fulfilled.match(response)) {
+                        if (response.payload.statusCode === 200) {
+                            setListResponse(
+                                response.payload,
+                                setInventoryIdList,
+                                setErrors,
+                            );
+                        } else {
+                            unexpectedError(response.payload.statusCode);
+                        }
                     } else {
-                        unexpectedError(response.payload.statusCode);
+                        unexpectedError();
                     }
-                } else {
-                    unexpectedError();
-                }
-            });
+                }),
+            ]);
         }
-        return Promise.resolve();
+    }, [
+        dispatch,
+        routeInventoryId,
+        setErrors,
+        setListResponse,
+        unexpectedError,
+    ]);
+
+    const handleEditInventorySuccess = (inventory: Inventory) => {
+        loadLists().then(() => {
+            setTimeout(() => {
+                setInventoryId(inventory.id);
+            }, 0);
+            setOpenNewInventoryDialog(false);
+        });
     };
 
     useEffect(() => {

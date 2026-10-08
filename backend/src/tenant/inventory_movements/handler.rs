@@ -316,11 +316,57 @@ mod tests {
     use mockall::predicate::eq;
     use pretty_assertions::assert_eq;
     use serde_json::json;
+    use sqlx::error::{DatabaseError, ErrorKind};
+    use std::error::Error;
+    use std::fmt::{Debug, Display, Formatter};
     use std::fs::File;
     use std::io::{Read, Write};
     use std::path::Path;
     use tower::ServiceExt;
     use uuid::Uuid;
+
+    pub struct MockDatabaseError;
+
+    impl Error for MockDatabaseError {}
+
+    impl Debug for MockDatabaseError {
+        fn fmt(&self, _f: &mut Formatter<'_>) -> std::fmt::Result {
+            unimplemented!()
+        }
+    }
+    impl Display for MockDatabaseError {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "Inventory quantity cannot be negative. Calculated quantity: -50.00 at line 1234"
+            )
+        }
+    }
+
+    impl DatabaseError for MockDatabaseError {
+        fn message(&self) -> &str {
+            "Inventory quantity cannot be negative. Calculated quantity: -50.00 at line 1234"
+        }
+
+        fn as_error(&self) -> &(dyn Error + Send + Sync + 'static) {
+            unimplemented!()
+        }
+
+        fn as_error_mut(&mut self) -> &mut (dyn Error + Send + Sync + 'static) {
+            unimplemented!()
+        }
+
+        fn into_error(self: Box<Self>) -> Box<dyn Error + Send + Sync + 'static> {
+            unimplemented!()
+        }
+
+        fn kind(&self) -> ErrorKind {
+            unimplemented!()
+        }
+        fn is_unique_violation(&self) -> bool {
+            unimplemented!()
+        }
+    }
 
     #[tokio::test]
     async fn test_get_success() {
@@ -1252,6 +1298,94 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_create_invalid_out_of_stock() {
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+
+        let user_input_helper = InventoryMovementUserInputHelper {
+            id: None,
+            inventory_id: inventory_id.to_string(),
+            movement_type: "in".to_string(),
+            quantity: "10".to_string(),
+            reference_type: "worksheets".to_string(),
+            reference_id: reference_id.to_string(),
+            unit_price: "20".to_string(),
+            tax_id: tax_id.to_string(),
+        };
+        let user_input = InventoryMovementUserInput::try_from(user_input_helper.clone()).unwrap();
+
+        let mut repo = MockInventoryMovementsRepository::new();
+        repo.expect_insert()
+            .times(1)
+            .withf({
+                let user_input_expected = user_input.clone();
+                move |user_input, user_id_inner| {
+                    user_input.inventory_id == user_input_expected.inventory_id
+                        && user_input.movement_type == user_input_expected.movement_type
+                        && user_input.quantity == user_input_expected.quantity
+                        && user_input.reference_type == user_input_expected.reference_type
+                        && user_input.reference_id == user_input_expected.reference_id
+                        && user_input.unit_price == user_input_expected.unit_price
+                        && user_input.tax_id == user_input_expected.tax_id
+                        && user_id == *user_id_inner
+                }
+            })
+            .return_once(move |_, _| {
+                Err(RepositoryError::Database(sqlx::Error::Database(
+                    Box::new(MockDatabaseError) as Box<dyn DatabaseError>,
+                )))
+            });
+
+        let mut app_state = MockInventoryMovementsModule::new();
+        let repo = Arc::new(repo);
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_inventory_movements_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("POST")
+            .uri("/api/inventory_movements/create")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(inventory_movements::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem áll rendelkezésre elegendő készlet a művelet végrehajtásához"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
     async fn test_create_unauthorized_expired() {
         let inventory_id = Uuid::now_v7();
         let reference_id = Uuid::now_v7();
@@ -1398,6 +1532,7 @@ mod tests {
 
         assert_eq!(response_body, expected_body);
     }
+
     #[tokio::test]
     async fn test_update_success() {
         let active_tenant_id = Uuid::now_v7();
@@ -1484,6 +1619,83 @@ mod tests {
         let expected_body = json!({
             "meta": null,
             "data": inventory_movement,
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
+    #[tokio::test]
+    async fn test_update_invalid_out_of_stock() {
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_movement_id = Uuid::now_v7();
+        let inventory_id = Uuid::now_v7();
+        let reference_id = Uuid::now_v7();
+        let tax_id = Uuid::now_v7();
+
+        let user_input_helper = InventoryMovementUserInputHelper {
+            id: Some(inventory_movement_id.to_string()),
+            inventory_id: inventory_id.to_string(),
+            movement_type: "in".to_string(),
+            quantity: "10".to_string(),
+            reference_type: "worksheets".to_string(),
+            reference_id: reference_id.to_string(),
+            unit_price: "20".to_string(),
+            tax_id: tax_id.to_string(),
+        };
+        let user_input = InventoryMovementUserInput::try_from(user_input_helper.clone()).unwrap();
+
+        let mut repo = MockInventoryMovementsRepository::new();
+        repo.expect_update()
+            .times(1)
+            .with(eq(user_input))
+            .return_once(move |_| {
+                Err(RepositoryError::Database(sqlx::Error::Database(
+                    Box::new(MockDatabaseError) as Box<dyn DatabaseError>,
+                )))
+            });
+
+        let mut app_state = MockInventoryMovementsModule::new();
+        let repo = Arc::new(repo);
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_inventory_movements_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let payload = serde_json::to_string(&user_input_helper).unwrap();
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("PUT")
+            .uri("/api/inventory_movements/update")
+            .body(Body::from(payload))
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(inventory_movements::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem áll rendelkezésre elegendő készlet a művelet végrehajtásához"
+            },
         });
 
         assert_eq!(response_body, expected_body);
@@ -1699,6 +1911,70 @@ mod tests {
 
         assert_eq!(response_body, expected_body);
     }
+
+    #[tokio::test]
+    async fn test_delete_invalid_out_of_stock() {
+        let active_tenant_id = Uuid::now_v7();
+        let user_id = Uuid::now_v7();
+        let inventory_movement_id = Uuid::now_v7();
+        let mut repo = MockInventoryMovementsRepository::new();
+
+        repo.expect_delete_by_id()
+            .times(1)
+            .with(eq(inventory_movement_id))
+            .return_once(move |_| {
+                Err(RepositoryError::Database(sqlx::Error::Database(
+                    Box::new(MockDatabaseError) as Box<dyn DatabaseError>,
+                )))
+            });
+
+        let mut app_state = MockInventoryMovementsModule::new();
+        let repo = Arc::new(repo);
+        let test_config = test_app_config_builder().build().unwrap();
+        app_state
+            .expect_inventory_movements_repo()
+            .with(eq(active_tenant_id))
+            .times(1)
+            .returning(move |_| Ok(repo.clone()));
+        app_state
+            .expect_config()
+            .times(1)
+            .return_const(test_config.clone());
+        let request = Request::builder()
+            .header(
+                "Authorization",
+                format!(
+                    "Bearer {}",
+                    generate_valid_jwt(Some(user_id), Some(active_tenant_id))
+                ),
+            )
+            .header("Content-Type", "application/json")
+            .method("DELETE")
+            .uri(format!(
+                "/api/inventory_movements/delete?uuid={inventory_movement_id}"
+            ))
+            .body("".to_string())
+            .unwrap();
+
+        let app = Router::new().nest(
+            "/api",
+            Router::new().merge(inventory_movements::routes::routes(Arc::new(app_state))),
+        );
+
+        let response = app.oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+        let response_body = extract_json_response(response).await;
+        let expected_body = json!({
+            "error": {
+                "message": "Nem áll rendelkezésre elegendő készlet a művelet végrehajtásához"
+            },
+        });
+
+        assert_eq!(response_body, expected_body);
+    }
+
     #[tokio::test]
     async fn test_delete_success() {
         let active_tenant_id = Uuid::now_v7();

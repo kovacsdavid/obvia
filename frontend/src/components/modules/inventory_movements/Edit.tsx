@@ -106,16 +106,7 @@ export default function Edit({
     const [openNewInventoryDialog, setOpenNewInventoryDialog] =
         React.useState(false);
 
-    const handleEditInventorySuccess = async (inventory: Inventory) => {
-        return loadLists().then(() => {
-            setTimeout(() => {
-                setInventoryId(inventory.id);
-            }, 0);
-            setOpenNewInventoryDialog(false);
-        });
-    };
-
-    const loadLists = () => {
+    const loadLists = useCallback(() => {
         return Promise.all([
             !routeInventoryId &&
                 dispatch(select_list("inventory")).then((response) => {
@@ -149,6 +140,21 @@ export default function Edit({
                 }
             }),
         ]);
+    }, [
+        dispatch,
+        routeInventoryId,
+        setErrors,
+        setListResponse,
+        unexpectedError,
+    ]);
+
+    const handleEditInventorySuccess = async (inventory: Inventory) => {
+        return loadLists().then(() => {
+            setTimeout(() => {
+                setInventoryId(inventory.id);
+            }, 0);
+            setOpenNewInventoryDialog(false);
+        });
     };
 
     useEffect(() => {

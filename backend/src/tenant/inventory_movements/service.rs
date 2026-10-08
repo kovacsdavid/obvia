@@ -248,11 +248,28 @@ where
                 "Az azonosító megadása kötelező!",
             ));
         }
-        Ok(self
+
+        match self
             .module()
             .inventory_movements_repo(self.active_tenant()?)?
             .update(payload)
-            .await?)
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(e) => match &e {
+                RepositoryError::Database(dbe) => {
+                    if dbe
+                        .to_string()
+                        .contains("Inventory quantity cannot be negative.")
+                    {
+                        Err(InventoryMovementsServiceError::OutOfStock)
+                    } else {
+                        Err(e.into())
+                    }
+                }
+                _ => Err(e.into()),
+            },
+        }
     }
     async fn get_resolved(
         &self,
@@ -266,11 +283,27 @@ where
     }
 
     async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()> {
-        Ok(self
+        match self
             .module()
             .inventory_movements_repo(self.active_tenant()?)?
             .delete_by_id(payload)
-            .await?)
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(e) => match &e {
+                RepositoryError::Database(dbe) => {
+                    if dbe
+                        .to_string()
+                        .contains("Inventory quantity cannot be negative.")
+                    {
+                        Err(InventoryMovementsServiceError::OutOfStock)
+                    } else {
+                        Err(e.into())
+                    }
+                }
+                _ => Err(e.into()),
+            },
+        }
     }
 
     async fn get_paged(

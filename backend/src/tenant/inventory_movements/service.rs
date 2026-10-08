@@ -87,6 +87,9 @@ pub enum InventoryMovementsServiceError {
 
     #[error("UuidError: {0}")]
     UuidError(#[from] uuid::Error),
+
+    #[error("Nem áll rendelkezésre elegendő készlet a művelet végrehajtásához")]
+    OutOfStock,
 }
 
 impl From<ServiceError> for InventoryMovementsServiceError {
@@ -119,6 +122,12 @@ impl From<InventoryMovementsServiceError> for AppError {
                 StatusCode::NOT_FOUND,
                 AppErrorVisibility::UserFacing,
                 json!({"message": "Nem található"}),
+            ),
+            InventoryMovementsServiceError::OutOfStock => Self::new(
+                Level::DEBUG,
+                StatusCode::UNPROCESSABLE_ENTITY,
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
             ),
             _ => Self::new(
                 Level::ERROR,
@@ -201,24 +210,32 @@ where
         &self,
         payload: &InventoryMovementUserInput,
     ) -> InventoryMovementsServiceResult<InventoryMovement> {
-        Ok(self
+        match self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .insert(payload, self.claims()?.sub())
-            .await?)
+            .await
+        {
+            Ok(result) => Ok(result),
+            Err(e) => match &e {
+                RepositoryError::Database(dbe) => {
+                    if dbe
+                        .to_string()
+                        .contains("Inventory quantity cannot be negative.")
+                    {
+                        Err(InventoryMovementsServiceError::OutOfStock)
+                    } else {
+                        Err(e.into())
+                    }
+                }
+                _ => Err(e.into()),
+            },
+        }
     }
     async fn get(&self, payload: Uuid) -> InventoryMovementsServiceResult<InventoryMovement> {
         Ok(self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .get_by_id(payload)
             .await?)
     }
@@ -233,11 +250,7 @@ where
         }
         Ok(self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .update(payload)
             .await?)
     }
@@ -247,11 +260,7 @@ where
     ) -> InventoryMovementsServiceResult<InventoryMovementResolved> {
         Ok(self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .get_resolved_by_id(payload)
             .await?)
     }
@@ -259,11 +268,7 @@ where
     async fn delete(&self, payload: Uuid) -> InventoryMovementsServiceResult<()> {
         Ok(self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .delete_by_id(payload)
             .await?)
     }
@@ -275,11 +280,7 @@ where
     ) -> InventoryMovementsServiceResult<(PaginatorMeta, Vec<InventoryMovementResolved>)> {
         Ok(self
             .module()
-            .inventory_movements_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(InventoryMovementsServiceError::Unauthorized)?,
-            )?
+            .inventory_movements_repo(self.active_tenant()?)?
             .get_paged(get_query, inventory_id)
             .await?)
     }
@@ -287,10 +288,7 @@ where
         &self,
         select_list: &str,
     ) -> InventoryMovementsServiceResult<Vec<SelectOption>> {
-        let active_tenant = self
-            .claims()?
-            .active_tenant()
-            .ok_or(InventoryMovementsServiceError::Unauthorized)?;
+        let active_tenant = self.active_tenant()?;
         Ok(
             match InventoryMovementsSelectLists::from_str(select_list)? {
                 InventoryMovementsSelectLists::Worksheets => {
@@ -316,10 +314,7 @@ where
     }
 
     async fn print(&self, payload: Uuid) -> InventoryMovementsServiceResult<Vec<u8>> {
-        let active_tenant = self
-            .claims()?
-            .active_tenant()
-            .ok_or(InventoryMovementsServiceError::Unauthorized)?;
+        let active_tenant = self.active_tenant()?;
         let tz = self.claims()?.tz()?;
 
         let inventory_movement_resolved = self.get_resolved(payload).await?;

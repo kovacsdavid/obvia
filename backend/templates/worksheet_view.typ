@@ -150,59 +150,64 @@
 
 #pagebreak()
 
-// Performed services section
-#section("Elvégzett szolgáltatások")
+#if tasks != none and tasks.len() > 0 [
+  // Performed services section
+  #section("Elvégzett szolgáltatások")
 
-// Render tasks
-#table(
-  columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
-  table.header(
-    [*\#*],
-    [*Szolgáltatás megnevezése*],
-    [*Mennyiség*],
-    [*Egységár*],
-    [*Összesen*],
-  ),
+  // Render tasks
+  #table(
+    columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
+    table.header(
+      [*\#*],
+      [*Szolgáltatás megnevezése*],
+      [*Mennyiség*],
+      [*Egységár*],
+      [*Összesen*],
+    ),
 
-  ..for (i, task) in tasks.enumerate() {
-    (
-      [#(i + 1)],
-      [#task.service.name],
-      [#task.quantity],
-      [#task.price],
-      [#(float(task.quantity) * float(task.price))],
-    )
-  },
-)
+    ..for (i, task) in tasks.enumerate() {
+      (
+        [#(i + 1)],
+        [#display-value(task.service.name, "-")],
+        [#display-value(task.quantity, "-")],
+        [#display-value(task.price, "-")],
+        [#display-value(task.total_price, "-")],
+      )
+    },
+  )
 
-#v(0.25cm)
+  #v(0.25cm)
+]
 
-// Performed services section
-#section("Felhasznált anyagok")
 
-// Render materials
-#table(
-  columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
-  table.header(
-    [*\#*],
-    [*Anyag megnevezése*],
-    [*Mennyiség*],
-    [*Egységár*],
-    [*Összesen*],
-  ),
+#if materials != none and materials.len() > 0 [
+  // Performed services section
+  #section("Felhasznált anyagok")
 
-  ..for (i, material) in materials.enumerate() {
-    (
-      [#(i + 1)],
-      [#material.inventory.product.name],
-      [#material.quantity],
-      [#material.unit_price],
-      [#material.total_price],
-    )
-  },
-)
+  // Render materials
+  #table(
+    columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
+    table.header(
+      [*\#*],
+      [*Anyag megnevezése*],
+      [*Mennyiség*],
+      [*Egységár*],
+      [*Összesen*],
+    ),
 
-#v(0.25cm)
+    ..for (i, material) in materials.enumerate() {
+      (
+        [#(i + 1)],
+        [#display-value(material.inventory.product.name, "-")],
+        [#display-value(material.quantity, "-")],
+        [#display-value(material.unit_price, "-")],
+        [#display-value(material.total_price, "-")],
+      )
+    },
+  )
+
+  #v(0.25cm)
+]
 
 // Totals summary aligned to the right
 #align(right)[

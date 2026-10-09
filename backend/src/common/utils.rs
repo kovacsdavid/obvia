@@ -55,7 +55,6 @@ pub fn thousand_separated_number_i64(n: i64) -> String {
     out
 }
 
-#[cfg_attr(not(test), expect(unused))]
 pub fn thousand_separated_number_bigdecimal(x: &BigDecimal, decimals: usize) -> String {
     let rounded = x.round(decimals as i64);
     let formatted = rounded.to_string();

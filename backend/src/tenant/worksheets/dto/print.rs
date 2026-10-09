@@ -18,10 +18,9 @@
  */
 
 use crate::{
-    common::{CommonBuilderError, TEST_TIME_TZ},
+    common::{CommonBuilderError, TEST_TIME_TZ, utils::thousand_separated_number_bigdecimal},
     tenant::owner_profile::dto::print::OwnerProfileFullPrint,
 };
-use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -49,10 +48,10 @@ pub struct WorksheetResolvedPrint {
     pub created_at: String,
     pub updated_at: String,
     pub deleted_at: Option<String>,
-    pub net_material_cost: BigDecimal,
-    pub gross_material_cost: BigDecimal,
-    pub net_work_cost: BigDecimal,
-    pub gross_work_cost: BigDecimal,
+    pub net_material_cost: String,
+    pub gross_material_cost: String,
+    pub net_work_cost: String,
+    pub gross_work_cost: String,
     pub tasks: Vec<TaskResolvedPrint>,
     pub materials: Vec<InventoryMovementsResolvedPrint>,
 }
@@ -91,10 +90,22 @@ impl WorksheetResolvedPrint {
             deleted_at: worksheet_resolved
                 .deleted_at
                 .map(|v| v.with_timezone(&tz).format(&date_format_string).to_string()),
-            net_material_cost: worksheet_resolved.net_material_cost,
-            gross_material_cost: worksheet_resolved.gross_material_cost,
-            net_work_cost: worksheet_resolved.net_work_cost,
-            gross_work_cost: worksheet_resolved.gross_work_cost,
+            net_material_cost: thousand_separated_number_bigdecimal(
+                &worksheet_resolved.net_material_cost,
+                2,
+            ),
+            gross_material_cost: thousand_separated_number_bigdecimal(
+                &worksheet_resolved.gross_material_cost,
+                2,
+            ),
+            net_work_cost: thousand_separated_number_bigdecimal(
+                &worksheet_resolved.net_work_cost,
+                2,
+            ),
+            gross_work_cost: thousand_separated_number_bigdecimal(
+                &worksheet_resolved.gross_work_cost,
+                2,
+            ),
             tasks,
             materials,
         }
@@ -130,10 +141,10 @@ pub fn test_worksheet_resolved_print_builder(
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
         .deleted_at(None)
-        .net_material_cost("10".parse().unwrap())
-        .gross_material_cost("20".parse().unwrap())
-        .net_work_cost("30".parse().unwrap())
-        .gross_work_cost("40".parse().unwrap())
+        .net_material_cost("10.00".parse().unwrap())
+        .gross_material_cost("20.00".parse().unwrap())
+        .net_work_cost("30.00".parse().unwrap())
+        .gross_work_cost("40.00".parse().unwrap())
         .tasks(tasks)
         .materials(materials);
 
@@ -207,10 +218,10 @@ mod tests {
             created_at: TEST_TIME_TZ.clone(),
             updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,
-            net_material_cost: "10".parse().unwrap(),
-            gross_material_cost: "20".parse().unwrap(),
-            net_work_cost: "30".parse().unwrap(),
-            gross_work_cost: "40".parse().unwrap(),
+            net_material_cost: "10.00".parse().unwrap(),
+            gross_material_cost: "20.00".parse().unwrap(),
+            net_work_cost: "30.00".parse().unwrap(),
+            gross_work_cost: "40.00".parse().unwrap(),
             tasks: vec![],
             materials: vec![],
         };

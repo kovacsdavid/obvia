@@ -19,11 +19,11 @@
 
 use crate::common::CommonBuilderError;
 use crate::common::TEST_TIME_TZ;
+use crate::common::utils::thousand_separated_number_bigdecimal;
 use crate::tenant::{
     inventory::dto::print::InventoryResolvedPrint,
     inventory_movements::model::InventoryMovementResolved,
 };
-use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -35,11 +35,11 @@ pub struct InventoryMovementsResolvedPrint {
     id: Uuid,
     inventory: InventoryResolvedPrint,
     movement_type: String,
-    quantity: BigDecimal,
+    quantity: String,
     reference_type: Option<String>,
     reference_id: Option<Uuid>,
-    unit_price: Option<BigDecimal>,
-    total_price: Option<BigDecimal>,
+    unit_price: Option<String>,
+    total_price: Option<String>,
     tax_id: Uuid,
     tax: Option<String>,
     movement_date: String,
@@ -59,13 +59,20 @@ impl InventoryMovementsResolvedPrint {
             id: inventory_movement_resolved.id,
             inventory: inventory_resolved_print,
             movement_type: Self::map_movement_type(&inventory_movement_resolved.movement_type),
-            quantity: inventory_movement_resolved.quantity.abs(),
+            quantity: thousand_separated_number_bigdecimal(
+                &inventory_movement_resolved.quantity.abs(),
+                2,
+            ),
             reference_type: inventory_movement_resolved
                 .reference_type
                 .map(|v| Self::map_reference_type(&v)),
             reference_id: inventory_movement_resolved.reference_id,
-            unit_price: inventory_movement_resolved.unit_price,
-            total_price: inventory_movement_resolved.total_price,
+            unit_price: inventory_movement_resolved
+                .unit_price
+                .map(|v| thousand_separated_number_bigdecimal(&v, 2)),
+            total_price: inventory_movement_resolved
+                .total_price
+                .map(|v| thousand_separated_number_bigdecimal(&v, 2)),
             tax_id: inventory_movement_resolved.tax_id,
             tax: inventory_movement_resolved.tax,
             movement_date: inventory_movement_resolved
@@ -107,11 +114,11 @@ pub fn test_inventory_movement_resolved_print_builder(
         .id(Uuid::now_v7())
         .inventory(inventory_resolved_print)
         .movement_type("Bevétel".to_string())
-        .quantity("10".parse().unwrap())
+        .quantity("10.00".parse().unwrap())
         .reference_type(Some("Munkalap".to_string()))
         .reference_id(Some(Uuid::now_v7()))
-        .unit_price(Some("20".parse().unwrap()))
-        .total_price(Some("30".parse().unwrap()))
+        .unit_price(Some("20.00".parse().unwrap()))
+        .total_price(Some("30.00".parse().unwrap()))
         .tax_id(Uuid::now_v7())
         .tax(Some("Test tax".to_string()))
         .movement_date(TEST_TIME_TZ.clone())
@@ -228,11 +235,11 @@ mod tests {
             id: inventory_movement_id,
             inventory: inventory_resolved_print,
             movement_type: "Bevétel".to_string(),
-            quantity: "10".parse().unwrap(),
+            quantity: "10.00".parse().unwrap(),
             reference_type: Some("Munkalap".to_string()),
             reference_id,
-            unit_price: Some("20".parse().unwrap()),
-            total_price: Some("30".parse().unwrap()),
+            unit_price: Some("20.00".parse().unwrap()),
+            total_price: Some("30.00".parse().unwrap()),
             tax_id,
             tax: Some("Áfa".to_string()),
             movement_date: output_date.clone(),

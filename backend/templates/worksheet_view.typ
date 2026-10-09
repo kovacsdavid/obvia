@@ -212,10 +212,15 @@
 // Totals summary aligned to the right
 #align(right)[
   #table(
-    columns: (3.5cm, 2.8cm),
-    [*Szolgáltatások összesen*], [#worksheet.net_work_cost],
-    [*Anyagköltség*], [#display-value(worksheet.net_material_cost, "-")],
-    [*Végösszeg*], [#(float(worksheet.net_work_cost) + float(worksheet.net_material_cost))],
+    columns: (8cm, 3.5cm),
+    [*Szolgáltatások összesen (nettó)*], [#display-value(worksheet.net_work_cost, "-")],
+    [*Szolgáltatások összesen (bruttó)*], [#display-value(worksheet.gross_work_cost, "-")],
+
+    [*Anyagköltség (nettó)*], [#display-value(worksheet.net_material_cost, "-")],
+    [*Anyagköltség (bruttó)*], [#display-value(worksheet.gross_material_cost, "-")],
+
+    [*Végösszeg (nettó)*], [#display-value(worksheet.net_total, "-")],
+    [*Végösszeg (bruttó)*], [#display-value(worksheet.gross_total, "-")],
   )
 ]
 

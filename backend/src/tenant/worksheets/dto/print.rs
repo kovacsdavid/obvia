@@ -52,6 +52,8 @@ pub struct WorksheetResolvedPrint {
     pub gross_material_cost: String,
     pub net_work_cost: String,
     pub gross_work_cost: String,
+    pub net_total: String,
+    pub gross_total: String,
     pub tasks: Vec<TaskResolvedPrint>,
     pub materials: Vec<InventoryMovementsResolvedPrint>,
 }
@@ -66,6 +68,9 @@ impl WorksheetResolvedPrint {
         tz: Tz,
     ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
+        let net_total = &worksheet_resolved.net_material_cost + &worksheet_resolved.net_work_cost;
+        let gross_total =
+            &worksheet_resolved.gross_material_cost + &worksheet_resolved.gross_work_cost;
         Self {
             id: worksheet_resolved.id,
             name: worksheet_resolved.name,
@@ -106,6 +111,8 @@ impl WorksheetResolvedPrint {
                 &worksheet_resolved.gross_work_cost,
                 2,
             ),
+            net_total: thousand_separated_number_bigdecimal(&net_total, 2),
+            gross_total: thousand_separated_number_bigdecimal(&gross_total, 2),
             tasks,
             materials,
         }
@@ -145,6 +152,8 @@ pub fn test_worksheet_resolved_print_builder(
         .gross_material_cost("20.00".parse().unwrap())
         .net_work_cost("30.00".parse().unwrap())
         .gross_work_cost("40.00".parse().unwrap())
+        .net_total("40.00".parse().unwrap())
+        .gross_total("60.00".parse().unwrap())
         .tasks(tasks)
         .materials(materials);
 
@@ -222,6 +231,8 @@ mod tests {
             gross_material_cost: "20.00".parse().unwrap(),
             net_work_cost: "30.00".parse().unwrap(),
             gross_work_cost: "40.00".parse().unwrap(),
+            net_total: "40.00".parse().unwrap(),
+            gross_total: "60.00".parse().unwrap(),
             tasks: vec![],
             materials: vec![],
         };

@@ -19,7 +19,7 @@
 
 create table task_assignments
 (
-    id            uuid primary key default uuid_generate_v4(),
+    id            uuid primary key default uuidv7(),
     user_id       uuid                           not null,
     task_id       uuid                           not null,
     created_by_id uuid                           not null,
@@ -39,7 +39,7 @@ CREATE INDEX idx_task_assignments_deleted_at ON task_assignments (deleted_at);
 
 create table project_assignments
 (
-    id            uuid primary key default uuid_generate_v4(),
+    id            uuid primary key default uuidv7(),
     user_id       uuid                           not null,
     project_id    uuid                           not null,
     created_by_id uuid                           not null,

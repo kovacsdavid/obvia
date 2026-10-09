@@ -36,7 +36,7 @@ pub fn generate_string_csprng(length: usize) -> Result<String, &'static str> {
 
 #[cfg_attr(not(test), expect(unused))]
 pub fn thousand_separated_number_i64(n: i64) -> String {
-    let s = n.abs().to_string();
+    let s = n.unsigned_abs().to_string();
     let mut out = String::with_capacity(s.len() + s.len() / 3);
 
     for (i, ch) in s.chars().rev().enumerate() {

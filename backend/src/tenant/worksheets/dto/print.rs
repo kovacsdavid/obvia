@@ -33,7 +33,7 @@ use crate::tenant::{
     tasks::dto::print::TaskResolvedPrint, worksheets::model::WorksheetResolved,
 };
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum WorksheetResolvedPrintError {
     #[error("Az anyagköltségek és a szolgátatások csak egy fajta pénznemben adhatók meg")]
     CurrencyCodeError,
@@ -210,7 +210,13 @@ mod tests {
         common::TEST_TZ,
         tenant::{
             customers::model::tests::test_customer_resolved_builder,
+            inventory::dto::print::test_inventory_resolved_print_builder,
+            inventory_movements::dto::print::test_inventory_movement_resolved_print_builder,
             owner_profile::model::{OwnerProfileFull, tests::test_owner_profile_resolved_builder},
+            products::dto::print::test_product_resolved_print_builder,
+            services::dto::print::test_service_resolved_print_builder,
+            tasks::dto::print::test_task_resolved_print_builder,
+            warehouses::dto::print::test_warehouse_resolved_print_builder,
             worksheets::model::tests::test_worksheet_resolved_builder,
         },
     };
@@ -249,12 +255,68 @@ mod tests {
             *TEST_TZ,
         );
 
+        let tasks = vec![
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 1".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 2".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 3".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+        ];
+
+        let materials = vec![
+            test_inventory_movement_resolved_print_builder(
+                test_inventory_resolved_print_builder(
+                    test_product_resolved_print_builder()
+                        .name("Test product 1".to_string())
+                        .build()
+                        .unwrap(),
+                    test_warehouse_resolved_print_builder().build().unwrap(),
+                )
+                .build()
+                .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_inventory_movement_resolved_print_builder(
+                test_inventory_resolved_print_builder(
+                    test_product_resolved_print_builder()
+                        .name("Test product 2".to_string())
+                        .build()
+                        .unwrap(),
+                    test_warehouse_resolved_print_builder().build().unwrap(),
+                )
+                .build()
+                .unwrap(),
+            )
+            .build()
+            .unwrap(),
+        ];
+
         let worksheet_resolved_print = WorksheetResolvedPrint::new(
             worksheet_resolved,
             customer_full_print.clone(),
             owner_profile_full_print.clone(),
-            vec![], // TODO: add some test data here
-            vec![], // TODO: add some test data here
+            tasks.clone(),
+            materials.clone(),
             *TEST_TZ,
         );
         let worksheet_resolved_print_expected = WorksheetResolvedPrint {
@@ -271,18 +333,122 @@ mod tests {
             created_at: TEST_TIME_TZ.clone(),
             updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,
-            net_material_cost: "10.00 N/A".parse().unwrap(),
-            gross_material_cost: "20.00 N/A".parse().unwrap(),
-            net_work_cost: "30.00 N/A".parse().unwrap(),
-            gross_work_cost: "40.00 N/A".parse().unwrap(),
-            net_total: "40.00 N/A".parse().unwrap(),
-            gross_total: "60.00 N/A".parse().unwrap(),
-            tasks: vec![],
-            materials: vec![],
+            net_material_cost: "10.00 HUF".parse().unwrap(),
+            gross_material_cost: "20.00 HUF".parse().unwrap(),
+            net_work_cost: "30.00 HUF".parse().unwrap(),
+            gross_work_cost: "40.00 HUF".parse().unwrap(),
+            net_total: "40.00 HUF".parse().unwrap(),
+            gross_total: "60.00 HUF".parse().unwrap(),
+            tasks,
+            materials,
         };
         assert_eq!(
             worksheet_resolved_print.unwrap(),
             worksheet_resolved_print_expected
+        );
+    }
+
+    #[test]
+    fn test_from_worksheet_resolved_currency_error() {
+        let worksheet_id = Uuid::now_v7();
+        let customer_id = Uuid::now_v7();
+        let owner_profile_id = Uuid::now_v7();
+        let created_by_id = Uuid::now_v7();
+
+        let worksheet_resolved = test_worksheet_resolved_builder()
+            .id(worksheet_id)
+            .created_by_id(created_by_id)
+            .build()
+            .unwrap();
+
+        let customer_resolved = test_customer_resolved_builder()
+            .id(customer_id)
+            .build()
+            .unwrap();
+
+        let owner_profile_resolved = test_owner_profile_resolved_builder()
+            .id(owner_profile_id)
+            .build()
+            .unwrap();
+
+        let customer_full_print =
+            CustomerFullPrint::new(customer_resolved.into_full(None, None), *TEST_TZ);
+
+        let owner_profile_full_print = OwnerProfileFullPrint::new(
+            OwnerProfileFull::from((owner_profile_resolved, None, None)),
+            *TEST_TZ,
+        );
+
+        let tasks = vec![
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 1".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 2".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_task_resolved_print_builder(
+                test_service_resolved_print_builder()
+                    .name("Test service 3".to_string())
+                    .build()
+                    .unwrap(),
+            )
+            .build()
+            .unwrap(),
+        ];
+
+        let materials = vec![
+            test_inventory_movement_resolved_print_builder(
+                test_inventory_resolved_print_builder(
+                    test_product_resolved_print_builder()
+                        .name("Test product 1".to_string())
+                        .build()
+                        .unwrap(),
+                    test_warehouse_resolved_print_builder().build().unwrap(),
+                )
+                .build()
+                .unwrap(),
+            )
+            .build()
+            .unwrap(),
+            test_inventory_movement_resolved_print_builder(
+                test_inventory_resolved_print_builder(
+                    test_product_resolved_print_builder()
+                        .name("Test product 2".to_string())
+                        .build()
+                        .unwrap(),
+                    test_warehouse_resolved_print_builder().build().unwrap(),
+                )
+                .currency_code("EUR".to_string())
+                .build()
+                .unwrap(),
+            )
+            .build()
+            .unwrap(),
+        ];
+
+        let worksheet_resolved_print = WorksheetResolvedPrint::new(
+            worksheet_resolved,
+            customer_full_print.clone(),
+            owner_profile_full_print.clone(),
+            tasks.clone(),
+            materials.clone(),
+            *TEST_TZ,
+        );
+
+        assert!(worksheet_resolved_print.is_err());
+        assert_eq!(
+            WorksheetResolvedPrintError::CurrencyCodeError,
+            worksheet_resolved_print.unwrap_err()
         );
     }
 }

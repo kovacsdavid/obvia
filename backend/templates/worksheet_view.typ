@@ -209,7 +209,9 @@
   #v(0.25cm)
 ]
 
-#pagebreak()
+#if (tasks != none and tasks.len() > 0) or (materials != none and materials.len() > 0) [
+  #pagebreak()
+]
 
 // Totals summary aligned to the right
 #align(right)[

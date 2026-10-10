@@ -122,7 +122,8 @@ impl From<WorksheetsServiceError> for AppError {
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
-            WorksheetsServiceError::UnprocessableEntry(_) => Self::new(
+            WorksheetsServiceError::UnprocessableEntry(_)
+            | WorksheetsServiceError::WorksheetResolvedPrintError(_) => Self::new(
                 Level::DEBUG,
                 StatusCode::UNPROCESSABLE_ENTITY,
                 AppErrorVisibility::UserFacing,

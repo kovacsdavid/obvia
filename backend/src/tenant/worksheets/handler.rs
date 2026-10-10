@@ -2134,7 +2134,8 @@ mod tests {
             tasks,
             materials,
             *TEST_TZ,
-        );
+        )
+        .unwrap();
 
         let _m = PDF_GENERATOR_TEST_SYNC.lock();
         let pdf_gen = MockPdfGenerator::gen_pdf_temporary_context();

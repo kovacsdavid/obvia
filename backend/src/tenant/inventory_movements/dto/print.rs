@@ -19,11 +19,11 @@
 
 use crate::common::CommonBuilderError;
 use crate::common::TEST_TIME_TZ;
+use crate::common::utils::thousand_separated_number_bigdecimal;
 use crate::tenant::{
     inventory::dto::print::InventoryResolvedPrint,
     inventory_movements::model::InventoryMovementResolved,
 };
-use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -32,20 +32,20 @@ use uuid::Uuid;
 #[derive(Clone, Serialize, PartialEq, Debug, Builder)]
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct InventoryMovementsResolvedPrint {
-    id: Uuid,
-    inventory: InventoryResolvedPrint,
-    movement_type: String,
-    quantity: BigDecimal,
-    reference_type: Option<String>,
-    reference_id: Option<Uuid>,
-    unit_price: Option<BigDecimal>,
-    total_price: Option<BigDecimal>,
-    tax_id: Uuid,
-    tax: Option<String>,
-    movement_date: String,
-    created_by_id: Uuid,
-    created_by: String,
-    created_at: String,
+    pub id: Uuid,
+    pub inventory: InventoryResolvedPrint,
+    pub movement_type: String,
+    pub quantity: String,
+    pub reference_type: Option<String>,
+    pub reference_id: Option<Uuid>,
+    pub unit_price: Option<String>,
+    pub total_price: Option<String>,
+    pub tax_id: Uuid,
+    pub tax: Option<String>,
+    pub movement_date: String,
+    pub created_by_id: Uuid,
+    pub created_by: String,
+    pub created_at: String,
 }
 
 impl InventoryMovementsResolvedPrint {
@@ -55,17 +55,39 @@ impl InventoryMovementsResolvedPrint {
         tz: Tz,
     ) -> Self {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
+
+        let quantity = format!(
+            "{} {}",
+            thousand_separated_number_bigdecimal(&inventory_movement_resolved.quantity.abs(), 2),
+            inventory_resolved_print.product.unit_of_measure,
+        );
+
+        let currency_code = &inventory_resolved_print.currency_code;
+
+        let unit_price = inventory_movement_resolved.unit_price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
+        let total_price = inventory_movement_resolved.total_price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
+
         Self {
             id: inventory_movement_resolved.id,
             inventory: inventory_resolved_print,
             movement_type: Self::map_movement_type(&inventory_movement_resolved.movement_type),
-            quantity: inventory_movement_resolved.quantity.abs(),
+            quantity,
             reference_type: inventory_movement_resolved
                 .reference_type
                 .map(|v| Self::map_reference_type(&v)),
             reference_id: inventory_movement_resolved.reference_id,
-            unit_price: inventory_movement_resolved.unit_price,
-            total_price: inventory_movement_resolved.total_price,
+            unit_price,
+            total_price,
             tax_id: inventory_movement_resolved.tax_id,
             tax: inventory_movement_resolved.tax,
             movement_date: inventory_movement_resolved
@@ -107,11 +129,11 @@ pub fn test_inventory_movement_resolved_print_builder(
         .id(Uuid::now_v7())
         .inventory(inventory_resolved_print)
         .movement_type("Bevétel".to_string())
-        .quantity("10".parse().unwrap())
+        .quantity("10.00 cm".parse().unwrap())
         .reference_type(Some("Munkalap".to_string()))
         .reference_id(Some(Uuid::now_v7()))
-        .unit_price(Some("20".parse().unwrap()))
-        .total_price(Some("30".parse().unwrap()))
+        .unit_price(Some("20.00 HUF".parse().unwrap()))
+        .total_price(Some("30.00 HUF".parse().unwrap()))
         .tax_id(Uuid::now_v7())
         .tax(Some("Test tax".to_string()))
         .movement_date(TEST_TIME_TZ.clone())
@@ -228,11 +250,11 @@ mod tests {
             id: inventory_movement_id,
             inventory: inventory_resolved_print,
             movement_type: "Bevétel".to_string(),
-            quantity: "10".parse().unwrap(),
+            quantity: "10.00 cm".parse().unwrap(),
             reference_type: Some("Munkalap".to_string()),
             reference_id,
-            unit_price: Some("20".parse().unwrap()),
-            total_price: Some("30".parse().unwrap()),
+            unit_price: Some("20.00 HUF".parse().unwrap()),
+            total_price: Some("30.00 HUF".parse().unwrap()),
             tax_id,
             tax: Some("Áfa".to_string()),
             movement_date: output_date.clone(),

@@ -19,8 +19,8 @@
 
 use crate::common::CommonBuilderError;
 use crate::common::TEST_TIME_TZ;
+use crate::common::utils::thousand_separated_number_bigdecimal;
 use crate::tenant::{services::dto::print::ServicesResolvedPrint, tasks::model::TaskResolved};
-use bigdecimal::BigDecimal;
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
@@ -32,8 +32,9 @@ pub struct TaskResolvedPrint {
     pub id: Uuid,
     pub service: ServicesResolvedPrint,
     pub currency_code: String,
-    pub quantity: Option<BigDecimal>,
-    pub price: Option<BigDecimal>,
+    pub quantity: Option<String>,
+    pub price: Option<String>,
+    pub total_price: Option<String>,
     pub tax_id: Uuid,
     pub tax: String,
     pub created_by_id: Uuid,
@@ -53,13 +54,39 @@ impl TaskResolvedPrint {
         service_resolved_print: ServicesResolvedPrint,
         tz: Tz,
     ) -> Self {
+        let total_price = match (&task_resolved.quantity, &task_resolved.price) {
+            (None, None) => None,
+            (None, Some(_)) => None,
+            (Some(_), None) => None,
+            (Some(quantity), Some(price)) => Some(quantity * price),
+        };
+        let currency_code = task_resolved.currency_code;
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
+
+        let quantity = task_resolved
+            .quantity
+            .map(|v| format!("{} óra", thousand_separated_number_bigdecimal(&v, 2)));
+
+        let price = task_resolved.price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
+
+        let total_price = total_price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
         Self {
             id: task_resolved.id,
             service: service_resolved_print,
-            currency_code: task_resolved.currency_code,
-            quantity: task_resolved.quantity,
-            price: task_resolved.price,
+            currency_code,
+            quantity,
+            price,
+            total_price,
             tax_id: task_resolved.tax_id,
             tax: task_resolved.tax,
             created_by_id: task_resolved.created_by_id,
@@ -112,14 +139,15 @@ pub fn test_task_resolved_print_builder(
         .id(Uuid::now_v7())
         .service(service_resolved_print)
         .currency_code("HUF".to_string())
-        .quantity(Some("10".parse().unwrap()))
-        .price(Some("1000".parse().unwrap()))
+        .quantity(Some("10.00 óra".parse().unwrap()))
+        .price(Some("1 000.00 HUF".parse().unwrap()))
+        .total_price(Some("10 000.00 HUF".parse().unwrap()))
         .tax_id(Uuid::now_v7())
         .tax("Test tax".to_string())
         .created_by_id(Uuid::now_v7())
         .created_by("Test User".to_string())
-        .status("active".to_string())
-        .priority(Some("normal".to_string()))
+        .status("Aktív".to_string())
+        .priority(Some("Normál".to_string()))
         .due_date(Some(TEST_TIME_TZ.clone()))
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
@@ -161,8 +189,9 @@ mod tests {
             id: task_id,
             service: service_resolved_print,
             currency_code: "HUF".to_string(),
-            quantity: Some("10".parse().unwrap()),
-            price: Some("1000".parse().unwrap()),
+            quantity: Some("10.00 óra".parse().unwrap()),
+            price: Some("1 000.00 HUF".parse().unwrap()),
+            total_price: Some("10 000.00 HUF".parse().unwrap()),
             tax_id,
             tax: "Test tax".to_string(),
             created_by_id,

@@ -49,7 +49,7 @@ use crate::tenant::warehouses::dto::print::test_warehouse_resolved_print_builder
 use crate::tenant::warehouses::model::WarehouseResolved;
 use crate::tenant::worksheets::WorksheetsModuleInterface;
 use crate::tenant::worksheets::dto::print::{
-    WorksheetResolvedPrint, test_worksheet_resolved_print_builder,
+    WorksheetResolvedPrint, WorksheetResolvedPrintError, test_worksheet_resolved_print_builder,
 };
 use crate::tenant::worksheets::dto::user_input::WorksheetUserInput;
 use crate::tenant::worksheets::model::{Worksheet, WorksheetResolved};
@@ -100,6 +100,9 @@ pub enum WorksheetsServiceError {
 
     #[error("UuidError: {0}")]
     UuidError(#[from] uuid::Error),
+
+    #[error("{0}")]
+    WorksheetResolvedPrintError(#[from] WorksheetResolvedPrintError),
 }
 
 impl From<ServiceError> for WorksheetsServiceError {
@@ -479,7 +482,7 @@ where
             tasks,
             materials,
             tz,
-        );
+        )?;
 
         Ok(PdfGenerator::gen_pdf_temporary(
             &PdfTemplates::WorksheetView,

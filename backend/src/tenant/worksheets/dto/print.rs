@@ -24,6 +24,7 @@ use crate::{
 use chrono_tz::Tz;
 use derive_builder::Builder;
 use serde::Serialize;
+use thiserror::Error;
 use uuid::Uuid;
 
 use crate::tenant::{
@@ -31,6 +32,14 @@ use crate::tenant::{
     inventory_movements::dto::print::InventoryMovementsResolvedPrint,
     tasks::dto::print::TaskResolvedPrint, worksheets::model::WorksheetResolved,
 };
+
+#[derive(Debug, Error)]
+pub enum WorksheetResolvedPrintError {
+    #[error("Az anyagköltségek és a szolgátatások csak egy fajta pénznemben adhatók meg")]
+    CurrencyCodeError,
+}
+
+pub type WorksheetResolvedPrintResult = Result<WorksheetResolvedPrint, WorksheetResolvedPrintError>;
 
 #[derive(Clone, Serialize, PartialEq, Debug, Builder)]
 #[builder(build_fn(error = "CommonBuilderError"))]
@@ -66,12 +75,59 @@ impl WorksheetResolvedPrint {
         tasks: Vec<TaskResolvedPrint>,
         materials: Vec<InventoryMovementsResolvedPrint>,
         tz: Tz,
-    ) -> Self {
+    ) -> WorksheetResolvedPrintResult {
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
         let net_total = &worksheet_resolved.net_material_cost + &worksheet_resolved.net_work_cost;
         let gross_total =
             &worksheet_resolved.gross_material_cost + &worksheet_resolved.gross_work_cost;
-        Self {
+
+        let mut currency_code = "N/A";
+
+        if !tasks.is_empty() {
+            currency_code = &tasks[0].currency_code;
+        } else if !materials.is_empty() {
+            currency_code = &materials[0].inventory.currency_code;
+        }
+
+        for task in &tasks {
+            if task.currency_code != currency_code {
+                return Err(WorksheetResolvedPrintError::CurrencyCodeError);
+            }
+        }
+
+        for material in &materials {
+            if material.inventory.currency_code != currency_code {
+                return Err(WorksheetResolvedPrintError::CurrencyCodeError);
+            }
+        }
+
+        let net_material_cost = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&worksheet_resolved.net_material_cost, 2)
+        );
+        let gross_material_cost = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&worksheet_resolved.gross_material_cost, 2)
+        );
+        let net_work_cost = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&worksheet_resolved.net_work_cost, 2)
+        );
+        let gross_work_cost = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&worksheet_resolved.gross_work_cost, 2)
+        );
+
+        let net_total = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&net_total, 2)
+        );
+        let gross_total = format!(
+            "{} {currency_code}",
+            thousand_separated_number_bigdecimal(&gross_total, 2)
+        );
+
+        Ok(Self {
             id: worksheet_resolved.id,
             name: worksheet_resolved.name,
             description: worksheet_resolved.description,
@@ -95,27 +151,15 @@ impl WorksheetResolvedPrint {
             deleted_at: worksheet_resolved
                 .deleted_at
                 .map(|v| v.with_timezone(&tz).format(&date_format_string).to_string()),
-            net_material_cost: thousand_separated_number_bigdecimal(
-                &worksheet_resolved.net_material_cost,
-                2,
-            ),
-            gross_material_cost: thousand_separated_number_bigdecimal(
-                &worksheet_resolved.gross_material_cost,
-                2,
-            ),
-            net_work_cost: thousand_separated_number_bigdecimal(
-                &worksheet_resolved.net_work_cost,
-                2,
-            ),
-            gross_work_cost: thousand_separated_number_bigdecimal(
-                &worksheet_resolved.gross_work_cost,
-                2,
-            ),
-            net_total: thousand_separated_number_bigdecimal(&net_total, 2),
-            gross_total: thousand_separated_number_bigdecimal(&gross_total, 2),
+            net_material_cost,
+            gross_material_cost,
+            net_work_cost,
+            gross_work_cost,
+            net_total,
+            gross_total,
             tasks,
             materials,
-        }
+        })
     }
     fn map_status(status: &str) -> String {
         match status {
@@ -148,12 +192,12 @@ pub fn test_worksheet_resolved_print_builder(
         .created_at(TEST_TIME_TZ.clone())
         .updated_at(TEST_TIME_TZ.clone())
         .deleted_at(None)
-        .net_material_cost("10.00".parse().unwrap())
-        .gross_material_cost("20.00".parse().unwrap())
-        .net_work_cost("30.00".parse().unwrap())
-        .gross_work_cost("40.00".parse().unwrap())
-        .net_total("40.00".parse().unwrap())
-        .gross_total("60.00".parse().unwrap())
+        .net_material_cost("10.00 HUF".parse().unwrap())
+        .gross_material_cost("20.00 HUF".parse().unwrap())
+        .net_work_cost("30.00 HUF".parse().unwrap())
+        .gross_work_cost("40.00 HUF".parse().unwrap())
+        .net_total("40.00 HUF".parse().unwrap())
+        .gross_total("60.00 HUF".parse().unwrap())
         .tasks(tasks)
         .materials(materials);
 
@@ -227,15 +271,18 @@ mod tests {
             created_at: TEST_TIME_TZ.clone(),
             updated_at: TEST_TIME_TZ.clone(),
             deleted_at: None,
-            net_material_cost: "10.00".parse().unwrap(),
-            gross_material_cost: "20.00".parse().unwrap(),
-            net_work_cost: "30.00".parse().unwrap(),
-            gross_work_cost: "40.00".parse().unwrap(),
-            net_total: "40.00".parse().unwrap(),
-            gross_total: "60.00".parse().unwrap(),
+            net_material_cost: "10.00 N/A".parse().unwrap(),
+            gross_material_cost: "20.00 N/A".parse().unwrap(),
+            net_work_cost: "30.00 N/A".parse().unwrap(),
+            gross_work_cost: "40.00 N/A".parse().unwrap(),
+            net_total: "40.00 N/A".parse().unwrap(),
+            gross_total: "60.00 N/A".parse().unwrap(),
             tasks: vec![],
             materials: vec![],
         };
-        assert_eq!(worksheet_resolved_print, worksheet_resolved_print_expected);
+        assert_eq!(
+            worksheet_resolved_print.unwrap(),
+            worksheet_resolved_print_expected
+        );
     }
 }

@@ -60,18 +60,33 @@ impl TaskResolvedPrint {
             (Some(_), None) => None,
             (Some(quantity), Some(price)) => Some(quantity * price),
         };
+        let currency_code = task_resolved.currency_code;
         let date_format_string = format!("%Y. %m. %d. %H:%M:%S ({tz})");
+
+        let quantity = task_resolved
+            .quantity
+            .map(|v| format!("{} óra", thousand_separated_number_bigdecimal(&v, 2)));
+
+        let price = task_resolved.price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
+
+        let total_price = total_price.map(|v| {
+            format!(
+                "{} {currency_code}",
+                thousand_separated_number_bigdecimal(&v, 2)
+            )
+        });
         Self {
             id: task_resolved.id,
             service: service_resolved_print,
-            currency_code: task_resolved.currency_code,
-            quantity: task_resolved
-                .quantity
-                .map(|v| thousand_separated_number_bigdecimal(&v, 2)),
-            price: task_resolved
-                .price
-                .map(|v| thousand_separated_number_bigdecimal(&v, 2)),
-            total_price: total_price.map(|v| thousand_separated_number_bigdecimal(&v, 2)),
+            currency_code,
+            quantity,
+            price,
+            total_price,
             tax_id: task_resolved.tax_id,
             tax: task_resolved.tax,
             created_by_id: task_resolved.created_by_id,
@@ -124,9 +139,9 @@ pub fn test_task_resolved_print_builder(
         .id(Uuid::now_v7())
         .service(service_resolved_print)
         .currency_code("HUF".to_string())
-        .quantity(Some("10.00".parse().unwrap()))
-        .price(Some("1 000.00".parse().unwrap()))
-        .total_price(Some("10 000.00".parse().unwrap()))
+        .quantity(Some("10.00 óra".parse().unwrap()))
+        .price(Some("1 000.00 HUF".parse().unwrap()))
+        .total_price(Some("10 000.00 HUF".parse().unwrap()))
         .tax_id(Uuid::now_v7())
         .tax("Test tax".to_string())
         .created_by_id(Uuid::now_v7())
@@ -174,9 +189,9 @@ mod tests {
             id: task_id,
             service: service_resolved_print,
             currency_code: "HUF".to_string(),
-            quantity: Some("10.00".parse().unwrap()),
-            price: Some("1 000.00".parse().unwrap()),
-            total_price: Some("10 000.00".parse().unwrap()),
+            quantity: Some("10.00 óra".parse().unwrap()),
+            price: Some("1 000.00 HUF".parse().unwrap()),
+            total_price: Some("10 000.00 HUF".parse().unwrap()),
             tax_id,
             tax: "Test tax".to_string(),
             created_by_id,

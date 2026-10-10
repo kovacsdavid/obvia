@@ -156,7 +156,7 @@
 
   // Render tasks
   #table(
-    columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
+    columns: (0.8cm, 5cm, 3.5cm, 3.5cm, 3.5cm),
     table.header(
       [*\#*],
       [*Szolgáltatás megnevezése*],
@@ -186,7 +186,7 @@
 
   // Render materials
   #table(
-    columns: (0.8cm, 5.8cm, 2.2cm, 2.2cm, 2.2cm),
+    columns: (0.8cm, 5cm, 3.5cm, 3.5cm, 3.5cm),
     table.header(
       [*\#*],
       [*Anyag megnevezése*],
@@ -209,17 +209,23 @@
   #v(0.25cm)
 ]
 
+#pagebreak()
+
 // Totals summary aligned to the right
 #align(right)[
   #table(
     columns: (8cm, 3.5cm),
     [*Szolgáltatások összesen (nettó)*], [#display-value(worksheet.net_work_cost, "-")],
-    [*Szolgáltatások összesen (bruttó)*], [#display-value(worksheet.gross_work_cost, "-")],
-
     [*Anyagköltség (nettó)*], [#display-value(worksheet.net_material_cost, "-")],
-    [*Anyagköltség (bruttó)*], [#display-value(worksheet.gross_material_cost, "-")],
-
     [*Végösszeg (nettó)*], [#display-value(worksheet.net_total, "-")],
+  )
+]
+
+#align(right)[
+  #table(
+    columns: (8cm, 3.5cm),
+    [*Anyagköltség (bruttó)*], [#display-value(worksheet.gross_material_cost, "-")],
+    [*Szolgáltatások összesen (bruttó)*], [#display-value(worksheet.gross_work_cost, "-")],
     [*Végösszeg (bruttó)*], [#display-value(worksheet.gross_total, "-")],
   )
 ]

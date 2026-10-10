@@ -35,7 +35,7 @@ use crate::tenant::{
 
 #[derive(Debug, Error, PartialEq)]
 pub enum WorksheetResolvedPrintError {
-    #[error("Az anyagköltségek és a szolgátatások csak egy fajta pénznemben adhatók meg")]
+    #[error("Az anyagköltségek és a szolgáltatások csak egy fajta pénznemben adhatók meg")]
     CurrencyCodeError,
 }
 

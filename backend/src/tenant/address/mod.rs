@@ -17,7 +17,77 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+use crate::common::database::PoolManager;
+use crate::common::error::RepositoryResult;
+use crate::common::{AppState, BaseModule};
+use crate::tenant::address::repository::AddressRepository;
+use lettre::{
+    AsyncTransport,
+    transport::smtp::{Error, response::Response},
+};
+use std::fmt::Debug;
+use std::sync::Arc;
+use uuid::Uuid;
+
 pub(crate) mod dto;
+pub(crate) mod handler;
 pub(crate) mod model;
 pub(crate) mod repository;
+pub(crate) mod routes;
+pub(crate) mod service;
 pub(crate) mod types;
+
+pub trait AddressModuleInterface: BaseModule {
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
+}
+
+impl<P, T> AddressModuleInterface for AppState<P, T>
+where
+    P: PoolManager + Debug + Send + Sync + 'static,
+    T: AsyncTransport<Ok = Response, Error = Error> + Debug + Send + Sync + 'static,
+    T::Error: Debug,
+{
+    fn address_repo(
+        &self,
+        tenant_id: Uuid,
+    ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>> {
+        Ok(self.get_tenant_pool(tenant_id)?)
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use crate::common::config::AppConfig;
+    use crate::common::error::RepositoryResult;
+    use crate::common::{BaseModule, ConfigProvider, MailTransporter};
+    use lettre::{
+        Message,
+        transport::smtp::{Error, response::Response},
+    };
+    use mockall::mock;
+
+    mock!(
+        pub AddressModule {}
+        impl Debug for AddressModule {
+            fn fmt<'a>(&self, f: &mut std::fmt::Formatter<'a> ) -> std::fmt::Result;
+        }
+        impl ConfigProvider for AddressModule {
+            type Cfg = AppConfig;
+            fn config(&self) -> &<Self as ConfigProvider>::Cfg;
+        }
+        impl MailTransporter for AddressModule {
+            async fn send(&self, message: Message) -> Result<Option<Response>, Error>;
+        }
+        impl BaseModule for AddressModule {}
+        impl AddressModuleInterface for AddressModule {
+            fn address_repo(
+                &self,
+                tenant_id: Uuid,
+            ) -> RepositoryResult<Arc<dyn AddressRepository + Send + Sync>>;
+        }
+    );
+}

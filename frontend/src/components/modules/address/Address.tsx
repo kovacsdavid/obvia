@@ -36,7 +36,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useId } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { select_list } from "@/components/modules/address/lib/slice";
 import { useSelectList } from "@/hooks/use_select_list.ts";
@@ -82,6 +82,7 @@ export default function Address({
     disabled = false,
     label = "Cím",
 }: AddressProps) {
+    const id_prefix = useId();
     const dispatch = useAppDispatch();
     const { setListResponse } = useSelectList();
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
@@ -138,7 +139,9 @@ export default function Address({
                     <FieldLegend>{label}</FieldLegend>
                     <FieldGroup>
                         <Field data-invalid={typeof errors?.type === "string"}>
-                            <FieldLabel htmlFor="type">Típus</FieldLabel>
+                            <FieldLabel htmlFor={`${id_prefix}_type`}>
+                                Típus
+                            </FieldLabel>
                             <Select
                                 value={value.type}
                                 onValueChange={(val) => {
@@ -148,6 +151,7 @@ export default function Address({
                                 disabled={disabled}
                             >
                                 <SelectTrigger
+                                    id={`${id_prefix}_type`}
                                     className={"w-full"}
                                     aria-invalid={
                                         typeof errors?.type === "string"
@@ -175,7 +179,7 @@ export default function Address({
                                 typeof errors?.country_code === "string"
                             }
                         >
-                            <FieldLabel htmlFor="country_code">
+                            <FieldLabel htmlFor={`${id_prefix}_country_code`}>
                                 Ország kód
                             </FieldLabel>
                             {/*
@@ -193,6 +197,7 @@ export default function Address({
                                     }}
                                 >
                                     <SelectTrigger
+                                        id={`${id_prefix}_country_code`}
                                         className={"w-full"}
                                         aria-invalid={
                                             typeof errors?.country_code ===
@@ -235,11 +240,11 @@ export default function Address({
                                 typeof errors?.postal_code === "string"
                             }
                         >
-                            <FieldLabel htmlFor="postal_code">
+                            <FieldLabel htmlFor={`${id_prefix}_postal_code`}>
                                 Irányítószám
                             </FieldLabel>
                             <Input
-                                id="postal_code"
+                                id={`${id_prefix}_postal_code`}
                                 type="text"
                                 placeholder="1132"
                                 value={value.postal_code}
@@ -260,11 +265,11 @@ export default function Address({
                                 typeof errors?.settlement === "string"
                             }
                         >
-                            <FieldLabel htmlFor="settlement">
+                            <FieldLabel htmlFor={`${id_prefix}_settlement`}>
                                 Település
                             </FieldLabel>
                             <Input
-                                id="settlement"
+                                id={`${id_prefix}_settlement`}
                                 type="text"
                                 placeholder="Budapest"
                                 value={value.settlement}
@@ -286,11 +291,11 @@ export default function Address({
                                     typeof errors?.mailbox === "string"
                                 }
                             >
-                                <FieldLabel htmlFor="mailbox">
+                                <FieldLabel htmlFor={`${id_prefix}_mailbox`}>
                                     Postafiók
                                 </FieldLabel>
                                 <Input
-                                    id="mailbox"
+                                    id={`${id_prefix}_mailbox`}
                                     type="text"
                                     placeholder="123"
                                     value={value.mailbox ?? ""}
@@ -314,11 +319,13 @@ export default function Address({
                                     "string"
                                 }
                             >
-                                <FieldLabel htmlFor="topographic_number">
+                                <FieldLabel
+                                    htmlFor={`${id_prefix}_topographic_number`}
+                                >
                                     Helyrajzi szám
                                 </FieldLabel>
                                 <Input
-                                    id="topographic_number"
+                                    id={`${id_prefix}_topographic_number`}
                                     type="text"
                                     placeholder="123/A"
                                     value={value.topographic_number ?? ""}
@@ -349,11 +356,13 @@ export default function Address({
                                         "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="name_of_public_space">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_name_of_public_space`}
+                                    >
                                         Közterület neve
                                     </FieldLabel>
                                     <Input
-                                        id="name_of_public_space"
+                                        id={`${id_prefix}_name_of_public_space`}
                                         type="text"
                                         placeholder="Váci"
                                         value={value.name_of_public_space ?? ""}
@@ -384,11 +393,13 @@ export default function Address({
                                         "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="type_of_public_space">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_type_of_public_space`}
+                                    >
                                         Közterület neve
                                     </FieldLabel>
                                     <Input
-                                        id="type_of_public_space"
+                                        id={`${id_prefix}_type_of_public_space`}
                                         type="text"
                                         placeholder="út"
                                         value={value.type_of_public_space ?? ""}
@@ -418,11 +429,13 @@ export default function Address({
                                         typeof errors?.house_number === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="house_number">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_house_number`}
+                                    >
                                         Házszám
                                     </FieldLabel>
                                     <Input
-                                        id="house_number"
+                                        id={`${id_prefix}_house_number`}
                                         type="text"
                                         placeholder="1234"
                                         value={value.house_number ?? ""}
@@ -449,11 +462,13 @@ export default function Address({
                                         typeof errors?.building === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="building">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_building`}
+                                    >
                                         Épület
                                     </FieldLabel>
                                     <Input
-                                        id="building"
+                                        id={`${id_prefix}_building`}
                                         type="text"
                                         placeholder="A"
                                         value={value.building ?? ""}
@@ -477,11 +492,13 @@ export default function Address({
                                         typeof errors?.stairway === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="stairway">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_stairway`}
+                                    >
                                         Lépcsőház
                                     </FieldLabel>
                                     <Input
-                                        id="stairway"
+                                        id={`${id_prefix}_stairway`}
                                         type="text"
                                         placeholder="1"
                                         value={value.stairway ?? ""}
@@ -505,11 +522,11 @@ export default function Address({
                                         typeof errors?.floor === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="floor">
+                                    <FieldLabel htmlFor={`${id_prefix}_floor`}>
                                         Emelet
                                     </FieldLabel>
                                     <Input
-                                        id="floor"
+                                        id={`${id_prefix}_floor`}
                                         type="text"
                                         placeholder="2"
                                         value={value.floor ?? ""}
@@ -530,9 +547,11 @@ export default function Address({
                                         typeof errors?.door === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="door">Ajtó</FieldLabel>
+                                    <FieldLabel htmlFor={`${id_prefix}_door`}>
+                                        Ajtó
+                                    </FieldLabel>
                                     <Input
-                                        id="door"
+                                        id={`${id_prefix}_door`}
                                         type="text"
                                         placeholder="3"
                                         value={value.door ?? ""}

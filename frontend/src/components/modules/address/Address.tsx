@@ -24,7 +24,7 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
-import { Input, FieldErrorV2 } from "@/components/ui";
+import { Input, FieldErrorV2, Button } from "@/components/ui";
 import {
     type Address,
     type AddressErrors,
@@ -36,6 +36,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
+import { useCallback, useEffect, useId } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { select_list } from "@/components/modules/address/lib/slice";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import React from "react";
+import type { SelectOptionList } from "@/lib/interface";
+import { useFormError } from "@/hooks/use_form_error";
+import { RefreshCw } from "lucide-react";
 
 interface AddressProps {
     value: Address | null | undefined;
@@ -74,6 +82,11 @@ export default function Address({
     disabled = false,
     label = "Cím",
 }: AddressProps) {
+    const id_prefix = useId();
+    const dispatch = useAppDispatch();
+    const { setListResponse } = useSelectList();
+    const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
+    const { unexpectedError } = useFormError();
     const setField = <K extends keyof Address>(field: K, newValue: string) => {
         if (value !== null && typeof value !== "undefined") {
             onChange({
@@ -82,14 +95,43 @@ export default function Address({
             });
         }
     };
-    const setError = <T extends keyof AddressErrors>(
-        value: string | null,
-        field: T,
-    ) => {
-        if (setErrors) {
-            setErrors(value, field);
-        }
-    };
+    const setError = useCallback(
+        <T extends keyof AddressErrors>(value: string | null, field: T) => {
+            if (setErrors) {
+                setErrors(value, field);
+            }
+        },
+        [setErrors],
+    );
+
+    const loadLists = useCallback(async () => {
+        return dispatch(select_list("countries")).then((response) => {
+            if (select_list.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    setListResponse(response.payload, setCountryList, () => {
+                        if (
+                            typeof response.payload.jsonData?.error !==
+                            "undefined"
+                        ) {
+                            setError(
+                                response.payload.jsonData.error.message ?? null,
+                                "country_code",
+                            );
+                        }
+                    });
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [dispatch, setError, setListResponse, unexpectedError]);
+
+    useEffect(() => {
+        loadLists();
+    }, [dispatch, setErrors, unexpectedError, setListResponse, loadLists]);
+
     return (
         <>
             {value !== null && typeof value !== "undefined" ? (
@@ -97,7 +139,9 @@ export default function Address({
                     <FieldLegend>{label}</FieldLegend>
                     <FieldGroup>
                         <Field data-invalid={typeof errors?.type === "string"}>
-                            <FieldLabel htmlFor="type">Típus</FieldLabel>
+                            <FieldLabel htmlFor={`${id_prefix}_type`}>
+                                Típus
+                            </FieldLabel>
                             <Select
                                 value={value.type}
                                 onValueChange={(val) => {
@@ -107,6 +151,7 @@ export default function Address({
                                 disabled={disabled}
                             >
                                 <SelectTrigger
+                                    id={`${id_prefix}_type`}
                                     className={"w-full"}
                                     aria-invalid={
                                         typeof errors?.type === "string"
@@ -134,24 +179,60 @@ export default function Address({
                                 typeof errors?.country_code === "string"
                             }
                         >
-                            <FieldLabel htmlFor="country_code">
+                            <FieldLabel htmlFor={`${id_prefix}_country_code`}>
                                 Ország kód
                             </FieldLabel>
-                            <Input
-                                id="country_code"
-                                type="text"
-                                placeholder="HU"
-                                value={value.country_code}
-                                onChange={(e) => {
-                                    setError(null, "country_code");
-                                    setField("country_code", e.target.value);
-                                }}
-                                aria-invalid={
-                                    typeof errors?.country_code === "string"
-                                }
-                                disabled={disabled}
-                            />
+                            {/*
+                                NOTE: it is necessary to render this select after the list is loaded
+                                because otherwise onValueChange will be triggered with an empty string
+                                and so the field will be empty when data loaded for update
+                            */}
+                            {countryList.length > 0 && (
+                                <Select
+                                    value={value.country_code}
+                                    disabled={disabled}
+                                    onValueChange={(val) => {
+                                        setError(null, "country_code");
+                                        setField("country_code", val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        id={`${id_prefix}_country_code`}
+                                        className={"w-full"}
+                                        aria-invalid={
+                                            typeof errors?.country_code ===
+                                            "string"
+                                        }
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {countryList.map((country) => {
+                                            return (
+                                                <SelectItem
+                                                    key={country.value}
+                                                    value={country.value}
+                                                >
+                                                    {country.title}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            )}
                             <FieldErrorV2 error={errors?.country_code} />
+                            {typeof errors?.country_code === "string" ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit"
+                                    onClick={loadLists}
+                                >
+                                    <RefreshCw />
+                                    Lista betöltése újra!
+                                </Button>
+                            ) : null}
                         </Field>
 
                         <Field
@@ -159,11 +240,11 @@ export default function Address({
                                 typeof errors?.postal_code === "string"
                             }
                         >
-                            <FieldLabel htmlFor="postal_code">
+                            <FieldLabel htmlFor={`${id_prefix}_postal_code`}>
                                 Irányítószám
                             </FieldLabel>
                             <Input
-                                id="postal_code"
+                                id={`${id_prefix}_postal_code`}
                                 type="text"
                                 placeholder="1132"
                                 value={value.postal_code}
@@ -184,11 +265,11 @@ export default function Address({
                                 typeof errors?.settlement === "string"
                             }
                         >
-                            <FieldLabel htmlFor="settlement">
+                            <FieldLabel htmlFor={`${id_prefix}_settlement`}>
                                 Település
                             </FieldLabel>
                             <Input
-                                id="settlement"
+                                id={`${id_prefix}_settlement`}
                                 type="text"
                                 placeholder="Budapest"
                                 value={value.settlement}
@@ -210,11 +291,11 @@ export default function Address({
                                     typeof errors?.mailbox === "string"
                                 }
                             >
-                                <FieldLabel htmlFor="mailbox">
+                                <FieldLabel htmlFor={`${id_prefix}_mailbox`}>
                                     Postafiók
                                 </FieldLabel>
                                 <Input
-                                    id="mailbox"
+                                    id={`${id_prefix}_mailbox`}
                                     type="text"
                                     placeholder="123"
                                     value={value.mailbox ?? ""}
@@ -238,11 +319,13 @@ export default function Address({
                                     "string"
                                 }
                             >
-                                <FieldLabel htmlFor="topographic_number">
+                                <FieldLabel
+                                    htmlFor={`${id_prefix}_topographic_number`}
+                                >
                                     Helyrajzi szám
                                 </FieldLabel>
                                 <Input
-                                    id="topographic_number"
+                                    id={`${id_prefix}_topographic_number`}
                                     type="text"
                                     placeholder="123/A"
                                     value={value.topographic_number ?? ""}
@@ -273,11 +356,13 @@ export default function Address({
                                         "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="name_of_public_space">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_name_of_public_space`}
+                                    >
                                         Közterület neve
                                     </FieldLabel>
                                     <Input
-                                        id="name_of_public_space"
+                                        id={`${id_prefix}_name_of_public_space`}
                                         type="text"
                                         placeholder="Váci"
                                         value={value.name_of_public_space ?? ""}
@@ -308,11 +393,13 @@ export default function Address({
                                         "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="type_of_public_space">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_type_of_public_space`}
+                                    >
                                         Közterület neve
                                     </FieldLabel>
                                     <Input
-                                        id="type_of_public_space"
+                                        id={`${id_prefix}_type_of_public_space`}
                                         type="text"
                                         placeholder="út"
                                         value={value.type_of_public_space ?? ""}
@@ -342,11 +429,13 @@ export default function Address({
                                         typeof errors?.house_number === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="house_number">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_house_number`}
+                                    >
                                         Házszám
                                     </FieldLabel>
                                     <Input
-                                        id="house_number"
+                                        id={`${id_prefix}_house_number`}
                                         type="text"
                                         placeholder="1234"
                                         value={value.house_number ?? ""}
@@ -373,11 +462,13 @@ export default function Address({
                                         typeof errors?.building === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="building">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_building`}
+                                    >
                                         Épület
                                     </FieldLabel>
                                     <Input
-                                        id="building"
+                                        id={`${id_prefix}_building`}
                                         type="text"
                                         placeholder="A"
                                         value={value.building ?? ""}
@@ -401,11 +492,13 @@ export default function Address({
                                         typeof errors?.stairway === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="stairway">
+                                    <FieldLabel
+                                        htmlFor={`${id_prefix}_stairway`}
+                                    >
                                         Lépcsőház
                                     </FieldLabel>
                                     <Input
-                                        id="stairway"
+                                        id={`${id_prefix}_stairway`}
                                         type="text"
                                         placeholder="1"
                                         value={value.stairway ?? ""}
@@ -429,11 +522,11 @@ export default function Address({
                                         typeof errors?.floor === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="floor">
+                                    <FieldLabel htmlFor={`${id_prefix}_floor`}>
                                         Emelet
                                     </FieldLabel>
                                     <Input
-                                        id="floor"
+                                        id={`${id_prefix}_floor`}
                                         type="text"
                                         placeholder="2"
                                         value={value.floor ?? ""}
@@ -454,9 +547,11 @@ export default function Address({
                                         typeof errors?.door === "string"
                                     }
                                 >
-                                    <FieldLabel htmlFor="door">Ajtó</FieldLabel>
+                                    <FieldLabel htmlFor={`${id_prefix}_door`}>
+                                        Ajtó
+                                    </FieldLabel>
                                     <Input
-                                        id="door"
+                                        id={`${id_prefix}_door`}
                                         type="text"
                                         placeholder="3"
                                         value={value.door ?? ""}

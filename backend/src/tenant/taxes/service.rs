@@ -94,12 +94,14 @@ impl From<TaxesServiceError> for AppError {
                 AppErrorVisibility::UserFacing,
                 json!({"message": value.to_string()}),
             ),
-            TaxesServiceError::UnprocessableEntry(_) => Self::new(
-                Level::DEBUG,
-                StatusCode::UNPROCESSABLE_ENTITY,
-                AppErrorVisibility::UserFacing,
-                json!({"message": value.to_string()}),
-            ),
+            TaxesServiceError::UnprocessableEntry(_) | TaxesServiceError::InvalidSelectList => {
+                Self::new(
+                    Level::DEBUG,
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    AppErrorVisibility::UserFacing,
+                    json!({"message": value.to_string()}),
+                )
+            }
             TaxesServiceError::Repository(RepositoryError::Database(sqlx::Error::RowNotFound)) => {
                 Self::new(
                     Level::DEBUG,

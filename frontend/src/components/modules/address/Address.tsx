@@ -24,7 +24,7 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
-import { Input, FieldErrorV2 } from "@/components/ui";
+import { Input, FieldErrorV2, Button } from "@/components/ui";
 import {
     type Address,
     type AddressErrors,
@@ -43,6 +43,7 @@ import { useSelectList } from "@/hooks/use_select_list.ts";
 import React from "react";
 import type { SelectOptionList } from "@/lib/interface";
 import { useFormError } from "@/hooks/use_form_error";
+import { RefreshCw } from "lucide-react";
 
 interface AddressProps {
     value: Address | null | undefined;
@@ -168,20 +169,21 @@ export default function Address({
                             </Select>
                             <FieldErrorV2 error={errors?.type} />
                         </Field>
-                        {/*
-                            NOTE: it is necessary to render this select after the list is loaded
-                            because otherwise onValueChange will be triggered with an empty string
-                            and so the field will be empty when data loaded for update
-                        */}
-                        {countryList.length > 0 && (
-                            <Field
-                                data-invalid={
-                                    typeof errors?.country_code === "string"
-                                }
-                            >
-                                <FieldLabel htmlFor="country_code">
-                                    Ország kód
-                                </FieldLabel>
+
+                        <Field
+                            data-invalid={
+                                typeof errors?.country_code === "string"
+                            }
+                        >
+                            <FieldLabel htmlFor="country_code">
+                                Ország kód
+                            </FieldLabel>
+                            {/*
+                                NOTE: it is necessary to render this select after the list is loaded
+                                because otherwise onValueChange will be triggered with an empty string
+                                and so the field will be empty when data loaded for update
+                            */}
+                            {countryList.length > 0 && (
                                 <Select
                                     value={value.country_code}
                                     disabled={disabled}
@@ -212,9 +214,21 @@ export default function Address({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldErrorV2 error={errors?.country_code} />
-                            </Field>
-                        )}
+                            )}
+                            <FieldErrorV2 error={errors?.country_code} />
+                            {typeof errors?.country_code === "string" ? (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-fit"
+                                    onClick={loadLists}
+                                >
+                                    <RefreshCw />
+                                    Lista betöltése újra!
+                                </Button>
+                            ) : null}
+                        </Field>
 
                         <Field
                             data-invalid={

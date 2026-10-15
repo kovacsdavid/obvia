@@ -36,6 +36,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
+import { useCallback, useEffect } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { select_list } from "@/components/modules/address/lib/slice";
+import { useSelectList } from "@/hooks/use_select_list.ts";
+import React from "react";
+import type { SelectOptionList } from "@/lib/interface";
+import { useFormError } from "@/hooks/use_form_error";
 
 interface AddressProps {
     value: Address | null | undefined;
@@ -74,6 +81,10 @@ export default function Address({
     disabled = false,
     label = "Cím",
 }: AddressProps) {
+    const dispatch = useAppDispatch();
+    const { setListResponse } = useSelectList();
+    const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
+    const { unexpectedError } = useFormError();
     const setField = <K extends keyof Address>(field: K, newValue: string) => {
         if (value !== null && typeof value !== "undefined") {
             onChange({
@@ -82,14 +93,43 @@ export default function Address({
             });
         }
     };
-    const setError = <T extends keyof AddressErrors>(
-        value: string | null,
-        field: T,
-    ) => {
-        if (setErrors) {
-            setErrors(value, field);
-        }
-    };
+    const setError = useCallback(
+        <T extends keyof AddressErrors>(value: string | null, field: T) => {
+            if (setErrors) {
+                setErrors(value, field);
+            }
+        },
+        [setErrors],
+    );
+
+    const loadLists = useCallback(async () => {
+        return dispatch(select_list("countries")).then((response) => {
+            if (select_list.fulfilled.match(response)) {
+                if (response.payload.statusCode === 200) {
+                    setListResponse(response.payload, setCountryList, () => {
+                        if (
+                            typeof response.payload.jsonData?.error !==
+                            "undefined"
+                        ) {
+                            setError(
+                                response.payload.jsonData.error.message ?? null,
+                                "country_code",
+                            );
+                        }
+                    });
+                } else {
+                    unexpectedError(response.payload.statusCode);
+                }
+            } else {
+                unexpectedError();
+            }
+        });
+    }, [dispatch, setError, setListResponse, unexpectedError]);
+
+    useEffect(() => {
+        loadLists();
+    }, [dispatch, setErrors, unexpectedError, setListResponse, loadLists]);
+
     return (
         <>
             {value !== null && typeof value !== "undefined" ? (
@@ -128,31 +168,53 @@ export default function Address({
                             </Select>
                             <FieldErrorV2 error={errors?.type} />
                         </Field>
-
-                        <Field
-                            data-invalid={
-                                typeof errors?.country_code === "string"
-                            }
-                        >
-                            <FieldLabel htmlFor="country_code">
-                                Ország kód
-                            </FieldLabel>
-                            <Input
-                                id="country_code"
-                                type="text"
-                                placeholder="HU"
-                                value={value.country_code}
-                                onChange={(e) => {
-                                    setError(null, "country_code");
-                                    setField("country_code", e.target.value);
-                                }}
-                                aria-invalid={
+                        {/*
+                            NOTE: it is necessary to render this select after the list is loaded
+                            because otherwise onValueChange will be triggered with an empty string
+                            and so the field will be empty when data loaded for update
+                        */}
+                        {countryList.length > 0 && (
+                            <Field
+                                data-invalid={
                                     typeof errors?.country_code === "string"
                                 }
-                                disabled={disabled}
-                            />
-                            <FieldErrorV2 error={errors?.country_code} />
-                        </Field>
+                            >
+                                <FieldLabel htmlFor="country_code">
+                                    Ország kód
+                                </FieldLabel>
+                                <Select
+                                    value={value.country_code}
+                                    disabled={disabled}
+                                    onValueChange={(val) => {
+                                        setError(null, "country_code");
+                                        setField("country_code", val);
+                                    }}
+                                >
+                                    <SelectTrigger
+                                        className={"w-full"}
+                                        aria-invalid={
+                                            typeof errors?.country_code ===
+                                            "string"
+                                        }
+                                    >
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {countryList.map((country) => {
+                                            return (
+                                                <SelectItem
+                                                    key={country.value}
+                                                    value={country.value}
+                                                >
+                                                    {country.title}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                                <FieldErrorV2 error={errors?.country_code} />
+                            </Field>
+                        )}
 
                         <Field
                             data-invalid={

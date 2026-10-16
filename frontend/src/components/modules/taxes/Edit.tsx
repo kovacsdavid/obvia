@@ -33,6 +33,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
+import {
+    Combobox,
+    ComboboxContent,
+    ComboboxEmpty,
+    ComboboxInput,
+    ComboboxItem,
+    ComboboxList,
+} from "@/components/ui/combobox";
 import { useNavigate } from "react-router";
 import { useFormError } from "@/hooks/use_form_error.ts";
 import { useParams } from "react-router";
@@ -61,7 +69,7 @@ export default function Edit({
 }: EditProps) {
     const [rate, setRate] = React.useState("");
     const [description, setDescription] = React.useState("");
-    const [countryCode, setCountryCode] = React.useState("");
+    const [countryCode, setCountryCode] = React.useState("HU");
     const [taxCategory, setTaxCategory] = React.useState("");
     const [isRateApplicable, setIsRateApplicable] = React.useState("");
     const [legalText, setLegalText] = React.useState("");
@@ -374,34 +382,45 @@ export default function Edit({
                                 <FieldLabel htmlFor="country_code">
                                     Ország
                                 </FieldLabel>
-                                <Select
+                                <Combobox
                                     value={countryCode}
                                     onValueChange={(val) => {
                                         resetError("country_code");
-                                        setCountryCode(val);
+                                        setCountryCode(val ?? "");
                                     }}
+                                    items={countryList.map((c) => c.value)}
+                                    itemToStringLabel={(code) =>
+                                        countryList.find(
+                                            (c) => c.value === code,
+                                        )?.title ?? ""
+                                    }
                                 >
-                                    <SelectTrigger
-                                        className={"w-full"}
-                                        aria-invalid={isInvalidField(
-                                            "country_code",
-                                        )}
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {countryList.map((country) => {
-                                            return (
-                                                <SelectItem
-                                                    key={country.value}
-                                                    value={country.value}
+                                    <ComboboxInput
+                                        id={"country_code"}
+                                        placeholder="Válassz országot"
+                                    />
+                                    <ComboboxContent>
+                                        <ComboboxEmpty>
+                                            Nincs találat.
+                                        </ComboboxEmpty>
+                                        <ComboboxList>
+                                            {(code: string) => (
+                                                <ComboboxItem
+                                                    key={code}
+                                                    value={code}
                                                 >
-                                                    {country.title}
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
+                                                    {
+                                                        countryList.find(
+                                                            (c) =>
+                                                                c.value ===
+                                                                code,
+                                                        )?.title
+                                                    }
+                                                </ComboboxItem>
+                                            )}
+                                        </ComboboxList>
+                                    </ComboboxContent>
+                                </Combobox>
                                 <FieldError
                                     error={errors}
                                     field={"country_code"}

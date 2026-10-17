@@ -46,7 +46,7 @@ pub trait AddressRepository: Send + Sync {
 impl AddressRepository for PgPool {
     async fn get_all_countries_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
-            r#"SELECT code as value, name as title FROM countries"#,
+            r#"SELECT code as value, name as title FROM countries ORDER BY name"#,
         )
         .fetch_all(self)
         .await?)

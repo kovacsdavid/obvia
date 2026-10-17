@@ -409,6 +409,9 @@ export default function Edit({
                                     <ComboboxInput
                                         id={"country_code"}
                                         placeholder="Válassz országot"
+                                        aria-invalid={isInvalidField(
+                                            "country_code",
+                                        )}
                                     />
                                     <ComboboxContent>
                                         <ComboboxEmpty>

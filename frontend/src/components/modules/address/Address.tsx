@@ -44,7 +44,7 @@ import {
     ComboboxItem,
     ComboboxList,
 } from "@/components/ui/combobox";
-import { useCallback, useEffect, useId } from "react";
+import { useCallback, useEffect, useId, useMemo } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { select_list } from "@/components/modules/address/lib/slice";
 import { useSelectList } from "@/hooks/use_select_list.ts";
@@ -140,6 +140,21 @@ export default function Address({
         loadLists();
     }, [dispatch, setErrors, unexpectedError, setListResponse, loadLists]);
 
+    const countryTitleByCode = useMemo(
+        () => new Map(countryList.map((c) => [c.value, c.title])),
+        [countryList],
+    );
+
+    const countryCodes = useMemo(
+        () => countryList.map((c) => c.value),
+        [countryList],
+    );
+
+    const getCountryTitle = useCallback(
+        (code: string) => countryTitleByCode.get(code) ?? "",
+        [countryTitleByCode],
+    );
+
     return (
         <>
             {value !== null && typeof value !== "undefined" ? (
@@ -203,12 +218,8 @@ export default function Address({
                                         setError(null, "country_code");
                                         setField("country_code", val ?? "");
                                     }}
-                                    items={countryList.map((c) => c.value)}
-                                    itemToStringLabel={(code) =>
-                                        countryList.find(
-                                            (c) => c.value === code,
-                                        )?.title ?? ""
-                                    }
+                                    items={countryCodes}
+                                    itemToStringLabel={getCountryTitle}
                                 >
                                     <ComboboxInput
                                         id={`${id_prefix}_country_code`}
@@ -224,13 +235,7 @@ export default function Address({
                                                     key={code}
                                                     value={code}
                                                 >
-                                                    {
-                                                        countryList.find(
-                                                            (c) =>
-                                                                c.value ===
-                                                                code,
-                                                        )?.title
-                                                    }
+                                                    {getCountryTitle(code)}
                                                 </ComboboxItem>
                                             )}
                                         </ComboboxList>

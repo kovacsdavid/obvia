@@ -203,7 +203,7 @@ export default function Address({
                             }
                         >
                             <FieldLabel htmlFor={`${id_prefix}_country_code`}>
-                                Ország kód
+                                Ország
                             </FieldLabel>
                             {/*
                                 NOTE: it is necessary to render this select after the list is loaded

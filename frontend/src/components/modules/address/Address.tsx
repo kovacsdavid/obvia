@@ -224,6 +224,10 @@ export default function Address({
                                     <ComboboxInput
                                         id={`${id_prefix}_country_code`}
                                         placeholder="Válassz országot"
+                                        aria-invalid={
+                                            typeof errors?.country_code ===
+                                            "string"
+                                        }
                                     />
                                     <ComboboxContent>
                                         <ComboboxEmpty>

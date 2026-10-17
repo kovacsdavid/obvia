@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { Button, FieldError, GlobalError, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
@@ -278,6 +278,21 @@ export default function Edit({
         }
     };
 
+    const countryTitleByCode = useMemo(
+        () => new Map(countryList.map((c) => [c.value, c.title])),
+        [countryList],
+    );
+
+    const countryCodes = useMemo(
+        () => countryList.map((c) => c.value),
+        [countryList],
+    );
+
+    const getCountryTitle = useCallback(
+        (code: string) => countryTitleByCode.get(code) ?? "",
+        [countryTitleByCode],
+    );
+
     return (
         <>
             <GlobalError error={errors} />
@@ -388,12 +403,8 @@ export default function Edit({
                                         resetError("country_code");
                                         setCountryCode(val ?? "");
                                     }}
-                                    items={countryList.map((c) => c.value)}
-                                    itemToStringLabel={(code) =>
-                                        countryList.find(
-                                            (c) => c.value === code,
-                                        )?.title ?? ""
-                                    }
+                                    items={countryCodes}
+                                    itemToStringLabel={getCountryTitle}
                                 >
                                     <ComboboxInput
                                         id={"country_code"}
@@ -409,13 +420,7 @@ export default function Edit({
                                                     key={code}
                                                     value={code}
                                                 >
-                                                    {
-                                                        countryList.find(
-                                                            (c) =>
-                                                                c.value ===
-                                                                code,
-                                                        )?.title
-                                                    }
+                                                    {getCountryTitle(code)}
                                                 </ComboboxItem>
                                             )}
                                         </ComboboxList>

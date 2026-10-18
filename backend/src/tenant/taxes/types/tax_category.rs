@@ -40,11 +40,25 @@ impl ValueObjectData for TaxCategory {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "standard" => Ok(()),
-            "reduced" => Ok(()),
-            "exempt" => Ok(()),
-            "reverse_charge" => Ok(()),
-            "small_business_exempt" => Ok(()),
+            // Taxable supplies (Adóköteles ügyletek)
+            "AK" // Általános adókulcs
+            // Exempt supplies (Adómentes ügyletek)
+            |"AAM"            // Alanyi adómentes – XIII. fejezet
+            | "TAM"          // Tárgyi adómentes – 85. §, 86. §
+            | "KBAET"        // Közösségen belüli adómentes termékértékesítés – 89. §
+            | "KBAUK"        // Új közlekedési eszköz Közösségen belüli értékesítése – 89. § (2)
+            | "EAM"          // Termékexport – 98–109. §
+            | "NAM"          // Nemzetközi ügyletekhez kapcsolódó mentesség – 93–95. §, 110–118. §
+            // Outside the scope of Hungarian VAT (Áfa tárgyi hatályán kívül / külföldön teljesített)
+            | "ATK"          // Tárgyi hatályon kívül – 2–3. §
+            | "EUFAD37"      // Másik tagállamban teljesített, 37. § (1) szerinti szolgáltatás
+            | "EUFADE"       // Másik tagállamban teljesített, egyéb fordítottan adózó ügylet
+            | "EUE"          // Másik tagállamban teljesített, nem fordítottan adózó ügylet
+            | "HO"           // Harmadik országban teljesített ügylet
+            // Free supplies treated as paid (Ingyenes, de ellenérték fejében végzettnek minősülő ügylet) – 11. §, 14. §
+            | "REFUNDABLE_VAT"     // Az áfát a kedvezményezett megtéríti
+            | "NONREFUNDABLE_VAT"  // Az áfát a kedvezményezett nem téríti meg
+            => Ok(()),
             _ => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }
     }

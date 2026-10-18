@@ -76,6 +76,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
 import Status from "./Status";
 import { useAuth } from "@/hooks/use_auth";
+import TaxCategory from "@/components/modules/taxes/Category";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -277,14 +278,6 @@ export default function List() {
                                 </SortableTableHead>
                                 <TableHead>Jogi szöveg</TableHead>
                                 <SortableTableHead
-                                    field="reporting_code"
-                                    orderBy={orderBy}
-                                    order={order}
-                                    onOrderSelect={orderSelect}
-                                >
-                                    Jelentési kód (NAV)
-                                </SortableTableHead>
-                                <SortableTableHead
                                     field="status"
                                     orderBy={orderBy}
                                     order={order}
@@ -371,9 +364,12 @@ export default function List() {
                                     <TableCell>{item.rate}</TableCell>
                                     <TableCell>{item.description}</TableCell>
                                     <TableCell>{item.country}</TableCell>
-                                    <TableCell>{item.tax_category}</TableCell>
+                                    <TableCell>
+                                        <TaxCategory
+                                            taxCategory={item.tax_category}
+                                        />
+                                    </TableCell>
                                     <TableCell>{item.legal_text}</TableCell>
-                                    <TableCell>{item.reporting_code}</TableCell>
                                     <TableCell>
                                         <Status status={item.status} />
                                     </TableCell>

@@ -43,6 +43,7 @@ import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import Priority from "./Priority";
 import { useAuth } from "@/hooks/use_auth";
+import { Badge } from "@/components/ui/badge";
 
 export default function View() {
     const [data, setData] = React.useState<TaskResolved | null>(null);
@@ -130,7 +131,9 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Pénznem</TableCell>
                                         <TableCell>
-                                            {data.currency_code}
+                                            <Badge variant="secondary">
+                                                {data.currency_code}
+                                            </Badge>
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>

@@ -78,6 +78,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import Priority from "./Priority";
 import { useAuth } from "@/hooks/use_auth";
+import { Badge } from "@/components/ui/badge";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -390,7 +391,11 @@ export default function List() {
                                             ? formatNumber(item.price)
                                             : "N/A"}
                                     </TableCell>
-                                    <TableCell>{item.currency_code}</TableCell>
+                                    <TableCell>
+                                        <Badge variant="secondary">
+                                            {item.currency_code}
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell>
                                         <NavLink
                                             to={`/ado/reszletek/${item.tax_id}`}

@@ -22,16 +22,24 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use_theme";
 
 export function ThemeToggle() {
-    const { resolvedTheme, toggleTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
 
     return (
-        <Button className="w-full" size="icon" onClick={toggleTheme}>
-            {resolvedTheme === "dark" ? (
-                <Sun className="h-4 w-4" />
-            ) : (
-                <Moon className="h-4 w-4" />
-            )}
-            <span className="sr-only">Toggle theme</span>
-        </Button>
+        <>
+            <Button
+                className="w-full"
+                size="icon"
+                onClick={() => {
+                    setTheme(theme === "dark" ? "light" : "dark");
+                }}
+            >
+                {theme === "dark" ? (
+                    <Sun className="h-4 w-4" />
+                ) : (
+                    <Moon className="h-4 w-4" />
+                )}
+                <span className="sr-only">Toggle theme</span>
+            </Button>
+        </>
     );
 }

@@ -17,15 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { ThemeContext } from "@/context/theme/ThemeContext";
-import { useContext } from "react";
+import { ThemeProviderContext } from "@/context/theme/ThemeContext";
+import * as React from "react";
 
-export function useTheme() {
-    const context = useContext(ThemeContext);
+export const useTheme = () => {
+    const context = React.useContext(ThemeProviderContext);
 
-    if (!context) {
+    if (context === undefined) {
         throw new Error("useTheme must be used within a ThemeProvider");
     }
 
     return context;
-}
+};

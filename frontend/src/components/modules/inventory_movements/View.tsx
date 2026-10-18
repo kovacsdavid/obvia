@@ -41,6 +41,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Link } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import { useAuth } from "@/hooks/use_auth";
+import MovementType from "@/components/modules/inventory_movements/MovementType";
 
 export default function View() {
     const [data, setData] = React.useState<InventoryMovementResolved | null>(
@@ -110,7 +111,11 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Típus</TableCell>
                                         <TableCell>
-                                            {data.movement_type}
+                                            <MovementType
+                                                movementType={
+                                                    data.movement_type
+                                                }
+                                            />
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>

@@ -66,6 +66,7 @@ import {
 import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
 import { useAuth } from "@/hooks/use_auth";
+import MovementType from "@/components/modules/inventory_movements/MovementType";
 
 export default function InventoryMovementsList() {
     const dispatch = useAppDispatch();
@@ -140,17 +141,6 @@ export default function InventoryMovementsList() {
                 }
             }
         });
-    };
-
-    const resolveMovementType = (movementType: string): string => {
-        switch (movementType) {
-            case "in":
-                return "Bevétel";
-            case "out":
-                return "Kiadás";
-            default:
-                return "N/A";
-        }
     };
 
     const handlePrint = (id: string) => {
@@ -309,9 +299,9 @@ export default function InventoryMovementsList() {
                                         </DropdownMenu>
                                     </TableCell>
                                     <TableCell>
-                                        {resolveMovementType(
-                                            item.movement_type,
-                                        )}
+                                        <MovementType
+                                            movementType={item.movement_type}
+                                        />
                                     </TableCell>
                                     <TableCell>
                                         {parseFloat(item.quantity)

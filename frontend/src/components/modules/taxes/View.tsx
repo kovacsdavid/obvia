@@ -41,6 +41,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import Status from "./Status";
 import { useAuth } from "@/hooks/use_auth";
+import TaxCategory from "@/components/modules/taxes/Category";
 
 export default function View() {
     const [data, setData] = React.useState<TaxResolved | null>(null);
@@ -108,20 +109,14 @@ export default function View() {
                                     <TableRow>
                                         <TableCell>Adó kategória</TableCell>
                                         <TableCell>
-                                            {data.tax_category}
+                                            <TaxCategory
+                                                taxCategory={data.tax_category}
+                                            />
                                         </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Jogi szöveg</TableCell>
                                         <TableCell>{data.legal_text}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>
-                                            Jelentési kód (NAV)
-                                        </TableCell>
-                                        <TableCell>
-                                            {data.reporting_code}
-                                        </TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Státusz</TableCell>

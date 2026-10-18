@@ -29,7 +29,10 @@ import {
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
+    SelectSeparator,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
@@ -70,7 +73,7 @@ export default function Edit({
     const [rate, setRate] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [countryCode, setCountryCode] = React.useState("HU");
-    const [taxCategory, setTaxCategory] = React.useState("standard");
+    const [taxCategory, setTaxCategory] = React.useState("");
     const [isRateApplicable, setIsRateApplicable] = React.useState("");
     const [legalText, setLegalText] = React.useState("");
     const [reportingCode, setReportingCode] = React.useState("");
@@ -448,23 +451,94 @@ export default function Edit({
                                     }}
                                 >
                                     <SelectTrigger
+                                        id="tax_category"
                                         className={"w-full"}
                                         aria-invalid={isInvalidField(
                                             "tax_category",
                                         )}
                                     >
-                                        <SelectValue />
+                                        <SelectValue placeholder="Válasszon adó kategóriát" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="standard">
-                                            Általános
-                                        </SelectItem>
-                                        <SelectItem value="reduced">
-                                            Kedvezményes
-                                        </SelectItem>
-                                        <SelectItem value="zero">
-                                            Nulla kulcsos
-                                        </SelectItem>
+                                        <SelectGroup>
+                                            <SelectLabel>
+                                                Adóköteles ügyletek
+                                            </SelectLabel>
+                                            <SelectItem value="AK">
+                                                Általános adókulcs
+                                            </SelectItem>
+                                        </SelectGroup>
+                                        <SelectSeparator />
+                                        <SelectGroup>
+                                            <SelectLabel>
+                                                Adómentes ügyletek
+                                            </SelectLabel>
+                                            <SelectItem value="AAM">
+                                                Alanyi adómentes (AAM)
+                                            </SelectItem>
+                                            <SelectItem value="TAM">
+                                                Tárgyi adómentes (TAM)
+                                            </SelectItem>
+                                            <SelectItem value="KBAET">
+                                                Közösségen belüli adómentes
+                                                termékértékesítés (KBAET)
+                                            </SelectItem>
+                                            <SelectItem value="KBAUK">
+                                                Új közlekedési eszköz Közösségen
+                                                belüli értékesítése (KBAUK)
+                                            </SelectItem>
+                                            <SelectItem value="EAM">
+                                                Adómentes termékexport (harmadik
+                                                országba) (EAM)
+                                            </SelectItem>
+                                            <SelectItem value="NAM">
+                                                Nemzetközi ügyletekhez
+                                                kapcsolódó adómentesség (NAM)
+                                            </SelectItem>
+                                        </SelectGroup>
+                                        <SelectSeparator />
+                                        <SelectGroup>
+                                            <SelectLabel>
+                                                Áfa tárgyi hatályán kívül
+                                            </SelectLabel>
+                                            <SelectItem value="ATK">
+                                                Áfa tárgyi hatályán kívüli (ATK)
+                                            </SelectItem>
+                                            <SelectItem value="EUFAD37">
+                                                Másik tagállamban teljesített
+                                                szolgáltatás (37. § (1))
+                                                (EUFAD37)
+                                            </SelectItem>
+                                            <SelectItem value="EUFADE">
+                                                Másik tagállamban teljesített,
+                                                egyéb fordítottan adózó ügylet
+                                                (EUFADE)
+                                            </SelectItem>
+                                            <SelectItem value="EUE">
+                                                Másik tagállamban teljesített,
+                                                nem fordítottan adózó ügylet
+                                                (EUE)
+                                            </SelectItem>
+                                            <SelectItem value="HO">
+                                                Harmadik országban teljesített
+                                                ügylet (HO)
+                                            </SelectItem>
+                                        </SelectGroup>
+                                        <SelectSeparator />
+                                        <SelectGroup>
+                                            <SelectLabel>
+                                                Ingyenes, ellenérték fejében
+                                                végzettnek minősülő ügylet
+                                            </SelectLabel>
+                                            <SelectItem value="REFUNDABLE_VAT">
+                                                Áfát a kedvezményezett megtéríti
+                                                (REFUNDABLE_VAT)
+                                            </SelectItem>
+                                            <SelectItem value="NONREFUNDABLE_VAT">
+                                                Áfát a kedvezményezett nem
+                                                téríti meg (NONREFUNDABLE_VAT)
+                                            </SelectItem>
+                                        </SelectGroup>
                                     </SelectContent>
                                 </Select>
                                 <FieldError
@@ -472,7 +546,6 @@ export default function Edit({
                                     field={"tax_category"}
                                 />
                             </Field>
-
                             <Field data-invalid={isInvalidField("legal_text")}>
                                 <FieldLabel htmlFor="legal_text">
                                     Jogi szöveg
@@ -493,31 +566,6 @@ export default function Edit({
                                     field={"legal_text"}
                                 />
                             </Field>
-
-                            <Field
-                                data-invalid={isInvalidField("reporting_code")}
-                            >
-                                <FieldLabel htmlFor="reporting_code">
-                                    Jelentési kód
-                                </FieldLabel>
-                                <Input
-                                    id="reporting_code"
-                                    type="text"
-                                    value={reportingCode}
-                                    onChange={(e) => {
-                                        resetError("reporting_code");
-                                        setReportingCode(e.target.value);
-                                    }}
-                                    aria-invalid={isInvalidField(
-                                        "reporting_code",
-                                    )}
-                                />
-                                <FieldError
-                                    error={errors}
-                                    field={"reporting_code"}
-                                />
-                            </Field>
-
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
                                     Státusz

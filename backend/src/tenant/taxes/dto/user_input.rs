@@ -220,7 +220,7 @@ mod tests {
             rate: String::from("27"),
             description: String::from("description"),
             country_code: String::from("HU"),
-            tax_category: String::from("standard"),
+            tax_category: String::from("AK"),
             is_rate_applicable: Some(true),
             legal_text: String::from("legal text"),
             reporting_code: String::from("reporting code"),
@@ -232,7 +232,7 @@ mod tests {
         assert_eq!(user_input.rate.unwrap().as_f64().unwrap(), 27_f64);
         assert_eq!(user_input.description.as_str().unwrap(), "description");
         assert_eq!(user_input.country_code.as_str().unwrap(), "HU");
-        assert_eq!(user_input.tax_category.as_str().unwrap(), "standard");
+        assert_eq!(user_input.tax_category.as_str().unwrap(), "AK");
         assert!(user_input.is_rate_applicable);
         assert_eq!(user_input.legal_text.as_str().unwrap(), "legal text");
         assert_eq!(

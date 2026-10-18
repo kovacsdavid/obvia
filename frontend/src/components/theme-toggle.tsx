@@ -22,15 +22,17 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/use_theme";
 
 export function ThemeToggle() {
-    const { resolvedTheme, toggleTheme } = useTheme();
+    const { setTheme } = useTheme();
+
+    const toggle = () => {
+        const isDark = document.documentElement.classList.contains("dark");
+        setTheme(isDark ? "light" : "dark");
+    };
 
     return (
-        <Button className="w-full" size="icon" onClick={toggleTheme}>
-            {resolvedTheme === "dark" ? (
-                <Sun className="h-4 w-4" />
-            ) : (
-                <Moon className="h-4 w-4" />
-            )}
+        <Button className="w-full" size="icon" onClick={toggle}>
+            <Sun className="hidden h-4 w-4 dark:block" />
+            <Moon className="h-4 w-4 dark:hidden" />
             <span className="sr-only">Toggle theme</span>
         </Button>
     );

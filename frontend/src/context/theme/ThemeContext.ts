@@ -17,17 +17,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { createContext } from "react";
+import * as React from "react";
 
-export type Theme = "light" | "dark" | "system";
+export type Theme = "dark" | "light" | "system";
 
-export type ThemeContextType = {
+export type ThemeProviderState = {
     theme: Theme;
-    resolvedTheme: "light" | "dark";
     setTheme: (theme: Theme) => void;
-    toggleTheme: () => void;
 };
 
-export const ThemeContext = createContext<ThemeContextType | undefined>(
-    undefined,
-);
+export const ThemeProviderContext = React.createContext<
+    ThemeProviderState | undefined
+>(undefined);

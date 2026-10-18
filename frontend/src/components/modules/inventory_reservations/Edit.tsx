@@ -60,7 +60,7 @@ export default function Edit() {
     const [referenceType, setReferenceType] = React.useState<string | null>("");
     const [referenceId, setReferenceId] = React.useState<string | null>("");
     const [reservedUntil, setReservedUntil] = React.useState<string | null>("");
-    const [status, setStatus] = React.useState("");
+    const [status, setStatus] = React.useState("active");
     const [inventoryIdList, setInventoryIdList] =
         React.useState<SelectOptionList>([]);
     const [referenceIdList, setReferenceIdList] =

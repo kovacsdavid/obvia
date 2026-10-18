@@ -68,8 +68,8 @@ export default function Edit({
 }: EditProps) {
     const [productId, setProductId] = React.useState("");
     const [warehouseId, setWarehouseId] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("");
-    const [status, setStatus] = React.useState("");
+    const [currencyCode, setCurrencyCode] = React.useState("HUF");
+    const [status, setStatus] = React.useState("active");
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
         [],
     );

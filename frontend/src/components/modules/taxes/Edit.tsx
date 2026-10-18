@@ -70,12 +70,12 @@ export default function Edit({
     const [rate, setRate] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [countryCode, setCountryCode] = React.useState("HU");
-    const [taxCategory, setTaxCategory] = React.useState("");
+    const [taxCategory, setTaxCategory] = React.useState("standard");
     const [isRateApplicable, setIsRateApplicable] = React.useState("");
     const [legalText, setLegalText] = React.useState("");
     const [reportingCode, setReportingCode] = React.useState("");
     const [isDefault, setIsDefault] = React.useState<boolean>(false);
-    const [status, setStatus] = React.useState("");
+    const [status, setStatus] = React.useState("active");
     const [countryList, setCountryList] = React.useState<SelectOptionList>([]);
     const dispatch = useAppDispatch();
     const navigate = useNavigate();

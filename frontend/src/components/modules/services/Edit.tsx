@@ -67,8 +67,8 @@ export default function Edit({
     const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [defaultTaxId, setDefaultTaxId] = React.useState("");
-    const [currencyCode, setCurrencyCode] = React.useState("");
-    const [status, setStatus] = React.useState("");
+    const [currencyCode, setCurrencyCode] = React.useState("HUF");
+    const [status, setStatus] = React.useState("active");
     const [currencyList, setCurrencyList] = React.useState<SelectOptionList>(
         [],
     );

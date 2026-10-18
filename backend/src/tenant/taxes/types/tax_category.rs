@@ -80,10 +80,8 @@ mod tests {
 
     #[test]
     fn test_valid() {
-        let category = "standard"
-            .parse::<ValueObjectRequired<TaxCategory>>()
-            .unwrap();
-        assert_eq!(category.as_str().unwrap(), "standard");
+        let category = "AK".parse::<ValueObjectRequired<TaxCategory>>().unwrap();
+        assert_eq!(category.as_str().unwrap(), "AK");
     }
     #[test]
     fn test_invalid() {

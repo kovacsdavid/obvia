@@ -299,7 +299,7 @@ where
             description: "Test tax".to_string(),
             country_code: "HU".to_string(),
             country: "Magyarország".to_string(),
-            tax_category: "standard".to_string(),
+            tax_category: "AK".to_string(),
             is_rate_applicable: true,
             legal_text: None,
             reporting_code: None,

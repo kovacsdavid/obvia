@@ -73,7 +73,7 @@ export default function Edit({
     const [rate, setRate] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [countryCode, setCountryCode] = React.useState("HU");
-    const [taxCategory, setTaxCategory] = React.useState("standard");
+    const [taxCategory, setTaxCategory] = React.useState("");
     const [isRateApplicable, setIsRateApplicable] = React.useState("");
     const [legalText, setLegalText] = React.useState("");
     const [reportingCode, setReportingCode] = React.useState("");

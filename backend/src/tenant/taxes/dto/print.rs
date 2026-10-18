@@ -87,9 +87,28 @@ impl TaxResolvedPrint {
     }
     fn map_tax_category(tax_category: &str) -> String {
         match tax_category {
-            "standard" => "Általános",
-            "reduced" => "Kedvezményes",
-            "zero" => "Nulla kulcsos",
+            // Adóköteles ügyletek
+            "AK" => "Általános adókulcs (AK)",
+            // Adómentes ügyletek
+            "AAM" => "Alanyi adómentes (AAM)",
+            "TAM" => "Tárgyi adómentes (TAM)",
+            "KBAET" => "Közösségen belüli adómentes termékértékesítés (KBAET)",
+            "KBAUK" => "Új közlekedési eszköz Közösségen belüli értékesítése (KBAUK)",
+            "EAM" => "Termékexport (EAM)",
+            "NAM" => "Nemzetközi ügyletekhez kapcsolódó mentesség (NAM)",
+            // Áfa tárgyi hatályán kívül / külföldön teljesített
+            "ATK" => "Áfa tárgyi hatályán kívül (ATK)",
+            "EUFAD37" => "Másik tagállamban teljesített, 37. § (1) szerinti szolgáltatás (EUFAD37)",
+            "EUFADE" => "Másik tagállamban teljesített, egyéb fordítottan adózó ügylet (EUFADE)",
+            "EUE" => "Másik tagállamban teljesített, nem fordítottan adózó ügylet (EUE)",
+            "HO" => "Harmadik országban teljesített ügylet (HO)",
+            // Ingyenes, de ellenérték fejében végzettnek minősülő ügylet
+            "REFUNDABLE_VAT" => {
+                "Ingyenes ügylet – az áfát a kedvezményezett megtéríti (REFUNDABLE_VAT)"
+            }
+            "NONREFUNDABLE_VAT" => {
+                "Ingyenes ügylet – az áfát a kedvezményezett nem téríti meg (NONREFUNDABLE_VAT)"
+            }
             _ => "Ismeretlen adó kategória",
         }
         .to_string()
@@ -115,7 +134,7 @@ mod tests {
             description: "Test tax".to_string(),
             country_code: "HUF".to_string(),
             country: "HU".to_string(),
-            tax_category: "standard".to_string(),
+            tax_category: "AK".to_string(),
             is_rate_applicable: true,
             legal_text: None,
             reporting_code: None,
@@ -134,7 +153,7 @@ mod tests {
             description: "Test tax".to_string(),
             country_code: "HUF".to_string(),
             country: "HU".to_string(),
-            tax_category: "Általános".to_string(),
+            tax_category: "Általános adókulcs (AK)".to_string(),
             is_rate_applicable: true,
             legal_text: None,
             reporting_code: None,

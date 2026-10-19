@@ -27,7 +27,6 @@ import {
 import type { InventoryReservationResolvedList } from "@/components/modules/inventory_reservations/lib/interface.ts";
 import {
     Card,
-    CardAction,
     CardContent,
     CardHeader,
     CardTitle,
@@ -64,6 +63,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import Status from "./Status";
 import ReferenceType from "./ReferenceType";
 import { useAuth } from "@/hooks/use_auth";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function InventoryReservationsList() {
     const dispatch = useAppDispatch();
@@ -173,20 +173,24 @@ export default function InventoryReservationsList() {
             <Card>
                 <CardHeader>
                     <CardTitle>Készletfoglalások</CardTitle>
-                    <CardAction>
-                        <Link
-                            to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}
-                        >
-                            <Button
-                                style={{ color: "green" }}
-                                variant="outline"
-                            >
-                                Új <Plus color="green" />
-                            </Button>
-                        </Link>
-                    </CardAction>
                 </CardHeader>
                 <CardContent>
+                    <ButtonGroup
+                        orientation="responsive"
+                        className="ml-auto mb-5"
+                    >
+                        <Button
+                            style={{ color: "green" }}
+                            variant="outline"
+                            asChild
+                        >
+                            <Link
+                                to={`/raktarkeszlet-foglalas/letrehozas/${routeInventoryId}`}
+                            >
+                                Új <Plus color="green" />
+                            </Link>
+                        </Button>
+                    </ButtonGroup>
                     <Table>
                         <TableHeader>
                             <TableRow>

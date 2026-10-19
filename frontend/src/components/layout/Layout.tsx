@@ -32,8 +32,6 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { SidebarProvider } from "@/context/sidebar/SidebarProvider";
 import { useLocation } from "react-router";
-import { Alert, AlertDescription } from "@/components/ui";
-import { FlaskConical } from "lucide-react";
 
 export function Layout({ children }: { children: ReactNode }) {
     const breadcrumbMap: Record<string, string> = {

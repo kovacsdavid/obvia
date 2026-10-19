@@ -28,7 +28,6 @@ import {
 import type { InventoryMovementResolvedList } from "@/components/modules/inventory_movements/lib/interface.ts";
 import {
     Card,
-    CardAction,
     CardContent,
     CardHeader,
     CardTitle,
@@ -67,6 +66,7 @@ import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import type { GetQuery } from "@/lib/get_query";
 import { useAuth } from "@/hooks/use_auth";
 import MovementType from "@/components/modules/inventory_movements/MovementType";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function InventoryMovementsList() {
     const dispatch = useAppDispatch();
@@ -178,20 +178,24 @@ export default function InventoryMovementsList() {
             <Card>
                 <CardHeader>
                     <CardTitle>Készletmozgások</CardTitle>
-                    <CardAction>
-                        <Link
-                            to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}
-                        >
-                            <Button
-                                style={{ color: "green" }}
-                                variant="outline"
-                            >
-                                Új <Plus color="green" />
-                            </Button>
-                        </Link>
-                    </CardAction>
                 </CardHeader>
                 <CardContent>
+                    <ButtonGroup
+                        orientation="responsive"
+                        className="ml-auto mb-5"
+                    >
+                        <Button
+                            style={{ color: "green" }}
+                            variant="outline"
+                            asChild
+                        >
+                            <Link
+                                to={`/raktarkeszlet-mozgas/letrehozas/${routeInventoryId}`}
+                            >
+                                Új <Plus color="green" />
+                            </Link>
+                        </Button>
+                    </ButtonGroup>
                     <Table>
                         <TableHeader>
                             <TableRow>

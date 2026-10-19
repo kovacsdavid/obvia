@@ -67,7 +67,6 @@ import {
 } from "@/components/ui/dropdown-menu.tsx";
 import {
     Card,
-    CardAction,
     CardContent,
     CardHeader,
     CardTitle,
@@ -77,6 +76,7 @@ import type { GetQuery } from "@/lib/get_query";
 import Status from "./Status";
 import { useAuth } from "@/hooks/use_auth";
 import TaxCategory from "@/components/modules/taxes/Category";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function List() {
     const dispatch = useAppDispatch();
@@ -181,14 +181,15 @@ export default function List() {
             <Card>
                 <CardHeader>
                     <CardTitle>Adók</CardTitle>
-                    <CardAction>
+                </CardHeader>
+                <CardContent>
+                    <ButtonGroup
+                        orientation="responsive"
+                        className="ml-auto mb-5"
+                    >
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button
-                                    className={"mr-2"}
-                                    variant="outline"
-                                    style={{ marginBottom: "25px" }}
-                                >
+                                <Button variant="outline">
                                     Szűrő <Funnel />
                                 </Button>
                             </PopoverTrigger>
@@ -210,15 +211,15 @@ export default function List() {
                                             </Label>
                                             <Input
                                                 id="description"
-                                                onBlur={(e) =>
-                                                    filterSelect(
-                                                        "description",
-                                                        e.target.value,
-                                                    )
-                                                }
                                                 value={filterValue}
                                                 onChange={(e) =>
                                                     setFilterValue(
+                                                        e.target.value,
+                                                    )
+                                                }
+                                                onBlur={(e) =>
+                                                    filterSelect(
+                                                        "description",
                                                         e.target.value,
                                                     )
                                                 }
@@ -229,17 +230,16 @@ export default function List() {
                                 </div>
                             </PopoverContent>
                         </Popover>
-                        <Link to={"/ado/letrehozas"}>
-                            <Button
-                                style={{ color: "green" }}
-                                variant="outline"
-                            >
+                        <Button
+                            style={{ color: "green" }}
+                            variant="outline"
+                            asChild
+                        >
+                            <Link to={"/ado/letrehozas"}>
                                 Új <Plus color="green" />
-                            </Button>
-                        </Link>
-                    </CardAction>
-                </CardHeader>
-                <CardContent>
+                            </Link>
+                        </Button>
+                    </ButtonGroup>
                     <Table>
                         <TableHeader>
                             <TableRow>

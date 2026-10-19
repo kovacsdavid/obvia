@@ -215,6 +215,12 @@ const ROUTE_CONFIGS: RouteConfig[] = [
     },
 
     {
+        path: "/munkalap/:referenceId/feladat/letrehozas",
+        element: () => <TasksEdit />,
+        isPrivate: true,
+    },
+
+    {
         path: "/munkalap/:referenceId/raktarkeszlet-mozgas/letrehozas",
         element: () => <InventoryMovementsEdit referenceType="worksheets" />,
         isPrivate: true,

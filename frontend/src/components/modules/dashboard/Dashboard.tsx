@@ -25,7 +25,6 @@ import {
     HandCoins,
     HandPlatter,
     ListTodo,
-    LogOut,
     NotebookText,
     Package,
     UsersRound,
@@ -38,16 +37,10 @@ import {
     CardTitle,
 } from "@/components/ui/card.tsx";
 import { useNavigate } from "react-router";
-import { useAppDispatch } from "@/store/hooks.ts";
-import { logoutAndRevokeRefreshToken } from "@/components/modules/auth/lib/slice.ts";
 
 export default function Dashboard() {
     const { hasActiveDatabase } = useAuth();
-    const dispatch = useAppDispatch();
 
-    const handleLogout = () => {
-        dispatch(logoutAndRevokeRefreshToken());
-    };
     const navigate = useNavigate();
     return (
         <Card className={"max-w-3xl mx-auto"}>
@@ -58,7 +51,7 @@ export default function Dashboard() {
                 <Button
                     onClick={() => navigate("/adatbazis/lista")}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <Database /> Adatbázis
                 </Button>
@@ -66,7 +59,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/vevo/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <UsersRound /> Vevők
                 </Button>
@@ -74,7 +67,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/raktar/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <Warehouse /> Raktárak
                 </Button>
@@ -82,7 +75,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/ado/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <HandCoins /> Adók
                 </Button>
@@ -90,7 +83,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/termek/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <Package /> Termékek
                 </Button>
@@ -98,7 +91,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/raktarkeszlet/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <Boxes /> Raktárkészlet
                 </Button>
@@ -106,7 +99,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/szolgaltatas/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <HandPlatter /> Szolgáltatások
                 </Button>
@@ -114,7 +107,7 @@ export default function Dashboard() {
                     onClick={() => navigate("/feladat/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <ListTodo /> Feladatok
                 </Button>
@@ -122,16 +115,9 @@ export default function Dashboard() {
                     onClick={() => navigate("/munkalap/lista")}
                     disabled={!hasActiveDatabase}
                     variant={"outline"}
-                    className="p-8 m-5"
+                    className="p-8 mb-5 w-full"
                 >
                     <NotebookText /> Munkalapok
-                </Button>
-                <Button
-                    onClick={handleLogout}
-                    variant={"outline"}
-                    className="p-8 m-5"
-                >
-                    <LogOut /> Kijelentkezés
                 </Button>
             </CardContent>
         </Card>

@@ -128,15 +128,6 @@ export function Layout({ children }: { children: ReactNode }) {
                         </BreadcrumbList>
                     </Breadcrumb>
                 </header>
-                <Alert className={"mr-auto ml-auto mt-3 max-w-2xl"}>
-                    <FlaskConical color={"orange"} />
-                    <AlertDescription className={"text-orange-400"}>
-                        Zárt béta verzió: A rendszer jelenleg zártkörű
-                        tesztelési fázisban van. A tárolt adatok bármikor
-                        törlésre kerülhetnek. Ne használd a rendszert valós
-                        adatokkal!
-                    </AlertDescription>
-                </Alert>
                 <div className="flex flex-1 flex-col gap-4 p-4">
                     <main className="flex-1 container mx-auto px-4 py-6">
                         {children}

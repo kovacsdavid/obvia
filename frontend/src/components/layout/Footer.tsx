@@ -21,7 +21,6 @@ export function Footer() {
     const gitRevision = import.meta.env.VITE_GIT_COMMIT_HASH;
     return (
         <footer className="border-t py-4 px-4 text-center text-sm text-muted-foreground">
-            Lead maintainer:&nbsp;
             <a
                 href="https://kovacsdavid.dev"
                 target="_blank"
@@ -29,6 +28,14 @@ export function Footer() {
                 className="underline"
             >
                 Kovács Dávid
+            </a>{" "}
+            <a
+                href="mailto:kapcsolat@kovacsdavid.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+            >
+                {"<kapcsolat@kovacsdavid.dev>"}
             </a>
             {" // "}
             <a
@@ -37,7 +44,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="underline"
             >
-                Forráskód (AGPL-3.0)
+                Forráskód
             </a>
             {gitRevision && " // "}
             {gitRevision}

@@ -16,6 +16,9 @@ on:
       - '.github/workflows/docker-build-tests.yml'
       - '.github/workflows/docker-hub-publish.yml'
 
+permissions:
+  contents: read
+
 jobs:
   test-backend-docker-build:
     name: Test backend Docker build

@@ -67,7 +67,9 @@ export default function Edit({
     showCard = true,
     onSuccess = undefined,
 }: EditProps) {
-    const [worksheetId, setWorksheetId] = React.useState("");
+    const params = useParams();
+    const referenceId = React.useMemo(() => params["referenceId"], [params]);
+    const [worksheetId, setWorksheetId] = React.useState(referenceId ?? "");
     const [serviceId, setServiceId] = React.useState("");
     const [currencyCode, setCurrencyCode] = React.useState("HUF");
     const [taxId, setTaxId] = React.useState("");
@@ -88,7 +90,6 @@ export default function Edit({
     const { setListResponse } = useSelectList();
     const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
         useFormError();
-    const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
     const [openNewWorksheetDialog, setOpenNewWorksheetDialog] =
         React.useState(false);
@@ -394,58 +395,64 @@ export default function Edit({
                             {`Feladat ${id ? "módosítás" : "létrehozás"}`}
                         </FieldLegend>
                         <FieldGroup>
-                            <Field
-                                data-invalid={isInvalidField("worksheet_id")}
-                            >
-                                <div className="flex items-center w-full">
-                                    <div className="flex flex-1 items-center">
-                                        <FieldLabel htmlFor="worksheet_id">
-                                            Munkalap
-                                        </FieldLabel>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() =>
-                                                setOpenNewWorksheetDialog(true)
-                                            }
-                                        >
-                                            <Plus />
-                                        </Button>
-                                    </div>
-                                </div>
-                                <Select
-                                    value={worksheetId}
-                                    onValueChange={(val) => {
-                                        resetError("worksheet_id");
-                                        setWorksheetId(val);
-                                    }}
+                            {typeof referenceId !== "string" ? (
+                                <Field
+                                    data-invalid={isInvalidField(
+                                        "worksheet_id",
+                                    )}
                                 >
-                                    <SelectTrigger
-                                        className={"w-full"}
-                                        aria-invalid={isInvalidField(
-                                            "worksheet_id",
-                                        )}
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {worksheetList.map((worksheet) => (
-                                            <SelectItem
-                                                key={worksheet.value}
-                                                value={worksheet.value}
+                                    <div className="flex items-center w-full">
+                                        <div className="flex flex-1 items-center">
+                                            <FieldLabel htmlFor="worksheet_id">
+                                                Munkalap
+                                            </FieldLabel>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() =>
+                                                    setOpenNewWorksheetDialog(
+                                                        true,
+                                                    )
+                                                }
                                             >
-                                                {worksheet.title}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"worksheet_id"}
-                                />
-                            </Field>
+                                                <Plus />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <Select
+                                        value={worksheetId}
+                                        onValueChange={(val) => {
+                                            resetError("worksheet_id");
+                                            setWorksheetId(val);
+                                        }}
+                                    >
+                                        <SelectTrigger
+                                            className={"w-full"}
+                                            aria-invalid={isInvalidField(
+                                                "worksheet_id",
+                                            )}
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {worksheetList.map((worksheet) => (
+                                                <SelectItem
+                                                    key={worksheet.value}
+                                                    value={worksheet.value}
+                                                >
+                                                    {worksheet.title}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FieldError
+                                        error={errors}
+                                        field={"worksheet_id"}
+                                    />
+                                </Field>
+                            ) : null}
                             <Field data-invalid={isInvalidField("service_id")}>
                                 <div className="flex items-center w-full">
                                     <div className="flex flex-1 items-center">

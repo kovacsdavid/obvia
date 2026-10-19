@@ -42,6 +42,7 @@ import { Plus } from "lucide-react";
 import { Link as LinkIcon } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import { useAuth } from "@/hooks/use_auth";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 export default function View() {
     const [data, setData] = React.useState<WorksheetResolved | null>(null);
@@ -178,13 +179,25 @@ export default function View() {
                                     </TableRow>
                                 </TableBody>
                             </Table>
-                            <Link
-                                to={`/munkalap/${data.id}/raktarkeszlet-mozgas/letrehozas`}
+                            <ButtonGroup
+                                orientation="responsive"
+                                className="mt-5"
                             >
-                                <Button variant="outline" className="mt-3">
-                                    <Plus /> Anyagköltség hozzáadás
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        to={`/munkalap/${data.id}/feladat/letrehozas`}
+                                    >
+                                        <Plus /> Munkadíj hozzáadás
+                                    </Link>
                                 </Button>
-                            </Link>
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        to={`/munkalap/${data.id}/raktarkeszlet-mozgas/letrehozas`}
+                                    >
+                                        <Plus /> Anyagköltség hozzáadás
+                                    </Link>
+                                </Button>
+                            </ButtonGroup>{" "}
                             <div className="mt-8">
                                 <Button
                                     className="mr-3"

@@ -1,5 +1,8 @@
 name: Test Docker builds
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:

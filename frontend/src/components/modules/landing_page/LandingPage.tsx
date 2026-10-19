@@ -33,11 +33,11 @@ const SECTIONS: readonly ComponentType[] = [
 export default function LandingPage() {
     return (
         <div className="flex min-h-svh flex-col bg-background text-foreground">
-            <main className="flex-1">
+            <div className="flex-1">
                 {SECTIONS.map((Section, index) => (
                     <Section key={index} />
                 ))}
-            </main>
+            </div>
         </div>
     );
 }

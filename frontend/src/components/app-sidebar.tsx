@@ -53,6 +53,7 @@ import {
     UsersRound,
     Warehouse,
     UserRoundCog,
+    House,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
@@ -228,6 +229,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         needActiveDatabase: true,
                         icon: <NotebookText />,
                         isActive: location.pathname.includes("/munkalap/lista"),
+                    },
+                ],
+            },
+
+            {
+                title: "Kezdőoldal",
+                url: "#",
+                items: [
+                    {
+                        title: "Kezdőoldal",
+                        url: "/",
+                        publicOnly: true,
+                        needActiveDatabase: false,
+                        icon: <House />,
+                        isActive: location.pathname === "/",
                     },
                 ],
             },

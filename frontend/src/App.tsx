@@ -16,12 +16,16 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 import React, { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import { Layout } from "@/components/layout/Layout";
 import type { RootState } from "./store";
 import { useAppSelector } from "./store/hooks";
 
+const LandingPage = lazy(
+    () => import("@/components/modules/landing_page/LandingPage"),
+);
 const Login = lazy(() => import("@/components/modules/auth/Login"));
 const Register = lazy(() => import("@/components/modules/auth/Register"));
 const ForgottenPassword = lazy(
@@ -128,7 +132,7 @@ function crudRoutes(
 const ROUTE_CONFIGS: RouteConfig[] = [
     {
         path: "/",
-        element: () => <Navigate to="/bejelentkezes" replace />,
+        element: LandingPage,
         isPrivate: false,
     },
     { path: "/bejelentkezes", element: Login, isPrivate: false },

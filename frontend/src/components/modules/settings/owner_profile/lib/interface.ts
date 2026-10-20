@@ -34,6 +34,7 @@ export interface OwnerProfileUserInput {
     contactName: string;
     email: string;
     website: string;
+    documentPrefix: string;
     phoneNumber: string;
     ownerProfileType: string | undefined;
     billingAddress: AddressInterface | null | undefined;
@@ -46,6 +47,7 @@ export interface OwnerProfile {
     contact_name: string | null;
     email: string;
     website: string | null;
+    document_prefix: string | null;
     phone_number: string | null;
     owner_profile_type: string;
     created_at: string;
@@ -59,6 +61,7 @@ export interface OwnerProfileErrors {
     contact_name: string | null;
     email: string | null;
     website: string | null;
+    document_prefix: string | null;
     phone_number: string | null;
     owner_profile_type: string | null;
     billing_address: AddressErrors;
@@ -71,6 +74,7 @@ export interface OwnerProfileFull {
     contact_name: string | null;
     email: string;
     website: string | null;
+    document_prefix: string | null;
     phone_number: string | null;
     owner_profile_type: string;
     created_at: string;

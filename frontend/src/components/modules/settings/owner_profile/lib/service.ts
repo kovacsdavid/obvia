@@ -43,6 +43,7 @@ export async function update(
         contactName,
         email,
         website,
+        documentPrefix,
         phoneNumber,
         ownerProfileType,
         billingAddress,
@@ -63,6 +64,7 @@ export async function update(
             contact_name: contactName,
             email,
             website,
+            document_prefix: documentPrefix,
             phone_number: phoneNumber,
             owner_profile_type:
                 typeof ownerProfileType === "undefined"

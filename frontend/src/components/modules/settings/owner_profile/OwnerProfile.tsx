@@ -60,6 +60,7 @@ export default function OwnerProfile() {
     const [contactName, setContactName] = React.useState("");
     const [email, setEmail] = React.useState("");
     const [website, setWebsite] = React.useState("");
+    const [documentPrefix, setDocumentPrefix] = React.useState("");
     const [phoneNumber, setPhoneNumber] = React.useState("");
     const [billingAddress, setBillingAddress] = React.useState<
         AddressInterface | null | undefined
@@ -87,6 +88,7 @@ export default function OwnerProfile() {
                         setContactName(data.contact_name ?? "");
                         setEmail(data.email);
                         setWebsite(data.website ?? "");
+                        setDocumentPrefix(data.document_prefix ?? "");
                         setPhoneNumber(data.phone_number ?? "");
                         setBillingAddress(
                             data.billing_address === null
@@ -119,6 +121,7 @@ export default function OwnerProfile() {
                 contactName,
                 email,
                 website,
+                documentPrefix,
                 phoneNumber,
                 ownerProfileType,
                 billingAddress,
@@ -354,6 +357,43 @@ export default function OwnerProfile() {
                                 }
                             />
                             <FieldErrorV2 error={errors?.fields?.website} />
+                        </Field>
+                        <Field
+                            data-invalid={
+                                typeof errors?.fields?.document_prefix ===
+                                "string"
+                            }
+                        >
+                            <FieldLabel htmlFor="document_prefix">
+                                Dokumentum előtag
+                            </FieldLabel>
+                            <Input
+                                id="document_prefix"
+                                type="text"
+                                placeholder="KD"
+                                value={documentPrefix}
+                                onChange={(e) => {
+                                    setErrors((prev) => {
+                                        if (!prev?.fields) return prev;
+
+                                        return {
+                                            ...prev,
+                                            fields: {
+                                                ...prev.fields,
+                                                document_prefix: null,
+                                            },
+                                        };
+                                    });
+                                    setDocumentPrefix(e.target.value);
+                                }}
+                                aria-invalid={
+                                    typeof errors?.fields?.document_prefix ===
+                                    "string"
+                                }
+                            />
+                            <FieldErrorV2
+                                error={errors?.fields?.document_prefix}
+                            />
                         </Field>
                         <Field
                             data-invalid={

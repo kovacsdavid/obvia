@@ -58,6 +58,7 @@ import {
     InputGroupInput,
     InputGroupText,
 } from "@/components/ui/input-group";
+import { toast } from "@/components/ui/toast-lib";
 
 export default function OwnerProfile() {
     const [id, setId] = React.useState<string>("");
@@ -149,6 +150,10 @@ export default function OwnerProfile() {
                         typeof response.payload.jsonData?.data !== "undefined"
                     ) {
                         setData(response.payload.jsonData.data);
+                        toast.add({
+                            type: "success",
+                            title: "A mentés sikeresen megtörtént!",
+                        });
                     } else {
                         unexpectedError(response.payload.statusCode);
                     }

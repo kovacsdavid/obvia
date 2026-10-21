@@ -17,7 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useEffect } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
     Button,
     Checkbox,
@@ -163,6 +163,46 @@ export default function OwnerProfile() {
             setMailingAddress(undefined);
         }
     };
+
+    const setBillingAddressErrors = useCallback(
+        <T extends keyof AddressErrors>(value: string | null, field: T) => {
+            setErrors((prev) => {
+                if (!prev?.fields) return prev;
+
+                return {
+                    ...prev,
+                    fields: {
+                        ...prev.fields,
+                        billing_address: {
+                            ...prev.fields.billing_address,
+                            [field]: value,
+                        },
+                    },
+                };
+            });
+        },
+        [setErrors],
+    );
+
+    const setMailingAddressErrors = useCallback(
+        <T extends keyof AddressErrors>(value: string | null, field: T) => {
+            setErrors((prev) => {
+                if (!prev?.fields) return prev;
+
+                return {
+                    ...prev,
+                    fields: {
+                        ...prev.fields,
+                        mailing_address: {
+                            ...prev.fields.mailing_address,
+                            [field]: value,
+                        },
+                    },
+                };
+            });
+        },
+        [setErrors],
+    );
 
     return (
         <>
@@ -470,25 +510,7 @@ export default function OwnerProfile() {
                         value={billingAddress}
                         onChange={setBillingAddress}
                         errors={errors?.fields?.billing_address}
-                        setErrors={<T extends keyof AddressErrors>(
-                            value: string | null,
-                            field: T,
-                        ) => {
-                            setErrors((prev) => {
-                                if (!prev?.fields) return prev;
-
-                                return {
-                                    ...prev,
-                                    fields: {
-                                        ...prev.fields,
-                                        billing_address: {
-                                            ...prev.fields.billing_address,
-                                            [field]: value,
-                                        },
-                                    },
-                                };
-                            });
-                        }}
+                        setErrors={setBillingAddressErrors}
                     />
                 </div>
 
@@ -517,25 +539,7 @@ export default function OwnerProfile() {
                     value={mailingAddress}
                     onChange={setMailingAddress}
                     errors={errors?.fields?.mailing_address}
-                    setErrors={<T extends keyof AddressErrors>(
-                        value: string | null,
-                        field: T,
-                    ) => {
-                        setErrors((prev) => {
-                            if (!prev?.fields) return prev;
-
-                            return {
-                                ...prev,
-                                fields: {
-                                    ...prev.fields,
-                                    mailing_address: {
-                                        ...prev.fields.mailing_address,
-                                        [field]: value,
-                                    },
-                                },
-                            };
-                        });
-                    }}
+                    setErrors={setMailingAddressErrors}
                 />
                 <Field orientation="horizontal">
                     <div className="text-right mt-8 w-full">

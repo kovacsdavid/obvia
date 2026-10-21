@@ -17,32 +17,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { cva, type VariantProps } from "class-variance-authority";
+import { type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
 
 import { Separator } from "@/components/ui/separator";
-
-const buttonGroupVariants = cva(
-    "flex w-fit items-stretch has-[>[data-slot=button-group]]:gap-2 [&>*]:focus-visible:relative [&>*]:focus-visible:z-10 has-[select[aria-hidden=true]:last-child]:[&>[data-slot=select-trigger]:last-of-type]:rounded-r-md [&>[data-slot=select-trigger]:not([class*='w-'])]:w-fit [&>input]:flex-1",
-    {
-        variants: {
-            orientation: {
-                horizontal:
-                    "[&>*:not(:first-child)]:rounded-l-none [&>*:not(:first-child)]:border-l-0 [&>*:not(:last-child)]:rounded-r-none",
-                vertical:
-                    "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none",
-                responsive:
-                    "flex-col [&>*:not(:first-child)]:rounded-t-none [&>*:not(:first-child)]:border-t-0 [&>*:not(:last-child)]:rounded-b-none " +
-                    "sm:flex-row sm:[&>*:not(:first-child)]:rounded-t-md sm:[&>*:not(:first-child)]:border-t sm:[&>*:not(:last-child)]:rounded-b-md " +
-                    "sm:[&>*:not(:first-child)]:rounded-l-none sm:[&>*:not(:first-child)]:border-l-0 sm:[&>*:not(:last-child)]:rounded-r-none",
-            },
-        },
-        defaultVariants: {
-            orientation: "horizontal",
-        },
-    },
-);
+import type { buttonGroupVariants } from "@/components/ui/button-group-lib";
 
 function ButtonGroup({
     className,
@@ -98,9 +78,4 @@ function ButtonGroupSeparator({
     );
 }
 
-export {
-    ButtonGroup,
-    ButtonGroupSeparator,
-    ButtonGroupText,
-    buttonGroupVariants,
-};
+export { ButtonGroup, ButtonGroupSeparator, ButtonGroupText };

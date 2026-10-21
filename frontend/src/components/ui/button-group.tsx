@@ -22,7 +22,7 @@ import { cn } from "@/lib/utils";
 import { Slot } from "radix-ui";
 
 import { Separator } from "@/components/ui/separator";
-import type { buttonGroupVariants } from "@/components/ui/button-group-lib";
+import { buttonGroupVariants } from "@/components/ui/button-group-lib";
 
 function ButtonGroup({
     className,

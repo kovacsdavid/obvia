@@ -50,6 +50,12 @@ import {
     defaultAddress,
 } from "@/components/modules/address/lib/utils";
 import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+    InputGroupText,
+} from "@/components/ui/input-group";
 
 export default function OwnerProfile() {
     const [id, setId] = React.useState<string>("");
@@ -72,6 +78,12 @@ export default function OwnerProfile() {
     const navigate = useNavigate();
     const { errors, setErrors, unexpectedError } =
         useFormErrorV2<OwnerProfileErrors>();
+
+    const WEBSITE_PREFIX = "https://";
+
+    // Strips any protocol the user types or pastes (http://, https://)
+    const stripProtocol = (value: string) =>
+        value.trim().replace(/^https?:\/\//i, "");
 
     useEffect(() => {
         dispatch(get_full()).then(async (response) => {
@@ -333,29 +345,46 @@ export default function OwnerProfile() {
                             }
                         >
                             <FieldLabel htmlFor="website">Weboldal</FieldLabel>
-                            <Input
-                                id="website"
-                                type="text"
-                                placeholder="https://obvia.hu"
-                                value={website}
-                                onChange={(e) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                website: null,
-                                            },
-                                        };
-                                    });
-                                    setWebsite(e.target.value);
-                                }}
-                                aria-invalid={
-                                    typeof errors?.fields?.website === "string"
-                                }
-                            />
+                            <InputGroup>
+                                <InputGroupAddon>
+                                    <InputGroupText>
+                                        {WEBSITE_PREFIX}
+                                    </InputGroupText>
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                    id="website"
+                                    type="text"
+                                    inputMode="url"
+                                    autoComplete="url"
+                                    placeholder=""
+                                    className="!pl-0.5"
+                                    value={stripProtocol(website)}
+                                    onChange={(e) => {
+                                        setErrors((prev) => {
+                                            if (!prev?.fields) return prev;
+                                            return {
+                                                ...prev,
+                                                fields: {
+                                                    ...prev.fields,
+                                                    website: null,
+                                                },
+                                            };
+                                        });
+                                        const domain = stripProtocol(
+                                            e.target.value,
+                                        );
+                                        setWebsite(
+                                            domain
+                                                ? `${WEBSITE_PREFIX}${domain}`
+                                                : "",
+                                        );
+                                    }}
+                                    aria-invalid={
+                                        typeof errors?.fields?.website ===
+                                        "string"
+                                    }
+                                />
+                            </InputGroup>{" "}
                             <FieldErrorV2 error={errors?.fields?.website} />
                         </Field>
                         <Field

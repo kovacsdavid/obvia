@@ -131,7 +131,7 @@ export function isOwnerProfileErrors(
 export function isUpdateOwnerProfileResponse(
     data: unknown,
 ): data is UpdateOwnerProfileResponse {
-    return isCommonResponse(data, isOwnerProfile, (data: unknown) =>
+    return isCommonResponse(data, isOwnerProfileFull, (data: unknown) =>
         isFormErrorV2<OwnerProfileErrors>(data, isOwnerProfileErrors),
     );
 }

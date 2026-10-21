@@ -84,7 +84,7 @@ export interface OwnerProfileFull {
 }
 
 export type UpdateOwnerProfileResponse = CommonResponse<
-    OwnerProfile,
+    OwnerProfileFull,
     FormErrorV2<OwnerProfileErrors>
 >;
 

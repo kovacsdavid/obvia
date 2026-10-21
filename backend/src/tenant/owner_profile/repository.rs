@@ -40,7 +40,7 @@ pub trait OwnerProfileRepository: Send + Sync {
         &self,
         owner_profile_user_input: &OwnerProfileUserInput,
         sub: Uuid,
-    ) -> RepositoryResult<OwnerProfile>;
+    ) -> RepositoryResult<OwnerProfileFull>;
 }
 
 #[async_trait]
@@ -97,7 +97,7 @@ impl OwnerProfileRepository for PgPool {
         &self,
         owner_profile_user_input: &OwnerProfileUserInput,
         sub: Uuid,
-    ) -> RepositoryResult<OwnerProfile> {
+    ) -> RepositoryResult<OwnerProfileFull> {
         let contact_name = match &owner_profile_user_input.contact_name {
             Some(v) => Some(v.as_str()?),
             None => None,
@@ -161,7 +161,7 @@ impl OwnerProfileRepository for PgPool {
             }
         };
 
-        let owner_profile_updated = sqlx::query_as::<_, OwnerProfile>(
+        let _ = sqlx::query_as::<_, OwnerProfile>(
             r#"
             UPDATE owner_profile
             SET name = $1,
@@ -192,7 +192,7 @@ impl OwnerProfileRepository for PgPool {
 
         tx.commit().await?;
 
-        Ok(owner_profile_updated)
+        Ok(self.get_full().await?)
     }
 }
 

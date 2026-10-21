@@ -92,9 +92,7 @@ mod tests {
         generate_valid_jwt,
     };
     use crate::tenant::address::model::test_address_resolved_builder;
-    use crate::tenant::owner_profile::model::tests::{
-        test_owner_profile_builder, test_owner_profile_full_builder,
-    };
+    use crate::tenant::owner_profile::model::tests::test_owner_profile_full_builder;
     use crate::{
         common::config::tests::test_app_config_builder,
         tenant::owner_profile::{
@@ -374,7 +372,7 @@ mod tests {
         };
         let user_input = OwnerProfileUserInput::try_from(user_input_helper.clone()).unwrap();
 
-        let owner_profile = test_owner_profile_builder()
+        let owner_profile_full = test_owner_profile_full_builder()
             .id(owner_profile_id)
             .build()
             .unwrap();
@@ -384,7 +382,7 @@ mod tests {
             .times(1)
             .with(eq(user_input), eq(user_id))
             .returning({
-                let owner_profile = owner_profile.clone();
+                let owner_profile = owner_profile_full.clone();
                 move |_, _| Ok(owner_profile.clone())
             });
 
@@ -427,7 +425,7 @@ mod tests {
         let response_body = extract_json_response(response).await;
         let expected_body = json!({
             "meta": null,
-            "data": owner_profile
+            "data": owner_profile_full
         });
 
         assert_eq!(response_body, expected_body);

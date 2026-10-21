@@ -26,12 +26,14 @@ import {
     Input,
 } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
-import { useNavigate } from "react-router";
 import {
     get_full,
     update,
 } from "@/components/modules/settings/owner_profile/lib/slice.ts";
-import { type OwnerProfileErrors } from "@/components/modules/settings/owner_profile/lib/interface";
+import {
+    type OwnerProfileErrors,
+    type OwnerProfileFull,
+} from "@/components/modules/settings/owner_profile/lib/interface";
 import {
     Select,
     SelectContent,
@@ -75,7 +77,6 @@ export default function OwnerProfile() {
         AddressInterface | null | undefined
     >(undefined);
     const dispatch = useAppDispatch();
-    const navigate = useNavigate();
     const { errors, setErrors, unexpectedError } =
         useFormErrorV2<OwnerProfileErrors>();
 
@@ -85,6 +86,23 @@ export default function OwnerProfile() {
     const stripProtocol = (value: string) =>
         value.trim().replace(/^https?:\/\//i, "");
 
+    const setData = useCallback((data: OwnerProfileFull) => {
+        setId(data.id);
+        setOwnerProfileType(data.owner_profile_type);
+        setName(data.name);
+        setContactName(data.contact_name ?? "");
+        setEmail(data.email);
+        setWebsite(data.website ?? "");
+        setDocumentPrefix(data.document_prefix ?? "");
+        setPhoneNumber(data.phone_number ?? "");
+        setBillingAddress(
+            data.billing_address === null
+                ? defaultAddress()
+                : normalizeAddress(data.billing_address),
+        );
+        setMailingAddress(normalizeAddress(data.mailing_address));
+    }, []);
+
     useEffect(() => {
         dispatch(get_full()).then(async (response) => {
             if (get_full.fulfilled.match(response)) {
@@ -92,24 +110,9 @@ export default function OwnerProfile() {
                     if (
                         typeof response.payload.jsonData?.data !== "undefined"
                     ) {
-                        const data = response.payload.jsonData.data;
-
-                        setId(data.id);
-                        setOwnerProfileType(data.owner_profile_type);
-                        setName(data.name);
-                        setContactName(data.contact_name ?? "");
-                        setEmail(data.email);
-                        setWebsite(data.website ?? "");
-                        setDocumentPrefix(data.document_prefix ?? "");
-                        setPhoneNumber(data.phone_number ?? "");
-                        setBillingAddress(
-                            data.billing_address === null
-                                ? defaultAddress()
-                                : normalizeAddress(data.billing_address),
-                        );
-                        setMailingAddress(
-                            normalizeAddress(data.mailing_address),
-                        );
+                        setData(response.payload.jsonData.data);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
                     }
                 } else if (
                     typeof response.payload.jsonData?.error !== "undefined"
@@ -122,7 +125,7 @@ export default function OwnerProfile() {
                 unexpectedError();
             }
         });
-    }, [dispatch, setErrors, unexpectedError]);
+    }, [dispatch, setErrors, unexpectedError, setData]);
 
     const handleUpdate = (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -142,7 +145,13 @@ export default function OwnerProfile() {
         ).then(async (response) => {
             if (update.fulfilled.match(response)) {
                 if (response.payload.statusCode === 200) {
-                    navigate("/felhasznalo/beallitasok");
+                    if (
+                        typeof response.payload.jsonData?.data !== "undefined"
+                    ) {
+                        setData(response.payload.jsonData.data);
+                    } else {
+                        unexpectedError(response.payload.statusCode);
+                    }
                 } else if (
                     typeof response.payload.jsonData?.error !== "undefined"
                 ) {

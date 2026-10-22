@@ -17,14 +17,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import React, { useCallback, useEffect } from "react";
-import {
-    Button,
-    Checkbox,
-    FieldErrorV2,
-    GlobalError,
-    Input,
-} from "@/components/ui";
+import React, { useCallback, useEffect, useMemo } from "react";
+import { Button, Checkbox, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     get_full,
@@ -51,7 +45,6 @@ import {
     normalizeAddress,
     defaultAddress,
 } from "@/components/modules/address/lib/utils";
-import { useFormErrorV2 } from "@/hooks/use_form_error_v2";
 import {
     InputGroup,
     InputGroupAddon,
@@ -59,6 +52,7 @@ import {
     InputGroupText,
 } from "@/components/ui/input-group";
 import { toast } from "@/components/ui/toast-lib";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function OwnerProfile() {
     const [id, setId] = React.useState<string>("");
@@ -78,8 +72,7 @@ export default function OwnerProfile() {
         AddressInterface | null | undefined
     >(undefined);
     const dispatch = useAppDispatch();
-    const { errors, setErrors, unexpectedError } =
-        useFormErrorV2<OwnerProfileErrors>();
+    const [errors, setErrors] = React.useState<OwnerProfileErrors | null>(null);
 
     const WEBSITE_PREFIX = "https://";
 
@@ -87,7 +80,8 @@ export default function OwnerProfile() {
     const stripProtocol = (value: string) =>
         value.trim().replace(/^https?:\/\//i, "");
 
-    const setData = useCallback((data: OwnerProfileFull) => {
+    const setData = useCallback((data: OwnerProfileFull | undefined) => {
+        if (typeof data === "undefined") return;
         setId(data.id);
         setOwnerProfileType(data.owner_profile_type);
         setName(data.name);
@@ -105,68 +99,50 @@ export default function OwnerProfile() {
     }, []);
 
     useEffect(() => {
-        dispatch(get_full()).then(async (response) => {
-            if (get_full.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    if (
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        setData(response.payload.jsonData.data);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData?.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
+        const promise = dispatch(get_full());
+
+        promise.then((action) => {
+            if (!get_full.fulfilled.match(action)) return;
+
+            const result = action.payload;
+            if (result.kind === "success") {
+                setData(result.data.data);
             }
         });
-    }, [dispatch, setErrors, unexpectedError, setData]);
 
-    const handleUpdate = (e: React.SubmitEvent) => {
+        return () => promise.abort();
+    }, [dispatch, setData]);
+
+    const handleUpdate = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        dispatch(
+        setErrors(null);
+
+        const result = await dispatch(
             update({
-                id,
-                name,
-                contactName,
-                email,
-                website,
-                documentPrefix,
-                phoneNumber,
-                ownerProfileType,
-                billingAddress,
-                mailingAddress,
+                input: {
+                    id,
+                    name,
+                    contactName,
+                    email,
+                    website,
+                    documentPrefix,
+                    phoneNumber,
+                    ownerProfileType,
+                    billingAddress,
+                    mailingAddress,
+                },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    if (
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        setData(response.payload.jsonData.data);
-                        toast.add({
-                            type: "success",
-                            title: "A mentés sikeresen megtörtént!",
-                        });
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                setData(data);
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+            },
+            onFieldErrors: setErrors,
         });
     };
 
@@ -178,49 +154,42 @@ export default function OwnerProfile() {
         }
     };
 
-    const setBillingAddressErrors = useCallback(
-        <T extends keyof AddressErrors>(value: string | null, field: T) => {
-            setErrors((prev) => {
-                if (!prev?.fields) return prev;
+    type AddressKey = "billing_address" | "mailing_address";
 
-                return {
-                    ...prev,
-                    fields: {
-                        ...prev.fields,
-                        billing_address: {
-                            ...prev.fields.billing_address,
-                            [field]: value,
-                        },
-                    },
-                };
-            });
-        },
-        [setErrors],
+    const addressErrorSetter = useCallback(
+        (key: AddressKey) =>
+            <T extends keyof AddressErrors>(value: string | null, field: T) =>
+                setErrors((prev) => {
+                    if (!prev) return prev;
+                    // already in the desired state → keep the same reference
+                    if ((prev[key]?.[field] ?? null) === value) return prev;
+                    return { ...prev, [key]: { ...prev[key], [field]: value } };
+                }),
+        [],
     );
 
-    const setMailingAddressErrors = useCallback(
-        <T extends keyof AddressErrors>(value: string | null, field: T) => {
-            setErrors((prev) => {
-                if (!prev?.fields) return prev;
-
-                return {
-                    ...prev,
-                    fields: {
-                        ...prev.fields,
-                        mailing_address: {
-                            ...prev.fields.mailing_address,
-                            [field]: value,
-                        },
-                    },
-                };
-            });
-        },
-        [setErrors],
+    const setBillingAddressErrors = useMemo(
+        () => addressErrorSetter("billing_address"),
+        [addressErrorSetter],
     );
+    const setMailingAddressErrors = useMemo(
+        () => addressErrorSetter("mailing_address"),
+        [addressErrorSetter],
+    );
+
+    type FlatErrorKey = Exclude<
+        keyof OwnerProfileErrors,
+        "billing_address" | "mailing_address"
+    >;
+
+    const clearError = useCallback((field: FlatErrorKey) => {
+        setErrors((prev) =>
+            prev && prev[field] != null ? { ...prev, [field]: null } : prev,
+        );
+    }, []);
 
     return (
         <>
-            <GlobalError error={errors} />
             <form
                 onSubmit={handleUpdate}
                 className="space-y-4"
@@ -230,8 +199,7 @@ export default function OwnerProfile() {
                     <FieldGroup>
                         <Field
                             data-invalid={
-                                typeof errors?.fields?.owner_profile_type ===
-                                "string"
+                                typeof errors?.owner_profile_type === "string"
                             }
                         >
                             <FieldLabel htmlFor="owner_profile_type">
@@ -240,17 +208,7 @@ export default function OwnerProfile() {
                             <Select
                                 value={ownerProfileType}
                                 onValueChange={(val) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                owner_profile_type: null,
-                                            },
-                                        };
-                                    });
+                                    clearError("owner_profile_type");
                                     setOwnerProfileType(val);
                                 }}
                             >
@@ -258,8 +216,8 @@ export default function OwnerProfile() {
                                     id="owner_profile_type"
                                     className={"w-full"}
                                     aria-invalid={
-                                        typeof errors?.fields
-                                            ?.owner_profile_type === "string"
+                                        typeof errors?.owner_profile_type ===
+                                        "string"
                                     }
                                 >
                                     <SelectValue />
@@ -273,15 +231,9 @@ export default function OwnerProfile() {
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
-                            <FieldErrorV2
-                                error={errors?.fields?.owner_profile_type}
-                            />
+                            <FieldErrorV2 error={errors?.owner_profile_type} />
                         </Field>
-                        <Field
-                            data-invalid={
-                                typeof errors?.fields?.name === "string"
-                            }
-                        >
+                        <Field data-invalid={typeof errors?.name === "string"}>
                             <FieldLabel htmlFor="name">
                                 {ownerProfileType === "legal"
                                     ? "Jogi személy neve"
@@ -297,31 +249,18 @@ export default function OwnerProfile() {
                                 }
                                 value={name}
                                 onChange={(e) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                name: null,
-                                            },
-                                        };
-                                    });
+                                    clearError("name");
                                     setName(e.target.value);
                                 }}
-                                aria-invalid={
-                                    typeof errors?.fields?.name === "string"
-                                }
+                                aria-invalid={typeof errors?.name === "string"}
                             />
-                            <FieldErrorV2 error={errors?.fields?.name} />
+                            <FieldErrorV2 error={errors?.name} />
                         </Field>
                         {ownerProfileType === "legal" ? (
                             <>
                                 <Field
                                     data-invalid={
-                                        typeof errors?.fields?.contact_name ===
-                                        "string"
+                                        typeof errors?.contact_name === "string"
                                     }
                                 >
                                     <FieldLabel htmlFor="contact_name">
@@ -333,36 +272,22 @@ export default function OwnerProfile() {
                                         placeholder="Példa Béla"
                                         value={contactName}
                                         onChange={(e) => {
-                                            setErrors((prev) => {
-                                                if (!prev?.fields) return prev;
-
-                                                return {
-                                                    ...prev,
-                                                    fields: {
-                                                        ...prev.fields,
-                                                        contact_name: null,
-                                                    },
-                                                };
-                                            });
+                                            clearError("contact_name");
                                             setContactName(e.target.value);
                                         }}
                                         aria-invalid={
-                                            typeof errors?.fields
-                                                ?.contact_name === "string"
+                                            typeof errors?.contact_name ===
+                                            "string"
                                         }
                                     />
 
                                     <FieldErrorV2
-                                        error={errors?.fields?.contact_name}
+                                        error={errors?.contact_name}
                                     />
                                 </Field>
                             </>
                         ) : null}
-                        <Field
-                            data-invalid={
-                                typeof errors?.fields?.email === "string"
-                            }
-                        >
+                        <Field data-invalid={typeof errors?.email === "string"}>
                             <FieldLabel htmlFor="email">
                                 {ownerProfileType === "legal"
                                     ? "Kapcsolattartó e-mail címe"
@@ -374,29 +299,15 @@ export default function OwnerProfile() {
                                 placeholder="pelda@obvia.hu"
                                 value={email}
                                 onChange={(e) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                email: null,
-                                            },
-                                        };
-                                    });
+                                    clearError("email");
                                     setEmail(e.target.value);
                                 }}
-                                aria-invalid={
-                                    typeof errors?.fields?.email === "string"
-                                }
+                                aria-invalid={typeof errors?.email === "string"}
                             />
-                            <FieldErrorV2 error={errors?.fields?.email} />
+                            <FieldErrorV2 error={errors?.email} />
                         </Field>
                         <Field
-                            data-invalid={
-                                typeof errors?.fields?.website === "string"
-                            }
+                            data-invalid={typeof errors?.website === "string"}
                         >
                             <FieldLabel htmlFor="website">Weboldal</FieldLabel>
                             <InputGroup>
@@ -414,16 +325,7 @@ export default function OwnerProfile() {
                                     className="!pl-0.5"
                                     value={stripProtocol(website)}
                                     onChange={(e) => {
-                                        setErrors((prev) => {
-                                            if (!prev?.fields) return prev;
-                                            return {
-                                                ...prev,
-                                                fields: {
-                                                    ...prev.fields,
-                                                    website: null,
-                                                },
-                                            };
-                                        });
+                                        clearError("website");
                                         const domain = stripProtocol(
                                             e.target.value,
                                         );
@@ -434,17 +336,15 @@ export default function OwnerProfile() {
                                         );
                                     }}
                                     aria-invalid={
-                                        typeof errors?.fields?.website ===
-                                        "string"
+                                        typeof errors?.website === "string"
                                     }
                                 />
                             </InputGroup>{" "}
-                            <FieldErrorV2 error={errors?.fields?.website} />
+                            <FieldErrorV2 error={errors?.website} />
                         </Field>
                         <Field
                             data-invalid={
-                                typeof errors?.fields?.document_prefix ===
-                                "string"
+                                typeof errors?.document_prefix === "string"
                             }
                         >
                             <FieldLabel htmlFor="document_prefix">
@@ -456,31 +356,18 @@ export default function OwnerProfile() {
                                 placeholder="KD"
                                 value={documentPrefix}
                                 onChange={(e) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                document_prefix: null,
-                                            },
-                                        };
-                                    });
+                                    clearError("document_prefix");
                                     setDocumentPrefix(e.target.value);
                                 }}
                                 aria-invalid={
-                                    typeof errors?.fields?.document_prefix ===
-                                    "string"
+                                    typeof errors?.document_prefix === "string"
                                 }
                             />
-                            <FieldErrorV2
-                                error={errors?.fields?.document_prefix}
-                            />
+                            <FieldErrorV2 error={errors?.document_prefix} />
                         </Field>
                         <Field
                             data-invalid={
-                                typeof errors?.fields?.phone_number === "string"
+                                typeof errors?.phone_number === "string"
                             }
                         >
                             <FieldLabel htmlFor="phone_number">
@@ -494,27 +381,14 @@ export default function OwnerProfile() {
                                 placeholder="+36301234567"
                                 value={phoneNumber}
                                 onChange={(e) => {
-                                    setErrors((prev) => {
-                                        if (!prev?.fields) return prev;
-
-                                        return {
-                                            ...prev,
-                                            fields: {
-                                                ...prev.fields,
-                                                phone_number: null,
-                                            },
-                                        };
-                                    });
+                                    clearError("phone_number");
                                     setPhoneNumber(e.target.value);
                                 }}
                                 aria-invalid={
-                                    typeof errors?.fields?.phone_number ===
-                                    "string"
+                                    typeof errors?.phone_number === "string"
                                 }
                             />
-                            <FieldErrorV2
-                                error={errors?.fields?.phone_number}
-                            />
+                            <FieldErrorV2 error={errors?.phone_number} />
                         </Field>
                     </FieldGroup>
                 </FieldSet>
@@ -523,7 +397,7 @@ export default function OwnerProfile() {
                         label="Számlázási cím"
                         value={billingAddress}
                         onChange={setBillingAddress}
-                        errors={errors?.fields?.billing_address}
+                        errors={errors?.billing_address}
                         setErrors={setBillingAddressErrors}
                     />
                 </div>
@@ -552,7 +426,7 @@ export default function OwnerProfile() {
                     label="Levelezési cím"
                     value={mailingAddress}
                     onChange={setMailingAddress}
-                    errors={errors?.fields?.mailing_address}
+                    errors={errors?.mailing_address}
                     setErrors={setMailingAddressErrors}
                 />
                 <Field orientation="horizontal">

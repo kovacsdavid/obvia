@@ -17,86 +17,53 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import {
-    globalRequestTimeout,
-    unexpectedError,
-    unexpectedFormError,
-} from "@/services/utils/consts";
 import type {
     OwnerProfileUserInput,
     UpdateOwnerProfileResponse,
     OwnerProfileFullResponse,
+    OwnerProfileErrors,
 } from "@/components/modules/settings/owner_profile/lib/interface";
-import {
-    type ProcessedJsonResponse,
-    ProcessJsonResponse,
-} from "@/lib/interface.ts";
 import {
     isUpdateOwnerProfileResponse,
     isOwnerProfileFullResponse,
+    isOwnerProfileErrors,
 } from "@/components/modules/settings/owner_profile/lib/guards";
+import type { ApiResult } from "@/lib/api/types";
+import { apiRequest } from "@/lib/api/request";
 
-export async function update(
-    {
-        id,
-        name,
-        contactName,
-        email,
-        website,
-        documentPrefix,
-        phoneNumber,
-        ownerProfileType,
-        billingAddress,
-        mailingAddress,
-    }: OwnerProfileUserInput,
+export function update(
+    input: OwnerProfileUserInput,
     token: string | null,
-): Promise<ProcessedJsonResponse<UpdateOwnerProfileResponse>> {
-    return await fetch(`/api/owner_profile/update`, {
+    signal?: AbortSignal,
+): Promise<ApiResult<UpdateOwnerProfileResponse, OwnerProfileErrors>> {
+    return apiRequest(`/api/owner_profile/update`, {
         method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        token,
+        signal,
+        guard: isUpdateOwnerProfileResponse,
+        formErrorGuard: isOwnerProfileErrors,
+        body: {
+            id: input.id,
+            name: input.name,
+            contact_name: input.contactName,
+            email: input.email,
+            website: input.website,
+            document_prefix: input.documentPrefix,
+            phone_number: input.phoneNumber,
+            owner_profile_type: input.ownerProfileType ?? null,
+            billing_address: input.billingAddress ?? null,
+            mailing_address: input.mailingAddress ?? null,
         },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-        body: JSON.stringify({
-            id,
-            name,
-            contact_name: contactName,
-            email,
-            website,
-            document_prefix: documentPrefix,
-            phone_number: phoneNumber,
-            owner_profile_type:
-                typeof ownerProfileType === "undefined"
-                    ? null
-                    : ownerProfileType,
-            billing_address: billingAddress ?? null,
-            mailing_address: mailingAddress ?? null,
-        }),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(
-                response,
-                isUpdateOwnerProfileResponse,
-            )) ?? unexpectedFormError
-        );
     });
 }
 
-export async function get_full(
+export function get_full(
     token: string | null,
-): Promise<ProcessedJsonResponse<OwnerProfileFullResponse>> {
-    return await fetch(`/api/owner_profile/get_full`, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        signal: AbortSignal.timeout(globalRequestTimeout),
-    }).then(async (response: Response) => {
-        return (
-            (await ProcessJsonResponse(response, isOwnerProfileFullResponse)) ??
-            unexpectedError
-        );
+    signal?: AbortSignal,
+): Promise<ApiResult<OwnerProfileFullResponse>> {
+    return apiRequest(`/api/owner_profile/get_full`, {
+        token,
+        signal,
+        guard: isOwnerProfileFullResponse,
     });
 }

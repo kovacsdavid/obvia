@@ -45,7 +45,7 @@ pub type WorksheetResolvedPrintResult = Result<WorksheetResolvedPrint, Worksheet
 #[builder(build_fn(error = "CommonBuilderError"))]
 pub struct WorksheetResolvedPrint {
     pub id: Uuid,
-    pub name: String,
+    pub display_id: String,
     pub description: Option<String>,
     pub customer: CustomerFullPrint,
     pub owner_profile: OwnerProfileFullPrint,
@@ -129,7 +129,7 @@ impl WorksheetResolvedPrint {
 
         Ok(Self {
             id: worksheet_resolved.id,
-            name: worksheet_resolved.name,
+            display_id: worksheet_resolved.display_id,
             description: worksheet_resolved.description,
             customer: customer_resolved_print,
             owner_profile: owner_profile_print,
@@ -180,7 +180,7 @@ pub fn test_worksheet_resolved_print_builder(
     let mut builder = WorksheetResolvedPrintBuilder::default();
     builder
         .id(Uuid::now_v7())
-        .name("Test worksheet".to_string())
+        .display_id("KD-2026-1".to_string())
         .description(Some("Test description".to_string()))
         .customer(customer_full_print)
         .owner_profile(owner_profile_full_print)
@@ -321,7 +321,7 @@ mod tests {
         );
         let worksheet_resolved_print_expected = WorksheetResolvedPrint {
             id: worksheet_id,
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: Some("Test description".to_string()),
             customer: customer_full_print,
             owner_profile: owner_profile_full_print,

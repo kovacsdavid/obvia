@@ -323,7 +323,7 @@ mod tests {
         let utc_now = Utc::now();
         let worksheet = Worksheet {
             id: worksheet_id,
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: None,
             customer_id,
             project_id: None,
@@ -557,7 +557,7 @@ mod tests {
         let utc_now = Utc::now();
         let worksheet_resolved = WorksheetResolved {
             id: worksheet_id,
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: None,
             customer_id,
             customer: "Test customer".to_string(),
@@ -803,7 +803,7 @@ mod tests {
         };
         let worksheet_resolved = WorksheetResolved {
             id: worksheet_id,
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: None,
             customer_id,
             customer: "Test customer".to_string(),
@@ -1042,7 +1042,7 @@ mod tests {
         let utc_now = Utc::now();
         let worksheet = Worksheet {
             id: Uuid::now_v7(),
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: None,
             customer_id,
             project_id: None,
@@ -1055,7 +1055,6 @@ mod tests {
 
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: customer_id.to_string(),
             project_id: "".to_string(),
@@ -1069,8 +1068,7 @@ mod tests {
             .withf({
                 let user_input_expected = user_input.clone();
                 move |user_input, user_id_inner| {
-                    user_input.name == user_input_expected.name
-                        && user_input.description == user_input_expected.description
+                    user_input.description == user_input_expected.description
                         && user_input.customer_id == user_input_expected.customer_id
                         && user_input.project_id == user_input_expected.project_id
                         && user_input.status == user_input_expected.status
@@ -1135,7 +1133,6 @@ mod tests {
 
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: customer_id.to_string(),
             project_id: "".to_string(),
@@ -1189,7 +1186,6 @@ mod tests {
     async fn test_create_unauthorized_expired() {
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1237,7 +1233,6 @@ mod tests {
     async fn test_create_unauthorized_invalid_signature() {
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1285,7 +1280,6 @@ mod tests {
     async fn test_create_unauthorized_missing() {
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1325,7 +1319,7 @@ mod tests {
         let utc_now = Utc::now();
         let worksheet = Worksheet {
             id: worksheet_id,
-            name: "Test worksheet".to_string(),
+            display_id: "KD-2026-1".to_string(),
             description: None,
             customer_id,
             project_id: None,
@@ -1338,7 +1332,6 @@ mod tests {
 
         let user_input_helper = WorksheetUserInputHelper {
             id: Some(worksheet_id.to_string()),
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: customer_id.to_string(),
             project_id: "".to_string(),
@@ -1407,7 +1400,6 @@ mod tests {
 
         let user_input_helper = WorksheetUserInputHelper {
             id: None,
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1458,7 +1450,6 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
         let user_input_helper = WorksheetUserInputHelper {
             id: Some(worksheet_id.to_string()),
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1507,7 +1498,6 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
         let user_input_helper = WorksheetUserInputHelper {
             id: Some(worksheet_id.to_string()),
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),
@@ -1556,7 +1546,6 @@ mod tests {
         let worksheet_id = Uuid::now_v7();
         let user_input_helper = WorksheetUserInputHelper {
             id: Some(worksheet_id.to_string()),
-            name: "Test worksheet".to_string(),
             description: "".to_string(),
             customer_id: Uuid::now_v7().to_string(),
             project_id: "".to_string(),

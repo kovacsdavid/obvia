@@ -48,6 +48,9 @@ export function isOwnerProfile(data: unknown): data is OwnerProfile {
         typeof data.email === "string" &&
         "website" in data &&
         (data.website === null || typeof data.website === "string") &&
+        "document_prefix" in data &&
+        (data.document_prefix === null ||
+            typeof data.document_prefix === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
@@ -79,6 +82,9 @@ export function isOwnerProfileFull(data: unknown): data is OwnerProfileFull {
         typeof data.email === "string" &&
         "website" in data &&
         (data.website === null || typeof data.website === "string") &&
+        "document_prefix" in data &&
+        (data.document_prefix === null ||
+            typeof data.document_prefix === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
@@ -108,6 +114,9 @@ export function isOwnerProfileErrors(
         (data.email === null || typeof data.email === "string") &&
         "website" in data &&
         (data.website === null || typeof data.website === "string") &&
+        "document_prefix" in data &&
+        (data.document_prefix === null ||
+            typeof data.document_prefix === "string") &&
         "phone_number" in data &&
         (data.phone_number === null || typeof data.phone_number === "string") &&
         "owner_profile_type" in data &&
@@ -122,7 +131,7 @@ export function isOwnerProfileErrors(
 export function isUpdateOwnerProfileResponse(
     data: unknown,
 ): data is UpdateOwnerProfileResponse {
-    return isCommonResponse(data, isOwnerProfile, (data: unknown) =>
+    return isCommonResponse(data, isOwnerProfileFull, (data: unknown) =>
         isFormErrorV2<OwnerProfileErrors>(data, isOwnerProfileErrors),
     );
 }

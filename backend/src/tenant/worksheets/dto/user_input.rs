@@ -20,9 +20,7 @@
 use crate::common::error::v2::{AppError, AppErrorVisibility};
 use crate::common::types::UuidVO;
 use crate::common::value_object::{ValueObjectError, ValueObjectOptional, ValueObjectRequired};
-use crate::tenant::worksheets::types::worksheet::{
-    WorksheetDescription, WorksheetName, WorksheetStatus,
-};
+use crate::tenant::worksheets::types::worksheet::{WorksheetDescription, WorksheetStatus};
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -32,7 +30,6 @@ use tracing::Level;
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WorksheetUserInputHelper {
     pub id: Option<String>,
-    pub name: String,
     pub description: String,
     pub customer_id: String,
     pub project_id: String,
@@ -42,7 +39,6 @@ pub struct WorksheetUserInputHelper {
 #[derive(Debug, Serialize, Default)]
 pub struct WorksheetUserInputError {
     pub id: Option<String>,
-    pub name: Option<String>,
     pub description: Option<String>,
     pub customer_id: Option<String>,
     pub project_id: Option<String>,
@@ -52,7 +48,6 @@ pub struct WorksheetUserInputError {
 impl WorksheetUserInputError {
     pub fn is_empty(&self) -> bool {
         self.id.is_none()
-            && self.name.is_none()
             && self.description.is_none()
             && self.customer_id.is_none()
             && self.project_id.is_none()
@@ -92,7 +87,6 @@ impl From<ValueObjectError> for WorksheetUserInputError {
 #[derive(Debug, Clone, PartialEq)]
 pub struct WorksheetUserInput {
     pub id: ValueObjectOptional<UuidVO>,
-    pub name: ValueObjectRequired<WorksheetName>,
     pub description: ValueObjectOptional<WorksheetDescription>,
     pub customer_id: ValueObjectRequired<UuidVO>,
     pub project_id: ValueObjectOptional<UuidVO>,
@@ -110,13 +104,6 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
             .parse::<ValueObjectOptional<UuidVO>>()
             .inspect_err(|e| {
                 error.id = Some(e.to_string());
-            });
-
-        let name = value
-            .name
-            .parse::<ValueObjectRequired<WorksheetName>>()
-            .inspect_err(|e| {
-                error.name = Some(e.to_string());
             });
 
         let status = value
@@ -150,7 +137,6 @@ impl TryFrom<WorksheetUserInputHelper> for WorksheetUserInput {
         if error.is_empty() {
             Ok(WorksheetUserInput {
                 id: id?,
-                name: name?,
                 description: description?,
                 customer_id: customer_id?,
                 project_id: project_id?,
@@ -173,7 +159,6 @@ mod tests {
         let customer_id = Uuid::now_v7();
         let user_input = WorksheetUserInput::try_from(WorksheetUserInputHelper {
             id: None,
-            name: String::from("Worksheet 1"),
             description: String::from("description"),
             customer_id: customer_id.to_string(),
             project_id: String::from(""),
@@ -182,7 +167,6 @@ mod tests {
         .unwrap();
 
         assert!(!user_input.id.is_present());
-        assert_eq!(user_input.name.as_str().unwrap(), "Worksheet 1");
         assert_eq!(user_input.description.as_str().unwrap(), "description");
         assert_eq!(user_input.customer_id.as_uuid().unwrap(), customer_id);
         assert!(!user_input.project_id.is_present());
@@ -193,7 +177,6 @@ mod tests {
         let invalid_description = "a".repeat(3001);
         let user_input = WorksheetUserInput::try_from(WorksheetUserInputHelper {
             id: None,
-            name: String::from(""),
             description: invalid_description,
             customer_id: String::from("invalid"),
             project_id: String::from(""),
@@ -202,7 +185,6 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(user_input.id, None);
-        assert_eq!(user_input.name.unwrap(), ValueObjectError::REQUIRED);
         assert_eq!(
             user_input.description.unwrap(),
             WorksheetDescription::VALIDATION_ERROR

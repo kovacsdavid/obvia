@@ -33,20 +33,19 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card.tsx";
-import { GlobalError, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { formatDateLocal, formatNumber } from "@/lib/utils.ts";
 import type { WorksheetResolved } from "@/components/modules/worksheets/lib/interface.ts";
 import { useNavigate } from "react-router";
-import { useSimpleError } from "@/hooks/use_simple_error.ts";
 import { Plus } from "lucide-react";
 import { Link as LinkIcon } from "lucide-react";
 import ActivityFeed from "@/components/modules/activity_feed/ActivityFeed";
 import { useAuth } from "@/hooks/use_auth";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { handleApiResult } from "@/lib/api/handleApiResult";
 
 export default function View() {
     const [data, setData] = React.useState<WorksheetResolved | null>(null);
-    const { errors, setErrors, unexpectedError } = useSimpleError();
     const dispatch = useAppDispatch();
     const params = useParams();
     const navigate = useNavigate();
@@ -54,32 +53,22 @@ export default function View() {
 
     useEffect(() => {
         if (typeof params["id"] === "string") {
-            dispatch(get_resolved(params["id"])).then(async (response) => {
-                if (get_resolved.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        if (
-                            typeof response.payload.jsonData?.data !==
-                            "undefined"
-                        ) {
-                            setData(response.payload.jsonData.data);
-                        }
-                    } else if (
-                        typeof response.payload.jsonData?.error !== "undefined"
-                    ) {
-                        setErrors(response.payload.jsonData.error);
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            });
+            dispatch(get_resolved({ uuid: params["id"] }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setData(data);
+                            }
+                        },
+                    });
+                });
         }
-    }, [dispatch, params, setErrors, unexpectedError]);
+    }, [dispatch, params]);
 
     return (
         <>
-            <GlobalError error={errors} />
             {data !== null ? (
                 <>
                     <Card className={"max-w-3xl mx-auto"}>
@@ -91,11 +80,7 @@ export default function View() {
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>Azonosító</TableCell>
-                                        <TableCell>{data.id}</TableCell>
-                                    </TableRow>
-                                    <TableRow>
-                                        <TableCell>Név</TableCell>
-                                        <TableCell>{data.name}</TableCell>
+                                        <TableCell>{data.display_id}</TableCell>
                                     </TableRow>
                                     <TableRow>
                                         <TableCell>Leírás</TableCell>

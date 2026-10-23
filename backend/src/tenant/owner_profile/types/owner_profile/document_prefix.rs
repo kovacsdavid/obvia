@@ -18,15 +18,14 @@
  */
 
 use crate::common::value_object::*;
+use regex::Regex;
 use std::fmt::Display;
-use unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct DocumentPrefix(String);
 
 impl DocumentPrefix {
-    pub const VALIDATION_ERROR: &'static str =
-        "A dokumentum előtag nem lehet 10 karakternél hosszabb";
+    pub const VALIDATION_ERROR: &'static str = "A dokumentum előtag 1–10 karakterből állhat, és csak nagybetűket (A–Z) és számokat (0–9) tartalmazhat";
 }
 
 impl ValueObjectData for DocumentPrefix {
@@ -40,7 +39,7 @@ impl ValueObjectData for DocumentPrefix {
         }
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
-        match self.0.graphemes(true).count() <= 10 && self.0.chars().count() <= 10 {
+        match Regex::new(r"^[A-Z0-9]{1,10}$")?.is_match(&self.0) {
             true => Ok(()),
             false => Err(ValueObjectError::InvalidInput(Self::VALIDATION_ERROR)),
         }

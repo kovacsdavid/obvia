@@ -68,7 +68,7 @@ impl TasksRepository for PgPool {
             SELECT
                 tasks.id as id,
                 tasks.worksheet_id as worksheet_id,
-                worksheets.name as worksheet,
+                worksheets.display_id as worksheet,
                 tasks.service_id as service_id,
                 services.name as service,
                 tasks.currency_code as currency_code,
@@ -107,7 +107,7 @@ impl TasksRepository for PgPool {
             SELECT
                 tasks.id as id,
                 tasks.worksheet_id as worksheet_id,
-                worksheets.name as worksheet,
+                worksheets.display_id as worksheet,
                 tasks.service_id as service_id,
                 services.name as service,
                 tasks.currency_code as currency_code,
@@ -192,7 +192,7 @@ impl TasksRepository for PgPool {
                     SELECT
                         tasks.id as id,
                         tasks.worksheet_id as worksheet_id,
-                        worksheets.name as worksheet,
+                        worksheets.display_id as worksheet,
                         tasks.service_id as service_id,
                         services.name as service,
                         tasks.currency_code as currency_code,
@@ -235,7 +235,7 @@ impl TasksRepository for PgPool {
                     SELECT
                         tasks.id as id,
                         tasks.worksheet_id as worksheet_id,
-                        worksheets.name as worksheet,
+                        worksheets.display_id as worksheet,
                         tasks.service_id as service_id,
                         services.name as service,
                         tasks.currency_code as currency_code,

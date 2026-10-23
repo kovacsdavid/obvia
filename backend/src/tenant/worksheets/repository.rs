@@ -42,11 +42,13 @@ pub trait WorksheetsRepository: Send + Sync {
     ) -> RepositoryResult<(PaginatorMeta, Vec<WorksheetResolved>)>;
     async fn insert(
         &self,
-        worksheet_user_input: WorksheetUserInput,
+        worksheet_user_input: &WorksheetUserInput,
         sub: Uuid,
     ) -> RepositoryResult<Worksheet>;
-    async fn update(&self, worksheet_user_input: WorksheetUserInput)
-    -> RepositoryResult<Worksheet>;
+    async fn update(
+        &self,
+        worksheet_user_input: &WorksheetUserInput,
+    ) -> RepositoryResult<Worksheet>;
     async fn delete_by_id(&self, id: Uuid) -> RepositoryResult<()>;
 }
 
@@ -94,7 +96,7 @@ impl WorksheetsRepository for PgPool {
                                 GROUP BY worksheet_id)
             SELECT
                 worksheets.id as id,
-                worksheets.name as name,
+                worksheets.display_id as display_id,
                 worksheets.description as description,
                 worksheets.customer_id as customer_id,
                 customers.name as customer,
@@ -126,7 +128,7 @@ impl WorksheetsRepository for PgPool {
     }
     async fn get_select_list_items(&self) -> RepositoryResult<Vec<SelectOption>> {
         Ok(sqlx::query_as::<_, SelectOption>(
-            "SELECT worksheets.id::VARCHAR as value, worksheets.name as title FROM worksheets WHERE deleted_at IS NULL ORDER BY name",
+            "SELECT worksheets.id::VARCHAR as value, worksheets.display_id as title FROM worksheets WHERE deleted_at IS NULL ORDER BY display_id",
         )
         .fetch_all(self)
         .await?)
@@ -197,7 +199,7 @@ impl WorksheetsRepository for PgPool {
                                         WHERE tasks.deleted_at IS NULL
                                         GROUP BY worksheet_id)
                     SELECT worksheets.id                              as id,
-                           worksheets.name                            as name,
+                           worksheets.display_id                      as display_id,
                            worksheets.description                     as description,
                            worksheets.customer_id                     as customer_id,
                            customers.name                             as customer,
@@ -261,7 +263,7 @@ impl WorksheetsRepository for PgPool {
                                         WHERE tasks.deleted_at IS NULL
                                         GROUP BY worksheet_id)
                     SELECT worksheets.id                              as id,
-                           worksheets.name                            as name,
+                           worksheets.display_id                      as display_id,
                            worksheets.description                     as description,
                            worksheets.customer_id                     as customer_id,
                            customers.name                             as customer,
@@ -307,21 +309,42 @@ impl WorksheetsRepository for PgPool {
             worksheets,
         ))
     }
+
     async fn insert(
         &self,
-        worksheet_user_input: WorksheetUserInput,
+        worksheet_user_input: &WorksheetUserInput,
         sub: Uuid,
     ) -> Result<Worksheet, RepositoryError> {
+        let prefix: Option<String> = sqlx::query_scalar(
+            "SELECT document_prefix FROM owner_profile
+                WHERE document_prefix ~ '^[A-Z0-9]{1,10}$'
+                LIMIT 1",
+        )
+        .fetch_optional(self)
+        .await?;
+
+        let _ = prefix.ok_or(RepositoryError::DocumentPrefixNotSet)?;
+
         Ok(sqlx::query_as::<_, Worksheet>(
-            "INSERT INTO worksheets (name, description, customer_id, project_id, created_by_id, status)\
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
+            "WITH counter AS (
+                 INSERT INTO document_counters (document_type, year, last_value)
+                 VALUES ('worksheet', EXTRACT(YEAR FROM now())::int, 1)
+                 ON CONFLICT (document_type, year)
+                 DO UPDATE SET last_value = document_counters.last_value + 1
+                 RETURNING year, last_value
+             )
+             INSERT INTO worksheets
+                 (display_id, display_year, display_seq, description, customer_id,
+                  project_id, created_by_id, status)
+             SELECT (SELECT document_prefix FROM owner_profile LIMIT 1)
+                        || '-ML-' || counter.year || '-' || counter.last_value,
+                    counter.year,
+                    counter.last_value,
+                    $1, $2, $3, $4, $5
+             FROM counter
+             RETURNING *",
         )
-        .bind(worksheet_user_input.name.as_str()?)
-        .bind(
-            worksheet_user_input
-                .description
-                .as_str(),
-        )
+        .bind(worksheet_user_input.description.as_str())
         .bind(worksheet_user_input.customer_id.as_uuid()?)
         .bind(worksheet_user_input.project_id.as_uuid())
         .bind(sub)
@@ -332,7 +355,7 @@ impl WorksheetsRepository for PgPool {
 
     async fn update(
         &self,
-        worksheet_user_input: WorksheetUserInput,
+        worksheet_user_input: &WorksheetUserInput,
     ) -> RepositoryResult<Worksheet> {
         let id = worksheet_user_input
             .id
@@ -341,17 +364,15 @@ impl WorksheetsRepository for PgPool {
         Ok(sqlx::query_as::<_, Worksheet>(
             r#"
             UPDATE worksheets
-            SET name = $1,
-                description = $2,
-                customer_id = $3,
-                project_id = $4,
-                status = $5
-            WHERE id = $6
+            SET description = $1,
+                customer_id = $2,
+                project_id = $3,
+                status = $4
+            WHERE id = $5
                 AND deleted_at IS NULL
             RETURNING *
             "#,
         )
-        .bind(worksheet_user_input.name.as_str()?)
         .bind(worksheet_user_input.description.as_str())
         .bind(worksheet_user_input.customer_id.as_uuid()?)
         .bind(worksheet_user_input.project_id.as_uuid())

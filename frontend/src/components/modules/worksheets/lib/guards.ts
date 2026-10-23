@@ -30,6 +30,7 @@ import type {
     PaginatedWorksheetResolvedListResponse,
     UpdateWorksheetResponse,
     Worksheet,
+    WorksheetError,
     WorksheetResolved,
     WorksheetResolvedList,
     WorksheetResolvedResponse,
@@ -54,8 +55,8 @@ export function isWorksheetResolved(data: unknown): data is WorksheetResolved {
         data !== null &&
         "id" in data &&
         typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
+        "display_id" in data &&
+        typeof data.display_id === "string" &&
         "description" in data &&
         (data.description === null || typeof data.description === "string") &&
         "customer_id" in data &&
@@ -109,8 +110,8 @@ export function isWorksheet(data: unknown): data is Worksheet {
         data !== null &&
         "id" in data &&
         typeof data.id === "string" &&
-        "name" in data &&
-        typeof data.name === "string" &&
+        "display_id" in data &&
+        typeof data.display_id === "string" &&
         "description" in data &&
         (data.description === null || typeof data.description === "string") &&
         "customer_id" in data &&
@@ -127,6 +128,23 @@ export function isWorksheet(data: unknown): data is Worksheet {
         typeof data.updated_at === "string" &&
         "deleted_at" in data &&
         (data.deleted_at === null || typeof data.deleted_at === "string")
+    );
+}
+
+export function isWorksheetError(data: unknown): data is WorksheetError {
+    return (
+        typeof data === "object" &&
+        data !== null &&
+        "id" in data &&
+        (data.id === null || typeof data.id === "string") &&
+        "description" in data &&
+        (data.description === null || typeof data.description === "string") &&
+        "customer_id" in data &&
+        (data.customer_id === null || typeof data.customer_id === "string") &&
+        "project_id" in data &&
+        (data.project_id === null || typeof data.project_id === "string") &&
+        "status" in data &&
+        (data.status === null || typeof data.status === "string")
     );
 }
 

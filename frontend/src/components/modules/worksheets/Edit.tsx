@@ -18,7 +18,7 @@
  */
 
 import React, { useCallback, useEffect } from "react";
-import { Button, FieldError, GlobalError, Input } from "@/components/ui";
+import { Button, FieldErrorV2, Input } from "@/components/ui";
 import { useAppDispatch } from "@/store/hooks.ts";
 import {
     create,
@@ -34,7 +34,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select.tsx";
-import { useFormError } from "@/hooks/use_form_error.ts";
 import { useSelectList } from "@/hooks/use_select_list.ts";
 import { useNavigate } from "react-router";
 import { useParams } from "react-router";
@@ -42,7 +41,7 @@ import { ConditionalCard } from "@/components/ui/card.tsx";
 import { Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog.tsx";
 import CustomersEdit from "@/components/modules/customers/Edit.tsx";
-import type { Worksheet } from "./lib/interface";
+import type { Worksheet, WorksheetError } from "./lib/interface";
 import type { Customer } from "@/components/modules/customers/lib/interface.ts";
 import {
     Field,
@@ -51,6 +50,8 @@ import {
     FieldLegend,
     FieldSet,
 } from "@/components/ui/field";
+import { handleApiResult } from "@/lib/api/handleApiResult";
+import { toast } from "@/components/ui/toast-lib";
 
 interface EditProps {
     showCard?: boolean;
@@ -63,15 +64,13 @@ export default function Edit({
     onSuccess = undefined,
     onCancel = undefined,
 }: EditProps) {
-    const [name, setName] = React.useState("");
     const [description, setDescription] = React.useState("");
     const [customerId, setCustomerId] = React.useState("");
     const [status, setStatus] = React.useState("active");
     const [customersList, setCustomersList] = React.useState<SelectOptionList>(
         [],
     );
-    const { errors, setErrors, unexpectedError, isInvalidField, resetError } =
-        useFormError();
+    const [errors, setErrors] = React.useState<WorksheetError | null>(null);
     const [openNewCustomerDialog, setOpenNewCustomerDialog] =
         React.useState(false);
     const dispatch = useAppDispatch();
@@ -80,50 +79,37 @@ export default function Edit({
     const params = useParams();
     const id = React.useMemo(() => params["id"] ?? null, [params]);
 
-    const handleCreate = useCallback(() => {
-        dispatch(
+    const handleCreate = async () => {
+        const result = await dispatch(
             create({
-                id,
-                name,
-                description,
-                customerId,
-                projectId: "",
-                status,
+                input: {
+                    id,
+                    description,
+                    customerId,
+                    projectId: "",
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (create.fulfilled.match(response)) {
-                if (response.payload.statusCode === 201) {
-                    if (
-                        typeof onSuccess === "function" &&
-                        typeof response.payload.jsonData?.data !== "undefined"
-                    ) {
-                        onSuccess(response.payload.jsonData.data);
-                    } else {
-                        navigate("/munkalap/lista");
-                    }
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
+        ).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: ({ data }) => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                if (
+                    typeof onSuccess === "function" &&
+                    typeof data !== "undefined"
                 ) {
-                    setErrors(response.payload.jsonData.error);
+                    onSuccess(data);
                 } else {
-                    unexpectedError(response.payload.statusCode);
+                    navigate("/munkalap/lista");
                 }
-            } else {
-                unexpectedError();
-            }
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        dispatch,
-        id,
-        name,
-        description,
-        customerId,
-        status,
-        onSuccess,
-        navigate,
-        setErrors,
-        unexpectedError,
-    ]);
+    };
 
     const handleCancel = useCallback(
         (e: React.MouseEvent) => {
@@ -137,98 +123,67 @@ export default function Edit({
         [navigate, onCancel],
     );
 
-    const handleUpdate = useCallback(() => {
-        dispatch(
+    const handleUpdate = async () => {
+        const result = await dispatch(
             update({
-                id,
-                name,
-                description,
-                customerId,
-                projectId: "",
-                status,
+                input: {
+                    id,
+                    description,
+                    customerId,
+                    projectId: "",
+                    status,
+                },
             }),
-        ).then(async (response) => {
-            if (update.fulfilled.match(response)) {
-                if (response.payload.statusCode === 200) {
-                    navigate("/munkalap/lista");
-                } else if (
-                    typeof response.payload.jsonData?.error !== "undefined"
-                ) {
-                    setErrors(response.payload.jsonData.error);
-                } else {
-                    unexpectedError(response.payload.statusCode);
-                }
-            } else {
-                unexpectedError();
-            }
+        ).unwrap();
+
+        handleApiResult(result, {
+            onSuccess: () => {
+                toast.add({
+                    type: "success",
+                    title: "A mentés sikeresen megtörtént!",
+                });
+                navigate("/munkalap/lista");
+            },
+            onFieldErrors: setErrors,
         });
-    }, [
-        customerId,
-        description,
-        dispatch,
-        id,
-        name,
-        navigate,
-        setErrors,
-        status,
-        unexpectedError,
-    ]);
+    };
 
     const loadLists = useCallback(async () => {
         return Promise.all([
-            dispatch(select_list("customers")).then((response) => {
-                if (select_list.fulfilled.match(response)) {
-                    if (response.payload.statusCode === 200) {
-                        setListResponse(
-                            response.payload,
-                            setCustomersList,
-                            setErrors,
-                        );
-                    } else {
-                        unexpectedError(response.payload.statusCode);
-                    }
-                } else {
-                    unexpectedError();
-                }
-            }),
+            dispatch(select_list({ list: "customers" }))
+                .unwrap()
+                .then((result) => {
+                    handleApiResult(result, {
+                        onSuccess: ({ data }) => {
+                            if (typeof data !== "undefined") {
+                                setCustomersList(data);
+                            } else {
+                                setCustomersList([]);
+                            }
+                        },
+                    });
+                }),
         ]);
-    }, [dispatch, setErrors, setListResponse, unexpectedError]);
+    }, [dispatch]);
 
     useEffect(() => {
-        loadLists().then(() => {
+        loadLists().then(async () => {
             if (typeof id === "string") {
-                dispatch(get(id)).then(async (response) => {
-                    if (get.fulfilled.match(response)) {
-                        if (response.payload.statusCode === 200) {
-                            if (
-                                typeof response.payload.jsonData?.data !==
-                                "undefined"
-                            ) {
-                                const data = response.payload.jsonData.data;
-                                setName(data.name);
-                                setDescription(data.description ?? "");
-                                setCustomerId(data.customer_id);
-                                setStatus(data.status ?? "");
-                            }
-                        } else if (
-                            typeof response.payload.jsonData?.error !==
-                            "undefined"
-                        ) {
-                            setErrors({
-                                message:
-                                    response.payload.jsonData.error.message,
-                                fields: {},
-                            });
-                        } else {
-                            unexpectedError(response.payload.statusCode);
+                const result = await dispatch(get({ uuid: id })).unwrap();
+
+                handleApiResult(result, {
+                    onSuccess: ({ data }) => {
+                        if (typeof data !== "undefined") {
+                            setDescription(data.description ?? "");
+                            setCustomerId(data.customer_id);
+                            setStatus(data.status ?? "");
                         }
-                    } else {
-                        unexpectedError();
-                    }
+                    },
+                    onFieldErrors: setErrors,
                 });
             }
         });
-    }, [dispatch, id, setErrors, unexpectedError, setListResponse, loadLists]);
+    }, [dispatch, id, setErrors, setListResponse, loadLists]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -248,9 +203,17 @@ export default function Edit({
         });
     };
 
+    const clearError = (field: keyof WorksheetError) => {
+        setErrors((prev) =>
+            prev && prev[field] != null ? { ...prev, [field]: null } : prev,
+        );
+    };
+
+    const isInvalidField = (field: keyof WorksheetError) =>
+        typeof errors?.[field] === "string";
+
     return (
         <>
-            <GlobalError error={errors} />
             <Dialog
                 open={openNewCustomerDialog}
                 onOpenChange={setOpenNewCustomerDialog}
@@ -275,20 +238,6 @@ export default function Edit({
                             {`Munkalap ${id ? "módosítás" : "létrehozás"}`}
                         </FieldLegend>
                         <FieldGroup>
-                            <Field data-invalid={isInvalidField("name")}>
-                                <FieldLabel htmlFor="name">Név</FieldLabel>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => {
-                                        resetError("name");
-                                        setName(e.target.value);
-                                    }}
-                                    aria-invalid={isInvalidField("name")}
-                                />
-                                <FieldError error={errors} field={"name"} />
-                            </Field>
                             <Field data-invalid={isInvalidField("description")}>
                                 <FieldLabel htmlFor="description">
                                     Leírás
@@ -298,15 +247,12 @@ export default function Edit({
                                     type="text"
                                     value={description}
                                     onChange={(e) => {
-                                        resetError("description");
+                                        clearError("description");
                                         setDescription(e.target.value);
                                     }}
                                     aria-invalid={isInvalidField("description")}
                                 />
-                                <FieldError
-                                    error={errors}
-                                    field={"description"}
-                                />
+                                <FieldErrorV2 error={errors?.description} />
                             </Field>
                             <Field data-invalid={isInvalidField("customer_id")}>
                                 <div className="flex items-center w-full">
@@ -330,7 +276,7 @@ export default function Edit({
                                 <Select
                                     value={customerId}
                                     onValueChange={(val) => {
-                                        resetError("customer_id");
+                                        clearError("customer_id");
                                         setCustomerId(val);
                                     }}
                                 >
@@ -355,10 +301,7 @@ export default function Edit({
                                         })}
                                     </SelectContent>
                                 </Select>
-                                <FieldError
-                                    error={errors}
-                                    field={"customer_id"}
-                                />
+                                <FieldErrorV2 error={errors?.customer_id} />
                             </Field>
                             <Field data-invalid={isInvalidField("status")}>
                                 <FieldLabel htmlFor="status">
@@ -367,7 +310,7 @@ export default function Edit({
                                 <Select
                                     value={status}
                                     onValueChange={(val) => {
-                                        resetError("status");
+                                        clearError("status");
                                         setStatus(val);
                                     }}
                                 >
@@ -386,7 +329,7 @@ export default function Edit({
                                         </SelectItem>
                                     </SelectContent>
                                 </Select>
-                                <FieldError error={errors} field={"status"} />
+                                <FieldErrorV2 error={errors?.status} />
                             </Field>
                         </FieldGroup>
                     </FieldSet>

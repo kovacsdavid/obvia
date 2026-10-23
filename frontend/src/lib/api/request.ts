@@ -60,15 +60,20 @@ function parseRetryAfter(header: string | null): number | undefined {
         : Math.max(0, Math.ceil((date - Date.now()) / 1000));
 }
 
-async function readJson(response: Response): Promise<unknown> {
+async function processResponse(response: Response): Promise<unknown> {
     if (response.status === 204) return undefined;
     const type = response.headers.get("Content-Type") ?? "";
-    if (!type.includes("application/json")) return undefined;
-    try {
-        return await response.json();
-    } catch {
-        return undefined;
+    if (type.includes("application/json")) {
+        try {
+            return await response.json();
+        } catch {
+            return undefined;
+        }
     }
+    if (type.includes("application/pdf")) {
+        return response.bytes();
+    }
+    return undefined;
 }
 
 export async function apiRequest<T, E = never>(
@@ -127,7 +132,7 @@ export async function apiRequest<T, E = never>(
         };
     }
 
-    const data = await readJson(response);
+    const data = await processResponse(response);
 
     if (response.ok) {
         return guard(data)

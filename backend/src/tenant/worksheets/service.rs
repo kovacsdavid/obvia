@@ -137,6 +137,12 @@ impl From<WorksheetsServiceError> for AppError {
                 AppErrorVisibility::UserFacing,
                 json!({"message": "Nem található"}),
             ),
+            WorksheetsServiceError::Repository(RepositoryError::DocumentPrefixNotSet) => Self::new(
+                Level::DEBUG,
+                StatusCode::CONFLICT,
+                AppErrorVisibility::UserFacing,
+                json!({"message": value.to_string()}),
+            ),
             _ => Self::new(
                 Level::ERROR,
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -203,12 +209,8 @@ where
     async fn insert(&self, payload: &WorksheetUserInput) -> WorksheetsServiceResult<Worksheet> {
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
-            .insert(payload.clone(), self.claims()?.sub())
+            .worksheets_repo(self.active_tenant()?)?
+            .insert(payload, self.claims()?.sub())
             .await?)
     }
 
@@ -216,14 +218,10 @@ where
         &self,
         select_list: &str,
     ) -> WorksheetsServiceResult<Vec<SelectOption>> {
-        let active_tenant = self
-            .claims()?
-            .active_tenant()
-            .ok_or(WorksheetsServiceError::Unauthorized)?;
         Ok(match WorksheetsSelectLists::from_str(select_list)? {
             WorksheetsSelectLists::Customers => {
                 self.module()
-                    .customers_repo(active_tenant)?
+                    .customers_repo(self.active_tenant()?)?
                     .get_select_list_items()
                     .await?
             }
@@ -232,11 +230,7 @@ where
     async fn get_resolved(&self, payload: Uuid) -> WorksheetsServiceResult<WorksheetResolved> {
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
+            .worksheets_repo(self.active_tenant()?)?
             .get_resolved_by_id(payload)
             .await?)
     }
@@ -244,11 +238,7 @@ where
     async fn get(&self, payload: Uuid) -> WorksheetsServiceResult<Worksheet> {
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
+            .worksheets_repo(self.active_tenant()?)?
             .get_by_id(payload)
             .await?)
     }
@@ -261,22 +251,14 @@ where
         }
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
-            .update(payload.clone())
+            .worksheets_repo(self.active_tenant()?)?
+            .update(payload)
             .await?)
     }
     async fn delete(&self, payload: Uuid) -> WorksheetsServiceResult<()> {
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
+            .worksheets_repo(self.active_tenant()?)?
             .delete_by_id(payload)
             .await?)
     }
@@ -287,21 +269,14 @@ where
     ) -> WorksheetsServiceResult<(PaginatorMeta, Vec<WorksheetResolved>)> {
         Ok(self
             .module()
-            .worksheets_repo(
-                self.claims()?
-                    .active_tenant()
-                    .ok_or(WorksheetsServiceError::Unauthorized)?,
-            )?
+            .worksheets_repo(self.active_tenant()?)?
             .get_paged(get_query)
             .await?)
     }
 
     /// Creates a pdf from Worksheet.
     async fn print(&self, payload: Uuid) -> WorksheetsServiceResult<Vec<u8>> {
-        let active_tenant = self
-            .claims()?
-            .active_tenant()
-            .ok_or(WorksheetsServiceError::Unauthorized)?;
+        let active_tenant = self.active_tenant()?;
         let tz = self.claims()?.tz()?;
 
         // Loads worksheet data.

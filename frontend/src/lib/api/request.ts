@@ -71,7 +71,11 @@ async function processResponse(response: Response): Promise<unknown> {
         }
     }
     if (type.includes("application/pdf")) {
-        return response.bytes();
+        try {
+            return response.bytes();
+        } catch {
+            return undefined;
+        }
     }
     return undefined;
 }

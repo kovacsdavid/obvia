@@ -36,7 +36,7 @@ impl ValueObjectData for FilterBy {
     }
     fn validate(&self) -> Result<(), ValueObjectError> {
         match self.0.as_str() {
-            "name" => Ok(()),
+            "display_id" => Ok(()),
             _ => Err(ValueObjectError::InvalidInput("Hibás sorrend formátum")),
         }
     }
@@ -58,8 +58,10 @@ mod tests {
 
     #[test]
     fn test_valid_filter_by() {
-        let filter_by = "name".parse::<ValueObjectRequired<FilterBy>>().unwrap();
-        assert_eq!(filter_by.as_str().unwrap(), "name");
+        let filter_by = "display_id"
+            .parse::<ValueObjectRequired<FilterBy>>()
+            .unwrap();
+        assert_eq!(filter_by.as_str().unwrap(), "display_id");
     }
 
     #[test]

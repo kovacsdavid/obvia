@@ -133,7 +133,7 @@ export async function get(
     token: string | null,
     signal?: AbortSignal,
 ): Promise<ApiResult<WorksheetResponse>> {
-    return apiRequest(`/api/worksheets/get_resolved?uuid=${uuid}`, {
+    return apiRequest(`/api/worksheets/get?uuid=${uuid}`, {
         method: "GET",
         token,
         signal,

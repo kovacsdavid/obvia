@@ -615,7 +615,10 @@ mod tests {
         assert_eq!(query_from_str, query_constructed);
     }
 
+    #[test]
+    #[ignore]
     fn test_filtering_can_handle_strangely_placed_pipes() {
+        // TODO: it would be nice to handle pipes nicely too
         let test_str = "filtering:type-||||some type ||||";
         let query_from_str =
             ResourceQuery::<TestOrderBy, TestFilterBy>::from_str(test_str).unwrap();
